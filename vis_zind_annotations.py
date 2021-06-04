@@ -10,6 +10,8 @@ from typing import Any, List, NamedTuple, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
+from argoverse.utils.sim2 import Sim2
+
 # The type of supported polygon/wall/point objects.
 class PolygonType(Enum):
     ROOM = "room"
