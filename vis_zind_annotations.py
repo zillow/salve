@@ -36,44 +36,6 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
 
 
-# When drawing zFM floor plans
-DEFAULT_LINE_THICKNESS = 4
-DEFAULT_RENDER_RESOLUTION = 2048
-
-
-class Point2D(collections.namedtuple("Point2D", "x y")):
-    @classmethod
-    def from_tuple(cls, t: Tuple[np.float, np.float]):
-        return cls._make(t)
-
-# Polygon class that can be used to represent polygons/lines as a list of points, the type and (optional) name
-class Polygon(NamedTuple("Polygon", [("type", PolygonType), ("name", str), ("points", List[Point2D])])):
-    @staticmethod
-    def list_to_points(points: List[Tuple[np.float, np.float]]):
-        return [Point2D._make(p) for p in points]
-
-    @property
-    def to_list(self):
-        return [(p.x, p.y) for p in self.points]
-
-    @property
-    def num_points(self):
-        return len(self.points)
-
-    @property
-    def to_shapely_poly(self):
-        # Use this function when converting a closed room shape polygon
-        return shapely.geometry.polygon.Polygon(self.to_list)
-
-    @property
-    def to_shapely_line(self):
-        # Use this function when converting W/D/O elements since those are represented as lines.
-        return shapely.geometry.LineString(self.to_list)
-
-
-
-
-
 def read_json_file(json_file_name: str) -> Any:
     """ """
     with open(json_file_name) as json_file:
@@ -112,10 +74,14 @@ OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_01"
 
 
 
-def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim2
+def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim2:
     """Generate a Similarity(2) object from a dictionary storing transformation parameters.
 
     Note: ZinD stores (sRp + t), instead of s(Rp + t), so we have to divide by s to create Sim2.
+
+    Args:
+        transform_data: dictionary of the form
+            {'translation': [0.015, -0.0022], 'rotation': -352.53, 'scale': 0.40}
     """
     scale = transform_data["scale"]
     t = np.array(transform_data["translation"]) / scale
@@ -136,7 +102,6 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim
     # fmt: on
 
     global_SIM2_local = Sim2(R=R, t=t, s=scale)
-    
     return global_SIM2_local
 
 
@@ -158,7 +123,6 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
             for partial_room_data in complete_room_data.values():
                 for pano_data in partial_room_data.values():
                     #if pano_data["is_primary"]:
-                    import pdb; pdb.set_trace()
 
                     global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
 
@@ -188,8 +152,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
                     text_loc = pano_position[0] + noise
                     plt.text(-1 * (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize='xx-small') #, 'x-small', 'small', 'medium',)
 
-
-
+                    
                     # DWO objects
                     geometry_type = "layout_raw" #, "layout_complete", "layout_visible"]
                     for wdo_type in ["windows", "doors", "openings"]:
