@@ -16,6 +16,7 @@ from typing import Any, Dict, List, NamedTuple, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
+from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 
 # The type of supported polygon/wall/point objects.
@@ -35,12 +36,6 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
 
-
-def read_json_file(json_file_name: str) -> Any:
-    """ """
-    with open(json_file_name) as json_file:
-        floor_map_json = json.load(json_file)
-    return floor_map_json
 
 def main():
     """
@@ -124,6 +119,8 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
                 for pano_data in partial_room_data.values():
                     #if pano_data["is_primary"]:
 
+                    print('Camera height: ', pano_data['camera_height'])
+
                     global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
 
                     room_vertices_local = np.asarray(pano_data["layout_raw"]["vertices"])
@@ -152,7 +149,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
                     text_loc = pano_position[0] + noise
                     plt.text(-1 * (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize='xx-small') #, 'x-small', 'small', 'medium',)
 
-                    
+
                     # DWO objects
                     geometry_type = "layout_raw" #, "layout_complete", "layout_visible"]
                     for wdo_type in ["windows", "doors", "openings"]:
