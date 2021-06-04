@@ -1,11 +1,17 @@
 
+"""
+Based on code found at
+https://gitlab.zgtools.net/zillow/rmx/research/scripts-insights/open_platform_utils/-/raw/zind_cleanup/zfm360/visualize_zfm360_data.py
+"""
+
+
 import collections
 import glob
 import json
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Any, List, NamedTuple, Tuple
+from typing import Any, Dict, List, NamedTuple, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -66,57 +72,6 @@ class Polygon(NamedTuple("Polygon", [("type", PolygonType), ("name", str), ("poi
 
 
 
-class Transformation2D(collections.namedtuple("Transformation", "rotation_matrix scale translation")):
-    """Class to handle relative rotation/scale/translation of room shape coordinates
-    to transform them from local to the global frame of reference.
-    """
-
-    @classmethod
-    def from_zfm_data(cls, *, position: Point2D, rotation: float, scale: float):
-        """Create a transformation object from the zFM merged top-down geometry data
-        based on the given 2D translation (position), rotation angle and scale.
-
-        :param position: 2D translation (in the x-y plane)
-        :param rotation: Rotation angle in degrees (in the x-y plane)
-        :param scale: Scale factor for all the coordinates
-
-        :return: A transformation object that can later be applied on a list of
-        coordinates in local frame of reference to move them into the global
-        (merged floor map) frame of reference.
-        """
-        translation = np.array([position.x, position.y]).reshape(1, 2)
-        rotation_angle = np.radians(rotation)
-
-        # fmt: off
-        rotation_matrix = np.array(
-            [
-                [np.cos(rotation_angle), -np.sin(rotation_angle)],
-                [np.sin(rotation_angle), np.cos(rotation_angle)]
-            ]
-        )
-        # fmt: on
-
-        return cls(rotation_matrix=rotation_matrix, scale=scale, translation=translation)
-
-    def to_global(self, coordinates: np.ndarray) -> np.ndarray:
-        """Apply transformation on a list of 2D points to transform them
-        from local to global frame of reference.
-
-        :param coordinates: Array of shape (N,2) representing 2D coordinates in local frame of reference -> typo said List before
-
-        :return: (N,2) array representing the transformed 2D coordinates.
-        """
-        coordinates = coordinates.dot(self.rotation_matrix.T) * self.scale
-        coordinates += self.translation
-
-        return coordinates
-
-    def apply_inverse(self, coordinates: np.ndarray) -> np.ndarray:
-
-        coordinates -= self.translation
-        coordinates = coordinates.dot(self.rotation_matrix) / self.scale
-
-        return coordinates
 
 
 def read_json_file(json_file_name: str) -> Any:
@@ -156,6 +111,35 @@ def main():
 OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_01"
 
 
+
+def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim2
+    """Generate a Similarity(2) object from a dictionary storing transformation parameters.
+
+    Note: ZinD stores (sRp + t), instead of s(Rp + t), so we have to divide by s to create Sim2.
+    """
+    scale = transform_data["scale"]
+    t = np.array(transform_data["translation"]) / scale
+    theta_deg = transform_data["rotation"]
+
+    theta_rad = np.deg2rad(theta_deg)
+
+    s = np.sin(theta_rad)
+    c = np.cos(theta_rad)
+
+    # fmt: off
+    R = np.array(
+        [
+            [c, -s],
+            [s, c]
+        ]
+    )
+    # fmt: on
+
+    global_SIM2_local = Sim2(R=R, t=t, s=scale)
+    
+    return global_SIM2_local
+
+
 def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
     """
     floor_map_json has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'
@@ -174,14 +158,12 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
             for partial_room_data in complete_room_data.values():
                 for pano_data in partial_room_data.values():
                     #if pano_data["is_primary"]:
-                    position = Point2D.from_tuple(pano_data["floor_plan_transformation"]["translation"])
-                    rotation_angle = pano_data["floor_plan_transformation"]["rotation"]
-                    scale = pano_data["floor_plan_transformation"]["scale"]
-                    global_SIM2_local = Transformation2D.from_zfm_data(
-                        position=position, rotation=rotation_angle, scale=scale
-                    )
+                    import pdb; pdb.set_trace()
+
+                    global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
+
                     room_vertices_local = np.asarray(pano_data["layout_raw"]["vertices"])
-                    room_vertices_global = global_SIM2_local.to_global(room_vertices_local)
+                    room_vertices_global = global_SIM2_local.transform_from(room_vertices_local)
 
                     color = np.random.rand(3)
                     plt.scatter(-room_vertices_global[:,0], room_vertices_global[:,1], 10, marker='.', color=color)
@@ -191,7 +173,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
                     first_vert = room_vertices_global[0]
                     plt.plot([-last_vert[0],-first_vert[0]], [last_vert[1],first_vert[1]], color=color, alpha=0.5)
 
-                    pano_position = global_SIM2_local.to_global(np.zeros((1,2)))
+                    pano_position = global_SIM2_local.transform_from(np.zeros((1,2)))
                     plt.scatter(-pano_position[0,0], pano_position[0,1], 30, marker='+', color=color)
 
                     image_path = pano_data["image_path"]
@@ -224,10 +206,10 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
                             wdo_left_right_bound = []
                             for wdo_idx in range(num_wdo):
                                 wdo_left_right_bound.extend(wdo_vertices_local[wdo_idx * 4 : wdo_idx * 4 + 2])
-                            wdo_vertices_global = global_SIM2_local.to_global(np.array(wdo_left_right_bound))
+                            wdo_vertices_global = global_SIM2_local.transform_from(np.array(wdo_left_right_bound))
                         else:  # without cvat bbox annotation
                             raise RuntimeError("Expected CVAT, did not get CVAT")
-                            wdo_vertices_global = global_SIM2_local.to_global(wdo_vertices_local)
+                            wdo_vertices_global = global_SIM2_local.transform_from(wdo_vertices_local)
 
                         # Loop through the global coordinates
                         # Every two points in the list define windows/doors/openings by left and right boundaries, so
