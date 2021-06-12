@@ -37,6 +37,31 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
 
 
+class WDO(NamedTuple)
+    """ """
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    bottom_z: float
+    top_z: float
+
+    def vertices_local(self):
+        return (x1,y1), (x2,y2)
+
+
+class PanoData(NamedTuple):
+    """ """
+    global_SIM2_local: Sim2
+    room_vertices_local_2d: np.ndarray
+    wdo_vertices_local: List[WDO]
+
+class FloorData(NamedTuple):
+    """ """
+    floor_id
+    panos: List[PanoData]
+
+
 def main():
     """
     Questions: what is tour_data_mapping.json? -> for internal people, GUIDs to production people
@@ -65,7 +90,7 @@ def main():
         render_building(building_id, pano_dir, json_annot_fpath)
 
 
-OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_01"
+OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_10"
 
 
 
@@ -136,6 +161,15 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
 
                     pano_position = global_SIM2_local.transform_from(np.zeros((1,2)))
                     plt.scatter(-pano_position[0,0], pano_position[0,1], 30, marker='+', color=color)
+
+                    point_ahead = global_SIM2_local.transform_from(np.array([1,0]).reshape(1,2))
+                    
+                    # TODO: add patch to Argoverse, enforcing ndim on the input to `transform_from()`
+                    plt.plot(
+                        [-pano_position[0,0], -point_ahead[0,0]],
+                        [pano_position[0,1], point_ahead[0,1]],
+                        color=color
+                    )
 
                     image_path = pano_data["image_path"]
                     print(image_path)
