@@ -3,10 +3,11 @@ from typing import Tuple
 
 import gtsam
 import numpy as np
+from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Pose3, Point3Pairs, Rot3, Similarity3, Unit3
 
 
-def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Similarity3, np.ndarray]:
+def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Sim2, np.ndarray]:
     """
     Args:
         pts_a: target/reference
@@ -22,6 +23,9 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Similarity3
     atb = aSb.translation()
     asb = aSb.scale()
     pts_a_ = asb * (pts_b @ aRb.T + atb)
+
+    # Convert Similarity3 to Similarity2
+    aSb = Sim2(R=aRb[:2,:2], t=atb[:2], s=asb)
 
     return aSb, pts_a_
 
