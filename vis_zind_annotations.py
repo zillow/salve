@@ -15,6 +15,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+from gtsam import Similarity3
 
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
@@ -47,14 +48,35 @@ class WDO(NamedTuple):
     type: str
 
     @property
-    def vertices_local(self):
+    def vertices_local_2d(self) -> np.ndarray:
         """ """
         return np.array([self.pt1, self.pt2])
 
+    # TODO: come up with better name for vertices in BEV, vs. all 4 vertices
     @property
-    def vertices_global(self):
+    def vertices_global_2d(self) -> np.ndarray:
         """ """
         return self.global_SIM2_local.transform_from(self.vertices_local)
+
+    @property
+    def vertices_local_3d(self) -> np.ndarray:
+        """ """
+        x1,y1 = self.pt1
+        x2,y2 = self.pt2
+        return np.array([ [x1,y1,bottom_z], [x2,y2,top_z] ])
+
+    @property
+    def vertices_global_3d(self) -> np.ndarray:
+        """ """
+        return self.global_SIM2_local.transform_from(self.vertices_local_3d)
+
+    @property
+    def polygon_vertices_local_3d(self) -> np.ndarray:
+        """Note: first vertex is repeated as last vertex"""
+        x1,y1 = self.pt1
+        x2,y2 = self.pt2
+        return np.array([ [x1,y1,self.bottom_z], [x1,y1,self.top_z], [x2,y2,self.top_z], [x2,y2,self.bottom_z], [x1,y1,self.bottom_z] ])
+
 
     @classmethod
     def from_object_array(cls, wdo_data: Any, global_SIM2_local: Sim2, type: str) -> "WDO":
@@ -249,12 +271,89 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
         # given wTi5, wTi8, then i8Ti5 = i8Tw * wTi5 = 
         i8Ti5_gt = pano_dict[8].global_SIM2_local.inverse().compose(pano_dict[5].global_SIM2_local)
 
+        import pdb; pdb.set_trace()
 
-def align_rooms_by_wd(pano_obj1: PanoData, pano_obj2: PanoData) -> Sim2:
-    """ """
+        print(i8Ti5_gt.scale)
+        print(i8Ti5.scale())
 
+        print(np.round(i8Ti5_gt.translation,1))
+        print(np.round(i8Ti5.translation(),1))
+
+
+def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
+    """
+    Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
+
+    Cohen16: A single match between an indoor and outdoor window determines an alignment hypothesis
+    """
+    pts1 = np.zeros((0,3))
+    pts2 = np.zeros((0,3))
+    # TODO: add in the 3d linear interpolation
+
+    pano1_wds = pano1_obj.windows + pano1_obj.doors
+    for wd in pano1_wds:
+        wd_pts = wd.polygon_vertices_local_3d
+        #sample_points_along_bbox_boundary(wd)
+        pts1 = np.vstack([pts1, wd_pts])
+
+    pano2_wds = pano2_obj.windows + pano2_obj.doors
+    for wd in pano2_wds:
+        wd_pts = wd.polygon_vertices_local_3d
+        #sample_points_along_bbox_boundary(wd)
+        pts2 = np.vstack([pts2, wd_pts])
+
+    from sim3_align_dw import align_points_sim3
+    i2Ti1, aligned_pts1 = align_points_sim3(pts2, pts1)
+
+    # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
+    #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
+    
+    import scipy.spatial
+    # should be in the same coordinate frame, now
+    affinity_matrix = scipy.spatial.distance.cdist(pts2, aligned_pts1)
+
+    import pdb; pdb.set_trace()
+
+    visualize = False
+    if visualize:
+        plt.scatter(pts2[:,0], pts2[:,1], 100, color='r', marker='.')
+        plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 10, color='b', marker='.')
+
+        plt.axis('equal')
+        plt.show()
 
     return i2Ti1
+
+
+
+# def sample_points_along_bbox_boundary(wdo: WDO) -> np.ndarray:
+#     """ """
+
+#     from argoverse.utils.interpolate import interp_arc
+#     from argoverse.utils.polyline_density import get_polyline_length
+
+#     x1,y1 = wdo.local_vertices_3d
+
+#     num_interp_pts = int(query_l2 * NUM_PTS_PER_TRAJ / ref_l2)
+#     dense_interp_polyline = interp_arc(num_interp_pts, polyline_to_interp[:, 0], polyline_to_interp[:, 1])
+
+#     return pts
+
+
+# def test_sample_points_along_bbox_boundary() -> None:
+#     """ """
+#     global_SIM2_local = Sim2(R=np.eye(2), t=np.zeros(2), s=1.0)
+
+#     wdo = WDO(
+#         global_SIM2_local= global_SIM2_local,
+#         pt1= (x1,y1),
+#         pt2= (x2,y2),
+#         bottom_z=0,
+#         top_z=10,
+#         type="door"
+#     )
+
+#     pts = sample_points_along_bbox_boundary(wdo)
 
 
 
@@ -302,12 +401,12 @@ def plot_room_layout(pano_obj: PanoData, frame: str) -> None:
     text_loc = pano_position[0] + noise
     plt.text(-1 * (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize='xx-small') #, 'x-small', 'small', 'medium',)
 
-    for wdo in pano_obj.doors + pano_obj.windows + pano_obj.openings:
+    for wdo_idx, wdo in enumerate(pano_obj.doors + pano_obj.windows + pano_obj.openings):
 
         if frame == "global":
-            wdo_points = wdo.vertices_global
+            wdo_points = wdo.vertices_global_2d
         else:
-            wdo_points = wdo.vertices_local
+            wdo_points = wdo.vertices_local_2d
             
         # zfm_points_list = Polygon.list_to_points(wdo_points)
         # zfm_poly_type = PolygonTypeMapping[wdo_type]
@@ -326,14 +425,10 @@ def plot_room_layout(pano_obj: PanoData, frame: str) -> None:
         label = wdo_type
         plt.scatter(-wdo_points[:,0], wdo_points[:,1], 10, color=wdo_color, marker='o', label=label)
         plt.plot(-wdo_points[:,0], wdo_points[:,1], color=wdo_color, linestyle='dotted')
+        plt.text(-wdo_points[:,0].mean(), wdo_points[:,1].mean(), f"{wdo.type}_{wdo_idx}")
         
     plt.axis('equal')
     plt.show()
-
-
-
-
-
 
 
 def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
@@ -388,7 +483,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
 
             for wdo in pano_obj.doors + pano_obj.windows + pano_obj.openings:
 
-                wdo_points = wdo.vertices_global
+                wdo_points = wdo.vertices_global_2d
                     
                 # zfm_points_list = Polygon.list_to_points(wdo_points)
                 # zfm_poly_type = PolygonTypeMapping[wdo_type]

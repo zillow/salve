@@ -1,11 +1,12 @@
 
+from typing import Tuple
 
 import gtsam
 import numpy as np
 from gtsam import Point3, Pose3, Point3Pairs, Rot3, Similarity3, Unit3
 
 
-def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray):
+def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Similarity3, np.ndarray]:
     """
     Args:
         pts_a: target/reference
@@ -14,7 +15,13 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray):
     ab_pairs = Point3Pairs(list(zip(pts_a, pts_b)))
 
     aSb = Similarity3.Align(ab_pairs)
-    pts_a_ = aSb.transformFrom(pts_b)
+    # TODO: in latest wheel
+    #pts_a_ = aSb.transformFrom(pts_b)
+
+    aRb = aSb.rotation().matrix()
+    atb = aSb.translation()
+    asb = aSb.scale()
+    pts_a_ = asb * (pts_b @ aRb.T + atb)
 
     return aSb, pts_a_
 
