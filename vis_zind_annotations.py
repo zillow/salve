@@ -72,6 +72,7 @@ class WDO(NamedTuple):
 
 class PanoData(NamedTuple):
     """ """
+    id: int
     global_SIM2_local: Sim2
     room_vertices_local_2d: np.ndarray
     image_path: str
@@ -101,6 +102,8 @@ class PanoData(NamedTuple):
         image_path = pano_data["image_path"]
         label = pano_data['label']
 
+        pano_id = int(Path(image_path).stem.split('_')[-1])
+
         # DWO objects
         geometry_type = "layout_raw" #, "layout_complete", "layout_visible"]
         for wdo_type in ["windows", "doors", "openings"]:
@@ -127,7 +130,7 @@ class PanoData(NamedTuple):
             elif wdo_type == "openings":
                 openings = wdos
 
-        return cls(global_SIM2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
+        return cls(pano_id, global_SIM2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
 
 
 
@@ -179,7 +182,9 @@ def main():
     for building_id in building_ids:
         json_annot_fpath = f"{teaser_dirpath}/{building_id}/zfm_data.json"
         pano_dir = f"{teaser_dirpath}/{building_id}/panos"
-        render_building(building_id, pano_dir, json_annot_fpath)
+        #render_building(building_id, pano_dir, json_annot_fpath)
+
+        align_by_wdo(building_id, pano_dir, json_annot_fpath)
 
 
 OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_14"
@@ -215,6 +220,120 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim
 
     global_SIM2_local = Sim2(R=R, t=t, s=scale)
     return global_SIM2_local
+
+
+
+def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
+    """ """
+    floor_map_json = read_json_file(json_annot_fpath)
+
+    merger_data = floor_map_json["merger"]
+    redraw_data = floor_map_json["redraw"]
+
+    floor_dominant_rotation = {}
+    for floor_id, floor_data in merger_data.items():
+
+        fd = FloorData.from_json(floor_data, floor_id)
+        if floor_id != 'floor01' and building_id != '000':
+            continue
+
+        pano_dict = {pano_obj.id: pano_obj for pano_obj in fd.panos}
+        import pdb; pdb.set_trace()
+
+        plot_room_layout(pano_dict[5], frame="local")
+
+        plot_room_layout(pano_dict[8], frame="local")
+
+        i8Ti5 = align_rooms_by_wd(pano_dict[5], pano_dict[8])
+
+        # given wTi5, wTi8, then i8Ti5 = i8Tw * wTi5 = 
+        i8Ti5_gt = pano_dict[8].global_SIM2_local.inverse().compose(pano_dict[5].global_SIM2_local)
+
+
+def align_rooms_by_wd(pano_obj1: PanoData, pano_obj2: PanoData) -> Sim2:
+    """ """
+
+
+    return i2Ti1
+
+
+
+def plot_room_layout(pano_obj: PanoData, frame: str) -> None:
+    """
+    frame: either 'local' or 'global'
+    """
+    if frame == "global":
+        room_vertices = pano_obj.room_vertices_global_2d
+    else:
+        room_vertices = pano_obj.room_vertices_local_2d
+
+    color = np.random.rand(3)
+    plt.scatter(-room_vertices[:,0], room_vertices[:,1], 10, marker='.', color=color)
+    plt.plot(-room_vertices[:,0], room_vertices[:,1], color=color, alpha=0.5)
+    # draw edge to close each polygon
+    last_vert = room_vertices[-1]
+    first_vert = room_vertices[0]
+    plt.plot([-last_vert[0],-first_vert[0]], [last_vert[1],first_vert[1]], color=color, alpha=0.5)
+
+    
+    pano_position = np.zeros((1,2))
+    if frame == "global":
+        pano_position = pano_obj.global_SIM2_local.transform_from(np.zeros((1,2)))
+
+    plt.scatter(-pano_position[0,0], pano_position[0,1], 30, marker='+', color=color)
+
+    point_ahead = np.array([1,0]).reshape(1,2)
+    if frame == "global":
+        point_ahead = pano_obj.global_SIM2_local.transform_from(point_ahead)
+    
+    # TODO: add patch to Argoverse, enforcing ndim on the input to `transform_from()`
+    plt.plot(
+        [-pano_position[0,0], -point_ahead[0,0]],
+        [pano_position[0,1], point_ahead[0,1]],
+        color=color
+    )
+    pano_id = pano_obj.id
+
+    pano_text = pano_obj.label + f' {pano_id}'
+    TEXT_LEFT_OFFSET = 0.15
+    #mean_loc = np.mean(room_vertices_global, axis=0)
+    # mean position
+    noise = np.clip(np.random.randn(2), a_min=-0.05, a_max=0.05)
+    text_loc = pano_position[0] + noise
+    plt.text(-1 * (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize='xx-small') #, 'x-small', 'small', 'medium',)
+
+    for wdo in pano_obj.doors + pano_obj.windows + pano_obj.openings:
+
+        if frame == "global":
+            wdo_points = wdo.vertices_global
+        else:
+            wdo_points = wdo.vertices_local
+            
+        # zfm_points_list = Polygon.list_to_points(wdo_points)
+        # zfm_poly_type = PolygonTypeMapping[wdo_type]
+        # wdo_poly = Polygon(type=zfm_poly_type, name=json_file_name, points=zfm_points_list)
+
+        # # Add the WDO element to the list of polygons/lines
+        # wdo_poly_list.append(wdo_poly)
+
+        RED = [1,0,0]
+        GREEN = [0,1,0]
+        BLUE = [0,0,1]
+        wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
+
+        wdo_type = wdo.type
+        wdo_color = wdo_color_dict[wdo_type]
+        label = wdo_type
+        plt.scatter(-wdo_points[:,0], wdo_points[:,1], 10, color=wdo_color, marker='o', label=label)
+        plt.plot(-wdo_points[:,0], wdo_points[:,1], color=wdo_color, linestyle='dotted')
+        
+    plt.axis('equal')
+    plt.show()
+
+
+
+
+
 
 
 def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
@@ -257,10 +376,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
                 [pano_position[0,1], point_ahead[0,1]],
                 color=color
             )
-
-            image_path = pano_obj.image_path
-            print(image_path)
-            pano_id = Path(image_path).stem.split('_')[-1]
+            pano_id = pano_obj.id
 
             pano_text = pano_obj.label + f' {pano_id}'
             TEXT_LEFT_OFFSET = 0.15
@@ -269,7 +385,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
             noise = np.clip(np.random.randn(2), a_min=-0.05, a_max=0.05)
             text_loc = pano_position[0] + noise
             plt.text(-1 * (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize='xx-small') #, 'x-small', 'small', 'medium',)
-            
+
             for wdo in pano_obj.doors + pano_obj.windows + pano_obj.openings:
 
                 wdo_points = wdo.vertices_global
