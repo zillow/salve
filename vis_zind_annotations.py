@@ -11,7 +11,7 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,29 +37,121 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
 
 
-class WDO(NamedTuple)
-    """ """
-    x1: float
-    y1: float
-    x2: float
-    y2: float
+class WDO(NamedTuple):
+    """define windows/doors/openings by left and right boundaries"""
+    global_SIM2_local: Sim2
+    pt1: Tuple[float,float] # (x1,y1)
+    pt2: Tuple[float,float] # (x2,y2)
     bottom_z: float
     top_z: float
+    type: str
 
+    @property
     def vertices_local(self):
-        return (x1,y1), (x2,y2)
+        """ """
+        return np.array([self.pt1, self.pt2])
+
+    @property
+    def vertices_global(self):
+        """ """
+        return self.global_SIM2_local.transform_from(self.vertices_local)
+
+    @classmethod
+    def from_object_array(cls, wdo_data: Any, global_SIM2_local: Sim2, type: str) -> "WDO":
+        """
+        """
+        return cls(
+            global_SIM2_local=global_SIM2_local,
+            pt1=wdo_data[0],
+            pt2=wdo_data[1],
+            bottom_z=wdo_data[2],
+            top_z=wdo_data[3],
+            type=type
+        )
 
 
 class PanoData(NamedTuple):
     """ """
     global_SIM2_local: Sim2
     room_vertices_local_2d: np.ndarray
-    wdo_vertices_local: List[WDO]
+    image_path: str
+    label: str
+    doors: Optional[List[WDO]] = None
+    windows: Optional[List[WDO]] = None
+    openings: Optional[List[WDO]] = None
+
+    @property
+    def room_vertices_global_2d(self):
+        """ """
+        return self.global_SIM2_local.transform_from(self.room_vertices_local_2d)
+
+    @classmethod
+    def from_json(cls, pano_data: Any) -> "PanoData":
+        """
+        From JSON ("pano_data")
+        """
+        print('Camera height: ', pano_data['camera_height'])
+
+        global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
+        room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
+
+        doors = []
+        windows = []
+        openings = []
+        image_path = pano_data["image_path"]
+        label = pano_data['label']
+
+        # DWO objects
+        geometry_type = "layout_raw" #, "layout_complete", "layout_visible"]
+        for wdo_type in ["windows", "doors", "openings"]:
+            wdos = []
+            wdo_data = np.asarray(pano_data[geometry_type][wdo_type], dtype=object)
+
+            # Skip if there are no elements of this type
+            if len(wdo_data) == 0:
+                continue
+
+            # as (x1,y1), (x2,y2), bottom_z, top_z
+            # Transform the local W/D/O vertices to the global frame of reference
+            assert len(wdo_data) > 2 and isinstance(wdo_data[2], float)  # with cvat bbox annotation
+
+            num_wdo = len(wdo_data) // 4
+            for wdo_idx in range(num_wdo):
+                wdo = WDO.from_object_array(wdo_data[ wdo_idx * 4 : (wdo_idx+1) * 4], global_SIM2_local, wdo_type)
+                wdos.append(wdo)
+
+            if wdo_type == "windows":
+                windows = wdos
+            elif wdo_type == "doors":
+                doors = wdos
+            elif wdo_type == "openings":
+                openings = wdos
+
+        return cls(global_SIM2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
+
+
 
 class FloorData(NamedTuple):
     """ """
-    floor_id
+    floor_id: str
     panos: List[PanoData]
+
+    @classmethod
+    def from_json(cls, floor_data: Any, floor_id: str) -> "FloorData":
+        """
+        From JSON ("floor_data")
+        """
+        pano_objs = []
+
+        for complete_room_data in floor_data.values():
+            for partial_room_data in complete_room_data.values():
+                for pano_data in partial_room_data.values():
+                    #if pano_data["is_primary"]:
+
+                    pano_obj = PanoData.from_json(pano_data)
+                    pano_objs.append(pano_obj)
+
+        return cls(floor_id, pano_objs)
 
 
 def main():
@@ -90,7 +182,7 @@ def main():
         render_building(building_id, pano_dir, json_annot_fpath)
 
 
-OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_10"
+OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_14"
 
 
 
@@ -136,101 +228,71 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
 
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
+
+        fd = FloorData.from_json(floor_data, floor_id)
+
         wdo_objs_seen_on_floor = set()
         # Calculate the dominant rotation of one room on this floor.
         # This dominant rotation will be used to align the floor map.
-        for complete_room_data in floor_data.values():
-            for partial_room_data in complete_room_data.values():
-                for pano_data in partial_room_data.values():
-                    #if pano_data["is_primary"]:
 
-                    print('Camera height: ', pano_data['camera_height'])
+        for pano_obj in fd.panos:
+            room_vertices_global = pano_obj.room_vertices_global_2d
 
-                    global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
+            color = np.random.rand(3)
+            plt.scatter(-room_vertices_global[:,0], room_vertices_global[:,1], 10, marker='.', color=color)
+            plt.plot(-room_vertices_global[:,0], room_vertices_global[:,1], color=color, alpha=0.5)
+            # draw edge to close each polygon
+            last_vert = room_vertices_global[-1]
+            first_vert = room_vertices_global[0]
+            plt.plot([-last_vert[0],-first_vert[0]], [last_vert[1],first_vert[1]], color=color, alpha=0.5)
 
-                    room_vertices_local = np.asarray(pano_data["layout_raw"]["vertices"])
-                    room_vertices_global = global_SIM2_local.transform_from(room_vertices_local)
+            pano_position = pano_obj.global_SIM2_local.transform_from(np.zeros((1,2)))
+            plt.scatter(-pano_position[0,0], pano_position[0,1], 30, marker='+', color=color)
 
-                    color = np.random.rand(3)
-                    plt.scatter(-room_vertices_global[:,0], room_vertices_global[:,1], 10, marker='.', color=color)
-                    plt.plot(-room_vertices_global[:,0], room_vertices_global[:,1], color=color, alpha=0.5)
-                    # draw edge to close each polygon
-                    last_vert = room_vertices_global[-1]
-                    first_vert = room_vertices_global[0]
-                    plt.plot([-last_vert[0],-first_vert[0]], [last_vert[1],first_vert[1]], color=color, alpha=0.5)
+            point_ahead = pano_obj.global_SIM2_local.transform_from(np.array([1,0]).reshape(1,2))
+            
+            # TODO: add patch to Argoverse, enforcing ndim on the input to `transform_from()`
+            plt.plot(
+                [-pano_position[0,0], -point_ahead[0,0]],
+                [pano_position[0,1], point_ahead[0,1]],
+                color=color
+            )
 
-                    pano_position = global_SIM2_local.transform_from(np.zeros((1,2)))
-                    plt.scatter(-pano_position[0,0], pano_position[0,1], 30, marker='+', color=color)
+            image_path = pano_obj.image_path
+            print(image_path)
+            pano_id = Path(image_path).stem.split('_')[-1]
 
-                    point_ahead = global_SIM2_local.transform_from(np.array([1,0]).reshape(1,2))
+            pano_text = pano_obj.label + f' {pano_id}'
+            TEXT_LEFT_OFFSET = 0.15
+            #mean_loc = np.mean(room_vertices_global, axis=0)
+            # mean position
+            noise = np.clip(np.random.randn(2), a_min=-0.05, a_max=0.05)
+            text_loc = pano_position[0] + noise
+            plt.text(-1 * (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize='xx-small') #, 'x-small', 'small', 'medium',)
+            
+            for wdo in pano_obj.doors + pano_obj.windows + pano_obj.openings:
+
+                wdo_points = wdo.vertices_global
                     
-                    # TODO: add patch to Argoverse, enforcing ndim on the input to `transform_from()`
-                    plt.plot(
-                        [-pano_position[0,0], -point_ahead[0,0]],
-                        [pano_position[0,1], point_ahead[0,1]],
-                        color=color
-                    )
+                # zfm_points_list = Polygon.list_to_points(wdo_points)
+                # zfm_poly_type = PolygonTypeMapping[wdo_type]
+                # wdo_poly = Polygon(type=zfm_poly_type, name=json_file_name, points=zfm_points_list)
 
-                    image_path = pano_data["image_path"]
-                    print(image_path)
-                    pano_id = Path(image_path).stem.split('_')[-1]
+                # # Add the WDO element to the list of polygons/lines
+                # wdo_poly_list.append(wdo_poly)
 
-                    pano_text = pano_data['label'] + f' {pano_id}'
-                    TEXT_LEFT_OFFSET = 0.15
-                    #mean_loc = np.mean(room_vertices_global, axis=0)
-                    # mean position
-                    noise = np.clip(np.random.randn(2), a_min=-0.05, a_max=0.05)
-                    text_loc = pano_position[0] + noise
-                    plt.text(-1 * (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize='xx-small') #, 'x-small', 'small', 'medium',)
+                RED = [1,0,0]
+                GREEN = [0,1,0]
+                BLUE = [0,0,1]
+                wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
-
-                    # DWO objects
-                    geometry_type = "layout_raw" #, "layout_complete", "layout_visible"]
-                    for wdo_type in ["windows", "doors", "openings"]:
-                        wdo_vertices_local = np.asarray(pano_data[geometry_type][wdo_type])
-
-                        # Skip if there are no elements of this type
-                        if len(wdo_vertices_local) == 0:
-                            continue
-
-                        # as (x1,y1), (x2,y2), bottom_z, top_z
-                        # Transform the local W/D/O vertices to the global frame of reference
-                        if len(wdo_vertices_local) > 2 and isinstance(wdo_vertices_local[2], float):  # with cvat bbox annotation
-                            num_wdo = len(wdo_vertices_local) // 4
-                            wdo_left_right_bound = []
-                            for wdo_idx in range(num_wdo):
-                                wdo_left_right_bound.extend(wdo_vertices_local[wdo_idx * 4 : wdo_idx * 4 + 2])
-                            wdo_vertices_global = global_SIM2_local.transform_from(np.array(wdo_left_right_bound))
-                        else:  # without cvat bbox annotation
-                            raise RuntimeError("Expected CVAT, did not get CVAT")
-                            wdo_vertices_global = global_SIM2_local.transform_from(wdo_vertices_local)
-
-                        # Loop through the global coordinates
-                        # Every two points in the list define windows/doors/openings by left and right boundaries, so
-                        # for N elements we will have 2 * N pair of points, thus we iterate on every successive pair
-                        for wdo_points in zip(wdo_vertices_global[::2], wdo_vertices_global[1::2]):
-
-                            #import pdb; pdb.set_trace()
-                            wdo_points = np.array(wdo_points)
-                            
-                            # zfm_points_list = Polygon.list_to_points(wdo_points)
-                            # zfm_poly_type = PolygonTypeMapping[wdo_type]
-                            # wdo_poly = Polygon(type=zfm_poly_type, name=json_file_name, points=zfm_points_list)
-
-                            # # Add the WDO element to the list of polygons/lines
-                            # wdo_poly_list.append(wdo_poly)
-
-                            RED = [1,0,0]
-                            GREEN = [0,1,0]
-                            BLUE = [0,0,1]
-                            wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
-
-                            wdo_color = wdo_color_dict[wdo_type]
-                            label = wdo_type if wdo_type not in wdo_objs_seen_on_floor else None
-                            plt.scatter(-wdo_points[:,0], wdo_points[:,1], 10, color=wdo_color, marker='o', label=label)
-                            plt.plot(-wdo_points[:,0], wdo_points[:,1], color=wdo_color, linestyle='dotted')
-                            
-                            wdo_objs_seen_on_floor.add(wdo_type)
+                wdo_type = wdo.type
+                wdo_color = wdo_color_dict[wdo_type]
+                label = wdo_type if wdo_type not in wdo_objs_seen_on_floor else None
+                plt.scatter(-wdo_points[:,0], wdo_points[:,1], 10, color=wdo_color, marker='o', label=label)
+                plt.plot(-wdo_points[:,0], wdo_points[:,1], color=wdo_color, linestyle='dotted')
+                
+                wdo_objs_seen_on_floor.add(wdo_type)
 
 
         plt.legend(loc="upper right")
@@ -243,28 +305,17 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
         
         plt.close('all')
 
-                    # dominant_rotation, _ = determine_rotation_angle(room_vertices_global)
-                    # if dominant_rotation is None:
-                    #     continue
-                    # floor_dominant_rotation[floor_id] = dominant_rotation
+        # dominant_rotation, _ = determine_rotation_angle(room_vertices_global)
+        # if dominant_rotation is None:
+        #     continue
+        # floor_dominant_rotation[floor_id] = dominant_rotation
 
+        # geometry_to_visualize = ["raw", "complete", "visible", "redraw"]
+        # for geometry_type in geometry_to_visualize:
 
-
-    # geometry_to_visualize = ["raw", "complete", "visible", "redraw"]
-    # for geometry_type in geometry_to_visualize:
-
-
-
-
-
-    #         zfm_dict = zfm._zfm[geometry_type]
-    #         floor_maps_files_list = zfm.render_top_down_zfm(zfm_dict, output_folder_floor_plan)
-    #     for floor_id, zfm_poly_list in zfm_dict.items():
-
-
-
-
-
+        #         zfm_dict = zfm._zfm[geometry_type]
+        #         floor_maps_files_list = zfm.render_top_down_zfm(zfm_dict, output_folder_floor_plan)
+        #     for floor_id, zfm_poly_list in zfm_dict.items():
 
 
 if __name__ == '__main__':
