@@ -268,7 +268,7 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
         i8Ti5 = align_rooms_by_wd(pano_dict[5], pano_dict[8])
 
-        # given wTi5, wTi8, then i8Ti5 = i8Tw * wTi5 = 
+        # given wTi5, wTi8, then i8Ti5 = i8Tw * wTi5 = i8Ti5
         i8Ti5_gt = pano_dict[8].global_SIM2_local.inverse().compose(pano_dict[5].global_SIM2_local)
 
         import pdb; pdb.set_trace()
@@ -280,50 +280,102 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
         print(np.round(i8Ti5.translation(),1))
 
 
+    # for every room, try to align it to another.
+    # while there are any unmatched rooms?
+    # try all possible matches at every step. compute costs, and choose the best greedily.
+
+
+
+
 def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
 
     Cohen16: A single match between an indoor and outdoor window determines an alignment hypothesis
-    """
-    pts1 = np.zeros((0,3))
-    pts2 = np.zeros((0,3))
-    # TODO: add in the 3d linear interpolation
+    Computing the alignment boils down to finding a similarity transformation between the models, which
+    can be computed from three point correspondences in the general case and from two point matches if
+    the gravity direction is known.
 
-    pano1_wds = pano1_obj.windows + pano1_obj.doors
-    for wd in pano1_wds:
-        wd_pts = wd.polygon_vertices_local_3d
-        #sample_points_along_bbox_boundary(wd)
-        pts1 = np.vstack([pts1, wd_pts])
-
-    pano2_wds = pano2_obj.windows + pano2_obj.doors
-    for wd in pano2_wds:
-        wd_pts = wd.polygon_vertices_local_3d
-        #sample_points_along_bbox_boundary(wd)
-        pts2 = np.vstack([pts2, wd_pts])
-
-    from sim3_align_dw import align_points_sim3
-    i2Ti1, aligned_pts1 = align_points_sim3(pts2, pts1)
-
-    # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
-    #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
+    TODO: maybe perform alignment in 2d, instead of 3d? so we have less unknowns?
     
+    Args:
+        pano1_obj
+        pano2_obj
+        alignment_object: "door" or "window"
+    """
     import scipy.spatial
-    # should be in the same coordinate frame, now
-    affinity_matrix = scipy.spatial.distance.cdist(pts2, aligned_pts1)
+    from sim3_align_dw import align_points_sim3
 
-    import pdb; pdb.set_trace()
+    best_alignment_error = np.nan
 
-    visualize = False
-    if visualize:
-        plt.scatter(pts2[:,0], pts2[:,1], 100, color='r', marker='.')
-        plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 10, color='b', marker='.')
+    for alignment_object in ["door", "window"]:
 
-        plt.axis('equal')
-        plt.show()
+        pano1_wds = pano1_obj.windows if alignment_object=="window" else pano1_obj.doors
+        pano2_wds = pano2_obj.windows if alignment_object=="window" else pano2_obj.doors
+
+        # try every possible pairwise combination, for this object type
+        for i, pano1_wd in enumerate(pano1_wds):
+            pano1_wd_pts = pano1_wd.polygon_vertices_local_3d
+            #sample_points_along_bbox_boundary(wd), # TODO: add in the 3d linear interpolation
+
+            for j, pano2_wd in enumerate(pano2_wds):
+
+                if i > j:
+                    # only compute the upper diagonal, since symmetric
+                    continue
+
+                pano2_wd_pts = pano2_wd.polygon_vertices_local_3d
+                #sample_points_along_bbox_boundary(wd)
+
+                i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
+
+                # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
+                #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
+                
+                visualize = True
+                if visualize:
+                    plt.scatter(pano2_wd_pts[:,0], pano2_wd_pts[:,1], 200, color='r', marker='.')
+                    plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 50, color='b', marker='.')
+                
+                all_pano1_pts = get_all_pano_wd_vertices(pano1_obj)
+                all_pano2_pts = get_all_pano_wd_vertices(pano2_obj)
+
+                all_pano1_pts = i2Ti1.transform_from(all_pano1_pts[:,:2])
+
+                if visualize:
+                    plt.scatter(all_pano1_pts[:,0], all_pano1_pts[:,1], 200, color='g', marker='+')
+                    plt.scatter(all_pano2_pts[:,0], all_pano2_pts[:,1], 50, color='m', marker='+')
+
+                # should be in the same coordinate frame, now
+                affinity_matrix = scipy.spatial.distance.cdist(all_pano1_pts, all_pano2_pts[:,:2])
+
+                closest_dists = np.min(affinity_matrix, axis=1)
+                avg_error = closest_dists.mean()
+                print(f"{alignment_object} {i}/{j}: {avg_error:.2f}")
+
+                best_alignment_error = min(best_alignment_error, avg_error)
+
+                if visualize:
+                    plt.axis('equal')
+                    plt.show()
 
     return i2Ti1
 
+
+def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
+    """
+
+    Returns:
+        pts: array of shape (N,3)
+    """
+    pts = np.zeros((0,3))
+
+    for wd in pano_obj.windows + pano_obj.doors:
+        wd_pts = wd.polygon_vertices_local_3d
+
+        pts = np.vstack([pts, wd_pts])
+
+    return pts
 
 
 # def sample_points_along_bbox_boundary(wdo: WDO) -> np.ndarray:
