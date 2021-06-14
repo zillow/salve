@@ -260,24 +260,31 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
             continue
 
         pano_dict = {pano_obj.id: pano_obj for pano_obj in fd.panos}
-        import pdb; pdb.set_trace()
 
-        plot_room_layout(pano_dict[5], frame="local")
+        pano_ids = list(pano_dict.keys())
+        for i1 in pano_ids:
 
-        plot_room_layout(pano_dict[8], frame="local")
+            for i2 in pano_ids:
 
-        i8Ti5 = align_rooms_by_wd(pano_dict[5], pano_dict[8])
+                if i1 == i2:
+                    continue
 
-        # given wTi5, wTi8, then i8Ti5 = i8Tw * wTi5 = i8Ti5
-        i8Ti5_gt = pano_dict[8].global_SIM2_local.inverse().compose(pano_dict[5].global_SIM2_local)
+                plot_room_layout(pano_dict[i1], frame="local")
 
-        import pdb; pdb.set_trace()
+                plot_room_layout(pano_dict[i2], frame="local")
 
-        print(i8Ti5_gt.scale)
-        print(i8Ti5.scale())
+                i2Ti1, error = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
 
-        print(np.round(i8Ti5_gt.translation,1))
-        print(np.round(i8Ti5.translation(),1))
+                # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
+                i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
+
+                import pdb; pdb.set_trace()
+
+                print(i2Ti1_gt.scale)
+                print(i2Ti1.scale())
+
+                print(np.round(i2Ti1_gt.translation,1))
+                print(np.round(i2Ti1.translation(),1))
 
 
     # for every room, try to align it to another.
@@ -336,7 +343,7 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                 if visualize:
                     plt.scatter(pano2_wd_pts[:,0], pano2_wd_pts[:,1], 200, color='r', marker='.')
                     plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 50, color='b', marker='.')
-                
+
                 all_pano1_pts = get_all_pano_wd_vertices(pano1_obj)
                 all_pano2_pts = get_all_pano_wd_vertices(pano2_obj)
 
@@ -359,7 +366,7 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                     plt.axis('equal')
                     plt.show()
 
-    return i2Ti1
+    return i2Ti1, best_alignment_error
 
 
 def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
