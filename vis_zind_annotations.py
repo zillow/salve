@@ -269,23 +269,25 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 if i1 == i2:
                     continue
 
-                plot_room_layout(pano_dict[i1], frame="local")
-
-                plot_room_layout(pano_dict[i2], frame="local")
+                print(f"On {i1}-{i2}")
+                #plot_room_layout(pano_dict[i1], frame="local")
+                #plot_room_layout(pano_dict[i2], frame="local")
 
                 i2Ti1, error = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
 
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
 
-                import pdb; pdb.set_trace()
+                #import pdb; pdb.set_trace()
 
-                print(i2Ti1_gt.scale)
-                print(i2Ti1.scale())
+                print("\t", i2Ti1_gt.scale)
+                print("\t", i2Ti1.scale)
 
-                print(np.round(i2Ti1_gt.translation,1))
-                print(np.round(i2Ti1.translation(),1))
+                print("\t", np.round(i2Ti1_gt.translation,1))
+                print("\t", np.round(i2Ti1.translation,1))
 
+                print()
+                print()
 
     # for every room, try to align it to another.
     # while there are any unmatched rooms?
@@ -309,13 +311,22 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
         pano1_obj
         pano2_obj
         alignment_object: "door" or "window"
+
+    What heuristic tells us if they should be identity or mirrored in configuration?
+    Are there any new WDs that should not be visible? walls should not cross on top of each other? know same-room connections, first
+    
+    Cannot expect a match for each door or window. Find nearest neighbor -- but then choose min dist on rows or cols?
+    may not be visible?
+    - Rooms cannot be joined at windows.
+    - Rooms may be joined at a door.
+    - Predicted wall cannot lie behind another wall, if line of sight is clear.
     """
     import scipy.spatial
     from sim3_align_dw import align_points_sim3
 
     best_alignment_error = np.nan
 
-    for alignment_object in ["door", "window"]:
+    for alignment_object in ["door"]:#, "window"]:
 
         pano1_wds = pano1_obj.windows if alignment_object=="window" else pano1_obj.doors
         pano2_wds = pano2_obj.windows if alignment_object=="window" else pano2_obj.doors
@@ -334,39 +345,69 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                 pano2_wd_pts = pano2_wd.polygon_vertices_local_3d
                 #sample_points_along_bbox_boundary(wd)
 
-                i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
+                for configuration in ["identity", "mirrored"]:
 
-                # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
-                #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
-                
-                visualize = True
-                if visualize:
-                    plt.scatter(pano2_wd_pts[:,0], pano2_wd_pts[:,1], 200, color='r', marker='.')
-                    plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 50, color='b', marker='.')
+                    if configuration == "mirrored":
+                        pano2_wd_pts = pano2_wd_pts[ np.array([3,2,1,0,3]) ] # instead of 0,1,2,3,0
 
-                all_pano1_pts = get_all_pano_wd_vertices(pano1_obj)
-                all_pano2_pts = get_all_pano_wd_vertices(pano2_obj)
+                    i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
 
-                all_pano1_pts = i2Ti1.transform_from(all_pano1_pts[:,:2])
+                    # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
+                    #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
+                    
+                    visualize = True
+                    if visualize:
+                        plt.scatter(pano2_wd_pts[:,0], pano2_wd_pts[:,1], 200, color='r', marker='.')
+                        plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 50, color='b', marker='.')
 
-                if visualize:
-                    plt.scatter(all_pano1_pts[:,0], all_pano1_pts[:,1], 200, color='g', marker='+')
-                    plt.scatter(all_pano2_pts[:,0], all_pano2_pts[:,1], 50, color='m', marker='+')
+                    all_pano1_pts = get_all_pano_wd_vertices(pano1_obj)
+                    all_pano2_pts = get_all_pano_wd_vertices(pano2_obj)
 
-                # should be in the same coordinate frame, now
-                affinity_matrix = scipy.spatial.distance.cdist(all_pano1_pts, all_pano2_pts[:,:2])
+                    all_pano1_pts = i2Ti1.transform_from(all_pano1_pts[:,:2])
 
-                closest_dists = np.min(affinity_matrix, axis=1)
-                avg_error = closest_dists.mean()
-                print(f"{alignment_object} {i}/{j}: {avg_error:.2f}")
+                    if visualize:
+                        plt.scatter(all_pano1_pts[:,0], all_pano1_pts[:,1], 200, color='g', marker='+')
+                        plt.scatter(all_pano2_pts[:,0], all_pano2_pts[:,1], 50, color='m', marker='+')
 
-                best_alignment_error = min(best_alignment_error, avg_error)
+                    # should be in the same coordinate frame, now
+                    affinity_matrix = scipy.spatial.distance.cdist(all_pano1_pts, all_pano2_pts[:,:2])
+                    print(np.round(affinity_matrix,1))
+                    closest_dists = np.min(affinity_matrix, axis=1)
+                    avg_error = closest_dists.mean()
+                    print(f"\t{alignment_object} {i}/{j}: Cost {avg_error:.2f}")
 
-                if visualize:
-                    plt.axis('equal')
-                    plt.show()
+                    best_alignment_error = min(best_alignment_error, avg_error)
+
+                    if visualize:
+                        plot_room_walls(pano1_obj, i2Ti1)
+                        plot_room_walls(pano2_obj)
+
+                        pano1_id = pano1_obj.id
+                        pano2_id = pano2_obj.id
+                        plt.title(f"Match: ({pano1_id},{pano2_id})")
+                        plt.axis('equal')
+                        plt.show()
+                        plt.close('all')
 
     return i2Ti1, best_alignment_error
+
+
+
+def plot_room_walls(pano_obj: PanoData, i2Ti1: Optional[Sim2] = None) -> None:
+    """ """
+
+    room_vertices = pano_obj.room_vertices_local_2d
+    if i2Ti1:
+        room_vertices = i2Ti1.transform_from(room_vertices)
+
+    color = np.random.rand(3)
+    plt.scatter(room_vertices[:,0], room_vertices[:,1], 10, marker='.', color=color)
+    plt.plot(room_vertices[:,0], room_vertices[:,1], color=color, alpha=0.5)
+    # draw edge to close each polygon
+    last_vert = room_vertices[-1]
+    first_vert = room_vertices[0]
+    plt.plot([last_vert[0],first_vert[0]], [last_vert[1],first_vert[1]], color=color, alpha=0.5)
+
 
 
 def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
@@ -488,6 +529,7 @@ def plot_room_layout(pano_obj: PanoData, frame: str) -> None:
         
     plt.axis('equal')
     plt.show()
+    plt.close('all')
 
 
 def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
