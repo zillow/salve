@@ -18,10 +18,12 @@ from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Similarity3
-
+import scipy.spatial
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
+from gtsam import Similarity3
+
+from sim3_align_dw import align_points_sim3
 
 # The type of supported polygon/wall/point objects.
 class PolygonType(Enum):
@@ -207,7 +209,7 @@ def main():
     for building_id in building_ids:
         json_annot_fpath = f"{teaser_dirpath}/{building_id}/zfm_data.json"
         pano_dir = f"{teaser_dirpath}/{building_id}/panos"
-        render_building(building_id, pano_dir, json_annot_fpath)
+        #render_building(building_id, pano_dir, json_annot_fpath)
 
         align_by_wdo(building_id, pano_dir, json_annot_fpath)
 
@@ -278,13 +280,19 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                     continue
 
                 print(f"On {i1}-{i2}")
-                _ = plot_room_layout(pano_dict[i1], coord_frame="local")
-                _ = plot_room_layout(pano_dict[i2], coord_frame="local")
+                # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
+                # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
-                i2Ti1, error = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
+                i2Ti1, error, best_alignment_object = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
 
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
+
+                proposed_fname = f"verifier_dataset/proposed_alignment/{i1}_{i2}_{best_alignment_object}"
+                save_Sim2(proposed_fname, i2Ti1)
+
+                gt_fname = f"verifier_dataset/gt_alignment/{i1}_{i2}_{best_alignment_object}"
+                save_Sim2(gt_fname, i2Ti1_gt)
 
                 #import pdb; pdb.set_trace()
 
@@ -302,6 +310,19 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
     # try all possible matches at every step. compute costs, and choose the best greedily.
 
 
+def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
+    """ """
+    import os
+    if not Path(save_fpath).exists():
+        os.makedirs(save_fpath, exist_ok=True)
+
+    from argoverse.utils.json_utils import save_json_dict
+    dict_for_serialization = {
+        "R": i2Ti1.rotation.flatten().tolist(),
+        "t": i2Ti1.translation.flatten().tolist(),
+        "s": i2Ti1.scale,
+    }
+    save_json_dict(save_fpath, dict_for_serialization)
 
 
 def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
@@ -329,12 +350,11 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
     - Rooms may be joined at a door.
     - Predicted wall cannot lie behind another wall, if line of sight is clear.
     """
-    import scipy.spatial
-    from sim3_align_dw import align_points_sim3
-
     best_alignment_error = np.nan
+    best_alignment_object = None
 
-    for alignment_object in ["door"]:#, "window"]:
+    import pdb; pdb.set_trace()
+    for alignment_object in ["door","window"]:
 
         pano1_wds = pano1_obj.windows if alignment_object=="window" else pano1_obj.doors
         pano2_wds = pano2_obj.windows if alignment_object=="window" else pano2_obj.doors
@@ -363,7 +383,7 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                     # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
                     #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
                     
-                    visualize = True
+                    visualize = False
                     if visualize:
                         plt.scatter(pano2_wd_pts[:,0], pano2_wd_pts[:,1], 200, color='r', marker='.')
                         plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 50, color='b', marker='.')
@@ -384,7 +404,9 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                     avg_error = closest_dists.mean()
                     print(f"\t{alignment_object} {i}/{j}: Cost {avg_error:.2f}")
 
-                    best_alignment_error = min(best_alignment_error, avg_error)
+                    if avg_error < best_alignment_error:
+                        best_alignment_error = avg_error
+                        best_alignment_object = alignment_object
 
                     if visualize:
                         plot_room_walls(pano1_obj, i2Ti1)
@@ -397,7 +419,9 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                         plt.show()
                         plt.close('all')
 
-    return i2Ti1, best_alignment_error
+
+    assert best_alignment_object in ["door","window"]
+    return i2Ti1, best_alignment_error, best_alignment_object
 
 
 
@@ -473,6 +497,8 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
     R_refl = np.array([[-1.,0],[0,1]])
     world_Sim2_reflworld = Sim2(R_refl, t=np.zeros(2), s=1.0)
 
+    hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90),t=np.zeros(2),s=1.0)
+
     assert coord_frame in ["global","local"]
 
     if coord_frame == "global":
@@ -480,6 +506,7 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
     else:
         room_vertices = pano_obj.room_vertices_local_2d
 
+    room_vertices = hohopano_Sim2_zindpano.transform_from(room_vertices)
     room_vertices = world_Sim2_reflworld.transform_from(room_vertices)
 
     color = np.random.rand(3)
@@ -506,7 +533,7 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
     point_ahead = np.array([1,0]).reshape(1,2)
     if coord_frame == "global":
         point_ahead = pano_obj.global_SIM2_local.transform_from(point_ahead)
-    
+
     point_ahead = world_Sim2_reflworld.transform_from(point_ahead)
     
     # TODO: add patch to Argoverse, enforcing ndim on the input to `transform_from()`
@@ -532,6 +559,7 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
         else:
             wdo_points = wdo.vertices_local_2d
 
+        wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
         wdo_points = world_Sim2_reflworld.transform_from(wdo_points)
             
         # zfm_points_list = Polygon.list_to_points(wdo_points)
@@ -548,12 +576,16 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
 
         wdo_type = wdo.type
         wdo_color = wdo_color_dict[wdo_type]
-        label = wdo_type if wdo_type not in wdo_objs_seen_on_floor else None
+
+        if (wdo_objs_seen_on_floor is not None) and (wdo_type not in wdo_objs_seen_on_floor):
+            label = wdo_type
+        else:
+            label = None
         plt.scatter(wdo_points[:,0], wdo_points[:,1], 10, color=wdo_color, marker='o', label=label)
         plt.plot(wdo_points[:,0], wdo_points[:,1], color=wdo_color, linestyle='dotted')
         plt.text(wdo_points[:,0].mean(), wdo_points[:,1].mean(), f"{wdo.type}_{wdo_idx}")
 
-        if wdo_objs_seen_on_floor:
+        if wdo_objs_seen_on_floor is not None:
             wdo_objs_seen_on_floor.add(wdo_type)
         
     if show_plot:
@@ -591,8 +623,8 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
         plt.axis('equal')
         building_dir = f"{OUTPUT_DIR}/{building_id}"
         os.makedirs(building_dir, exist_ok=True)
-        #plt.savefig(f"{building_dir}/{floor_id}.jpg", dpi=500)
-        plt.show()
+        plt.savefig(f"{building_dir}/{floor_id}.jpg", dpi=500)
+        #plt.show()
         
         plt.close('all')
 
