@@ -178,7 +178,8 @@ class PanoData(NamedTuple):
         """
         From JSON ("pano_data")
         """
-        print('Camera height: ', pano_data['camera_height'])
+        #print('Camera height: ', pano_data['camera_height'])
+        assert pano_data['camera_height'] == 1.0
 
         global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
         room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
@@ -326,8 +327,11 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
     for floor_id, floor_data in merger_data.items():
 
         fd = FloorData.from_json(floor_data, floor_id)
-        if floor_id != 'floor01' and building_id != '000':
+        if not (floor_id == 'floor_01' and building_id == '000'):
             continue
+
+        floor_n_valid_configurations = 0
+        floor_n_invalid_configurations = 0
 
         pano_dict = {pano_obj.id: pano_obj for pano_obj in fd.panos}
 
@@ -336,30 +340,33 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
             for i2 in pano_ids:
 
-                if i1 == i2:
-                    continue
-
-                if i1 != 5 or i2 !=8:
+                # compute only upper diagonal, since symmetric
+                if i1 >= i2:
                     continue
 
                 print(f"On {i1}-{i2}")
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
-                possible_alignment_info = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
+                possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
+
+                TODO: prune to the unique ones
+
+                floor_n_valid_configurations += len(possible_alignment_info)
+                floor_n_invalid_configurations += num_invalid_configurations
 
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
-                gt_fname = f"verifier_dataset/gt_alignment/{i1}_{i2}_{best_alignment_object}.json"
+                gt_fname = f"verifier_dataset/{building_id}/{floor_id}/gt_alignment/{i1}_{i2}.json"
                 save_Sim2(gt_fname, i2Ti1_gt)
 
                 for k, (i2Ti1, alignment_object) in enumerate(possible_alignment_info):
 
-                    proposed_fname = f"verifier_dataset/proposed_alignment/{i1}_{i2}_{best_alignment_object}___variant_{k}.json"
+                    proposed_fname = f"verifier_dataset/{building_id}/{floor_id}/proposed_alignment/{i1}_{i2}_{alignment_object}___variant_{k}.json"
                     save_Sim2(proposed_fname, i2Ti1)
 
-                    print("\t", i2Ti1_gt.scale)
-                    print("\t", i2Ti1.scale)
+                    print(f"\t {i2Ti1_gt.scale:.2f}")
+                    print(f"\t {i2Ti1.scale:.2f}")
 
                     print("\t", np.round(i2Ti1_gt.translation,1))
                     print("\t", np.round(i2Ti1.translation,1))
@@ -367,9 +374,14 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                     print()
                     print()
 
+        print(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
+        print(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
+
     # for every room, try to align it to another.
     # while there are any unmatched rooms?
     # try all possible matches at every step. compute costs, and choose the best greedily.
+
+
 
 
 def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
@@ -515,13 +527,11 @@ def test_align_rooms_by_wd() -> None:
     )
 
     # fmt: on
-    possible_alignment_info = align_rooms_by_wd(pano1_obj, pano2_obj)
-
-    # TODO: assert blah
-    import pdb; pdb.set_trace()
+    possible_alignment_info, _ = align_rooms_by_wd(pano1_obj, pano2_obj)
+    assert len(possible_alignment_info) == 3
 
 
-def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
+def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool = True) -> Similarity3:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
 
@@ -548,11 +558,14 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
 
     Returns a list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
     """
-    import pdb; pdb.set_trace()
+    pano1_id = pano1_obj.id
+    pano2_id = pano2_obj.id
+
+    num_invalid_configurations = 0
     possible_alignment_info = []
 
     #import pdb; pdb.set_trace()
-    for alignment_object in ["window"]: #["door","window"]:
+    for alignment_object in ["door","window"]: #[,"window"]:
 
         pano1_wds = pano1_obj.windows if alignment_object=="window" else pano1_obj.doors
         pano2_wds = pano2_obj.windows if alignment_object=="window" else pano2_obj.doors
@@ -575,7 +588,7 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
 
                 for configuration in plausible_configurations:
 
-                    print(f"{alignment_object} {i}/{j} {configuration}")
+                    print(f"\t{alignment_object} {i}/{j} {configuration}")
 
                     if configuration == "rotated":
                         pano2_wd_ = pano2_wd.get_rotated_version()
@@ -585,24 +598,26 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                     pano2_wd_pts = pano2_wd_.polygon_vertices_local_3d
                     #sample_points_along_bbox_boundary(wd)
 
-                    plt.close("all")
-                    plot_room_walls(pano1_obj)
-                    plot_room_walls(pano2_obj)
+                    # if visualize:
+                    #     plt.close("all")
+                    #     plot_room_walls(pano1_obj)
+                    #     plot_room_walls(pano2_obj)
 
-                    plt.plot(pano1_wd.polygon_vertices_local_3d[:,0], pano1_wd.polygon_vertices_local_3d[:,1], color="r", linewidth=5, alpha=0.1)
-                    plt.plot(pano2_wd_.polygon_vertices_local_3d[:,0], pano2_wd_.polygon_vertices_local_3d[:,1], color="b", linewidth=5, alpha=0.1)
+                    #     plt.plot(pano1_wd.polygon_vertices_local_3d[:,0], pano1_wd.polygon_vertices_local_3d[:,1], color="r", linewidth=5, alpha=0.1)
+                    #     plt.plot(pano2_wd_.polygon_vertices_local_3d[:,0], pano2_wd_.polygon_vertices_local_3d[:,1], color="b", linewidth=5, alpha=0.1)
 
-                    plt.axis("equal")
-                    plt.title("Step 1: Before alignment")
-                    plt.show()
-                    plt.close("all")
+                    #     plt.axis("equal")
+                    #     plt.title("Step 1: Before alignment")
+                    #     os.makedirs(f"debug_plots/{pano1_id}_{pano2_id}", exist_ok=True)
+                    #     plt.savefig(f"debug_plots/{pano1_id}_{pano2_id}/step1_{i}_{j}.jpg")
+                    #     #plt.show()
+                    #     plt.close("all")
 
                     i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
 
                     # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
                     #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
                     
-                    visualize = True
                     if visualize:
                         plt.scatter(pano2_wd_pts[:,0], pano2_wd_pts[:,1], 200, color='r', marker='.')
                         plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 50, color='b', marker='.')
@@ -620,7 +635,15 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                     pano1_room_vertices = i2Ti1.transform_from(pano1_room_vertices)
                     pano2_room_vertices = pano2_obj.room_vertices_local_2d
 
-                    is_valid = determine_invalid_wall_overlap(pano1_room_vertices, pano2_room_vertices, wall_buffer_m=0.3)
+                    is_valid = determine_invalid_wall_overlap(
+                        pano1_id,
+                        pano2_id,
+                        i,
+                        j,
+                        pano1_room_vertices,
+                        pano2_room_vertices,
+                        wall_buffer_m=0.3
+                    )
 
                     # window_normals_compatible = True
                     # WINDOW_NORMAL_ALIGNMENT_THRESH = 10
@@ -647,7 +670,10 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
 
                     if is_valid:
                         possible_alignment_info += [ (i2Ti1, alignment_object) ]
-
+                        classification = "valid"
+                    else:
+                        num_invalid_configurations += 1
+                        classification = "invalid"
                     
                     if visualize:
                         plot_room_walls(pano1_obj, i2Ti1, linewidth=10)
@@ -661,16 +687,18 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
 
                         # plt.plot(inter_poly_verts[:,0],inter_poly_verts[:,1], color='m')
 
-                        pano1_id = pano1_obj.id
-                        pano2_id = pano2_obj.id
-                        plt.title(f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid}, aligned via {alignment_object}, \n window_normals_compatible={window_normals_compatible}, config={configuration}")
+                        plt.title(f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid}, aligned via {alignment_object}, \n  config={configuration}")
+                        # window_normals_compatible={window_normals_compatible},
                         plt.axis('equal')
-                        plt.show()
+                        os.makedirs(f"debug_plots/{classification}", exist_ok=True)
+                        plt.savefig(f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step3_{i}_{j}.jpg")
+
+                        #plt.show()
                         plt.close('all')
 
 
     #assert best_alignment_object in ["door","window"]
-    return possible_alignment_info
+    return possible_alignment_info, num_invalid_configurations
 
 
 
@@ -704,11 +732,19 @@ def interp_evenly_spaced_points(polyline: np.ndarray, interval_m) -> np.ndarray:
 
 
 def determine_invalid_wall_overlap(
-    pano1_room_vertices: np.ndarray, pano2_room_vertices: np.ndarray, wall_buffer_m: float = 0.3
+    pano1_id: int,
+    pano2_id: int,
+    i: int,
+    j: int,
+    pano1_room_vertices: np.ndarray, pano2_room_vertices: np.ndarray, wall_buffer_m: float = 0.3, visualize: bool = True
 ) -> bool:
     """
     TODO: consider adding allowed_overlap_pct: float = 0.01
         Args:
+            pano1_id: panorama id
+            pano2_id: panorama id
+            i: id of WDO to match from pano1
+            j: id of WDO to match from pano2
 
         TODO: use `wall_buffer_m`
 
@@ -732,7 +768,6 @@ def determine_invalid_wall_overlap(
     shrunk_poly2 = shrink_polygon(polygon2)
     shrunk_poly2_verts = np.array(list(shrunk_poly2.exterior.coords))
 
-    
     def count_verts_inside_poly(polygon: Polygon, query_verts: np.ndarray) -> int:
         """
         Args:
@@ -754,7 +789,6 @@ def determine_invalid_wall_overlap(
 
     is_valid = num_violations == 0
 
-    visualize = True
     if visualize:
         # plot the overlap region
         plt.close("all")
@@ -775,7 +809,12 @@ def determine_invalid_wall_overlap(
 
         plt.title(f"Step 2: Number of violations: {num_violations}")
         plt.axis("equal")
-        plt.show()
+        #plt.show()
+
+        classification = "invalid" if num_violations > 0 else "valid"
+
+        os.makedirs(f"debug_plots/{classification}", exist_ok=True)
+        plt.savefig(f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step2_{i}_{j}.jpg")
 
     return is_valid
 
@@ -1178,13 +1217,11 @@ def test_reflections_2() -> None:
 
 
 if __name__ == '__main__':
-    #main()
+    main()
     #test_reflections_2()
     #test_determine_invalid_wall_overlap1()
     #test_determine_invalid_wall_overlap2()
     #test_get_wd_normal_2d()
     #test_get_relative_angle()
-
-
-    test_align_rooms_by_wd()
+    #test_align_rooms_by_wd()
 
