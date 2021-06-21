@@ -22,6 +22,7 @@ import scipy.spatial
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 from gtsam import Similarity3
+from shapely.geometry import Point, Polygon
 
 from sim3_align_dw import align_points_sim3
 
@@ -288,10 +289,10 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
 
-                proposed_fname = f"verifier_dataset/proposed_alignment/{i1}_{i2}_{best_alignment_object}"
+                proposed_fname = f"verifier_dataset/proposed_alignment/{i1}_{i2}_{best_alignment_object}.json"
                 save_Sim2(proposed_fname, i2Ti1)
 
-                gt_fname = f"verifier_dataset/gt_alignment/{i1}_{i2}_{best_alignment_object}"
+                gt_fname = f"verifier_dataset/gt_alignment/{i1}_{i2}_{best_alignment_object}.json"
                 save_Sim2(gt_fname, i2Ti1_gt)
 
                 #import pdb; pdb.set_trace()
@@ -312,9 +313,10 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
 def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
     """ """
+    import pdb; pdb.set_trace()
     import os
     if not Path(save_fpath).exists():
-        os.makedirs(save_fpath, exist_ok=True)
+        os.makedirs( Path(save_fpath).parent, exist_ok=True)
 
     from argoverse.utils.json_utils import save_json_dict
     dict_for_serialization = {
@@ -383,7 +385,7 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                     # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
                     #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
                     
-                    visualize = False
+                    visualize = True
                     if visualize:
                         plt.scatter(pano2_wd_pts[:,0], pano2_wd_pts[:,1], 200, color='r', marker='.')
                         plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 50, color='b', marker='.')
@@ -397,31 +399,209 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData) -> Similarity3:
                         plt.scatter(all_pano1_pts[:,0], all_pano1_pts[:,1], 200, color='g', marker='+')
                         plt.scatter(all_pano2_pts[:,0], all_pano2_pts[:,1], 50, color='m', marker='+')
 
-                    # should be in the same coordinate frame, now
-                    affinity_matrix = scipy.spatial.distance.cdist(all_pano1_pts, all_pano2_pts[:,:2])
-                    print(np.round(affinity_matrix,1))
-                    closest_dists = np.min(affinity_matrix, axis=1)
-                    avg_error = closest_dists.mean()
-                    print(f"\t{alignment_object} {i}/{j}: Cost {avg_error:.2f}")
+                    pano1_room_vertices = pano1_obj.room_vertices_local_2d
+                    pano1_room_vertices = i2Ti1.transform_from(pano1_room_vertices)
+                    pano2_room_vertices = pano2_obj.room_vertices_local_2d
 
-                    if avg_error < best_alignment_error:
-                        best_alignment_error = avg_error
-                        best_alignment_object = alignment_object
+                    # Intersection will be 100% if they match perfectly
+                    # 
+
+                    is_valid = determine_invalid_wall_overlap(pano1_room_vertices, pano2_room_vertices, wall_buffer_m=0.3)
+
+                    # print(f"\t{alignment_object} {i}/{j}: Cost {avg_error:.2f}")
+
+                    # if avg_error < best_alignment_error:
+                    #     best_alignment_error = avg_error
+                    #     best_alignment_object = alignment_object
 
                     if visualize:
                         plot_room_walls(pano1_obj, i2Ti1)
                         plot_room_walls(pano2_obj)
 
+                        plt.plot(inter_poly_verts[:,0],inter_poly_verts[:,1], color='m')
+
                         pano1_id = pano1_obj.id
                         pano2_id = pano2_obj.id
-                        plt.title(f"Match: ({pano1_id},{pano2_id})")
+                        plt.title(f"Match: ({pano1_id},{pano2_id}): intersection {inter_poly_area:.2f}")
                         plt.axis('equal')
                         plt.show()
                         plt.close('all')
 
 
-    assert best_alignment_object in ["door","window"]
+    #assert best_alignment_object in ["door","window"]
     return i2Ti1, best_alignment_error, best_alignment_object
+
+
+
+def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10):
+    """
+    Args:
+        shrink_factor: shrink by 10%
+    """
+    xs = list(polygon.exterior.coords.xy[0])
+    ys = list(polygon.exterior.coords.xy[1])
+    x_center = 0.5 * min(xs) + 0.5 * max(xs)
+    y_center = 0.5 * min(ys) + 0.5 * max(ys)
+    min_corner = Point(min(xs), min(ys))
+    max_corner = Point(max(xs), max(ys))
+    center = Point(x_center, y_center)
+    shrink_distance = center.distance(min_corner) * shrink_factor
+
+    polygon_shrunk = polygon.buffer(-shrink_distance) #shrink
+    return polygon_shrunk
+
+
+
+def determine_invalid_wall_overlap(
+    pano1_room_vertices: np.ndarray, pano2_room_vertices: np.ndarray, wall_buffer_m: float = 0.3
+) -> bool:
+    """
+    TODO: consider adding allowed_overlap_pct: float = 0.01
+        Args:
+
+        TODO: use `wall_buffer_m`
+
+        Returns:
+    """
+    polygon1 = Polygon(pano1_room_vertices)
+    polygon2 = Polygon(pano2_room_vertices)
+
+    # should be in the same coordinate frame, now
+    inter_poly = polygon1.intersection(polygon2)
+    inter_poly_area = inter_poly.area
+
+    inter_poly_verts = np.array(list(inter_poly.exterior.coords))
+
+    shrunk_inter_poly = shrink_polygon(inter_poly)
+
+    shrunk_inter_poly_verts = np.array(list(shrunk_inter_poly.exterior.coords))
+
+    
+    def count_verts_inside_poly(polygon: Polygon, query_verts: np.ndarray) -> int:
+        """
+        Args:
+        query vertices
+        """
+        num_violations = 0
+        for vert in query_verts:
+            v_pt = Point(vert)
+            if polygon.contains(v_pt) or polygon.contains(v_pt):
+                num_violations += 1
+        return num_violations
+
+    # TODO: interpolate evenly spaced points along edges, if this gives any benefit?
+    # Cannot be the case that poly1 or poly2 vertices fall within the shrunk polygon
+    pano1_violations = count_verts_inside_poly(shrunk_inter_poly, query_verts=pano1_room_vertices)
+    pano2_violations = count_verts_inside_poly(shrunk_inter_poly, query_verts=pano2_room_vertices)
+    num_violations = pano1_violations + pano2_violations
+
+    is_valid = num_violations == 0
+
+    visualize = True
+    if visualize:
+        # plot the overlap region
+        plt.close("all")
+
+        plt.scatter(pano1_room_vertices[:,0], pano1_room_vertices[:,1], 10, color="m")
+        plt.plot(pano1_room_vertices[:,0], pano1_room_vertices[:,1], color="m", linewidth=20, alpha=0.1)
+
+        plt.scatter(pano2_room_vertices[:,0], pano2_room_vertices[:,1], 10, color="g")
+        plt.plot(pano2_room_vertices[:,0], pano2_room_vertices[:,1], color="g", linewidth=10, alpha=0.1)
+
+        plt.scatter(inter_poly_verts[:,0], inter_poly_verts[:,1], 10, color="r")
+        plt.plot(inter_poly_verts[:,0], inter_poly_verts[:,1], color="r", linewidth=1, alpha=0.1)
+
+        plt.scatter(shrunk_inter_poly_verts[:,0], shrunk_inter_poly_verts[:,1], 10, color="b")
+        plt.plot(shrunk_inter_poly_verts[:,0], shrunk_inter_poly_verts[:,1], color="b", linewidth=1, alpha=0.1)
+
+
+        plt.title(f"Number of violations: {num_violations}")
+        plt.axis("equal")
+        plt.show()
+
+    return is_valid
+
+
+def test_determine_invalid_wall_overlap1() -> None:
+    """large horseshoe, and small horseshoe
+
+    .---.---.
+    |       |
+    .   .xxx.
+    |       x|
+    .   .xxx.
+    |       |
+    .       .
+
+    """
+    # fmt: off
+    pano1_room_vertices = np.array(
+        [
+            [1,2],
+            [1,5],
+            [3,5],
+            [3,2]
+        ])
+    pano2_room_vertices = np.array(
+        [
+            [2,4],
+            [3,4],
+            [3,3],
+            [2,3]
+        ])
+
+    # fmt: on
+    wall_buffer_m = 0.2 # 20 centimeter noise buffer
+    allowed_overlap_pct = 0.01 # TODO: allow 1% of violations ???
+
+    is_valid = determine_invalid_wall_overlap(
+        pano1_room_vertices,
+        pano2_room_vertices,
+        wall_buffer_m
+    )
+    assert not is_valid
+
+
+
+
+def test_determine_invalid_wall_overlap2() -> None:
+    """identical shape
+
+    .---.---.
+    |       |
+    .       .
+    |       |
+    .       .
+    |       |
+    .       .
+
+    """
+    # fmt: off
+    pano1_room_vertices = np.array(
+        [
+            [1,2],
+            [1,5],
+            [3,5],
+            [3,2]
+        ])
+    pano2_room_vertices = np.array(
+        [
+            [1,2],
+            [1,5],
+            [3,5],
+            [3,2]
+        ])
+
+    # fmt: on
+    wall_buffer_m = 0.2 # 20 centimeter noise buffer
+    allowed_overlap_pct = 0.01 # TODO: allow 1% of violations ???
+
+    is_valid = determine_invalid_wall_overlap(
+        pano1_room_vertices,
+        pano2_room_vertices,
+        wall_buffer_m
+    )
+    assert is_valid
 
 
 
@@ -439,7 +619,6 @@ def plot_room_walls(pano_obj: PanoData, i2Ti1: Optional[Sim2] = None) -> None:
     last_vert = room_vertices[-1]
     first_vert = room_vertices[0]
     plt.plot([last_vert[0],first_vert[0]], [last_vert[1],first_vert[1]], color=color, alpha=0.5)
-
 
 
 def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
@@ -741,8 +920,10 @@ def test_reflections_2() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    #main()
     #test_reflections_2()
+    test_determine_invalid_wall_overlap1()
+    test_determine_invalid_wall_overlap2()
 
 
 
