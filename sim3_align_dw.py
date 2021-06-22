@@ -27,6 +27,11 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Sim2, np.nd
     # Convert Similarity3 to Similarity2
     aSb = Sim2(R=aRb[:2,:2], t=atb[:2], s=asb)
 
+    computed = aSb.rotation.T @ aSb.rotation
+    expected = np.eye(2)
+    print(computed, expected)
+    assert np.allclose(computed, expected, atol=0.05)
+
     return aSb, pts_a_
 
 
