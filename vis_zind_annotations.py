@@ -276,6 +276,18 @@ def main():
 OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_17"
 
 
+def test_rotmat2d() -> None:
+    """ """
+    for _ in range(1000):
+
+        theta = np.random.rand() * 360
+        R = rotmat2d(theta)
+        computed = R.T @ R
+        #print(np.round(computed, 1))
+        expected = np.eye(2)
+        assert np.allclose(computed, expected)
+
+
 def rotmat2d(theta_deg: float) -> np.ndarray:
     """Generate 2x2 rotation matrix, given a rotation angle in degrees."""
     theta_rad = np.deg2rad(theta_deg)
@@ -318,7 +330,7 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     """ """
     DIST_THRESH = 0.1
     # do they share a door or window?
-    
+
     from shapely.geometry import LineString
     for wdo1 in pano1_obj.windows + pano1_obj.doors + pano1_obj.openings:
         poly1 = LineString(wdo1.vertices_global_2d)
@@ -332,8 +344,6 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
-
-
 def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
     """ """
     floor_map_json = read_json_file(json_annot_fpath)
@@ -343,7 +353,7 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
-
+        
         fd = FloorData.from_json(floor_data, floor_id)
         if not (floor_id == 'floor_01' and building_id == '000'):
             continue
@@ -353,7 +363,7 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
         pano_dict = {pano_obj.id: pano_obj for pano_obj in fd.panos}
 
-        pano_ids = list(pano_dict.keys())
+        pano_ids = sorted(list(pano_dict.keys()))
         for i1 in pano_ids:
 
             for i2 in pano_ids:
@@ -367,9 +377,6 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
-                print("Visibly adjacent: ", visibly_adjacent)
-                continue
-
                 possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
 
                 #TODO: prune to the unique ones
@@ -377,10 +384,13 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
 
+                dataset_id = "verifier_dataset_2021_06_21"
+
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
-                gt_fname = f"verifier_dataset/{building_id}/{floor_id}/gt_alignment/{i1}_{i2}.json"
-                save_Sim2(gt_fname, i2Ti1_gt)
+                gt_fname = f"{dataset_id}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
+                if visibly_adjacent:
+                    save_Sim2(gt_fname, i2Ti1_gt)
 
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
 
@@ -388,14 +398,16 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
                     if obj_almost_equal(i2Ti1, i2Ti1_gt):
                         label = "aligned"
+                        save_dir = f"{dataset_id}/{building_id}/{floor_id}/gt_alignment_approx"
                     else:
                         label = "misaligned"
+                        save_dir = f"{dataset_id}/{building_id}/{floor_id}/incorrect_alignment"
 
-                    proposed_fname = f"verifier_dataset/{building_id}/{floor_id}/proposed_alignment/{i1}_{i2}_{alignment_object}___variant_{k}.json"
+                    proposed_fname = f"{save_dir}/{i1}_{i2}_{alignment_object}___variant_{k}.json"
                     save_Sim2(proposed_fname, i2Ti1)
 
                     print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
-                    print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label)
+                    print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)
 
                     print()
                     print()
@@ -790,7 +802,7 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
                         # window_normals_compatible={window_normals_compatible},
                         plt.axis('equal')
                         os.makedirs(f"debug_plots/{classification}", exist_ok=True)
-                        plt.savefig(f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step3_{i}_{j}.jpg")
+                        plt.savefig(f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step3_{configuration}_{i}_{j}.jpg")
 
                         #plt.show()
                         plt.close('all')
@@ -1324,4 +1336,6 @@ if __name__ == '__main__':
     #test_get_relative_angle()
     #test_align_rooms_by_wd()
     #test_prune_to_unique_sim2_objs()
+
+    #test_rotmat2d()
 
