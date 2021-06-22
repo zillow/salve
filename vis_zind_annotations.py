@@ -153,8 +153,6 @@ def test_get_wd_normal_2d() -> None:
     gt_n2 = np.array([-1,1]) / np.sqrt(2)
     
     assert np.allclose(n2, gt_n2)
-    
-
 
 
 class PanoData(NamedTuple):
@@ -316,6 +314,26 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim
 
 
 
+def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
+    """ """
+    DIST_THRESH = 0.1
+    # do they share a door or window?
+    
+    from shapely.geometry import LineString
+    for wdo1 in pano1_obj.windows + pano1_obj.doors + pano1_obj.openings:
+        poly1 = LineString(wdo1.vertices_global_2d)
+
+        for wdo2 in pano2_obj.windows + pano2_obj.doors + pano2_obj.openings:
+
+            poly2 = LineString(wdo2.vertices_global_2d)
+            if poly1.hausdorff_distance(poly2) < DIST_THRESH:
+                return True
+
+    return False
+
+
+
+
 def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
     """ """
     floor_map_json = read_json_file(json_annot_fpath)
@@ -348,9 +366,13 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
+                visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
+                print("Visibly adjacent: ", visibly_adjacent)
+                continue
+
                 possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
 
-                TODO: prune to the unique ones
+                #TODO: prune to the unique ones
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
@@ -360,16 +382,20 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 gt_fname = f"verifier_dataset/{building_id}/{floor_id}/gt_alignment/{i1}_{i2}.json"
                 save_Sim2(gt_fname, i2Ti1_gt)
 
-                for k, (i2Ti1, alignment_object) in enumerate(possible_alignment_info):
+                pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
+
+                for k, (i2Ti1, alignment_object) in enumerate(pruned_possible_alignment_info):
+
+                    if obj_almost_equal(i2Ti1, i2Ti1_gt):
+                        label = "aligned"
+                    else:
+                        label = "misaligned"
 
                     proposed_fname = f"verifier_dataset/{building_id}/{floor_id}/proposed_alignment/{i1}_{i2}_{alignment_object}___variant_{k}.json"
                     save_Sim2(proposed_fname, i2Ti1)
 
-                    print(f"\t {i2Ti1_gt.scale:.2f}")
-                    print(f"\t {i2Ti1.scale:.2f}")
-
-                    print("\t", np.round(i2Ti1_gt.translation,1))
-                    print("\t", np.round(i2Ti1.translation,1))
+                    print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
+                    print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label)
 
                     print()
                     print()
@@ -382,6 +408,70 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
     # try all possible matches at every step. compute costs, and choose the best greedily.
 
 
+def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
+    """ """
+    angle1 = np.rad2deg(np.arccos(i2Ti1.rotation[0,0]))
+    angle2 = np.rad2deg(np.arccos(i2Ti1_.rotation[0,0]))
+
+    print(f"\t\tTrans: {i2Ti1.translation} vs. {i2Ti1_.translation}")
+    print(f"\t\tScale: {i2Ti1.scale:.1f} vs. {i2Ti1_.scale:.1f}")
+    print(f"\t\tAngle: {angle1:.1f} vs. {angle2:.1f}")
+
+    if not np.allclose(i2Ti1.translation, i2Ti1_.translation, atol=0.2):
+        return False
+
+    if not np.isclose(i2Ti1.scale, i2Ti1_.scale, atol=0.2):
+        return False
+
+    if not np.isclose(angle1, angle2, atol=5):
+        return False
+
+    return True
+
+
+
+def prune_to_unique_sim2_objs(possible_alignment_info: List[Tuple[Sim2,str]]) -> List[Tuple[Sim2,str]]:
+    """ """
+    pruned_possible_alignment_info = []
+
+    for j, (i2Ti1, alignment_object) in enumerate(possible_alignment_info):
+
+        item_is_used = False
+        for (i2Ti1_, _) in pruned_possible_alignment_info:
+
+            if i2Ti1 == i2Ti1_:
+                item_is_used = True
+
+        if not item_is_used:
+            pruned_possible_alignment_info += [(i2Ti1, alignment_object)]
+
+    num_orig_objs = len(possible_alignment_info)
+    num_pruned_objs = len(pruned_possible_alignment_info)
+    print(f'Pruned from {num_orig_objs} to {num_pruned_objs}')
+    return pruned_possible_alignment_info
+
+
+def test_prune_to_unique_sim2_objs() -> None:
+    """ """
+    wR1 = np.eye(2)
+    wt1 = np.array([0,1])
+    ws1 = 1.5
+
+    wR2 = np.array([[0,1],[1,0]])
+    wt2 = np.array([1,2])
+    ws2 = 3.0
+
+    possible_alignment_info = [
+        (Sim2(wR1, wt1, ws1), "window"),
+        (Sim2(wR1, wt1, ws1), "window"),
+        (Sim2(wR2, wt2, ws2), "window"),
+        (Sim2(wR1, wt1, ws1), "window")
+    ]
+    pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
+    assert len(pruned_possible_alignment_info) == 2
+
+    assert pruned_possible_alignment_info[0][0].scale == 1.5
+    assert pruned_possible_alignment_info[1][0].scale == 3.0
 
 
 def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
@@ -531,7 +621,7 @@ def test_align_rooms_by_wd() -> None:
     assert len(possible_alignment_info) == 3
 
 
-def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool = True) -> Similarity3:
+def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool = True) -> Tuple[List[Tuple[Sim2,str]], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
 
@@ -565,10 +655,19 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
     possible_alignment_info = []
 
     #import pdb; pdb.set_trace()
-    for alignment_object in ["door","window"]: #[,"window"]:
+    for alignment_object in ["door", "window", "opening"]:
 
-        pano1_wds = pano1_obj.windows if alignment_object=="window" else pano1_obj.doors
-        pano2_wds = pano2_obj.windows if alignment_object=="window" else pano2_obj.doors
+        if alignment_object == "door":
+            pano1_wds = pano1_obj.doors
+            pano2_wds = pano2_obj.doors
+
+        elif alignment_object == "window":
+            pano1_wds = pano1_obj.windows
+            pano2_wds = pano2_obj.windows
+
+        elif alignment_object == "opening":
+            pano1_wds = pano1_obj.openings
+            pano2_wds = pano2_obj.openings
 
         # try every possible pairwise combination, for this object type
         for i, pano1_wd in enumerate(pano1_wds):
@@ -1224,4 +1323,5 @@ if __name__ == '__main__':
     #test_get_wd_normal_2d()
     #test_get_relative_angle()
     #test_align_rooms_by_wd()
+    #test_prune_to_unique_sim2_objs()
 
