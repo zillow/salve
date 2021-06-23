@@ -260,6 +260,8 @@ def main():
     sRp + st
 
     Maybe compose with other Sim(2)
+
+    Reflection must come after the Sim(2) --> otherwise the global poses will be wrong.
     """
     teaser_dirpath = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{teaser_dirpath}/*") if Path(fpath).is_dir()]
@@ -335,13 +337,29 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     for wdo1 in pano1_obj.windows + pano1_obj.doors + pano1_obj.openings:
         poly1 = LineString(wdo1.vertices_global_2d)
 
+        #plt.scatter(wdo1.vertices_global_2d[:,0], wdo1.vertices_global_2d[:,1], 40, color="r", alpha=0.2)
+
         for wdo2 in pano2_obj.windows + pano2_obj.doors + pano2_obj.openings:
+
+            #plt.scatter(wdo2.vertices_global_2d[:,0], wdo2.vertices_global_2d[:,1], 20, color="b", alpha=0.2)
 
             poly2 = LineString(wdo2.vertices_global_2d)
             if poly1.hausdorff_distance(poly2) < DIST_THRESH:
                 return True
 
+    # plt.axis("equal")
+    # plt.show()
+
     return False
+
+
+def print_sim2(aSb: Sim2) -> None:
+    """ """
+    theta_deg = np.rad2deg(np.arccos(aSb.rotation[0,0]))
+    print(f"Angle: {theta_deg}")
+    print("Trans: ", np.round(aSb.translation, 2))
+    print(f"Scale: {aSb.scale:.2f}")
+
 
 
 def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
@@ -355,7 +373,7 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
     for floor_id, floor_data in merger_data.items():
         
         fd = FloorData.from_json(floor_data, floor_id)
-        if not (floor_id == 'floor_01' and building_id == '000'):
+        if not (floor_id == 'floor_02' and building_id == '000'):
             continue
 
         floor_n_valid_configurations = 0
@@ -729,6 +747,14 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
                     # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
                     #evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
                     
+                    R_refl = np.array([[-1.,0],[0,1]])
+                    world_Sim2_reflworld = Sim2(R_refl, t=np.zeros(2), s=1.0)
+
+                    aligned_pts1 = aligned_pts1[:,:2]
+                    pano2_wd_pts = pano2_wd_pts[:,:2]
+                    aligned_pts1 = world_Sim2_reflworld.transform_from(aligned_pts1)
+                    pano2_wd_pts = world_Sim2_reflworld.transform_from(pano2_wd_pts)
+
                     if visualize:
                         plt.scatter(pano2_wd_pts[:,0], pano2_wd_pts[:,1], 200, color='r', marker='.')
                         plt.scatter(aligned_pts1[:,0], aligned_pts1[:,1], 50, color='b', marker='.')
@@ -738,6 +764,9 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
 
                     all_pano1_pts = i2Ti1.transform_from(all_pano1_pts[:,:2])
 
+                    all_pano1_pts = world_Sim2_reflworld.transform_from(all_pano1_pts[:,:2])
+                    all_pano2_pts = world_Sim2_reflworld.transform_from(all_pano2_pts[:,:2])
+
                     if visualize:
                         plt.scatter(all_pano1_pts[:,0], all_pano1_pts[:,1], 200, color='g', marker='+')
                         plt.scatter(all_pano2_pts[:,0], all_pano2_pts[:,1], 50, color='m', marker='+')
@@ -745,6 +774,9 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
                     pano1_room_vertices = pano1_obj.room_vertices_local_2d
                     pano1_room_vertices = i2Ti1.transform_from(pano1_room_vertices)
                     pano2_room_vertices = pano2_obj.room_vertices_local_2d
+
+                    pano1_room_vertices = world_Sim2_reflworld.transform_from(pano1_room_vertices[:,:2])
+                    pano2_room_vertices = world_Sim2_reflworld.transform_from(pano2_room_vertices[:,:2])
 
                     is_valid = determine_invalid_wall_overlap(
                         pano1_id,
@@ -926,6 +958,7 @@ def determine_invalid_wall_overlap(
 
         os.makedirs(f"debug_plots/{classification}", exist_ok=True)
         plt.savefig(f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step2_{i}_{j}.jpg")
+        plt.close("all")
 
     return is_valid
 
@@ -1019,6 +1052,12 @@ def plot_room_walls(pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, linewidth:
     room_vertices = pano_obj.room_vertices_local_2d
     if i2Ti1:
         room_vertices = i2Ti1.transform_from(room_vertices)
+
+
+    R_refl = np.array([[-1.,0],[0,1]])
+    world_Sim2_reflworld = Sim2(R_refl, t=np.zeros(2), s=1.0)
+
+    room_vertices = world_Sim2_reflworld.transform_from(room_vertices)
 
     color = np.random.rand(3)
     plt.scatter(room_vertices[:,0], room_vertices[:,1], 10, marker='.', color=color, alpha=alpha)
