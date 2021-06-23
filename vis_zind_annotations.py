@@ -323,6 +323,8 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim
 
     R = rotmat2d(theta_deg)
 
+    assert np.allclose(R.T @ R, np.eye(2))
+
     global_SIM2_local = Sim2(R=R, t=t, s=scale)
     return global_SIM2_local
 
@@ -371,10 +373,18 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
+
+        print("--------------------------------")
+        print("--------------------------------")
+        print("--------------------------------")
+        print(f"On building {building_id}, floor {floor_id}...")
+        print("--------------------------------")
+        print("--------------------------------")
+        print("--------------------------------")
         
         fd = FloorData.from_json(floor_data, floor_id)
-        if not (floor_id == 'floor_02' and building_id == '000'):
-            continue
+        # if not (floor_id == 'floor_02' and building_id == '000'):
+        #     continue
 
         floor_n_valid_configurations = 0
         floor_n_invalid_configurations = 0
@@ -388,6 +398,11 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
                 # compute only upper diagonal, since symmetric
                 if i1 >= i2:
+                    continue
+
+                if i1 == 5 and i2 == 9: # also, check on 6-9, and on 8-9, and on 14-15, 19-29
+                    import pdb; pdb.set_trace()
+                else:
                     continue
 
                 print(f"On {i1}-{i2}")
@@ -406,9 +421,14 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
+                #i2Ti1_gt = reorthonormalize_sim2(i2Ti1_gt)
                 gt_fname = f"{dataset_id}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
                 if visibly_adjacent:
                     save_Sim2(gt_fname, i2Ti1_gt)
+                    expected = i2Ti1_gt.rotation.T @ i2Ti1_gt.rotation
+                    print("Identity? ", np.round(expected, 1))
+                    if not np.allclose(expected, np.eye(2), atol=1e-6):
+                        import pdb; pdb.set_trace()
 
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
 
@@ -436,6 +456,8 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
     # for every room, try to align it to another.
     # while there are any unmatched rooms?
     # try all possible matches at every step. compute costs, and choose the best greedily.
+
+
 
 
 def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
@@ -714,6 +736,8 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
                     plausible_configurations = ["identity", "rotated"]
                 elif alignment_object == "window":
                     plausible_configurations = ["identity"]
+                elif alignment_object == "opening":
+                    plausible_configurations = ["identity", "rotated"]
 
                 for configuration in plausible_configurations:
 
@@ -1366,6 +1390,47 @@ def test_reflections_2() -> None:
     plt.show()
 
 
+def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
+    """ """
+    R = i2Ti1.rotation
+
+    #import pdb; pdb.set_trace()
+
+    print("(0,0) entry said: ", np.rad2deg(np.arccos(R[0,0])))
+    print("(1,0) entry said: ", np.rad2deg(np.arcsin(R[1,0])))
+
+    theta_rad = np.arctan2(R[1,0], R[0,0])
+    theta_deg = np.rad2deg(theta_rad)
+
+    print("Combination said: ", theta_deg)
+
+    R_ = rotmat2d(theta_deg)
+
+    i2Ti1_ = Sim2(R_, i2Ti1.translation, i2Ti1.scale)
+
+    expected = np.eye(2)
+    computed = i2Ti1_.rotation.T @ i2Ti1_.rotation
+    assert np.allclose(expected, computed, atol=1e-5)
+
+    return i2Ti1_
+
+
+def test_reorthonormalize():
+    """ """
+    pano3_data = {'translation': [0.01553549307166846, -0.002272521859178478], 'rotation': -352.5305535406924, 'scale': 0.4042260417272217}
+    pano4_data = {'translation': [0.0, 0.0], 'rotation': 0.0, 'scale': 0.4042260417272217}
+
+    global_SIM2_i3 = generate_Sim2_from_floorplan_transform(pano3_data)
+    global_SIM2_i4 = generate_Sim2_from_floorplan_transform(pano4_data)
+
+    import pdb; pdb.set_trace()
+
+    i2Ti1_gt = global_SIM2_i4.inverse().compose(global_SIM2_i3)
+
+    reorthonormalize_sim2(i2Ti1_gt)
+
+
+
 if __name__ == '__main__':
     main()
     #test_reflections_2()
@@ -1377,4 +1442,6 @@ if __name__ == '__main__':
     #test_prune_to_unique_sim2_objs()
 
     #test_rotmat2d()
+
+    #test_reorthonormalize()
 
