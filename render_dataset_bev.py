@@ -15,7 +15,7 @@ from vis_depth import vis_depth, vis_depth_and_render, render_bev_pair
 
 def render_depth_if_nonexistent(img_fpath: str) -> None:
     """ """
-    if not Path(f"assets/{Path(img_fpath).stem}.depth.png").exists():
+    if Path(f"assets/{Path(img_fpath).stem}.depth.png").exists():
         return
 
     args = SimpleNamespace(**{
@@ -26,7 +26,6 @@ def render_depth_if_nonexistent(img_fpath: str) -> None:
         "opts": []
     })
     infer_depth(args)
-
 
 
 def render_dataset():
@@ -75,7 +74,11 @@ def render_pairs() -> None:
     else:
         crop_z_above = -1.0
 
-    building_id = "000"
+    # building_id = "000"
+    # floor_id = "floor_02" # "floor_01"
+
+    building_id = "001"
+    floor_id = "floor_02" # "floor_01"
 
     def panoid_from_fpath(fpath: str) -> int:
         """ """
@@ -84,10 +87,10 @@ def render_pairs() -> None:
     img_fpaths = glob.glob(f"/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw/{building_id}/panos/*.jpg")
     img_fpaths_dict = { panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     dataset_id = "verifier_dataset_2021_06_21"
-    floor_labels_dirpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{dataset_id}/{building_id}/floor_01"
+    floor_labels_dirpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{dataset_id}/{building_id}/{floor_id}"
 
     gt_exact_pairs =  glob.glob(f"{floor_labels_dirpath}/gt_alignment_exact/*.json")
     gt_approx_pairs = glob.glob(f"{floor_labels_dirpath}/gt_alignment_approx/*.json")
@@ -108,7 +111,7 @@ def render_pairs() -> None:
         render_depth_if_nonexistent(img1_fpath)
         render_depth_if_nonexistent(img2_fpath)
 
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
 
         args = SimpleNamespace(**{
             "img_i1": semantic_img1_fpath if is_semantics else img1_fpath,
@@ -121,7 +124,7 @@ def render_pairs() -> None:
         })
         #bev_img = vis_depth_and_render(args, is_semantics=False)
 
-        render_bev_pair(args, i1, i2, i2Ti1, is_semantics=False)
+        render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
 
 
 
