@@ -12,6 +12,23 @@ from infer_depth import infer_depth
 from vis_depth import vis_depth, vis_depth_and_render, render_bev_pair
 
 
+
+def render_depth_if_nonexistent(img_fpath: str) -> None:
+    """ """
+    if not Path(f"assets/{Path(img_fpath).stem}.depth.png").exists():
+        return
+
+    args = SimpleNamespace(**{
+        "cfg": "config/mp3d_depth/HOHO_depth_dct_efficienthc_TransEn1_hardnet.yaml",
+        "pth": "ckpt/mp3d_depth_HOHO_depth_dct_efficienthc_TransEn1_hardnet/ep60.pth",
+        "out": "assets/",
+        "inp": img_fpath,
+        "opts": []
+    })
+    infer_depth(args)
+
+
+
 def render_dataset():
     """ """
 
@@ -20,14 +37,7 @@ def render_dataset():
 
     for img_fpath in img_fpaths:
 
-        args = SimpleNamespace(**{
-            "cfg": "config/mp3d_depth/HOHO_depth_dct_efficienthc_TransEn1_hardnet.yaml",
-            "pth": "ckpt/mp3d_depth_HOHO_depth_dct_efficienthc_TransEn1_hardnet/ep60.pth",
-            "out": "assets/",
-            "inp": img_fpath,
-            "opts": []
-        })
-        #infer_depth(args)
+        render_depth_if_nonexistent(img_fpath)
 
         is_semantics = False
         semantic_img_fpath = f"/Users/johnlam/Downloads/MSeg_output/{Path(img_fpath).stem}_gray.jpg"
@@ -95,6 +105,9 @@ def render_pairs() -> None:
         img1_fpath = img_fpaths_dict[i1]
         img2_fpath = img_fpaths_dict[i2]
 
+        render_depth_if_nonexistent(img1_fpath)
+        render_depth_if_nonexistent(img2_fpath)
+
         import pdb; pdb.set_trace()
 
         args = SimpleNamespace(**{
@@ -108,7 +121,7 @@ def render_pairs() -> None:
         })
         #bev_img = vis_depth_and_render(args, is_semantics=False)
 
-        render_bev_pair(args, i2Ti1, is_semantics=False)
+        render_bev_pair(args, i1, i2, i2Ti1, is_semantics=False)
 
 
 
