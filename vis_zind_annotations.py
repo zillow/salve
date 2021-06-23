@@ -355,15 +355,6 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
-def print_sim2(aSb: Sim2) -> None:
-    """ """
-    theta_deg = np.rad2deg(np.arccos(aSb.rotation[0,0]))
-    print(f"Angle: {theta_deg}")
-    print("Trans: ", np.round(aSb.translation, 2))
-    print(f"Scale: {aSb.scale:.2f}")
-
-
-
 def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
     """ """
     floor_map_json = read_json_file(json_annot_fpath)

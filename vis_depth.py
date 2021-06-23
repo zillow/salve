@@ -12,6 +12,7 @@ from argoverse.utils.sim2 import Sim2
 from imageio import imread
 from scipy.interpolate import griddata # not quite the same as `matplotlib.mlab.griddata`
 
+from vis_zind_annotations import rotmat2d
 
 def get_uni_sphere_xyz(H, W):
     """Make spherical system match the world system """
@@ -543,23 +544,21 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
 
     #floor_map_json['scale_meters_per_coordinate']
     scale_meters_per_coordinate = 3.7066488344243465
-
-    from vis_zind_annotations import print_sim2
-    print_sim2(i2Ti1)
-    #import pdb; pdb.set_trace()
+    print(i2Ti1)
 
     # because of the reflection!
     xyzrgb1[:,0] *= -1
     xyzrgb2[:,0] *= -1
 
-    from vis_zind_annotations import rotmat2d
-
+    # HoHoNet center of pano is to -x, but in ZinD center of pano is +y
     R = rotmat2d(90)
 
     xyzrgb1[:,:2] = xyzrgb1[:,:2] @ R.T
     xyzrgb2[:,:2] = xyzrgb2[:,:2] @ R.T
+
+    HOHO_S_ZIND_SCALE_FACTOR = 1.5
     
-    xyzrgb1[:,:2] = (xyzrgb1[:,:2] @ i2Ti1.rotation.T) + (i2Ti1.translation * 1.5) # * 1.5 #* scale_meters_per_coordinate # * np.array([-1,1]))
+    xyzrgb1[:,:2] = (xyzrgb1[:,:2] @ i2Ti1.rotation.T) + (i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR) #* scale_meters_per_coordinate # * np.array([-1,1]))
     #xyzrgb1[:,:2] = i2Ti1.transform_from(xyzrgb1[:,:2]) #
 
     #plt.scatter(xyzrgb1[:,0], xyzrgb1[:,1], 10, color='r', marker='.', alpha=0.1)
@@ -573,13 +572,7 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
     #plt.scatter(xyzrgb2[:,0], xyzrgb2[:,1], 10, color='b', marker='.', alpha=0.1)
     plt.scatter(-xyzrgb2[:,0], xyzrgb2[:,1], 10, c=xyzrgb2[:,3:], marker='.', alpha=0.1)
 
-    # i2Ti1_ = Sim2(
-    #     R=i2Ti1.rotation,
-    #     t=i2Ti1.translation * np.array([-1,1]), # * scale_meters_per_coordinate,
-    #     s=i2Ti1.scale
-    # )
-
-    plt.plot([0, i2Ti1.translation[0]] * 10, [0,i2Ti1.translation[1]] * 10, color='k')
+    # plt.plot([0, i2Ti1.translation[0]] * 10, [0,i2Ti1.translation[1]] * 10, color='k')
 
     plt.title("")
     plt.axis("equal")
