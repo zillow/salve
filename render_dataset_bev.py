@@ -76,11 +76,6 @@ def render_dataset():
 
 def render_pairs() -> None:
     """ """
-    is_semantics = False
-    if is_semantics:
-        crop_z_range = [-float('inf'), 2.0]
-    else:
-        crop_z_range = [-float('inf'), -1.0] # [0.5, float('inf')]  # 
 
     # building_id = "000"
     # floor_id = "floor_02" # "floor_01"
@@ -100,49 +95,65 @@ def render_pairs() -> None:
     dataset_id = "verifier_dataset_2021_06_21"
     floor_labels_dirpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{dataset_id}/{building_id}/{floor_id}"
 
-    gt_exact_pairs =  glob.glob(f"{floor_labels_dirpath}/gt_alignment_exact/*.json")
-    gt_approx_pairs = glob.glob(f"{floor_labels_dirpath}/gt_alignment_approx/*.json")
-    incorrect_pairs = glob.glob(f"{floor_labels_dirpath}/incorrect_alignment/*.json")
+    for label_type in ["gt_alignment_approx", "incorrect_alignment"]
 
-    for pair_idx, pair_fpath in enumerate(gt_approx_pairs): # gt_exact_pairs:
+        #gt_exact_pairs =  glob.glob(f"{floor_labels_dirpath}/gt_alignment_exact/*.json")
+        pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
 
-        i2Ti1 = sim2_from_json(json_fpath=pair_fpath)
+        for pair_idx, pair_fpath in enumerate(pairs):
 
-        i1, i2 = Path(pair_fpath).stem.split('_')[:2]
-        i1, i2 = int(i1), int(i2)
+            for surface_type in ["floor", "ceiling"]:
 
-        print(f"On {i1},{i2}")
+                is_semantics = False
+                # if is_semantics:
+                #     crop_z_range = [-float('inf'), 2.0]
+                # else:
 
-        img1_fpath = img_fpaths_dict[i1]
-        img2_fpath = img_fpaths_dict[i2]
+                if surface_type == "floor":
+                    # everything 1 meter and below the camera
+                    crop_z_range = [-float('inf'), -1.0]
 
-        infer_depth_if_nonexistent(img1_fpath)
-        infer_depth_if_nonexistent(img2_fpath)
+                elif surface_type == "ceiling":
+                    # everything 50 cm and above camera
+                    crop_z_range = [0.5, float('inf')]
 
-        #import pdb; pdb.set_trace()
+                i2Ti1 = sim2_from_json(json_fpath=pair_fpath)
 
-        args = SimpleNamespace(**{
-            "img_i1": semantic_img1_fpath if is_semantics else img1_fpath,
-            "img_i2": semantic_img2_fpath if is_semantics else img2_fpath,
-            "depth_i1": f"assets/{Path(img1_fpath).stem}.depth.png",
-            "depth_i2": f"assets/{Path(img2_fpath).stem}.depth.png",
-            "scale": 0.001,
-            "crop_ratio": 80/512, # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-            "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
-        })
-        #bev_img = vis_depth_and_render(args, is_semantics=False)
+                i1, i2 = Path(pair_fpath).stem.split('_')[:2]
+                i1, i2 = int(i1), int(i2)
 
-        bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
+                print(f"On {i1},{i2}")
 
-        save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_2021_06_24_crop_range_{args.crop_z_range[0]}_{args.crop_z_range[1]}/{building_id}"
-        os.makedirs(save_dir, exist_ok=True)
-        
-        for img_fpath, bev_img in zip([img1_fpath, img2_fpath], [bev_img1, bev_img2]):
-            if is_semantics:
-                img_name = f"pair_{pair_idx}_semantics_{Path(img_fpath).stem}.jpg"
-            else:
-                img_name = f"pair_{pair_idx}_rgb_{Path(img_fpath).stem}.jpg"
-            imageio.imwrite(f"{save_dir}/{img_name}", bev_img)
+                img1_fpath = img_fpaths_dict[i1]
+                img2_fpath = img_fpaths_dict[i2]
+
+                infer_depth_if_nonexistent(img1_fpath)
+                infer_depth_if_nonexistent(img2_fpath)
+
+                #import pdb; pdb.set_trace()
+
+                args = SimpleNamespace(**{
+                    "img_i1": semantic_img1_fpath if is_semantics else img1_fpath,
+                    "img_i2": semantic_img2_fpath if is_semantics else img2_fpath,
+                    "depth_i1": f"assets/{Path(img1_fpath).stem}.depth.png",
+                    "depth_i2": f"assets/{Path(img2_fpath).stem}.depth.png",
+                    "scale": 0.001,
+                    "crop_ratio": 80/512, # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
+                    "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
+                })
+                #bev_img = vis_depth_and_render(args, is_semantics=False)
+
+                bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
+
+                save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_2021_06_24/{}/{building_id}"
+                os.makedirs(save_dir, exist_ok=True)
+                
+                for img_fpath, bev_img in zip([img1_fpath, img2_fpath], [bev_img1, bev_img2]):
+                    if is_semantics:
+                        img_name = f"pair_{pair_idx}_{surface_type}_semantics_{Path(img_fpath).stem}.jpg"
+                    else:
+                        img_name = f"pair_{pair_idx}_{surface_type}_rgb_{Path(img_fpath).stem}.jpg"
+                    imageio.imwrite(f"{save_dir}/{img_name}", bev_img)
 
 
 
