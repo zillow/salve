@@ -13,7 +13,7 @@ from vis_depth import vis_depth, vis_depth_and_render, render_bev_pair
 
 
 
-def render_depth_if_nonexistent(img_fpath: str) -> None:
+def infer_depth_if_nonexistent(img_fpath: str) -> None:
     """ """
     if Path(f"assets/{Path(img_fpath).stem}.depth.png").exists():
         return
@@ -33,35 +33,37 @@ def render_dataset():
 
     # nasty failure cases: building 004, pano 10 and pano 24, pano 28,56,58 (outdoors)
     # building 006, 10
+    # building 000, pano 10 outside
 
     building_id = "004"
     img_fpaths = glob.glob(f"/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw/{building_id}/panos/*.jpg")
 
     for img_fpath in img_fpaths:
 
-        if "_28.jpg" not in img_fpath: # 24
+        if "_4.jpg" not in img_fpath: # 4
             continue
 
-        render_depth_if_nonexistent(img_fpath)
+        infer_depth_if_nonexistent(img_fpath)
 
         is_semantics = False
         semantic_img_fpath = f"/Users/johnlam/Downloads/MSeg_output/{Path(img_fpath).stem}_gray.jpg"
 
         if is_semantics:
-            crop_z_above = 2.0
+            crop_z_range = [-float('inf'), 2]
         else:
-            crop_z_above = 1.0 # -1.0
+            crop_z_range = [-float('inf'), -1.0] # [0.5, float('inf')] #  # 2.0 # -1.0
 
         args = SimpleNamespace(**{
             "img": semantic_img_fpath if is_semantics else img_fpath,
             "depth": f"assets/{Path(img_fpath).stem}.depth.png",
             "scale": 0.001,
             "crop_ratio": 80/512, # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-            "crop_z_above": crop_z_above #0.3 # -1.0 # -0.5 # 0.3 # 1.2
+            "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
         })
-        #bev_img = vis_depth_and_render(args, is_semantics=False)
+        import pdb; pdb.set_trace()
+        bev_img = vis_depth_and_render(args, is_semantics=False)
 
-        vis_depth(args)
+        #vis_depth(args)
 
         save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_crop_above_{args.crop_z_above}/{building_id}"
         os.makedirs(save_dir, exist_ok=True)
@@ -76,14 +78,14 @@ def render_pairs() -> None:
     """ """
     is_semantics = False
     if is_semantics:
-        crop_z_above = 2.0
+        crop_z_range = [-float('inf'), 2.0]
     else:
-        crop_z_above = -1.0
+        crop_z_range = [-float('inf'), -1.0] # [0.5, float('inf')]  # 
 
     # building_id = "000"
     # floor_id = "floor_02" # "floor_01"
 
-    building_id = "003"
+    building_id = "000"
     floor_id = "floor_01" # "floor_01"
 
     def panoid_from_fpath(fpath: str) -> int:
@@ -102,7 +104,7 @@ def render_pairs() -> None:
     gt_approx_pairs = glob.glob(f"{floor_labels_dirpath}/gt_alignment_approx/*.json")
     incorrect_pairs = glob.glob(f"{floor_labels_dirpath}/incorrect_alignment/*.json")
 
-    for pair_fpath in gt_approx_pairs: # gt_exact_pairs:
+    for pair_idx, pair_fpath in enumerate(gt_approx_pairs): # gt_exact_pairs:
 
         i2Ti1 = sim2_from_json(json_fpath=pair_fpath)
 
@@ -114,8 +116,8 @@ def render_pairs() -> None:
         img1_fpath = img_fpaths_dict[i1]
         img2_fpath = img_fpaths_dict[i2]
 
-        render_depth_if_nonexistent(img1_fpath)
-        render_depth_if_nonexistent(img2_fpath)
+        infer_depth_if_nonexistent(img1_fpath)
+        infer_depth_if_nonexistent(img2_fpath)
 
         #import pdb; pdb.set_trace()
 
@@ -126,11 +128,21 @@ def render_pairs() -> None:
             "depth_i2": f"assets/{Path(img2_fpath).stem}.depth.png",
             "scale": 0.001,
             "crop_ratio": 80/512, # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-            "crop_z_above": crop_z_above #0.3 # -1.0 # -0.5 # 0.3 # 1.2
+            "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
         })
         #bev_img = vis_depth_and_render(args, is_semantics=False)
 
-        render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
+        bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
+
+        save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_2021_06_24_crop_range_{args.crop_z_range[0]}_{args.crop_z_range[1]}/{building_id}"
+        os.makedirs(save_dir, exist_ok=True)
+        
+        for img_fpath, bev_img in zip([img1_fpath, img2_fpath], [bev_img1, bev_img2]):
+            if is_semantics:
+                img_name = f"pair_{pair_idx}_semantics_{Path(img_fpath).stem}.jpg"
+            else:
+                img_name = f"pair_{pair_idx}_rgb_{Path(img_fpath).stem}.jpg"
+            imageio.imwrite(f"{save_dir}/{img_name}", bev_img)
 
 
 
