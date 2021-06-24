@@ -77,8 +77,8 @@ def render_pairs() -> None:
     # building_id = "000"
     # floor_id = "floor_02" # "floor_01"
 
-    building_id = "001"
-    floor_id = "floor_02" # "floor_01"
+    building_id = "006"
+    floor_id = "floor_01" # "floor_01"
 
     def panoid_from_fpath(fpath: str) -> int:
         """ """
