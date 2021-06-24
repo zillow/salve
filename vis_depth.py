@@ -14,6 +14,7 @@ from scipy.interpolate import griddata  # not quite the same as `matplotlib.mlab
 
 # from vis_zind_annotations import rotmat2d
 
+from zorder_utils import choose_elevated_repeated_vals
 
 def get_uni_sphere_xyz(H, W):
     """Make spherical system match the world system"""
@@ -100,247 +101,6 @@ def interp_dense_grid_from_sparse(
     return bev_img
 
 
-def find_duplicates(a: np.ndarray) -> np.ndarray:
-    """
-    Return the indices where values are repeated
-
-    e.g. if the input array is [5,2,6,2,0,1,6,6]
-    then sorted, it is [0,1,2,2,5,6,6,6]
-
-    the question is where am i equal to my neighbor in front?
-
-    [1,2,2,5,6,6,6,$]
-    [0,1,2,2,5,6,6,6]
-
-    and where am I equal to my neighbor behind?
-
-    [$,0,1,2,2,5,6,6,6]
-    [0,1,2,2,5,6,6,6,$]
-
-    TODO: verify why this logic works
-    """
-    idxs = np.argsort(a, axis=None)
-    sorted_a = a[idxs]
-    is_dup = sorted_a[1:] == sorted_a[:-1]
-
-    dup1 = idxs[:-1][is_dup]
-
-    DUMMY_VAL = 9999999
-    arr1 = np.array([DUMMY_VAL] + list(sorted_a))
-    arr2 = np.array(list(sorted_a) + [DUMMY_VAL])
-
-    dup2 = idxs[np.where(arr1 == arr2)[0]]
-
-    all_dup_idxs = np.concatenate([dup1, dup2])
-    # remove redundancy
-
-    return np.unique(all_dup_idxs)
-
-
-def test_find_duplicates_1() -> None:
-    """ """
-    arr = np.array([5, 2, 6, 2, 0, 1, 6, 6])
-    dup_idxs = find_duplicates(arr)
-    gt_dup_idxs = np.array([1, 2, 3, 6, 7])
-    assert np.allclose(dup_idxs, gt_dup_idxs)
-
-    # now try in a different order
-    arr = np.array([6, 6, 6, 5, 2, 2, 1, 0])
-    dup_idxs = find_duplicates(arr)
-    gt_dup_idxs = np.array([0, 1, 2, 4, 5])
-    assert np.allclose(dup_idxs, gt_dup_idxs)
-
-
-def test_find_duplicates_2() -> None:
-    """no duplicates"""
-    arr = np.array([3, 1, 4, 0])
-    dup_idxs = find_duplicates(arr)
-    assert dup_idxs.size == 0
-    assert isinstance(dup_idxs, np.ndarray)
-
-
-def test_find_duplicates_3() -> None:
-    """all duplicates"""
-    arr = np.array([3, 3, 3, 3, 3])
-    dup_idxs = find_duplicates(arr)
-    dup_idxs_gt = np.arange(5)
-    assert np.allclose(dup_idxs, dup_idxs_gt)
-
-
-# def choose_elevated_repeated_vals(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
-#     """Use lights, instead of floor, when available for salient features.
-
-#     Args:
-#        valid: logicals, for where at this location, we are the highest z value
-#     """
-#     dup_x_idxs = find_duplicates(x)
-#     dup_y_idxs = find_duplicates(y)
-#     dup_xy_idxs = np.intersect1d(dup_x_idxs, dup_y_idxs)
-
-#     N = x.shape[0]
-#     # set all initially to true
-#     valid = np.ones(N, dtype=bool)
-
-#     seen = set()
-
-#     for loop_idx, i in enumerate(dup_xy_idxs):
-
-#         if loop_idx % 5000 == 0:
-#             print(f"On {loop_idx}/{len(dup_xy_idxs)}")
-
-#         if i in seen:
-#             continue
-
-#         # indices at the same (x,y) location
-#         loc_idxs = np.argwhere(np.logical_and(x == x[i], y == y[i]))
-#         seen = seen.union(set(list(loc_idxs.squeeze(axis=1))))
-
-#         # keep the one with the highest z val
-#         keep_idx = loc_idxs[ np.argmax(z[loc_idxs]) ]
-
-#         # Return the unique values in ar1 that are not in ar2.
-#         discard_idxs = np.setdiff1d(loc_idxs, np.array([keep_idx]))
-#         valid[discard_idxs] = False
-
-#     return valid
-
-
-def choose_elevated_repeated_vals(
-    x: np.ndarray, y: np.ndarray, z: np.ndarray, zmin: float = -2, zmax: float = 2, num_slices: int = 4
-) -> np.ndarray:
-    """fill in the image, from top to bottom, after histogramming by z-value
-
-    Guarantee: x and y are integers between 0 and some large value
-    Since want to have corresponding indices for semantics, we dont just immediately return new (x,y,z)
-    although this is easier (save z instead of index into array)
-
-    Note:Use lights, instead of floor, when available for salient features.
-
-    Args:
-       valid: logicals, for where at this location, we are the highest z value
-    """
-    num_pts = x.shape[0]
-    global_idxs = np.arange(num_pts)
-
-    # find min x, max x
-    xmin, xmax = 0, x.max()
-    # find min y, max y
-    ymin, ymax = 0, y.max()
-
-    img_h = ymax - ymin + 1
-    img_w = xmax - xmin + 1
-
-    DUMMY_VAL = np.iinfo(np.uint64).max
-
-    # make 2d grid, fill it up with dummy values
-    img = np.ones((img_h, img_w), dtype=np.uint64) * DUMMY_VAL
-
-    # only bottom to top is supported currently
-    z_planes = np.linspace(zmin, zmax, num_slices + 1)
-
-    # z_plane_indices = np.digitize(z, z_planes)
-
-    for z_plane_idx in range(len(z_planes) - 1):
-
-        z_start = z_planes[z_plane_idx]
-        z_end = z_planes[z_plane_idx + 1]
-
-        # within the slice
-        ws = np.logical_and(z >= z_start, z < z_end)
-        x_ws = x[ws]
-        y_ws = y[ws]
-        idxs_ws = global_idxs[ws]
-
-        # place into the grid, the global index of the point
-        img[y_ws, x_ws] = idxs_ws
-
-    # use np.meshgrid to index into array
-    pts = get_mesh_grid_as_point_cloud(xmin, xmax, ymin, ymax)
-    pts = np.round(pts).astype(np.uint64)
-
-    idxs = img[ pts[:,1], pts[:,0] ]
-
-    # throw away all indices where they are dummy values
-    is_valid = np.where(idxs != DUMMY_VAL)[0]
-
-    # get back 2d coordinates that are not fully of dummy values
-    # look up the global point index, for those 2d coordinates
-    valid_coords = pts[is_valid]
-    global_idxs = img[ valid_coords[:,1], valid_coords[:,0] ]
-
-    is_valid_ = np.zeros(num_pts, dtype=bool)
-
-    is_valid_[global_idxs] = 1
-
-    return is_valid_
-
-
-def test_choose_elevated_repeated_vals_1() -> None:
-    """Single location is repeated"""
-    xyz = np.array([[0, 1, 0], [1, 2, 4], [0, 1, 5], [5, 6, 1]])
-
-    x = xyz[:, 0]
-    y = xyz[:, 1]
-    z = xyz[:, 2]
-    import pdb; pdb.set_trace()
-    valid = choose_elevated_repeated_vals(x, y, z, zmin=0, zmax=10, num_slices=5)
-    gt_valid = np.array([False, True, True, True])
-    assert np.allclose(valid, gt_valid)
-
-
-def test_choose_elevated_repeated_vals_2() -> None:
-    """No location is repeated"""
-    xyz = np.array([[0, 1, 0], [1, 2, 4], [2, 3, 5], [3, 4, 1]])
-
-    x = xyz[:, 0]
-    y = xyz[:, 1]
-    z = xyz[:, 2]
-    valid = choose_elevated_repeated_vals(x, y, z, zmin=0, zmax=10, num_slices=5)
-    gt_valid = np.array([True, True, True, True])
-    assert np.allclose(valid, gt_valid)
-
-
-def test_choose_elevated_repeated_vals_3() -> None:
-    """Every location is repeated"""
-    xyz = np.array([[0, 1, 0], [0, 1, 1], [0, 1, 2], [0, 1, 3]])
-
-    x = xyz[:, 0]
-    y = xyz[:, 1]
-    z = xyz[:, 2]
-    valid = choose_elevated_repeated_vals(x, y, z, zmin=0, zmax=10, num_slices=5)
-    gt_valid = np.array([False, False, False, True])
-    assert np.allclose(valid, gt_valid)
-
-
-def test_choose_elevated_repeated_vals_4() -> None:
-    """
-    Some z-values are outside of the specified range
-    """
-    xyz = np.array([[0, 1, 0], [0, 1, 1], [0, 1, 10], [0, 1, 11]])
-
-    x = xyz[:, 0]
-    y = xyz[:, 1]
-    z = xyz[:, 2]
-    import pdb; pdb.set_trace()
-    valid = choose_elevated_repeated_vals(x, y, z, zmin=0, zmax=10, num_slices=5)
-    gt_valid = np.array([False, True, False, False])
-    assert np.allclose(valid, gt_valid)
-
-
-def test_choose_elevated_repeated_vals_5() -> None:
-    """
-    Try for just 2 slices
-    """
-    xyz = np.array([[0, 1, 0], [0, 1, 1], [0, 1, 2], [0, 1, 3]])
-
-    x = xyz[:, 0]
-    y = xyz[:, 1]
-    z = xyz[:, 2]
-    valid = choose_elevated_repeated_vals(x, y, z, zmin=0, zmax=4, num_slices=2)
-    gt_valid = np.array([False, False, False, True])
-    assert np.allclose(valid, gt_valid)
-
-
 def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bool) -> np.ndarray:
     """
     Args:
@@ -371,7 +131,7 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
     x = img_xy[:, 0]
     y = img_xy[:, 1]
 
-    prioritize_elevated = False
+    prioritize_elevated = True
     if prioritize_elevated:
         # import pdb; pdb.set_trace()
         valid = choose_elevated_repeated_vals(x, y, z)
@@ -396,7 +156,7 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     # now, apply interpolation to it
 
-    visualize = False
+    visualize = True
     if visualize:
         import matplotlib.pyplot as plt
 
@@ -536,7 +296,11 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
     xyzrgb = xyzrgb.reshape(-1, 6)
 
     # Crop in 3d
-    xyzrgb = xyzrgb[xyzrgb[:, 2] <= args.crop_z_above]
+    within_crop_range = np.logical_and(
+        xyzrgb[:, 2] > args.crop_z_range[0],
+        xyzrgb[:, 2] <= args.crop_z_range[1]
+    )
+    xyzrgb = xyzrgb[within_crop_range]
 
     return xyzrgb
 
@@ -570,6 +334,7 @@ def vis_depth_and_render(args, is_semantics: bool):
 
 
 def vis_depth(args):
+    """ """
     # Reading rgb-d
     rgb = imread(args.img)
     depth = imread(args.depth)[..., None].astype(np.float32) * args.scale
@@ -695,9 +460,4 @@ if __name__ == "__main__":
     # test_find_duplicates_1()
     # test_find_duplicates_2()
     # test_find_duplicates_3()
-    # test_choose_elevated_repeated_vals_1()
-    # test_choose_elevated_repeated_vals_2()
-    # test_choose_elevated_repeated_vals_3()
-
-    test_choose_elevated_repeated_vals_4()
-    test_choose_elevated_repeated_vals_5()
+    pass
