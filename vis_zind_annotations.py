@@ -5,6 +5,8 @@ https://gitlab.zgtools.net/zillow/rmx/research/scripts-insights/open_platform_ut
 
 Data can be found at:
 /mnt/data/zhiqiangw/ZInD_release/complete_zind_paper_final_localized_json_6_3_21
+
+conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=10.1 -c pytorch
 """
 
 
