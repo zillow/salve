@@ -1,14 +1,7 @@
 
-
-
-import math
-
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-
-
 
 
 def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.ndarray, K: int = 41) -> np.ndarray:
@@ -16,28 +9,25 @@ def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.n
     Args:
         K: kernel size, e.g. 3 for 3x3, 5 for 5x5
     """
-    # import copy
-
-    # bev_img = copy.deepcopy(interp_bev_img)
-
     H, W, _ = interp_bev_img.shape
 
-    # for i in range(H - K + 1):
-    #     for j in range(W - K + 1):
-    #         if sparse_bev_img[i : i + K, j : j + K, :].sum() == 0:
-    #             bev_img[i : i + K, j : j + K, :] = 0
-
-    # return bev_img
-
-    import pdb; pdb.set_trace()
     # check if any channel is populated
     mul_bev_img = sparse_bev_img[:,:,0] * sparse_bev_img[:,:,1] * sparse_bev_img[:,:,2]
 
     mul_bev_img = torch.from_numpy(mul_bev_img).reshape(1, 1, H, W)
     nonempty = (mul_bev_img > 0).type(torch.float32)
-    
+
+    # box filter to sum neighbors
     weight = torch.ones(1,1,K,K).type(torch.float32)
+
+    if torch.cuda.is_available():
+    	weight = weight.cuda()
+    	nonempty = nonempty.cuda()
+    
     counts = F.conv2d(input=nonempty, weight=weight, bias=None, stride=1, padding = K//2)
+
+    if torch.cuda.is_available():
+    	counts = counts.cpu()
 
     #in_channels=1, out_channels=1, kernel_size=K, stride=1, padding = K//2)
     #counts = conv(nonempty)
@@ -87,18 +77,26 @@ def test_remove_hallucinated_content() -> None:
 			[1, 2, 3, 0, 0, 0],
 			[1, 2, 3, 0, 0, 0],
 			[1, 2, 3, 0, 0, 0]
-		], dtype=uint8)
+		], dtype=np.uint8)
 
 	for i in range(3):
 		assert np.allclose(bev_img[:,:,i], expected_slice)
 
 
+def test_remove_hallucinated_content_largekernel():
+	""" """
+	sparse_bev_img = np.random.randint(low=0, high=255, size=(2000,2000,3))
+	interp_bev_img = np.random.randint(low=0, high=255, size=(2000,2000,3))
 
-
+	import time
+	start = time.time()
+	bev_img = remove_hallucinated_content(sparse_bev_img, interp_bev_img, K=41)
+	end = time.time()
+	duration = end - start
+	print(f"Took {duration} sec.")
 
 if __name__ == '__main__':
 	test_remove_hallucinated_content()
 
-	#test_median_filter()
-
+	test_remove_hallucinated_content_largekernel()
 
