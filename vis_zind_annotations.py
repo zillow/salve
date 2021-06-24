@@ -26,7 +26,7 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Similarity3
 from shapely.geometry import Point, Polygon
 
-from sim3_align_dw import align_points_sim3
+from sim3_align_dw import align_points_sim3, rotmat2d
 
 # The type of supported polygon/wall/point objects.
 class PolygonType(Enum):
@@ -278,36 +278,6 @@ def main():
 OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_17"
 
 
-def test_rotmat2d() -> None:
-    """ """
-    for _ in range(1000):
-
-        theta = np.random.rand() * 360
-        R = rotmat2d(theta)
-        computed = R.T @ R
-        #print(np.round(computed, 1))
-        expected = np.eye(2)
-        assert np.allclose(computed, expected)
-
-
-def rotmat2d(theta_deg: float) -> np.ndarray:
-    """Generate 2x2 rotation matrix, given a rotation angle in degrees."""
-    theta_rad = np.deg2rad(theta_deg)
-
-    s = np.sin(theta_rad)
-    c = np.cos(theta_rad)
-
-    # fmt: off
-    R = np.array(
-        [
-            [c, -s],
-            [s, c]
-        ]
-    )
-    # fmt: on
-    return R
-
-
 def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim2:
     """Generate a Similarity(2) object from a dictionary storing transformation parameters.
 
@@ -391,12 +361,7 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 if i1 >= i2:
                     continue
 
-                if i1 == 19 and i2 == 29: # also, check on 6-9, and on 8-9, and on 14-15, 19-29
-                    import pdb; pdb.set_trace()
-                else:
-                    continue
-
-                print(f"On {i1}-{i2}")
+                print(f"\tOn {i1}-{i2}")
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
@@ -412,7 +377,6 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
-                #i2Ti1_gt = reorthonormalize_sim2(i2Ti1_gt)
                 gt_fname = f"{dataset_id}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
                 if visibly_adjacent:
                     save_Sim2(gt_fname, i2Ti1_gt)
@@ -450,7 +414,7 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
 
                 # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
                 if not GT_valid:
-                    print(f"GT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2})")
+                    print(f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2})")
 
         print(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
         print(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
@@ -467,9 +431,9 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     angle1 = np.rad2deg(np.arccos(i2Ti1.rotation[0,0]))
     angle2 = np.rad2deg(np.arccos(i2Ti1_.rotation[0,0]))
 
-    print(f"\t\tTrans: {i2Ti1.translation} vs. {i2Ti1_.translation}")
-    print(f"\t\tScale: {i2Ti1.scale:.1f} vs. {i2Ti1_.scale:.1f}")
-    print(f"\t\tAngle: {angle1:.1f} vs. {angle2:.1f}")
+    # print(f"\t\tTrans: {i2Ti1.translation} vs. {i2Ti1_.translation}")
+    # print(f"\t\tScale: {i2Ti1.scale:.1f} vs. {i2Ti1_.scale:.1f}")
+    # print(f"\t\tAngle: {angle1:.1f} vs. {angle2:.1f}")
 
     if not np.allclose(i2Ti1.translation, i2Ti1_.translation, atol=0.2):
         return False
@@ -501,7 +465,10 @@ def prune_to_unique_sim2_objs(possible_alignment_info: List[Tuple[Sim2,str]]) ->
 
     num_orig_objs = len(possible_alignment_info)
     num_pruned_objs = len(pruned_possible_alignment_info)
-    print(f'Pruned from {num_orig_objs} to {num_pruned_objs}')
+    
+    verbose = False
+    if verbose:
+        print(f'Pruned from {num_orig_objs} to {num_pruned_objs}')
     return pruned_possible_alignment_info
 
 
@@ -675,7 +642,7 @@ def test_align_rooms_by_wd() -> None:
     assert len(possible_alignment_info) == 3
 
 
-def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool = True) -> Tuple[List[Tuple[Sim2,str]], int]:
+def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool = False) -> Tuple[List[Tuple[Sim2,str]], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
 
@@ -702,6 +669,8 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
 
     Returns a list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
     """
+    verbose = False
+
     pano1_id = pano1_obj.id
     pano2_id = pano2_obj.id
 
@@ -739,7 +708,8 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
 
                 for configuration in plausible_configurations:
 
-                    print(f"\t{alignment_object} {i}/{j} {configuration}")
+                    if verbose:
+                        print(f"\t{alignment_object} {i}/{j} {configuration}")
 
                     if configuration == "rotated":
                         pano2_wd_ = pano2_wd.get_rotated_version()
@@ -907,7 +877,7 @@ def determine_invalid_wall_overlap(
     pano2_id: int,
     i: int,
     j: int,
-    pano1_room_vertices: np.ndarray, pano2_room_vertices: np.ndarray, wall_buffer_m: float = 0.3, visualize: bool = True
+    pano1_room_vertices: np.ndarray, pano2_room_vertices: np.ndarray, wall_buffer_m: float = 0.3, visualize: bool = False
 ) -> bool:
     """
     TODO: consider adding allowed_overlap_pct: float = 0.01
@@ -1392,46 +1362,6 @@ def test_reflections_2() -> None:
 
     plt.axis('equal')
     plt.show()
-
-
-def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
-    """ """
-    R = i2Ti1.rotation
-
-    #import pdb; pdb.set_trace()
-
-    print("(0,0) entry said: ", np.rad2deg(np.arccos(R[0,0])))
-    print("(1,0) entry said: ", np.rad2deg(np.arcsin(R[1,0])))
-
-    theta_rad = np.arctan2(R[1,0], R[0,0])
-    theta_deg = np.rad2deg(theta_rad)
-
-    print("Combination said: ", theta_deg)
-
-    R_ = rotmat2d(theta_deg)
-
-    i2Ti1_ = Sim2(R_, i2Ti1.translation, i2Ti1.scale)
-
-    expected = np.eye(2)
-    computed = i2Ti1_.rotation.T @ i2Ti1_.rotation
-    assert np.allclose(expected, computed, atol=1e-5)
-
-    return i2Ti1_
-
-
-def test_reorthonormalize():
-    """ """
-    pano3_data = {'translation': [0.01553549307166846, -0.002272521859178478], 'rotation': -352.5305535406924, 'scale': 0.4042260417272217}
-    pano4_data = {'translation': [0.0, 0.0], 'rotation': 0.0, 'scale': 0.4042260417272217}
-
-    global_SIM2_i3 = generate_Sim2_from_floorplan_transform(pano3_data)
-    global_SIM2_i4 = generate_Sim2_from_floorplan_transform(pano4_data)
-
-    import pdb; pdb.set_trace()
-
-    i2Ti1_gt = global_SIM2_i4.inverse().compose(global_SIM2_i3)
-
-    reorthonormalize_sim2(i2Ti1_gt)
 
 
 
