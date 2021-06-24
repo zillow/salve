@@ -15,6 +15,8 @@ from scipy.interpolate import griddata  # not quite the same as `matplotlib.mlab
 # from vis_zind_annotations import rotmat2d
 
 from zorder_utils import choose_elevated_repeated_vals
+from interp_artifact_removal import remove_hallucinated_content
+
 
 def get_uni_sphere_xyz(H, W):
     """Make spherical system match the world system"""
@@ -56,7 +58,10 @@ class BEVParams:
     def __init__(
         self, img_h: int = 2000, img_w: int = 2000, meters_per_px: float = 0.005, accumulate_sweeps: bool = True
     ) -> None:
-        """meters_per_px is resolution"""
+        """meters_per_px is resolution
+
+        1000 pixels * (0.005 m / px) = 5 meters in each direction
+        """
         self.img_h = img_h
         self.img_w = img_w
         self.meters_per_px = meters_per_px
@@ -110,9 +115,11 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
     xyz = xyzrgb[:, :3]
     rgb = xyzrgb[:, 3:] * 255
 
+    # in meters
     grid_xmin, grid_xmax = bev_params.xlims
     grid_ymin, grid_ymax = bev_params.ylims
 
+    # in meters
     xyz, rgb = prune_to_2d_bbox(xyz, rgb, grid_xmin, grid_ymin, grid_xmax, grid_ymax)
 
     num_pts = xyz.shape[0]
@@ -125,9 +132,14 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
     z = xyz[:, 2]
     img_xy = bevimg_Sim2_world.transform_from(xy)
     img_xy = np.round(img_xy).astype(np.int64)
-    xmax, ymax = np.amax(img_xy, axis=0)
-    img_h = ymax + 1
-    img_w = xmax + 1
+    # xmax, ymax = np.amax(img_xy, axis=0)
+    # img_h = ymax + 1
+    # img_w = xmax + 1
+
+    #import pdb; pdb.set_trace()
+    img_h = bev_params.img_h + 1
+    img_w = bev_params.img_w + 1
+
     x = img_xy[:, 0]
     y = img_xy[:, 1]
 
@@ -146,6 +158,7 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     interp_bev_img = np.zeros((img_h, img_w, 3), dtype=np.uint8)
 
+    # now, apply interpolation to it
     interp_bev_img = interp_dense_grid_from_sparse(
         interp_bev_img, img_xy, rgb, grid_h=img_h, grid_w=img_w, is_semantics=is_semantics
     )
@@ -154,33 +167,12 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
     bev_img = remove_hallucinated_content(sparse_bev_img, interp_bev_img)
     bev_img = np.flipud(bev_img)
 
-    # now, apply interpolation to it
-
-    visualize = True
+    visualize = False
     if visualize:
         import matplotlib.pyplot as plt
 
         plt.imshow(bev_img)
         plt.show()
-
-    return bev_img
-
-
-def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.ndarray, K: int = 20) -> np.ndarray:
-    """
-    Args:
-        K: kernel size, e.g. 3 for 3x3, 5 for 5x5
-    """
-    import copy
-
-    bev_img = copy.deepcopy(interp_bev_img)
-
-    H, W, _ = interp_bev_img.shape
-
-    for i in range(H - K):
-        for j in range(W - K):
-            if sparse_bev_img[i : i + K, j : j + K, :].sum() == 0:
-                bev_img[i : i + K, j : j + K, :] = 0
 
     return bev_img
 
@@ -415,31 +407,35 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
     )  # * scale_meters_per_coordinate # * np.array([-1,1]))
     # xyzrgb1[:,:2] = i2Ti1.transform_from(xyzrgb1[:,:2]) #
 
-    # plt.scatter(xyzrgb1[:,0], xyzrgb1[:,1], 10, color='r', marker='.', alpha=0.1)
-    plt.scatter(-xyzrgb1[:, 0], xyzrgb1[:, 1], 10, c=xyzrgb1[:, 3:], marker=".", alpha=0.1)
-    # plt.axis("equal")
-    # plt.show()
+    # reflect back to Cartesian space
+    xyzrgb1[:, 0] *= -1
+    xyzrgb2[:, 0] *= -1
 
-    # xyzrgb2[:,:2] = xyzrgb2[:,:2] @ i2Ti1.rotation.T
-    # xyzrgb2[:,:2] = i2Ti1.transform_from(xyzrgb2[:,:2]) #* scale_meters_per_coordinate
+    bev_params = BEVParams()
+    img1 = render_bev_image(bev_params, xyzrgb1, is_semantics=is_semantics)
+    img2 = render_bev_image(bev_params, xyzrgb2, is_semantics=is_semantics)
 
-    # plt.scatter(xyzrgb2[:,0], xyzrgb2[:,1], 10, color='b', marker='.', alpha=0.1)
-    plt.scatter(-xyzrgb2[:, 0], xyzrgb2[:, 1], 10, c=xyzrgb2[:, 3:], marker=".", alpha=0.1)
+    visualize = False
+    if visualize:
+        # plt.scatter(xyzrgb1[:,0], xyzrgb1[:,1], 10, color='r', marker='.', alpha=0.1)
+        plt.scatter(xyzrgb1[:, 0], xyzrgb1[:, 1], 10, c=xyzrgb1[:, 3:], marker=".", alpha=0.1)
+        # plt.axis("equal")
+        # plt.show()
 
-    # plt.plot([0, i2Ti1.translation[0]] * 10, [0,i2Ti1.translation[1]] * 10, color='k')
+        # plt.scatter(xyzrgb2[:,0], xyzrgb2[:,1], 10, color='b', marker='.', alpha=0.1)
+        plt.scatter(xyzrgb2[:, 0], xyzrgb2[:, 1], 10, c=xyzrgb2[:, 3:], marker=".", alpha=0.1)
 
-    plt.title("")
-    plt.axis("equal")
-    # plt.show()
-    save_fpath = f"aligned_examples_2021_06_22/gt_aligned_approx/{building_id}/{floor_id}/{i1}_{i2}.jpg"
-    os.makedirs(Path(save_fpath).parent, exist_ok=True)
-    plt.savefig(save_fpath, dpi=1000)
-    plt.close("all")
+        plt.title("")
+        plt.axis("equal")
+        # plt.show()
+        save_fpath = f"aligned_examples_2021_06_22/gt_aligned_approx/{building_id}/{floor_id}/{i1}_{i2}.jpg"
+        os.makedirs(Path(save_fpath).parent, exist_ok=True)
+        plt.savefig(save_fpath, dpi=1000)
+        plt.close("all")
 
-    # import pdb; pdb.set_trace()
+        # 30,35 on floor2 bug
 
-    # 30,35 on floor2 bug
-
+    return img1, img2
 
 if __name__ == "__main__":
 
