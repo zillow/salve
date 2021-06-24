@@ -391,7 +391,7 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 if i1 >= i2:
                     continue
 
-                if i1 == 5 and i2 == 9: # also, check on 6-9, and on 8-9, and on 14-15, 19-29
+                if i1 == 19 and i2 == 29: # also, check on 6-9, and on 8-9, and on 14-15, 19-29
                     import pdb; pdb.set_trace()
                 else:
                     continue
@@ -417,12 +417,13 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 if visibly_adjacent:
                     save_Sim2(gt_fname, i2Ti1_gt)
                     expected = i2Ti1_gt.rotation.T @ i2Ti1_gt.rotation
-                    print("Identity? ", np.round(expected, 1))
+                    #print("Identity? ", np.round(expected, 1))
                     if not np.allclose(expected, np.eye(2), atol=1e-6):
                         import pdb; pdb.set_trace()
 
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
 
+                labels = []
                 for k, (i2Ti1, alignment_object) in enumerate(pruned_possible_alignment_info):
 
                     if obj_almost_equal(i2Ti1, i2Ti1_gt):
@@ -431,15 +432,25 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                     else:
                         label = "misaligned"
                         save_dir = f"{dataset_id}/{building_id}/{floor_id}/incorrect_alignment"
+                    labels.append(label)
 
                     proposed_fname = f"{save_dir}/{i1}_{i2}_{alignment_object}___variant_{k}.json"
                     save_Sim2(proposed_fname, i2Ti1)
 
-                    print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
-                    print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)
+                    # print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
+                    # print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)
 
-                    print()
-                    print()
+                    # print()
+                    # print()
+
+                if visibly_adjacent:
+                    GT_valid = "aligned" in labels
+                else:
+                    GT_valid = "aligned" not in labels
+
+                # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
+                if not GT_valid:
+                    print(f"GT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2})")
 
         print(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
         print(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
@@ -719,10 +730,6 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
 
             for j, pano2_wd in enumerate(pano2_wds):
 
-                if i > j:
-                    # only compute the upper diagonal, since symmetric
-                    continue
-
                 if alignment_object == "door":
                     plausible_configurations = ["identity", "rotated"]
                 elif alignment_object == "window":
@@ -744,17 +751,23 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
 
                     # if visualize:
                     #     plt.close("all")
+
+                    #     all_wd_verts_1 = get_all_pano_wd_vertices(pano1_obj)
+                    #     all_wd_verts_2 = get_all_pano_wd_vertices(pano2_obj)
+                    #     plt.scatter(-all_wd_verts_1[:,0], all_wd_verts_1[:,1], 10, color='k', marker='+')
+                    #     plt.scatter(-all_wd_verts_2[:,0], all_wd_verts_2[:,1], 10, color='g', marker='+')
+
                     #     plot_room_walls(pano1_obj)
                     #     plot_room_walls(pano2_obj)
 
-                    #     plt.plot(pano1_wd.polygon_vertices_local_3d[:,0], pano1_wd.polygon_vertices_local_3d[:,1], color="r", linewidth=5, alpha=0.1)
-                    #     plt.plot(pano2_wd_.polygon_vertices_local_3d[:,0], pano2_wd_.polygon_vertices_local_3d[:,1], color="b", linewidth=5, alpha=0.1)
+                    #     plt.plot(-pano1_wd.polygon_vertices_local_3d[:,0], pano1_wd.polygon_vertices_local_3d[:,1], color="r", linewidth=5, alpha=0.2)
+                    #     plt.plot(-pano2_wd_.polygon_vertices_local_3d[:,0], pano2_wd_.polygon_vertices_local_3d[:,1], color="b", linewidth=5, alpha=0.2)
 
                     #     plt.axis("equal")
                     #     plt.title("Step 1: Before alignment")
-                    #     os.makedirs(f"debug_plots/{pano1_id}_{pano2_id}", exist_ok=True)
-                    #     plt.savefig(f"debug_plots/{pano1_id}_{pano2_id}/step1_{i}_{j}.jpg")
-                    #     #plt.show()
+                    #     #os.makedirs(f"debug_plots/{pano1_id}_{pano2_id}", exist_ok=True)
+                    #     #plt.savefig(f"debug_plots/{pano1_id}_{pano2_id}/step1_{i}_{j}.jpg")
+                    #     plt.show()
                     #     plt.close("all")
 
                     i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
@@ -1091,7 +1104,7 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
     """
     pts = np.zeros((0,3))
 
-    for wd in pano_obj.windows + pano_obj.doors:
+    for wd in pano_obj.windows + pano_obj.doors + pano_obj.openings:
         wd_pts = wd.polygon_vertices_local_3d
 
         pts = np.vstack([pts, wd_pts])
