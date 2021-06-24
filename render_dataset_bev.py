@@ -31,10 +31,16 @@ def render_depth_if_nonexistent(img_fpath: str) -> None:
 def render_dataset():
     """ """
 
-    building_id = "000"
+    # nasty failure cases: building 004, pano 10 and pano 24, pano 28,56,58 (outdoors)
+    # building 006, 10
+
+    building_id = "004"
     img_fpaths = glob.glob(f"/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw/{building_id}/panos/*.jpg")
 
     for img_fpath in img_fpaths:
+
+        if "_28.jpg" not in img_fpath: # 24
+            continue
 
         render_depth_if_nonexistent(img_fpath)
 
@@ -44,7 +50,7 @@ def render_dataset():
         if is_semantics:
             crop_z_above = 2.0
         else:
-            crop_z_above = -1.0
+            crop_z_above = 1.0 # -1.0
 
         args = SimpleNamespace(**{
             "img": semantic_img_fpath if is_semantics else img_fpath,
@@ -53,9 +59,9 @@ def render_dataset():
             "crop_ratio": 80/512, # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
             "crop_z_above": crop_z_above #0.3 # -1.0 # -0.5 # 0.3 # 1.2
         })
-        bev_img = vis_depth_and_render(args, is_semantics=False)
+        #bev_img = vis_depth_and_render(args, is_semantics=False)
 
-        #vis_depth(args)
+        vis_depth(args)
 
         save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_crop_above_{args.crop_z_above}/{building_id}"
         os.makedirs(save_dir, exist_ok=True)
@@ -77,7 +83,7 @@ def render_pairs() -> None:
     # building_id = "000"
     # floor_id = "floor_02" # "floor_01"
 
-    building_id = "006"
+    building_id = "003"
     floor_id = "floor_01" # "floor_01"
 
     def panoid_from_fpath(fpath: str) -> int:
@@ -147,6 +153,6 @@ def sim2_from_json(json_fpath: str) -> Sim2:
 if __name__ == "__main__":
     #render_isolated_examples()
 
-
+    #render_dataset()
     render_pairs()
 
