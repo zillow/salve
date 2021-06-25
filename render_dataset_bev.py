@@ -214,6 +214,11 @@ def render_pairs(num_processes: int, depth_save_root: str, bev_save_root: str, r
     for building_id in building_ids:
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
         floor_map_json = read_json_file(json_annot_fpath)
+
+        if "merger" not in floor_map_json:
+            print(f"No merger data in {building_id}: {json_annot_fpath}")
+            continue
+
         merger_data = floor_map_json["merger"]
         for floor_id, floor_data in merger_data.items():
             # render_building_floor_pairs(
