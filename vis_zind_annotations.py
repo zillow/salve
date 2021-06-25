@@ -15,6 +15,7 @@ import glob
 import json
 import os
 from enum import Enum
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -49,36 +50,6 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
-
-def export_alignment_hypotheses_to_json(raw_dataset_dir: str, hypotheses_save_root: str) -> None:
-    """
-    Questions: what is tour_data_mapping.json? -> for internal people, GUIDs to production people
-    Last edge of polygon (to close it) is not provided -- right??
-    are all polygons closed? or just polylines?
-    What is 'scale_meters_per_coordinate'?
-
-    What is merger vs. redraw?
-
-    Sim(2)
-
-    s(Rp + t)  -> Sim(2)
-    sRp + t -> ICP (Zillow)
-
-    sRp + st
-
-    Maybe compose with other Sim(2)
-
-    Reflection must come after the Sim(2) --> otherwise the global poses will be wrong.
-    """
-    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
-    building_ids.sort()
-
-    for building_id in building_ids:
-        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
-        pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-        #render_building(building_id, pano_dir, json_annot_fpath)
-
-        align_by_wdo(hypotheses_save_root, building_id, pano_dir, json_annot_fpath)
 
 
 def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
@@ -1155,6 +1126,45 @@ def test_reflections_2() -> None:
     plt.show()
 
 
+def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str) -> None:
+    """
+    Questions: what is tour_data_mapping.json? -> for internal people, GUIDs to production people
+    Last edge of polygon (to close it) is not provided -- right??
+    are all polygons closed? or just polylines?
+    What is 'scale_meters_per_coordinate'?
+
+    What is merger vs. redraw?
+
+    Sim(2)
+
+    s(Rp + t)  -> Sim(2)
+    sRp + t -> ICP (Zillow)
+
+    sRp + st
+
+    Maybe compose with other Sim(2)
+
+    Reflection must come after the Sim(2) --> otherwise the global poses will be wrong.
+    """
+    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
+    building_ids.sort()
+
+    args = []
+
+    for building_id in building_ids:
+        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
+        pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
+        #render_building(building_id, pano_dir, json_annot_fpath)
+
+        args += [(hypotheses_save_root, building_id, pano_dir, json_annot_fpath)]
+
+    if num_processes > 1:
+        with Pool(num_processes) as p:
+            p.starmap(align_by_wdo, args)
+    else:
+        for single_call_args in args:
+            align_by_wdo(*single_call_args)
+
 
 if __name__ == '__main__':
     """ """
@@ -1164,9 +1174,12 @@ if __name__ == '__main__':
     #raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     #hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
+    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
 
-    export_alignment_hypotheses_to_json(raw_dataset_dir, hypotheses_save_root)
+    num_processes = 4
+
+    export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
     #test_reflections_2()
     #test_determine_invalid_wall_overlap1()
