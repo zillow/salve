@@ -96,7 +96,7 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
     floor_map_json = read_json_file(json_annot_fpath)
 
     if "merger" not in floor_map_json:
-        logger.error("Building {building_id} does not have `merger` data, skipping...")
+        logger.error(f"Building {building_id} does not have `merger` data, skipping...")
         return
 
     merger_data = floor_map_json["merger"]
