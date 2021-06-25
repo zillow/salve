@@ -47,16 +47,16 @@ DISCARD_DICT = {
 }
 
 
-def render_dataset(raw_dataset_dir: str) -> None:
+def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
     """ """
-    building_id = "981"  # "000"
+    building_id = "000" # "981"  # 
     # building_id = "004"
 
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
 
     for img_fpath in img_fpaths:
 
-        if "_15.jpg" not in img_fpath:  # 13
+        if "_14.jpg" not in img_fpath:  # 13
             continue
 
         infer_depth_if_nonexistent(depth_save_root, building_id, img_fpath)
@@ -82,17 +82,19 @@ def render_dataset(raw_dataset_dir: str) -> None:
         import pdb
 
         pdb.set_trace()
-        # bev_img = vis_depth_and_render(args, is_semantics=False)
+        bev_img = vis_depth_and_render(args, is_semantics=False)
 
         vis_depth(args)
 
-        save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_crop_above_{args.crop_z_above}/{building_id}"
+        #save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_crop_above_{args.crop_z_above}/{building_id}"
+        building_bev_save_dir = f"{bev_save_root}/{label_type}/{building_id}"
+        fname_stem = Path(img_fpath).stem
         os.makedirs(save_dir, exist_ok=True)
         if is_semantics:
-            img_name = f"semantics_{Path(img_fpath).stem}.jpg"
+            img_name = f"semantics_{fname_stem}.jpg"
         else:
-            img_name = f"{Path(img_fpath).stem}.jpg"
-        imageio.imwrite(f"{save_dir}/{img_name}", bev_img)
+            img_name = f"{fname_stem}.jpg"
+        imageio.imwrite(f"{building_bev_save_dir}/{img_name}", bev_img)
 
 
 def panoid_from_fpath(fpath: str) -> int:
@@ -237,8 +239,10 @@ if __name__ == "__main__":
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
     bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
+    #bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
 
-    # render_dataset(raw_dataset_dir)
+
+    #render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
         depth_save_root=depth_save_root,
         bev_save_root=bev_save_root,
