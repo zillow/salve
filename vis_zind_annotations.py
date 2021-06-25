@@ -28,6 +28,10 @@ from shapely.geometry import Point, Polygon
 
 from sim3_align_dw import align_points_sim3, rotmat2d
 from pano_data import FloorData, PanoData, WDO
+from logger_utils import get_logger
+
+
+logger = get_logger()
 
 # The type of supported polygon/wall/point objects.
 class PolygonType(Enum):
@@ -46,7 +50,7 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
 
-def export_alignment_hypotheses_to_json(raw_dataset_dir: str, dataset_id: str) -> None:
+def export_alignment_hypotheses_to_json(raw_dataset_dir: str, hypotheses_save_root: str) -> None:
     """
     Questions: what is tour_data_mapping.json? -> for internal people, GUIDs to production people
     Last edge of polygon (to close it) is not provided -- right??
@@ -74,7 +78,7 @@ def export_alignment_hypotheses_to_json(raw_dataset_dir: str, dataset_id: str) -
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
         #render_building(building_id, pano_dir, json_annot_fpath)
 
-        align_by_wdo(dataset_id, building_id, pano_dir, json_annot_fpath)
+        align_by_wdo(hypotheses_save_root, building_id, pano_dir, json_annot_fpath)
 
 
 def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
@@ -102,7 +106,7 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
-def align_by_wdo(dataset_id: str, building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
+def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
     """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
     For every pano, try to align it to another pano.
@@ -111,6 +115,12 @@ def align_by_wdo(dataset_id: str, building_id: str, pano_dir: str, json_annot_fp
         while there are any unmatched rooms?
         try all possible matches at every step. compute costs, and choose the best greedily.
         or, growing consensus
+
+    Args:
+        hypotheses_save_root: base directory where alignment hypotheses will be saved
+        building_id: 
+        pano_dir: 
+        json_annot_fpath: 
     """
     floor_map_json = read_json_file(json_annot_fpath)
 
@@ -120,13 +130,13 @@ def align_by_wdo(dataset_id: str, building_id: str, pano_dir: str, json_annot_fp
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
 
-        print("--------------------------------")
-        print("--------------------------------")
-        print("--------------------------------")
-        print(f"On building {building_id}, floor {floor_id}...")
-        print("--------------------------------")
-        print("--------------------------------")
-        print("--------------------------------")
+        logger.info("--------------------------------")
+        logger.info("--------------------------------")
+        logger.info("--------------------------------")
+        logger.info(f"On building {building_id}, floor {floor_id}...")
+        logger.info("--------------------------------")
+        logger.info("--------------------------------")
+        logger.info("--------------------------------")
         
         fd = FloorData.from_json(floor_data, floor_id)
         # if not (floor_id == 'floor_02' and building_id == '000'):
@@ -146,19 +156,24 @@ def align_by_wdo(dataset_id: str, building_id: str, pano_dir: str, json_annot_fp
                 if i1 >= i2:
                     continue
 
-                print(f"\tOn {i1}-{i2}")
+                logger.info(f"\tOn {i1}-{i2}")
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
-                possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
+
+                try:
+                    possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
+                except Exception:
+                    logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
+                    continue
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
 
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
-                gt_fname = f"{dataset_id}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
+                gt_fname = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
                 if visibly_adjacent:
                     save_Sim2(gt_fname, i2Ti1_gt)
                     expected = i2Ti1_gt.rotation.T @ i2Ti1_gt.rotation
@@ -174,10 +189,10 @@ def align_by_wdo(dataset_id: str, building_id: str, pano_dir: str, json_annot_fp
 
                     if obj_almost_equal(i2Ti1, i2Ti1_gt):
                         label = "aligned"
-                        save_dir = f"{dataset_id}/{building_id}/{floor_id}/gt_alignment_approx"
+                        save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx"
                     else:
                         label = "misaligned"
-                        save_dir = f"{dataset_id}/{building_id}/{floor_id}/incorrect_alignment"
+                        save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment"
                     labels.append(label)
 
                     proposed_fname = f"{save_dir}/{i1}_{i2}_{alignment_object}___variant_{k}.json"
@@ -196,10 +211,10 @@ def align_by_wdo(dataset_id: str, building_id: str, pano_dir: str, json_annot_fp
 
                 # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
                 if not GT_valid:
-                    print(f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2})")
+                    logger.warning(f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2})")
 
-        print(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
-        print(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
+        logger.info(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
+        logger.info(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
 
 
 def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
@@ -243,7 +258,7 @@ def prune_to_unique_sim2_objs(possible_alignment_info: List[Tuple[Sim2,str]]) ->
     
     verbose = False
     if verbose:
-        print(f'Pruned from {num_orig_objs} to {num_pruned_objs}')
+        logger.info(f'Pruned from {num_orig_objs} to {num_pruned_objs}')
     return pruned_possible_alignment_info
 
 
@@ -483,7 +498,7 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
                 for configuration in plausible_configurations:
 
                     if verbose:
-                        print(f"\t{alignment_object} {i}/{j} {configuration}")
+                        logger.debug(f"\t{alignment_object} {i}/{j} {configuration}")
 
                     if configuration == "rotated":
                         pano2_wd_ = pano2_wd.get_rotated_version()
@@ -559,6 +574,8 @@ def align_rooms_by_wd(pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool 
                         pano2_room_vertices,
                         wall_buffer_m=0.3
                     )
+                    # logger.error("Pano1 room verts: %s", str(pano1_room_vertices))
+                    # logger.error("Pano2 room verts: %s", str(pano2_room_vertices))
 
                     # window_normals_compatible = True
                     # WINDOW_NORMAL_ALIGNMENT_THRESH = 10
@@ -1143,13 +1160,14 @@ def test_reflections_2() -> None:
 
 if __name__ == '__main__':
     """ """
-
     # teaser file
-    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    dataset_id = "verifier_dataset_2021_06_21"
+    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
-    export_alignment_hypotheses_to_json(raw_dataset_dir, dataset_id)
+    hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
+
+    export_alignment_hypotheses_to_json(raw_dataset_dir, hypotheses_save_root)
 
     #test_reflections_2()
     #test_determine_invalid_wall_overlap1()
