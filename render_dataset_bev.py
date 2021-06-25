@@ -13,7 +13,7 @@ from vis_depth import vis_depth, vis_depth_and_render, render_bev_pair
 
 
 
-def infer_depth_if_nonexistent(img_fpath: str) -> None:
+def infer_depth_if_nonexistent(depth_save_root: str, building_id: str, img_fpath: str) -> None:
     """ """
     if Path(f"assets/{Path(img_fpath).stem}.depth.png").exists():
         return
@@ -21,19 +21,25 @@ def infer_depth_if_nonexistent(img_fpath: str) -> None:
     args = SimpleNamespace(**{
         "cfg": "config/mp3d_depth/HOHO_depth_dct_efficienthc_TransEn1_hardnet.yaml",
         "pth": "ckpt/mp3d_depth_HOHO_depth_dct_efficienthc_TransEn1_hardnet/ep60.pth",
-        "out": "assets/",
+        "out": f"{depth_save_root}/{building_id}",
         "inp": img_fpath,
         "opts": []
     })
     infer_depth(args)
 
 
+# nasty failure cases:
+DISCARD_DICT = {
+    # (building, pano_ids)
+    '000': [10], # pano 10 outside
+    '004': [10,24,28,56,58], # building 004, pano 10 and pano 24, pano 28,56,58 (outdoors)
+    '006': [10],
+    '981': [5, 7, 14, 11, 16, 17, 28] # 11 is a bit inaccurate
+}
+
+
 def render_dataset(raw_dataset_dir: str) -> None:
     """ """
-    # nasty failure cases: building 004, pano 10 and pano 24, pano 28,56,58 (outdoors)
-    # building 006, 10
-    # building 000, pano 10 outside
-
     building_id = "981" # "000"
     #building_id = "004"
 
@@ -41,7 +47,7 @@ def render_dataset(raw_dataset_dir: str) -> None:
 
     for img_fpath in img_fpaths:
 
-        if "_22.jpg" not in img_fpath: # 20
+        if "_15.jpg" not in img_fpath: # 13
             continue
 
         infer_depth_if_nonexistent(img_fpath)
@@ -56,11 +62,11 @@ def render_dataset(raw_dataset_dir: str) -> None:
 
         args = SimpleNamespace(**{
             "img": semantic_img_fpath if is_semantics else img_fpath,
-            "depth": f"assets/{Path(img_fpath).stem}.depth.png",
+            "depth": f"{depth_save_root}/{building_id}/{Path(img_fpath).stem}.depth.png",
             "scale": 0.001,
             "crop_ratio": 80/512, # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-            "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
-            #"crop_z_above": 2
+            #"crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
+            "crop_z_above": 2
         })
         import pdb; pdb.set_trace()
         #bev_img = vis_depth_and_render(args, is_semantics=False)
@@ -122,13 +128,11 @@ def render_building_floor_pairs(alignment_hypotheses_dataset_dir: str, raw_datas
                 infer_depth_if_nonexistent(img1_fpath)
                 infer_depth_if_nonexistent(img2_fpath)
 
-                #import pdb; pdb.set_trace()
-
                 args = SimpleNamespace(**{
                     "img_i1": semantic_img1_fpath if is_semantics else img1_fpath,
                     "img_i2": semantic_img2_fpath if is_semantics else img2_fpath,
-                    "depth_i1": f"assets/{Path(img1_fpath).stem}.depth.png",
-                    "depth_i2": f"assets/{Path(img2_fpath).stem}.depth.png",
+                    "depth_i1": f"{depth_save_root}/{building_id}/{Path(img1_fpath).stem}.depth.png",
+                    "depth_i2": f"{depth_save_root}/{building_id}/{Path(img2_fpath).stem}.depth.png",
                     "scale": 0.001,
                     "crop_ratio": 80/512, # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
                     "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
@@ -183,9 +187,12 @@ def render_pairs(raw_dataset_dir: str):
 if __name__ == "__main__":
     #render_isolated_examples()
 
-    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
+    depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
 
-    #render_dataset(raw_dataset_dir)
-    render_pairs(raw_dataset_dir)
+    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+
+    render_dataset(raw_dataset_dir)
+    #render_pairs(raw_dataset_dir)
 
