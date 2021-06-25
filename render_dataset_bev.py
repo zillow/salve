@@ -1,5 +1,6 @@
 import glob
 import os
+from multiprocessing import Pool
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -195,7 +196,7 @@ def sim2_from_json(json_fpath: str) -> Sim2:
     return Sim2(R, t, s)
 
 
-def render_pairs(depth_save_root: str, bev_save_root: str, raw_dataset_dir: str, hypotheses_save_root: str) -> None:
+def render_pairs(num_processes: int, depth_save_root: str, bev_save_root: str, raw_dataset_dir: str, hypotheses_save_root: str) -> None:
     """ """
 
     # building_id = "000"
@@ -208,23 +209,44 @@ def render_pairs(depth_save_root: str, bev_save_root: str, raw_dataset_dir: str,
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
 
+    args = []
+
     for building_id in building_ids:
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
         floor_map_json = read_json_file(json_annot_fpath)
         merger_data = floor_map_json["merger"]
         for floor_id, floor_data in merger_data.items():
-            render_building_floor_pairs(
-                depth_save_root=depth_save_root,
-                bev_save_root=bev_save_root,
-                hypotheses_save_root=hypotheses_save_root,
-                raw_dataset_dir=raw_dataset_dir,
-                building_id=building_id,
-                floor_id=floor_id,
-            )
+            # render_building_floor_pairs(
+            #     depth_save_root=depth_save_root,
+            #     bev_save_root=bev_save_root,
+            #     hypotheses_save_root=hypotheses_save_root,
+            #     raw_dataset_dir=raw_dataset_dir,
+            #     building_id=building_id,
+            #     floor_id=floor_id,
+            # )
+            args += [
+                (
+                    depth_save_root,
+                    bev_save_root,
+                    hypotheses_save_root,
+                    raw_dataset_dir,
+                    building_id,
+                    floor_id
+                )
+            ]
+
+    if num_processes > 1:
+        with Pool(num_processes) as p:
+            p.starmap(render_building_floor_pairs, args)
+    else:
+        for single_call_args in args:
+            render_building_floor_pairs(*single_call_args)
 
 
 if __name__ == "__main__":
     # render_isolated_examples()
+
+    num_processes = 8
 
     #depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
@@ -241,9 +263,9 @@ if __name__ == "__main__":
     #bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
     bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
 
-
     #render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
+        num_processes=num_processes,
         depth_save_root=depth_save_root,
         bev_save_root=bev_save_root,
         raw_dataset_dir=raw_dataset_dir,
