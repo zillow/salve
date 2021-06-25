@@ -139,8 +139,6 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
         logger.info("--------------------------------")
         
         fd = FloorData.from_json(floor_data, floor_id)
-        # if not (floor_id == 'floor_02' and building_id == '000'):
-        #     continue
 
         floor_n_valid_configurations = 0
         floor_n_invalid_configurations = 0
