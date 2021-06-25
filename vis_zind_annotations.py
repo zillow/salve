@@ -95,8 +95,11 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
     """
     floor_map_json = read_json_file(json_annot_fpath)
 
+    if "merger" not in floor_map_json:
+        logger.error("Building {building_id} does not have `merger` data, skipping...")
+        return
+
     merger_data = floor_map_json["merger"]
-    redraw_data = floor_map_json["redraw"]
 
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
@@ -989,7 +992,6 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
     floor_map_json = read_json_file(json_annot_fpath)
 
     merger_data = floor_map_json["merger"]
-    redraw_data = floor_map_json["redraw"]
 
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
