@@ -139,3 +139,7 @@ def rotmat2d(theta_deg: float) -> np.ndarray:
 
 if __name__ == '__main__':
     test_align_horseshoe()
+
+    #test_rotmat2d()
+    #test_reorthonormalize()
+

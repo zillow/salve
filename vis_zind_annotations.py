@@ -16,19 +16,18 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.spatial
 from argoverse.utils.polyline_density import get_polyline_length
 from argoverse.utils.interpolate import interp_arc
-from argoverse.utils.json_utils import read_json_file
+from argoverse.utils.json_utils import read_json_file, save_json_dict
 from argoverse.utils.sim2 import Sim2
-from gtsam import Similarity3
 from shapely.geometry import Point, Polygon
 
 from sim3_align_dw import align_points_sim3, rotmat2d
+from pano_data import FloorData, PanoData, WDO
 
 # The type of supported polygon/wall/point objects.
 class PolygonType(Enum):
@@ -47,205 +46,7 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
 
-
-class WDO(NamedTuple):
-    """define windows/doors/openings by left and right boundaries"""
-    global_SIM2_local: Sim2
-    pt1: Tuple[float,float] # (x1,y1)
-    pt2: Tuple[float,float] # (x2,y2)
-    bottom_z: float
-    top_z: float
-    type: str
-
-    @property
-    def vertices_local_2d(self) -> np.ndarray:
-        """ """
-        return np.array([self.pt1, self.pt2])
-
-    # TODO: come up with better name for vertices in BEV, vs. all 4 vertices
-    @property
-    def vertices_global_2d(self) -> np.ndarray:
-        """ """
-        return self.global_SIM2_local.transform_from(self.vertices_local_2d)
-
-    @property
-    def vertices_local_3d(self) -> np.ndarray:
-        """ """
-        x1,y1 = self.pt1
-        x2,y2 = self.pt2
-        return np.array([ [x1,y1,bottom_z], [x2,y2,top_z] ])
-
-    @property
-    def vertices_global_3d(self) -> np.ndarray:
-        """ """
-        return self.global_SIM2_local.transform_from(self.vertices_local_3d)
-
-    def get_wd_normal_2d(self) -> np.ndarray:
-        """return 2-vector describing normal to line segment (rotate CCW from vector linking pt1->pt2)"""
-        x1, y1 = self.pt1
-        x2, y2 = self.pt2
-        vx = x2 - x1
-        vy = y2 - y1
-        n = np.array([-vy, vx])
-        # normalize to unit length
-        return n / np.linalg.norm(n)
-
-    @property
-    def polygon_vertices_local_3d(self) -> np.ndarray:
-        """Note: first vertex is repeated as last vertex"""
-        x1,y1 = self.pt1
-        x2,y2 = self.pt2
-        return np.array([ [x1,y1,self.bottom_z], [x1,y1,self.top_z], [x2,y2,self.top_z], [x2,y2,self.bottom_z], [x1,y1,self.bottom_z] ])
-
-    @classmethod
-    def from_object_array(cls, wdo_data: Any, global_SIM2_local: Sim2, type: str) -> "WDO":
-        """
-        """
-        return cls(
-            global_SIM2_local=global_SIM2_local,
-            pt1=wdo_data[0],
-            pt2=wdo_data[1],
-            bottom_z=wdo_data[2],
-            top_z=wdo_data[3],
-            type=type
-        )
-
-    def get_rotated_version(self) -> "WDO":
-        """Rotate WDO by 180 degrees"""
-        self_rotated = WDO(
-            global_SIM2_local=self.global_SIM2_local,
-            pt1=self.pt2,
-            pt2=self.pt1,
-            bottom_z=self.bottom_z,
-            top_z=self.top_z,
-            type=self.type
-        )
-
-        return self_rotated
-
-
-def test_get_wd_normal_2d() -> None:
-    """ """
-
-    # flat horizontal line for window
-    wd1 = WDO(
-        global_SIM2_local=None,
-        pt1=(-2,0),
-        pt2=(2,0),
-        bottom_z=-1,
-        top_z=1,
-        type="window"
-    )
-    n1 = wd1.get_wd_normal_2d()
-    gt_n1 = np.array([0,1])
-    assert np.allclose(n1, gt_n1)
-    
-
-    # upwards diagonal for window, y=x
-    wd2 = WDO(
-        global_SIM2_local=None,
-        pt1=(0,0),
-        pt2=(3,3),
-        bottom_z=-1,
-        top_z=1,
-        type="window"
-    )
-    import pdb; pdb.set_trace()
-    n2 = wd2.get_wd_normal_2d()
-    gt_n2 = np.array([-1,1]) / np.sqrt(2)
-    
-    assert np.allclose(n2, gt_n2)
-
-
-class PanoData(NamedTuple):
-    """ """
-    id: int
-    global_SIM2_local: Sim2
-    room_vertices_local_2d: np.ndarray
-    image_path: str
-    label: str
-    doors: Optional[List[WDO]] = None
-    windows: Optional[List[WDO]] = None
-    openings: Optional[List[WDO]] = None
-
-    @property
-    def room_vertices_global_2d(self):
-        """ """
-        return self.global_SIM2_local.transform_from(self.room_vertices_local_2d)
-
-    @classmethod
-    def from_json(cls, pano_data: Any) -> "PanoData":
-        """
-        From JSON ("pano_data")
-        """
-        #print('Camera height: ', pano_data['camera_height'])
-        assert pano_data['camera_height'] == 1.0
-
-        global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
-        room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
-
-        doors = []
-        windows = []
-        openings = []
-        image_path = pano_data["image_path"]
-        label = pano_data['label']
-
-        pano_id = int(Path(image_path).stem.split('_')[-1])
-
-        # DWO objects
-        geometry_type = "layout_raw" #, "layout_complete", "layout_visible"]
-        for wdo_type in ["windows", "doors", "openings"]:
-            wdos = []
-            wdo_data = np.asarray(pano_data[geometry_type][wdo_type], dtype=object)
-
-            # Skip if there are no elements of this type
-            if len(wdo_data) == 0:
-                continue
-
-            # as (x1,y1), (x2,y2), bottom_z, top_z
-            # Transform the local W/D/O vertices to the global frame of reference
-            assert len(wdo_data) > 2 and isinstance(wdo_data[2], float)  # with cvat bbox annotation
-
-            num_wdo = len(wdo_data) // 4
-            for wdo_idx in range(num_wdo):
-                wdo = WDO.from_object_array(wdo_data[ wdo_idx * 4 : (wdo_idx+1) * 4], global_SIM2_local, wdo_type)
-                wdos.append(wdo)
-
-            if wdo_type == "windows":
-                windows = wdos
-            elif wdo_type == "doors":
-                doors = wdos
-            elif wdo_type == "openings":
-                openings = wdos
-
-        return cls(pano_id, global_SIM2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
-
-
-
-class FloorData(NamedTuple):
-    """ """
-    floor_id: str
-    panos: List[PanoData]
-
-    @classmethod
-    def from_json(cls, floor_data: Any, floor_id: str) -> "FloorData":
-        """
-        From JSON ("floor_data")
-        """
-        pano_objs = []
-
-        for complete_room_data in floor_data.values():
-            for partial_room_data in complete_room_data.values():
-                for pano_data in partial_room_data.values():
-                    #if pano_data["is_primary"]:
-
-                    pano_obj = PanoData.from_json(pano_data)
-                    pano_objs.append(pano_obj)
-
-        return cls(floor_id, pano_objs)
-
-
-def main():
+def export_alignment_hypotheses_to_json(raw_dataset_dir: str, dataset_id: str) -> None:
     """
     Questions: what is tour_data_mapping.json? -> for internal people, GUIDs to production people
     Last edge of polygon (to close it) is not provided -- right??
@@ -265,41 +66,15 @@ def main():
 
     Reflection must come after the Sim(2) --> otherwise the global poses will be wrong.
     """
-    teaser_dirpath = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{teaser_dirpath}/*") if Path(fpath).is_dir()]
+    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
 
     for building_id in building_ids:
-        json_annot_fpath = f"{teaser_dirpath}/{building_id}/zfm_data.json"
-        pano_dir = f"{teaser_dirpath}/{building_id}/panos"
+        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
+        pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
         #render_building(building_id, pano_dir, json_annot_fpath)
 
-        align_by_wdo(building_id, pano_dir, json_annot_fpath)
-
-
-OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_17"
-
-
-def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim2:
-    """Generate a Similarity(2) object from a dictionary storing transformation parameters.
-
-    Note: ZinD stores (sRp + t), instead of s(Rp + t), so we have to divide by s to create Sim2.
-
-    Args:
-        transform_data: dictionary of the form
-            {'translation': [0.015, -0.0022], 'rotation': -352.53, 'scale': 0.40}
-    """
-    scale = transform_data["scale"]
-    t = np.array(transform_data["translation"]) / scale
-    theta_deg = transform_data["rotation"]
-
-    R = rotmat2d(theta_deg)
-
-    assert np.allclose(R.T @ R, np.eye(2))
-
-    global_SIM2_local = Sim2(R=R, t=t, s=scale)
-    return global_SIM2_local
-
+        align_by_wdo(dataset_id, building_id, pano_dir, json_annot_fpath)
 
 
 def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
@@ -327,8 +102,16 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
-def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
-    """ """
+def align_by_wdo(dataset_id: str, building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
+    """Save candidate alignment Sim(2) transformations to disk as JSON files.
+
+    For every pano, try to align it to another pano.
+    
+    These pairwise costs can be used in a meta-algorithm:
+        while there are any unmatched rooms?
+        try all possible matches at every step. compute costs, and choose the best greedily.
+        or, growing consensus
+    """
     floor_map_json = read_json_file(json_annot_fpath)
 
     merger_data = floor_map_json["merger"]
@@ -370,12 +153,8 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
                 possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(pano_dict[i1], pano_dict[i2])
 
-                #TODO: prune to the unique ones
-
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
-
-                dataset_id = "verifier_dataset_2021_06_21"
 
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
@@ -387,6 +166,7 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
                     if not np.allclose(expected, np.eye(2), atol=1e-6):
                         import pdb; pdb.set_trace()
 
+                # remove redundant transformations
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
 
                 labels = []
@@ -421,17 +201,11 @@ def align_by_wdo(building_id: str, pano_dir: str, json_annot_fpath: str) -> None
         print(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
         print(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
 
-    # for every room, try to align it to another.
-    # while there are any unmatched rooms?
-    # try all possible matches at every step. compute costs, and choose the best greedily.
-
-
-
 
 def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     """ """
-    angle1 = np.rad2deg(np.arccos(i2Ti1.rotation[0,0]))
-    angle2 = np.rad2deg(np.arccos(i2Ti1_.rotation[0,0]))
+    angle1 = i2Ti1.theta_deg
+    angle2 = i2Ti1_.theta_deg
 
     # print(f"\t\tTrans: {i2Ti1.translation} vs. {i2Ti1_.translation}")
     # print(f"\t\tScale: {i2Ti1.scale:.1f} vs. {i2Ti1_.scale:.1f}")
@@ -447,7 +221,6 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
         return False
 
     return True
-
 
 
 def prune_to_unique_sim2_objs(possible_alignment_info: List[Tuple[Sim2,str]]) -> List[Tuple[Sim2,str]]:
@@ -506,7 +279,6 @@ def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
     if not Path(save_fpath).exists():
         os.makedirs( Path(save_fpath).parent, exist_ok=True)
 
-    from argoverse.utils.json_utils import save_json_dict
     dict_for_serialization = {
         "R": i2Ti1.rotation.flatten().tolist(),
         "t": i2Ti1.translation.flatten().tolist(),
@@ -1226,6 +998,8 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
     """
     floor_map_json has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'
     """
+    FLOORPLANS_OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_17"
+
     floor_map_json = read_json_file(json_annot_fpath)
 
     merger_data = floor_map_json["merger"]
@@ -1247,7 +1021,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
         plt.legend(loc="upper right")
         plt.title(f"Building {building_id}: {floor_id}")
         plt.axis('equal')
-        building_dir = f"{OUTPUT_DIR}/{building_id}"
+        building_dir = f"{FLOORPLANS_OUTPUT_DIR}/{building_id}"
         os.makedirs(building_dir, exist_ok=True)
         plt.savefig(f"{building_dir}/{floor_id}.jpg", dpi=500)
         #plt.show()
@@ -1368,7 +1142,15 @@ def test_reflections_2() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    """ """
+
+    # teaser file
+    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    dataset_id = "verifier_dataset_2021_06_21"
+
+    export_alignment_hypotheses_to_json(raw_dataset_dir, dataset_id)
+
     #test_reflections_2()
     #test_determine_invalid_wall_overlap1()
     #test_determine_invalid_wall_overlap2()
@@ -1376,8 +1158,4 @@ if __name__ == '__main__':
     #test_get_relative_angle()
     #test_align_rooms_by_wd()
     #test_prune_to_unique_sim2_objs()
-
-    #test_rotmat2d()
-
-    #test_reorthonormalize()
 
