@@ -226,20 +226,20 @@ def render_pairs(depth_save_root: str, bev_save_root: str, raw_dataset_dir: str,
 if __name__ == "__main__":
     # render_isolated_examples()
 
-    depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
-    # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
+    #depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
+    depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
+    hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
-    bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
-    #bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
+    #bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
+    bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
 
 
     #render_dataset(bev_save_root, raw_dataset_dir)
