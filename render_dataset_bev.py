@@ -167,17 +167,32 @@ def render_building_floor_pairs(
                 )
                 # bev_img = vis_depth_and_render(args, is_semantics=False)
 
-                bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
-
                 building_bev_save_dir = f"{bev_save_root}/{label_type}/{building_id}"
                 os.makedirs(building_bev_save_dir, exist_ok=True)
 
-                for img_fpath, bev_img in zip([img1_fpath, img2_fpath], [bev_img1, bev_img2]):
+                def bev_fpath_from_img_fpath(pair_idx: int, surface_type: str, img_fpath: str) -> None:
+                    """ """
+                    fname_stem = Path(img_fpath).stem
                     if is_semantics:
-                        img_name = f"pair_{pair_idx}_{surface_type}_semantics_{Path(img_fpath).stem}.jpg"
+                        img_name = f"pair_{pair_idx}_{surface_type}_semantics_{fname_stem}.jpg"
                     else:
-                        img_name = f"pair_{pair_idx}_{surface_type}_rgb_{Path(img_fpath).stem}.jpg"
-                    imageio.imwrite(f"{building_bev_save_dir}/{img_name}", bev_img)
+                        img_name = f"pair_{pair_idx}_{surface_type}_rgb_{fname_stem}.jpg"
+                    return img_name
+
+                bev_fname1 = bev_fpath_from_img_fpath(pair_idx, surface_type, img1_fpath)
+                bev_fname2 = bev_fpath_from_img_fpath(pair_idx, surface_type, img2_fpath)
+
+                bev_fpath1 = f"{building_bev_save_dir}/{bev_fname1}"
+                bev_fpath2 = f"{building_bev_save_dir}/{bev_fname2}"
+
+                if Path(bev_fpath1).exists() and Path(bev_fpath2).exists():
+                    print("Both BEV images already exist, skipping...")
+                    continue
+
+                bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
+
+                imageio.imwrite(bev_fpath1, bev_img1)
+                imageio.imwrite(bev_fpath2, bev_img2)
 
 
 def sim2_from_json(json_fpath: str) -> Sim2:
