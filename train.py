@@ -248,14 +248,14 @@ if __name__ == "__main__":
             "train_w": 224,
 
             "cfg_stem": "rgb_only_4tuple",
-            "num_epochs": 10,
-            "workers": 4, #16,
+            "num_epochs": 50,
+            "workers": 16,
             "batch_size": 128, #128, # 2, #256,
 
-            "data_root": "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
-            #"data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25",
-            "model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
-            #"model_save_dirpath": "/mnt/data/johnlam/ZinD_trained_models_2021_06_25",
+            #"data_root": "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
+            "data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25",
+            #"model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
+            "model_save_dirpath": "/mnt/data/johnlam/ZinD_trained_models_2021_06_25",
             "gpu_ids": "0,1,2,3"
         }
     )
