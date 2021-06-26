@@ -82,7 +82,7 @@ def get_val_test_transform_list(args) -> List[Callable]:
 
     transform_list = [
         #tbv_transform.CropQuadruplet(),
-        tbv_transform.ResizeQuadruplet(),
+        tbv_transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
         tbv_transform.ToTensorQuadruplet(),
         tbv_transform.NormalizeQuadruplet(mean=mean, std=std)
     ]
@@ -138,7 +138,7 @@ def get_dataloader(args, split: str) -> torch.utils.data.DataLoader:
         num_workers=args.workers,
         pin_memory=True,
         drop_last=drop_last,
-        sampler=sample
+        sampler=sampler
     )
     return split_loader
 

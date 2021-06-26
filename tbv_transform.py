@@ -88,7 +88,7 @@ class NormalizeQuadruplet(object):
 
 class ResizeQuadruplet(object):
     # Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w).
-    def __init__(self, size):
+    def __init__(self, size: Tuple[int,int]) -> None:
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
 

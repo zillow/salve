@@ -5,6 +5,7 @@ from typing import Tuple
 import torch
 from torch import nn, Tensor
 
+from resnet_factory import get_vanilla_resnet_model
 
 class EarlyFusionCEResnet(nn.Module):
     """ """
