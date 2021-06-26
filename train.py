@@ -23,9 +23,14 @@ from train_utils import (
     cross_entropy_forward,
     print_time_remaining,
 )
-from logger_utils import get_logger
+from logger_utils import get_logger, setup_file_logger
 
-logger = get_logger()
+
+#logger = get_logger()
+
+home_dir = "/Users/johnlam/Downloads"
+#home_dir = "/mnt/data/johnlam"
+setup_file_logger(home_dir, program_name="training")
 
 
 def check_mkdir(dirpath: str) -> None:
@@ -38,7 +43,7 @@ def main(args) -> None:
     random.seed(0)
     cudnn.benchmark = True
 
-    logger.info(str(args))
+    logging.info(str(args))
 
     train_loader = get_dataloader(args, split="train")
     val_loader = get_dataloader(args, split="val")
@@ -56,7 +61,7 @@ def main(args) -> None:
 
     for epoch in range(args.num_epochs):
 
-        logger.info(f"On epoch {epoch}")
+        logging.info(f"On epoch {epoch}")
         train_metrics_dict = run_epoch(args, epoch, model, train_loader, optimizer, split="train")
 
         for k, v in train_metrics_dict.items():
@@ -80,7 +85,7 @@ def main(args) -> None:
             results_dir = f"{args.model_save_dirpath}/{exp_start_time}"
             check_mkdir(results_dir)
             ckpt_fpath = f"{results_dir}/train_ckpt.pth"
-            logger.info(f"Saving checkpoint to: {ckpt_fpath}")
+            logging.info(f"Saving checkpoint to: {ckpt_fpath}")
 
             torch.save(
                 {
@@ -95,7 +100,7 @@ def main(args) -> None:
         results_json_fpath = f"{results_dir}/results-{exp_start_time}-{cfg.stem}.json"
         save_json_dict(results_json_fpath, results_dict)
 
-        logger.info("Results on crit stat: " + str([f"v:.3f" for v in results_dict[crit_acc_stat]]))
+        logging.info("Results on crit stat: " + str([f"v:.3f" for v in results_dict[crit_acc_stat]]))
 
 
 def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Dict[str, float]:
@@ -115,7 +120,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
     for iter, example in enumerate(data_loader):
 
         if iter % args.print_every == 0:
-            logger.info(f"\tOn iter {iter}")
+            logging.info(f"\tOn iter {iter}")
 
         # assume cross entropy loss only currently
         x1, x2, x3, x4, is_match, fp0, fp1, fp2, fp3 = example
@@ -192,7 +197,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
                 current_lr = poly_learning_rate(args.base_lr, current_iter, max_iter, power=args.poly_lr_power)
 
                 if iter % args.print_every == 0:
-                    logger.info(
+                    logging.info(
                         f"\tLR:{current_lr:.5f}, base_lr: {args.base_lr:.3f}, current_iter:{current_iter}, max_iter:{max_iter}, power:{args.poly_lr_power}"
                     )
 
@@ -208,15 +213,15 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
 
             if iter % args.print_every == 0:
                 _, accs, _, avg_mAcc, _ = sam.get_metrics()
-                logger.info(f"\t{args.num_ce_classes}-Cls Accuracies" + str([float(f"{acc:.2f}") for acc in accs]))
-                logger.info(
+                logging.info(f"\t{args.num_ce_classes}-Cls Accuracies" + str([float(f"{acc:.2f}") for acc in accs]))
+                logging.info(
                     f"\t{split} result at iter [{iter+1}/{len(data_loader)}] {args.num_ce_classes}-CE mAcc {avg_mAcc:.4f}"
                 )
                 print_time_remaining(batch_time, current_iter, max_iter)
 
     _, accs, _, avg_mAcc, _ = sam.get_metrics()
-    logger.info(f"{split} result at epoch [{epoch+1}/{args.num_epochs}]: mAcc{avg_mAcc:.4f}")
-    logger.info("Cls Accuracies: " + str([float(f"acc:.2f") for acc in accs]))
+    logging.info(f"{split} result at epoch [{epoch+1}/{args.num_epochs}]: mAcc{avg_mAcc:.4f}")
+    logging.info("Cls Accuracies: " + str([float(f"acc:.2f") for acc in accs]))
 
     metrics_dict = {"avg_loss": loss_meter.avg, "mAcc": avg_mAcc}
 
@@ -227,18 +232,13 @@ if __name__ == "__main__":
 
     args = SimpleNamespace(
         **{
-            "cfg_stem": "rgb_only_4tuple",
-            "num_epochs": 10,
             "lr_annealing_strategy": "poly",
             "base_lr": 0.001,
             "weight_decay": 0.0001,
             "num_ce_classes": 2,
-            "model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
             "print_every": 10,
             "poly_lr_power": 0.9,
             "optimizer_algo": "adam",
-            "batch_size": 2, #256,
-            "workers": 8,
             "num_layers": 18,
             "pretrained": True,
             "dataparallel": True,
@@ -246,7 +246,20 @@ if __name__ == "__main__":
             "resize_w": 234,
             "train_h": 224,
             "train_w": 224,
-            "data_root": "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25"
+
+            "cfg_stem": "rgb_only_4tuple",
+            "num_epochs": 10,
+            "workers": 4, #16,
+            "batch_size": 128, #128, # 2, #256,
+
+            "data_root": "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
+            #"data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25",
+            "model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
+            #"model_save_dirpath": "/mnt/data/johnlam/ZinD_trained_models_2021_06_25",
+            "gpu_ids": "0,1,2,3"
         }
     )
+    print("Using GPUs ", args.gpu_ids)
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
+
     main(args)

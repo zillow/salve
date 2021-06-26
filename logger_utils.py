@@ -1,8 +1,11 @@
 """Utilities for logging.
 """
 import logging
+import os
 import sys
 from logging import Logger
+
+from argoverse.utils.datetime_utils import generate_datetime_string
 
 
 def get_logger() -> Logger:
@@ -16,3 +19,22 @@ def get_logger() -> Logger:
         handler.setFormatter(logging.Formatter(fmt))
         logger.addHandler(handler)
     return logger
+
+
+def setup_file_logger(home_dir: str, program_name: str):
+    """ """
+    date_str = generate_datetime_string()
+    log_output_fpath = f"{home_dir}/logging/{program_name}_{date_str}.log"
+
+    os.makedirs(f"{home_dir}/logging", exist_ok=True)
+
+    logging.basicConfig(
+        format="[%(asctime)s %(levelname)-8s %(message)s",
+        datefmt="%m/%d/%Y %I:%M:%S %p",
+        filename=log_output_fpath,
+        level=logging.INFO
+    )
+    logging.debug("Init Debug")
+    logging.info("Init Info")
+    logging.warning("Init Warning")
+    logging.critical("Init Critical")

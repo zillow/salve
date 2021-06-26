@@ -1,5 +1,5 @@
 
-
+import logging
 from typing import Callable, List, Tuple
 
 import torch
@@ -13,8 +13,9 @@ from logger_utils import get_logger
 
 from zind_data import ZindData
 
-logger = get_logger()
 
+#logger = get_logger()
+# logger = logging.getLogger(__name__)
 
 
 def cross_entropy_forward(
@@ -49,7 +50,7 @@ def print_time_remaining(batch_time: AverageMeter, current_iter: int, max_iter: 
     t_m, t_s = divmod(remain_time, 60)
     t_h, t_m = divmod(t_m, 60)
     remain_time = '{:02d}:{:02d}:{:02d}'.format(int(t_h), int(t_m), int(t_s))
-    logger.info(f"\tRemain {remain_time}")
+    logging.info(f"\tRemain {remain_time}")
 
 
 def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: float = 0.9):
@@ -149,7 +150,7 @@ def get_model(args) -> nn.Module:
     """ """
     model = EarlyFusionCEResnet(args.num_layers, args.pretrained, args.num_ce_classes, args)
 
-    logger.info(model)
+    logging.info(model)
 
     if torch.cuda.is_available():
         model = model.cuda()
