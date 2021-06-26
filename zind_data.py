@@ -1,5 +1,6 @@
 
 import glob
+import logging
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Tuple
@@ -107,6 +108,7 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
     Note: is_match = 1 means True.
     """
     data_list = []
+    logging.info(f"Populating data list for split {split}...")
 
     available_building_ids = get_available_building_ids(dataset_root=f"{args.data_root}/gt_alignment_approx")
 
@@ -118,15 +120,15 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
     elif split in ["val", "test"]:
         split_building_ids = available_building_ids[split_idx:]
 
-
     label_dict = {
         "gt_alignment_approx": 1, # is_match = True
         "incorrect_alignment": 0
     }
 
     for label_name, label_idx in label_dict.items():
-
         for building_id in split_building_ids:
+
+            logging.info(f"\tOn building {building_id} -- so far, for split {split}, found {len(data_list)} tuples...")
 
             for floor_id in ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04"]:
 
@@ -138,8 +140,9 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
                     continue
                 data_list.extend(tuples)
 
-    return data_list
 
+    logging.info(f"Data list for split {split} has {len(data_list)} tuples.")
+    return data_list
 
 
 class ZindData(Dataset):
