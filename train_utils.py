@@ -145,11 +145,12 @@ def get_dataloader(args, split: str) -> torch.utils.data.DataLoader:
 
 def get_model(args) -> nn.Module:
     """ """
-
     model = EarlyFusionCEResnet(args.num_layers, args.pretrained, args.num_ce_classes, args)
 
     logger.info(model)
-    model = model.cuda()
+
+    if torch.cuda.is_available():
+        model = model.cuda()
 
     if args.dataparallel:
         model = torch.nn.DataParallel(model)
