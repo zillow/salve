@@ -191,6 +191,9 @@ def render_building_floor_pairs(
 
                 bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
 
+                if bev_img1 is None or bev_img2 is None:
+                    continue
+
                 imageio.imwrite(bev_fpath1, bev_img1)
                 imageio.imwrite(bev_fpath2, bev_img2)
 
