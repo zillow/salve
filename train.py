@@ -101,7 +101,7 @@ def main(args) -> None:
         results_json_fpath = f"{results_dir}/results-{exp_start_time}-{cfg_stem}.json"
         save_json_dict(results_json_fpath, results_dict)
 
-        logging.info("Results on crit stat: " + str([f"v:.3f" for v in results_dict[crit_acc_stat]]))
+        logging.info("Results on crit stat: " + str([f"{v:.3f}" for v in results_dict[crit_acc_stat]]))
 
 
 def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Dict[str, float]:
