@@ -16,19 +16,19 @@ class ComposeQuadruplet(object):
     Composes transforms together into a chain of operations, for 4 aligned inputs.
     """
 
-    def __init__(self, transform: List[Callable]) -> None:
+    def __init__(self, transforms: List[Callable]) -> None:
         self.transforms = transforms
 
     def __call__(
-        self, image1: np.ndarray, image1: np.ndarray, image1: np.ndarray, image1: np.ndarray
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """ """
-        for t in self.segtransform:
+        for t in self.transforms:
             image1, image2, image3, image4 = t(image1, image2, image3, image4)
         return image1, image2, image3, image4
 
 
-class ToTensorQuadruple(object):
+class ToTensorQuadruplet(object):
     # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
     def __call__(
         self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
@@ -93,7 +93,7 @@ class ResizeQuadruplet(object):
         self.size = size
 
     def __call__(
-        self, image1: np.ndarray, image1: np.ndarray, image1: np.ndarray, image1: np.ndarray
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         image1 = cv2.resize(image1, self.size[::-1], interpolation=cv2.INTER_LINEAR)
         image2 = cv2.resize(image2, self.size[::-1], interpolation=cv2.INTER_LINEAR)
@@ -228,7 +228,7 @@ class RandomHorizontalFlipQuadruplet(object):
         self.p = p
 
     def __call__(
-        self, image1: np.ndarray, image1: np.ndarray, image1: np.ndarray, image1: np.ndarray
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """ """
         if random.random() < self.p:
@@ -245,7 +245,7 @@ class RandomVerticalFlipQuadruplet(object):
         self.p = p
 
     def __call__(
-        self, image1: np.ndarray, image1: np.ndarray, image1: np.ndarray, image1: np.ndarray
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """ """
         if random.random() < self.p:

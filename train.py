@@ -4,6 +4,7 @@ import os
 import random
 import time
 from collections import defaultdict
+from types import SimpleNamespace
 from typing import Dict
 
 import numpy as np
@@ -22,16 +23,16 @@ from train_utils import (
     cross_entropy_forward,
     print_time_remaining,
 )
-from logger_utils import setup_logger
+from logger_utils import get_logger
 
-logger = setup_logger()
+logger = get_logger()
 
 
 def check_mkdir(dirpath: str) -> None:
     os.makedirs(dirpath, exist_ok=True)
 
 
-def main() -> None:
+def main(args) -> None:
     """ """
     np.random.seed(0)
     random.seed(0)
@@ -117,6 +118,35 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
         # assume cross entropy loss only currently
         x1, x2, x3, x4, is_match = example
 
+        n = x1.size(0)
+
+        #"""
+        for k in range(n):
+            import matplotlib.pyplot as plt
+            plt.figure(figsize=(10,5))
+            mean, std = get_imagenet_mean_std()
+            from train_utils import unnormalize_img
+
+            unnormalize_img(x1[k].cpu(), mean, std)
+
+            plt.subplot(2,2,1)
+            plt.imshow(x1[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+            plt.subplot(2,2,2)
+            plt.imshow(x2[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+            plt.subplot(2,2,3)
+            plt.imshow(x3[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+            plt.subplot(2,2,4)
+            plt.imshow(x4[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+            plt.title("Is match" + str(is_match[k]).numpy().item())
+
+            plt.show()
+            plt.close("all")
+        #"""
+
         x1 = x1.cuda(non_blocking=True)
         x2 = x2.cuda(non_blocking=True)
         x3 = x3.cuda(non_blocking=True)
@@ -124,7 +154,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
 
         gt_is_match = is_match.cuda(non_blocking=True)
 
-        n = x1.size(0)
+        
 
         is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, gt_is_match)
 
@@ -183,20 +213,22 @@ if __name__ == "__main__":
     args = SimpleNamespace(
         **{
             "num_epochs": 10,
-            "model_save_dirpath": "",
             "lr_annealing_strategy": "poly",
-            "base_lr": 1e-3,
+            "base_lr": 0.001,
+            "weight_decay": 0.0001,
             "num_ce_classes": 2,
-            "model_save_dirpath": "",
+            "model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
             "print_every": 10,
             "poly_lr_power": 0.9,
             "optimizer_algo": "adam",
-            "weight_decay": None,
-            "batch_size": None,
-            "workers": 8
+            "batch_size": 256,
+            "workers": 8,
             "num_layers": 18,
             "pretrained": True,
-            "dataparallel": True
+            "dataparallel": True,
+            "resize_h": 224,
+            "resize_w": 224,
+            "data_root": "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25"
         }
     )
     main(args)
