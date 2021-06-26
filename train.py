@@ -70,7 +70,7 @@ def main(args) -> None:
 
         val_metrics_dict = run_epoch(args, epoch, model, val_loader, optimizer, split="val")
 
-        for k, v in vall_metrics_dict.items():
+        for k, v in val_metrics_dict.items():
             results_dict[f"val_{k}"] += [v]
 
         crit_acc_stat = "val_mAcc"
