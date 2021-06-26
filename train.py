@@ -28,8 +28,8 @@ from logger_utils import get_logger, setup_file_logger
 
 #logger = get_logger()
 
-home_dir = "/Users/johnlam/Downloads"
-#home_dir = "/mnt/data/johnlam"
+#home_dir = "/Users/johnlam/Downloads"
+home_dir = "/mnt/data/johnlam"
 setup_file_logger(home_dir, program_name="training")
 
 
