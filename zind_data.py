@@ -141,8 +141,7 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
                 if len(tuples) == 0:
                     continue
                 data_list.extend(tuples)
-
-    data_list = data_list[:100]
+    
     logging.info(f"Data list for split {split} has {len(data_list)} tuples.")
     return data_list
 

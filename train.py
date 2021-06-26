@@ -247,7 +247,7 @@ if __name__ == "__main__":
             "optimizer_algo": "adam",
             "num_layers": 18,
             "pretrained": True,
-            "dataparallel": False, #True,
+            "dataparallel": True,
             "resize_h": 234,
             "resize_w": 234,
             "train_h": 224,
@@ -256,7 +256,7 @@ if __name__ == "__main__":
             "cfg_stem": "rgb_only_4tuple",
             "num_epochs": 50,
             "workers": 16,
-            "batch_size": 8, #128, #128, # 2, #256,
+            "batch_size": 128, #128, # 2, #256,
 
             #"data_root": "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
             "data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25",
