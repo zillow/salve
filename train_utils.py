@@ -64,6 +64,7 @@ def get_train_transform_list(args) -> List[Callable]:
     mean, std = get_imagenet_mean_std()
 
     # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
+    # random crops to prevent memorization
 
     transform_list = [
         tbv_transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
