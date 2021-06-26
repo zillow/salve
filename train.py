@@ -118,11 +118,12 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
             logger.info(f"\tOn iter {iter}")
 
         # assume cross entropy loss only currently
-        x1, x2, x3, x4, is_match = example
+        x1, x2, x3, x4, is_match, fp0, fp1, fp2, fp3 = example
 
         n = x1.size(0)
 
-        #"""
+        """
+        # debug routines
         for k in range(n):
             import matplotlib.pyplot as plt
             from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
@@ -150,11 +151,16 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
 
             plt.title("Is match" + str(is_match[k].numpy().item()))
 
+            print(fp0[k])
+            print(fp1[k])
+            print(fp2[k])
+            print(fp3[k])
+            print()
+
             plt.show()
             plt.close("all")
-        #"""
-        import pdb; pdb.set_trace()
-
+        """
+        
         if torch.cuda.is_available():
             x1 = x1.cuda(non_blocking=True)
             x2 = x2.cuda(non_blocking=True)
@@ -162,6 +168,8 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
             x4 = x4.cuda(non_blocking=True)
 
             gt_is_match = is_match.cuda(non_blocking=True)
+        else:
+            gt_is_match = is_match
 
         is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, gt_is_match)
 
@@ -229,13 +237,15 @@ if __name__ == "__main__":
             "print_every": 10,
             "poly_lr_power": 0.9,
             "optimizer_algo": "adam",
-            "batch_size": 8, #256,
+            "batch_size": 2, #256,
             "workers": 8,
             "num_layers": 18,
             "pretrained": True,
             "dataparallel": True,
-            "resize_h": 224,
-            "resize_w": 224,
+            "resize_h": 234,
+            "resize_w": 234,
+            "train_h": 224,
+            "train_w": 224,
             "data_root": "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25"
         }
     )

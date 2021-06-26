@@ -63,10 +63,11 @@ def get_train_transform_list(args) -> List[Callable]:
     """ """
     mean, std = get_imagenet_mean_std()
 
-    # TODO: check if cropping helps
+    # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
 
     transform_list = [
         tbv_transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
+        tbv_transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
         tbv_transform.RandomHorizontalFlipQuadruplet(),
         tbv_transform.RandomVerticalFlipQuadruplet(),
         tbv_transform.ToTensorQuadruplet(),
@@ -81,8 +82,8 @@ def get_val_test_transform_list(args) -> List[Callable]:
     mean, std = get_imagenet_mean_std()
 
     transform_list = [
-        #tbv_transform.CropQuadruplet(),
         tbv_transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
+        tbv_transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="center", padding=mean),
         tbv_transform.ToTensorQuadruplet(),
         tbv_transform.NormalizeQuadruplet(mean=mean, std=std)
     ]

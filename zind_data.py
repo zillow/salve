@@ -68,11 +68,11 @@ def get_4tuples_from_list(fpaths: List[str], label_idx: int) -> List[Tuple[str,s
         assert pano1_id != pano2_id
 
         # make sure each tuple is in sorted order (floor,floor) and (ceiling,ceiling)
-        assert "ceiling" in Path(fp0).name
-        assert "ceiling" in Path(fp1).name
+        assert "_ceiling_rgb_" in Path(fp0).name
+        assert "_ceiling_rgb_" in Path(fp1).name
 
-        assert "floor" in Path(fp2).name
-        assert "floor" in Path(fp3).name
+        assert "_floor_rgb_" in Path(fp2).name
+        assert "_floor_rgb_" in Path(fp3).name
 
         assert f"_pano_{pano1_id}.jpg" in Path(fp0).name
         assert f"_pano_{pano2_id}.jpg" in Path(fp1).name
