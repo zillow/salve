@@ -50,7 +50,9 @@ def main(args) -> None:
     exp_start_time = generate_datetime_string()
 
     results_dict = defaultdict(list)
-    results_dict["args"] = [{k: v} for k, v in args.items()]
+
+    # TODO: only available in `config` class
+    # results_dict["args"] = [{k: v} for k, v in args.items()]
 
     for epoch in range(args.num_epochs):
 
@@ -212,6 +214,7 @@ if __name__ == "__main__":
 
     args = SimpleNamespace(
         **{
+            "cfg_stem": "rgb_only_4tuple",
             "num_epochs": 10,
             "lr_annealing_strategy": "poly",
             "base_lr": 0.001,
