@@ -607,6 +607,8 @@ def align_rooms_by_wd(
 
 def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
     """
+    Reference: https://stackoverflow.com/questions/49558464/shrink-polygon-using-corner-coordinates
+    
     Args:
         shrink_factor: shrink by 10%
     """

@@ -1,4 +1,5 @@
 
+import argparse
 import logging
 import os
 import random
@@ -230,6 +231,10 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gpu_ids", type=str, help="GPU device IDs to use for training.")
+    opts = parser.parse_args()
+
     args = SimpleNamespace(
         **{
             "lr_annealing_strategy": "poly",
@@ -256,7 +261,7 @@ if __name__ == "__main__":
             "data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25",
             #"model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
             "model_save_dirpath": "/mnt/data/johnlam/ZinD_trained_models_2021_06_25",
-            "gpu_ids": "0,1,2,3"
+            "gpu_ids": opts.gpu_ids
         }
     )
     print("Using GPUs ", args.gpu_ids)
