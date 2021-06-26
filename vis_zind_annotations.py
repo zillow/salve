@@ -1,4 +1,3 @@
-
 import glob
 import os
 from pathlib import Path
@@ -14,22 +13,24 @@ from pano_data import PanoData, FloorData
 from sim3_align_dw import rotmat2d
 
 
-RED = [1,0,0]
-GREEN = [0,1,0]
-BLUE = [0,0,1]
+RED = [1, 0, 0]
+GREEN = [0, 1, 0]
+BLUE = [0, 0, 1]
 wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
-def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floor: Optional[Set] = None, show_plot: bool = True) -> None:
+def plot_room_layout(
+    pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floor: Optional[Set] = None, show_plot: bool = True
+) -> None:
     """
     coord_frame: either 'local' or 'global'
     """
-    R_refl = np.array([[-1.,0],[0,1]])
+    R_refl = np.array([[-1.0, 0], [0, 1]])
     world_Sim2_reflworld = Sim2(R_refl, t=np.zeros(2), s=1.0)
 
-    hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90),t=np.zeros(2),s=1.0)
+    hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
 
-    assert coord_frame in ["global","local"]
+    assert coord_frame in ["global", "local"]
 
     if coord_frame == "global":
         room_vertices = pano_obj.room_vertices_global_2d
@@ -40,14 +41,14 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
     room_vertices = world_Sim2_reflworld.transform_from(room_vertices)
 
     color = np.random.rand(3)
-    plt.scatter(room_vertices[:,0], room_vertices[:,1], 10, marker='.', color=color)
-    plt.plot(room_vertices[:,0], room_vertices[:,1], color=color, alpha=0.5)
+    plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color)
+    plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=0.5)
     # draw edge to close each polygon
     last_vert = room_vertices[-1]
     first_vert = room_vertices[0]
-    plt.plot([last_vert[0],first_vert[0]], [last_vert[1],first_vert[1]], color=color, alpha=0.5)
+    plt.plot([last_vert[0], first_vert[0]], [last_vert[1], first_vert[1]], color=color, alpha=0.5)
 
-    pano_position = np.zeros((1,2))
+    pano_position = np.zeros((1, 2))
     if coord_frame == "global":
         pano_position_local = pano_position
         pano_position_reflworld = pano_obj.global_SIM2_local.transform_from(pano_position_local)
@@ -58,29 +59,27 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
         pano_position_local = world_Sim2_reflworld.transform_from(pano_position_refllocal)
         pano_position = pano_position_local
 
-    plt.scatter(pano_position[0,0], pano_position[0,1], 30, marker='+', color=color)
+    plt.scatter(pano_position[0, 0], pano_position[0, 1], 30, marker="+", color=color)
 
-    point_ahead = np.array([1,0]).reshape(1,2)
+    point_ahead = np.array([1, 0]).reshape(1, 2)
     if coord_frame == "global":
         point_ahead = pano_obj.global_SIM2_local.transform_from(point_ahead)
 
     point_ahead = world_Sim2_reflworld.transform_from(point_ahead)
-    
+
     # TODO: add patch to Argoverse, enforcing ndim on the input to `transform_from()`
-    plt.plot(
-        [pano_position[0,0], point_ahead[0,0]],
-        [pano_position[0,1], point_ahead[0,1]],
-        color=color
-    )
+    plt.plot([pano_position[0, 0], point_ahead[0, 0]], [pano_position[0, 1], point_ahead[0, 1]], color=color)
     pano_id = pano_obj.id
 
-    pano_text = pano_obj.label + f' {pano_id}'
+    pano_text = pano_obj.label + f" {pano_id}"
     TEXT_LEFT_OFFSET = 0.15
-    #mean_loc = np.mean(room_vertices_global, axis=0)
+    # mean_loc = np.mean(room_vertices_global, axis=0)
     # mean position
     noise = np.clip(np.random.randn(2), a_min=-0.05, a_max=0.05)
     text_loc = pano_position[0] + noise
-    plt.text((text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize='xx-small') #, 'x-small', 'small', 'medium',)
+    plt.text(
+        (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize="xx-small"
+    )  # , 'x-small', 'small', 'medium',)
 
     for wdo_idx, wdo in enumerate(pano_obj.doors + pano_obj.windows + pano_obj.openings):
 
@@ -91,7 +90,7 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
 
         wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
         wdo_points = world_Sim2_reflworld.transform_from(wdo_points)
-            
+
         # zfm_points_list = Polygon.list_to_points(wdo_points)
         # zfm_poly_type = PolygonTypeMapping[wdo_type]
         # wdo_poly = Polygon(type=zfm_poly_type, name=json_file_name, points=zfm_points_list)
@@ -106,17 +105,17 @@ def plot_room_layout(pano_obj: PanoData, coord_frame: str, wdo_objs_seen_on_floo
             label = wdo_type
         else:
             label = None
-        plt.scatter(wdo_points[:,0], wdo_points[:,1], 10, color=wdo_color, marker='o', label=label)
-        plt.plot(wdo_points[:,0], wdo_points[:,1], color=wdo_color, linestyle='dotted')
-        plt.text(wdo_points[:,0].mean(), wdo_points[:,1].mean(), f"{wdo.type}_{wdo_idx}")
+        plt.scatter(wdo_points[:, 0], wdo_points[:, 1], 10, color=wdo_color, marker="o", label=label)
+        plt.plot(wdo_points[:, 0], wdo_points[:, 1], color=wdo_color, linestyle="dotted")
+        plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
 
         if wdo_objs_seen_on_floor is not None:
             wdo_objs_seen_on_floor.add(wdo_type)
-        
+
     if show_plot:
-        plt.axis('equal')
+        plt.axis("equal")
         plt.show()
-        plt.close('all')
+        plt.close("all")
 
     return wdo_objs_seen_on_floor
 
@@ -145,18 +144,19 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
         # This dominant rotation will be used to align the floor map.
 
         for pano_obj in fd.panos:
-            wdo_objs_seen_on_floor = plot_room_layout(pano_obj, coord_frame="global", wdo_objs_seen_on_floor=wdo_objs_seen_on_floor, show_plot=False)
-
+            wdo_objs_seen_on_floor = plot_room_layout(
+                pano_obj, coord_frame="global", wdo_objs_seen_on_floor=wdo_objs_seen_on_floor, show_plot=False
+            )
 
         plt.legend(loc="upper right")
         plt.title(f"Building {building_id}: {floor_id}")
-        plt.axis('equal')
+        plt.axis("equal")
         building_dir = f"{FLOORPLANS_OUTPUT_DIR}/{building_id}"
         os.makedirs(building_dir, exist_ok=True)
         plt.savefig(f"{building_dir}/{floor_id}.jpg", dpi=500)
-        #plt.show()
-        
-        plt.close('all')
+        # plt.show()
+
+        plt.close("all")
 
         # dominant_rotation, _ = determine_rotation_angle(room_vertices_global)
         # if dominant_rotation is None:
@@ -171,10 +171,11 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
         #     for floor_id, zfm_poly_list in zfm_dict.items():
 
 
-
 def export_pano_visualizations(raw_dataset_dir: str) -> None:
     """ """
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
 
@@ -184,16 +185,10 @@ def export_pano_visualizations(raw_dataset_dir: str) -> None:
         print(f"Render floor maps for {building_id}")
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-        render_building(
-            building_id=building_id,
-            pano_dir=pano_dir,
-            json_annot_fpath=json_annot_fpath
-        )
+        render_building(building_id=building_id, pano_dir=pano_dir, json_annot_fpath=json_annot_fpath)
 
 
 if __name__ == "__main__":
     """ """
     raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     export_pano_visualizations(raw_dataset_dir)
-
-
