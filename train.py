@@ -98,7 +98,7 @@ def main(args) -> None:
                 ckpt_fpath,
             )
 
-        results_json_fpath = f"{results_dir}/results-{exp_start_time}-{cfg.stem}.json"
+        results_json_fpath = f"{results_dir}/results-{exp_start_time}-{cfg_stem}.json"
         save_json_dict(results_json_fpath, results_dict)
 
         logging.info("Results on crit stat: " + str([f"v:.3f" for v in results_dict[crit_acc_stat]]))
