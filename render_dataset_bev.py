@@ -50,7 +50,7 @@ DISCARD_DICT = {
 
 def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
     """ """
-    building_id = "000" # "981"  # 
+    building_id = "000"  # "981"  #
     # building_id = "004"
 
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
@@ -87,7 +87,7 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
 
         vis_depth(args)
 
-        #save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_crop_above_{args.crop_z_above}/{building_id}"
+        # save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_crop_above_{args.crop_z_above}/{building_id}"
         building_bev_save_dir = f"{bev_save_root}/{label_type}/{building_id}"
         fname_stem = Path(img_fpath).stem
         os.makedirs(save_dir, exist_ok=True)
@@ -214,7 +214,9 @@ def sim2_from_json(json_fpath: str) -> Sim2:
     return Sim2(R, t, s)
 
 
-def render_pairs(num_processes: int, depth_save_root: str, bev_save_root: str, raw_dataset_dir: str, hypotheses_save_root: str) -> None:
+def render_pairs(
+    num_processes: int, depth_save_root: str, bev_save_root: str, raw_dataset_dir: str, hypotheses_save_root: str
+) -> None:
     """ """
 
     # building_id = "000"
@@ -247,16 +249,7 @@ def render_pairs(num_processes: int, depth_save_root: str, bev_save_root: str, r
             #     building_id=building_id,
             #     floor_id=floor_id,
             # )
-            args += [
-                (
-                    depth_save_root,
-                    bev_save_root,
-                    hypotheses_save_root,
-                    raw_dataset_dir,
-                    building_id,
-                    floor_id
-                )
-            ]
+            args += [(depth_save_root, bev_save_root, hypotheses_save_root, raw_dataset_dir, building_id, floor_id)]
 
     if num_processes > 1:
         with Pool(num_processes) as p:
@@ -271,22 +264,22 @@ if __name__ == "__main__":
 
     num_processes = 8
 
-    #depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
+    # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
     hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
 
-    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
-    #bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
     bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
 
-    #render_dataset(bev_save_root, raw_dataset_dir)
+    # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
         num_processes=num_processes,
         depth_save_root=depth_save_root,
