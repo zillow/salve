@@ -1,7 +1,7 @@
 import collections
 import random
 import math
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
 import cv2
 import numbers
@@ -88,7 +88,7 @@ class NormalizeQuadruplet(object):
 
 class ResizeQuadruplet(object):
     # Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w).
-    def __init__(self, size: Tuple[int,int]) -> None:
+    def __init__(self, size: Tuple[int, int]) -> None:
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
 
@@ -135,64 +135,108 @@ class ResizeQuadruplet(object):
 #         return image, label
 
 
-# class Crop(object):
-#     """Crops the given ndarray image (H*W*C or H*W).
-#     Args:
-#         size (sequence or int): Desired output size of the crop. If size is an
-#         int instead of sequence like (h, w), a square crop (size, size) is made.
-#     """
-#     def __init__(self, size, crop_type='center', padding=None, ignore_label=255):
-#         if isinstance(size, int):
-#             self.crop_h = size
-#             self.crop_w = size
-#         elif isinstance(size, collections.Iterable) and len(size) == 2 \
-#                 and isinstance(size[0], int) and isinstance(size[1], int) \
-#                 and size[0] > 0 and size[1] > 0:
-#             self.crop_h = size[0]
-#             self.crop_w = size[1]
-#         else:
-#             raise (RuntimeError("crop size error.\n"))
-#         if crop_type == 'center' or crop_type == 'rand':
-#             self.crop_type = crop_type
-#         else:
-#             raise (RuntimeError("crop type error: rand | center\n"))
-#         if padding is None:
-#             self.padding = padding
-#         elif isinstance(padding, list):
-#             if all(isinstance(i, numbers.Number) for i in padding):
-#                 self.padding = padding
-#             else:
-#                 raise (RuntimeError("padding in Crop() should be a number list\n"))
-#             if len(padding) != 3:
-#                 raise (RuntimeError("padding channel is not equal with 3\n"))
-#         else:
-#             raise (RuntimeError("padding in Crop() should be a number list\n"))
-#         if isinstance(ignore_label, int):
-#             self.ignore_label = ignore_label
-#         else:
-#             raise (RuntimeError("ignore_label should be an integer number\n"))
+class CropQuadruplet(object):
+    """Crops the given ndarray image (H*W*C or H*W).
+    Args:
+        size (sequence or int): Desired output size of the crop. If size is an
+        int instead of sequence like (h, w), a square crop (size, size) is made.
+    """
 
-#     def __call__(self, image, label):
-#         h, w = label.shape
-#         pad_h = max(self.crop_h - h, 0)
-#         pad_w = max(self.crop_w - w, 0)
-#         pad_h_half = int(pad_h / 2)
-#         pad_w_half = int(pad_w / 2)
-#         if pad_h > 0 or pad_w > 0:
-#             if self.padding is None:
-#                 raise (RuntimeError("segtransform.Crop() need padding while padding argument is None\n"))
-#             image = cv2.copyMakeBorder(image, pad_h_half, pad_h - pad_h_half, pad_w_half, pad_w - pad_w_half, cv2.BORDER_CONSTANT, value=self.padding)
-#             label = cv2.copyMakeBorder(label, pad_h_half, pad_h - pad_h_half, pad_w_half, pad_w - pad_w_half, cv2.BORDER_CONSTANT, value=self.ignore_label)
-#         h, w = label.shape
-#         if self.crop_type == 'rand':
-#             h_off = random.randint(0, h - self.crop_h)
-#             w_off = random.randint(0, w - self.crop_w)
-#         else:
-#             h_off = int((h - self.crop_h) / 2)
-#             w_off = int((w - self.crop_w) / 2)
-#         image = image[h_off:h_off+self.crop_h, w_off:w_off+self.crop_w]
-#         label = label[h_off:h_off+self.crop_h, w_off:w_off+self.crop_w]
-#         return image, label
+    def __init__(
+        self, size, crop_type: str = "center", padding: Optional[Tuple[int, int, int]] = None, ignore_label: int = 255
+    ):
+        """
+        Args:
+            size: (h,w) tuple representing (crop height, crop width)
+        """
+        if isinstance(size, int):
+            self.crop_h = size
+            self.crop_w = size
+        elif (
+            isinstance(size, collections.Iterable)
+            and len(size) == 2
+            and isinstance(size[0], int)
+            and isinstance(size[1], int)
+            and size[0] > 0
+            and size[1] > 0
+        ):
+            self.crop_h = size[0]
+            self.crop_w = size[1]
+        else:
+            raise RuntimeError("crop size error.\n")
+
+        if crop_type == "center" or crop_type == "rand":
+            self.crop_type = crop_type
+        else:
+            raise RuntimeError("crop type error: rand | center\n")
+
+        if padding is None:
+            self.padding = padding
+        elif isinstance(padding, list):
+            if all(isinstance(i, numbers.Number) for i in padding):
+                self.padding = padding
+            else:
+                raise RuntimeError("padding in Crop() should be a number list\n")
+            if len(padding) != 3:
+                raise RuntimeError("padding channel is not equal with 3\n")
+        else:
+            raise (RuntimeError("padding in Crop() should be a number list\n"))
+
+        if isinstance(ignore_label, int):
+            self.ignore_label = ignore_label
+        else:
+            raise RuntimeError("ignore_label should be an integer number\n")
+
+    def __call__(
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """ """
+        h, w, _ = image1.shape
+        pad_h = max(self.crop_h - h, 0)
+        pad_w = max(self.crop_w - w, 0)
+
+        if pad_h > 0 or pad_w > 0:
+            if self.padding is None:
+                raise RuntimeError("segtransform.Crop() need padding while padding argument is None\n")
+
+            # use self.ignore_label for padding for label maps
+            image1 = pad_image(image1, pad_h, pad_w, padding_vals=self.padding)
+            image2 = pad_image(image2, pad_h, pad_w, padding_vals=self.padding)
+            image3 = pad_image(image3, pad_h, pad_w, padding_vals=self.padding)
+            image4 = pad_image(image4, pad_h, pad_w, padding_vals=self.padding)
+
+        h, w, _ = image1.shape
+        if self.crop_type == "rand":
+            h_off = random.randint(0, h - self.crop_h)
+            w_off = random.randint(0, w - self.crop_w)
+        else:
+            h_off = int((h - self.crop_h) / 2)
+            w_off = int((w - self.crop_w) / 2)
+
+        image1 = image1[h_off : h_off + self.crop_h, w_off : w_off + self.crop_w]
+        image2 = image2[h_off : h_off + self.crop_h, w_off : w_off + self.crop_w]
+        image3 = image3[h_off : h_off + self.crop_h, w_off : w_off + self.crop_w]
+        image4 = image4[h_off : h_off + self.crop_h, w_off : w_off + self.crop_w]
+
+        return image1, image2, image3, image4
+
+
+def pad_image(img: np.ndarray, pad_h: int, pad_w: int, padding_vals: Union[int,Tuple[int,int,int]]) -> np.ndarray:
+    """ """
+    pad_h_half = int(pad_h / 2)
+    pad_w_half = int(pad_w / 2)
+
+    img = cv2.copyMakeBorder(
+        img,
+        pad_h_half,
+        pad_h - pad_h_half,
+        pad_w_half,
+        pad_w - pad_w_half,
+        cv2.BORDER_CONSTANT,
+        value=padding_vals
+    )
+    return img
+
 
 
 # class RandRotate(object):
