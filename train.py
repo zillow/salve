@@ -177,7 +177,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
         else:
             gt_is_match = is_match
 
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, gt_is_match)
 
         sam.update_metrics_cpu(
@@ -223,7 +223,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
 
     _, accs, _, avg_mAcc, _ = sam.get_metrics()
     logging.info(f"{split} result at epoch [{epoch+1}/{args.num_epochs}]: mAcc{avg_mAcc:.4f}")
-    logging.info("Cls Accuracies: " + str([float(f"acc:.2f") for acc in accs]))
+    logging.info("Cls Accuracies: " + str([float(f"{acc:.2f}") for acc in accs]))
 
     metrics_dict = {"avg_loss": loss_meter.avg, "mAcc": avg_mAcc}
 
