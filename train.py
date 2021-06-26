@@ -210,7 +210,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
                 _, accs, _, avg_mAcc, _ = sam.get_metrics()
                 logger.info(f"\t{args.num_ce_classes}-Cls Accuracies" + str([float(f"{acc:.2f}") for acc in accs]))
                 logger.info(
-                    f"\t{split} result at iter [{iter+1}/{len(data_loader)}] {args.num_ce_classes}-CE mAcc {avg.mAcc:.4f}"
+                    f"\t{split} result at iter [{iter+1}/{len(data_loader)}] {args.num_ce_classes}-CE mAcc {avg_mAcc:.4f}"
                 )
                 print_time_remaining(batch_time, current_iter, max_iter)
 

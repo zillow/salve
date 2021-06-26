@@ -25,7 +25,7 @@ def cross_entropy_forward(
     x2: Tensor,
     x3: Tensor,
     x4: Tensor,
-    gt_is_match: Tensor
+    is_match: Tensor
     ) -> Tuple[Tensor, Tensor]:
     """ """
     if split == "train":
