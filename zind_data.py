@@ -146,7 +146,7 @@ class ZindData(Dataset):
         return len(self.data_list)
 
 
-    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor, Tensor, int]:
+    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor, Tensor, int, str, str, str, str]:
         """
         Note: is_match = 1 means True.
         """
@@ -159,4 +159,4 @@ class ZindData(Dataset):
 
         x1, x2, x3, x4 = self.transform(x1, x2, x3, x4)
 
-        return x1, x2, x3, x4, is_match
+        return x1, x2, x3, x4, is_match, x1_fpath, x2_fpath, x3_fpath, x4_fpath
