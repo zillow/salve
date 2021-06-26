@@ -125,11 +125,16 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
         #"""
         for k in range(n):
             import matplotlib.pyplot as plt
-            plt.figure(figsize=(10,5))
-            mean, std = get_imagenet_mean_std()
+            from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
             from train_utils import unnormalize_img
 
+            plt.figure(figsize=(10,5))
+            mean, std = get_imagenet_mean_std()
+
             unnormalize_img(x1[k].cpu(), mean, std)
+            unnormalize_img(x2[k].cpu(), mean, std)
+            unnormalize_img(x3[k].cpu(), mean, std)
+            unnormalize_img(x4[k].cpu(), mean, std)
 
             plt.subplot(2,2,1)
             plt.imshow(x1[k].numpy().transpose(1,2,0).astype(np.uint8))
