@@ -106,7 +106,7 @@ def interp_dense_grid_from_sparse(
     return bev_img
 
 
-def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bool) -> np.ndarray:
+def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bool) -> Optional[np.ndarray]:
     """
     Args:
         xyz: should be inside the world coordinate frame
@@ -124,6 +124,9 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     num_pts = xyz.shape[0]
     print(f"Rendering {num_pts/1e6} million points")
+
+    if num_pts == 0:
+        return None
 
     # # m/px -> px/m, then px/m * #meters = #pixels
     bevimg_Sim2_world = Sim2(R=np.eye(2), t=np.array([-grid_xmin, -grid_ymin]), s=1 / bev_params.meters_per_px)
@@ -380,7 +383,7 @@ def rotmat2d(theta_deg: float) -> np.ndarray:
     return R
 
 
-def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool) -> None:
+def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool) -> Tuple[Optional[np.ndarray],Optional[np.ndarray]]:
     """ """
 
     xyzrgb1 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i1, rgb_fpath=args.img_i1, is_semantics=is_semantics)
@@ -414,6 +417,9 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
     bev_params = BEVParams()
     img1 = render_bev_image(bev_params, xyzrgb1, is_semantics=is_semantics)
     img2 = render_bev_image(bev_params, xyzrgb2, is_semantics=is_semantics)
+
+    if img1 is None or img2 is None:
+        return None, None
 
     visualize = False
     if visualize:
