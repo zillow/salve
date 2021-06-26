@@ -148,20 +148,20 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
             plt.subplot(2,2,4)
             plt.imshow(x4[k].numpy().transpose(1,2,0).astype(np.uint8))
 
-            plt.title("Is match" + str(is_match[k]).numpy().item())
+            plt.title("Is match" + str(is_match[k].numpy().item()))
 
             plt.show()
             plt.close("all")
         #"""
+        import pdb; pdb.set_trace()
 
-        x1 = x1.cuda(non_blocking=True)
-        x2 = x2.cuda(non_blocking=True)
-        x3 = x3.cuda(non_blocking=True)
-        x4 = x4.cuda(non_blocking=True)
+        if torch.cuda.is_available():
+            x1 = x1.cuda(non_blocking=True)
+            x2 = x2.cuda(non_blocking=True)
+            x3 = x3.cuda(non_blocking=True)
+            x4 = x4.cuda(non_blocking=True)
 
-        gt_is_match = is_match.cuda(non_blocking=True)
-
-        
+            gt_is_match = is_match.cuda(non_blocking=True)
 
         is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, gt_is_match)
 
@@ -229,7 +229,7 @@ if __name__ == "__main__":
             "print_every": 10,
             "poly_lr_power": 0.9,
             "optimizer_algo": "adam",
-            "batch_size": 256,
+            "batch_size": 8, #256,
             "workers": 8,
             "num_layers": 18,
             "pretrained": True,
