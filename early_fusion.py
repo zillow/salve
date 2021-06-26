@@ -16,6 +16,7 @@ class EarlyFusionCEResnet(nn.Module):
         resnet = get_vanilla_resnet_model(num_layers, pretrained)
         self.inplanes = 64
 
+        num_inchannels = 3 * 4 # four RGB images
         # resnet with more channels in first layer
         self.conv1 = nn.Conv2d(
             num_inchannels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False
