@@ -80,6 +80,16 @@ def get_4tuples_from_list(fpaths: List[str], label_idx: int) -> List[Tuple[str,s
         assert f"_pano_{pano1_id}.jpg" in Path(fp2).name
         assert f"_pano_{pano2_id}.jpg" in Path(fp3).name
 
+        # make sure nothing corrupted enters the dataset
+        try:
+            img = imageio.imread(fp0)
+            img = imageio.imread(fp1)
+            img = imageio.imread(fp2)
+            img = imageio.imread(fp3)
+        except:
+            print("Corrupted in ", fp0, fp1, fp2, fp3)
+            continue
+
         tuples += [(fp0, fp1, fp2, fp3, label_idx)]
 
     return tuples
