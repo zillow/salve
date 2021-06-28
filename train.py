@@ -245,7 +245,7 @@ if __name__ == "__main__":
     config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly.yaml"
 
     with hydra.initialize_config_module(config_module="afp.configs"):
-        # config is relative to the gtsfm module
+        # config is relative to the afp module
         cfg = hydra.compose(config_name=config_name)
         args = instantiate(cfg.TrainingConfig)
 

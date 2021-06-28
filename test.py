@@ -18,12 +18,15 @@ from pathlib import Path
 from torch import nn
 
 from afp.training_config import TrainingConfig
+from logger_utils import get_logger
 from train_utils import (
     get_dataloader,
     get_model,
     cross_entropy_forward,
     unnormalize_img
 )
+
+logger = get_logger()
 
 
 def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfig) -> nn.Module:
@@ -290,6 +293,8 @@ def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
     """ """
     cudnn.benchmark = True
 
+    import pdb; pdb.set_trace()
+
     data_loader = get_dataloader(args, split=split)
     model = get_model(args)
     model = load_model_checkpoint(ckpt_fpath, model, args)
@@ -353,15 +358,15 @@ if __name__ == "__main__":
     config_name = Path(config_fpath).name
 
     with hydra.initialize_config_module(config_module="afp.configs"):
-        # config is relative to the gtsfm module
+        # config is relative to the afp module
         cfg = hydra.compose(config_name=config_name)
         args = instantiate(cfg.TrainingConfig)
 
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 32
-    args.workers = 4
+    args.batch_size = 8
+    args.workers = 1
 
     split = "val"
     save_viz = True
