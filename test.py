@@ -340,7 +340,9 @@ if __name__ == "__main__":
     print("Using GPUs ", opts.gpu_ids)
     os.environ["CUDA_VISIBLE_DEVICES"] = opts.gpu_ids
 
-    model_results_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
+    # ResNet-18, floor and ceiling, RGB-only
+    #model_results_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
+    model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
 
     # model_results_dir should have only these 3 files within it
     config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
