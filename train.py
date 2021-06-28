@@ -6,7 +6,6 @@ import random
 import shutil
 import time
 from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict
@@ -30,11 +29,10 @@ from train_utils import (
 )
 from logger_utils import get_logger, setup_file_logger
 
-
 #logger = get_logger()
 
-#home_dir = "/Users/johnlam/Downloads"
-home_dir = "/mnt/data/johnlam"
+home_dir = "/Users/johnlam/Downloads"
+#home_dir = "/mnt/data/johnlam"
 setup_file_logger(home_dir, program_name="training")
 
 
@@ -235,34 +233,6 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
     metrics_dict = {"avg_loss": loss_meter.avg, "mAcc": avg_mAcc}
 
     return metrics_dict
-
-
-@dataclass(frozen=False)
-class TrainingConfig:
-    lr_annealing_strategy: str
-    base_lr: float
-    weight_decay: float
-    num_ce_classes: int
-    print_every: int
-    poly_lr_power: float
-    optimizer_algo: str
-    num_layers: int
-    pretrained: bool
-    dataparallel: bool
-    resize_h: int
-    resize_w: int
-    train_h: int
-    train_w: int
-
-    cfg_stem: str
-    num_epochs: int
-    workers: int
-    batch_size: int
-
-    data_root: str
-    model_save_dirpath: str
-    gpu_ids: str = None
-
 
 
 if __name__ == "__main__":
