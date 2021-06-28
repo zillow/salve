@@ -3,9 +3,11 @@ import argparse
 import logging
 import os
 import random
+import shutil
 import time
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict
 
@@ -96,12 +98,15 @@ def main(args) -> None:
                     "state_dict": model.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "max_epochs": args.num_epochs,
+                    f"curr_{crit_acc_stat}": results_dict[crit_acc_stat][-1],
+                    f"best_so_far_{crit_acc_stat}": max(results_dict[crit_acc_stat])
                 },
                 ckpt_fpath,
             )
 
         results_json_fpath = f"{results_dir}/results-{exp_start_time}-{cfg_stem}.json"
         save_json_dict(results_json_fpath, results_dict)
+        shutil.copyfile(f"afp/configs/{args.cfg_stem}.yaml", f"{results_dir}/{args.cfg_stem}.yaml")
 
         logging.info("Results on crit stat: " + str([f"{v:.3f}" for v in results_dict[crit_acc_stat]]))
 
@@ -266,7 +271,8 @@ if __name__ == "__main__":
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
     opts = parser.parse_args()
 
-    config_name = "2021_06_26_08_38_09__resnet18_floor_ceiling_rgbonly.yaml"
+    #config_name = "2021_06_26_08_38_09__resnet18_floor_ceiling_rgbonly.yaml"
+    config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly.yaml"
 
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the gtsfm module
@@ -275,6 +281,8 @@ if __name__ == "__main__":
 
     # always take from the command line
     args.gpu_ids = opts.gpu_ids
+    if not args.cfg_stem:
+        args.cfg_stem = Path(config_name).stem
 
     print("Using GPUs ", args.gpu_ids)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
