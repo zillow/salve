@@ -2,10 +2,11 @@
 
 
 import glob
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import hydra
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 import torch
 import torch.backends.cudnn as cudnn
@@ -39,8 +40,10 @@ def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfi
 
     return model
 
+
 def run_test_epoch(model: nn.Module, data_loader, split: str, save_viz: bool) -> Dict[str,Any]:
     """ """
+    pr_meter = PrecisionRecallMeter()
 
     sam = SegmentationAverageMeter()
 
@@ -72,29 +75,154 @@ def run_test_epoch(model: nn.Module, data_loader, split: str, save_viz: bool) ->
             num_classes=args.num_ce_classes,
         )
 
-        visualize_examples(
-            batch_idx=i,
-            split=split,
-            args=args,
-            x1=x1,
-            x2=x2,
-            x3=x3,
-            x4=x4,
-            y_hat=y_hat,
-            y_true=gt_is_match,
-            probs=probs,
-            fp0 = fp0,
-            fp1 = fp1,
-            fp2 = fp2,
-            fp3 = fp3
+        pr_meter.update(
+            y_true=gt_is_match.squeeze().cpu().numpy(),
+            y_hat=torch.argmax(is_match_probs, dim=1).cpu().numpy()
         )
+
+        # visualize_examples(
+        #     batch_idx=i,
+        #     split=split,
+        #     args=args,
+        #     x1=x1,
+        #     x2=x2,
+        #     x3=x3,
+        #     x4=x4,
+        #     y_hat=y_hat,
+        #     y_true=gt_is_match,
+        #     probs=is_match_probs,
+        #     fp0 = fp0,
+        #     fp1 = fp1,
+        #     fp2 = fp2,
+        #     fp3 = fp3
+        # )
 
         _, accs, _, avg_mAcc, _ = sam.get_metrics()
         print(f"{split} result: mAcc{avg_mAcc:.4f}", "Cls Accuracies:", [ float(f"{acc:.2f}") for acc in accs ])
 
-        metrics_dict = {}
+        # check recall and precision
+        # treat correctly aligned as a `positive`
+        prec, rec, mAcc = pr_meter.get_metrics()
+        print(f"Prec {prec:.2f}, Rec {rec:.2f}, mAcc {mAcc:.2f}")
 
-        return metrics_dict
+    metrics_dict = {}
+    return metrics_dict
+
+
+class PrecisionRecallMeter:
+
+    def __init__(self):
+        """ """
+        self.all_y_true = np.zeros((0,1))
+        self.all_y_hat = np.zeros((0,1))
+
+    def update(self, y_true: np.ndarray, y_hat: np.ndarray) -> None:
+        """ """
+        y_true = y_true.reshape(-1,1)
+        y_hat = y_hat.reshape(-1,1)
+
+        self.all_y_true = np.vstack([self.all_y_true, y_true])
+        self.all_y_hat = np.vstack([self.all_y_hat, y_hat])
+
+    def get_metrics(self) -> Tuple[float,float,float]:
+        """ """
+        prec, rec, mAcc = compute_precision_recall(y_true=self.all_y_true, y_pred=self.all_y_hat)
+        return prec, rec, mAcc
+
+
+def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[float,float,float]:
+    """ Define 1 as the target class (positive)
+
+    In confusion matrix, `actual` are along rows, `predicted` are columns:
+
+              Predicted
+          \\ P  N
+    Actual P TP FN
+           N FP TN
+    """
+    EPS = 1e-7
+
+    TP = np.logical_and(y_true == y_pred, y_pred == 1).sum()
+    FP = np.logical_and(y_true != y_pred, y_pred == 1).sum()
+
+    FN = np.logical_and(y_true != y_pred, y_pred == 0).sum()
+    TN = np.logical_and(y_true == y_pred, y_pred == 0).sum()
+
+    # form a confusion matrix
+    C = np.zeros((2,2))
+    C[0,0] = TP
+    C[0,1] = FN
+
+    C[1,0] = FP
+    C[1,1] = TN
+
+    # Normalize the confusion matrix
+    C[0] /= (C[0].sum() + EPS)
+    C[1] /= (C[1].sum() + EPS)
+
+    mAcc = np.mean(np.diag(C))
+
+    prec = TP / (TP + FP + EPS)
+    rec = TP / (TP + FN + EPS)
+
+    if (TP + FN) == 0:
+        # there were no positive GT elements
+        raise Warning("Recall undefined...")
+
+    #import sklearn.metrics
+    #prec, rec, _, support = sklearn.metrics.precision_recall_fscore_support(y_true, y_pred)
+    return prec, rec, mAcc
+
+
+def test_compute_precision_recall_1() -> None:
+    """All incorrect predictions."""
+    y_pred = np.array([0,0,1])
+    y_true = np.array([1,1,0])
+
+    prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
+
+    assert prec == 0.0
+    assert rec == 0.0
+    assert mAcc == 0.0
+    
+
+def test_compute_precision_recall_2() -> None:
+    """All correct predictions."""
+    y_pred = np.array([1,1,0])
+    y_true = np.array([1,1,0])
+
+    prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
+
+    assert np.isclose(prec, 1.0)
+    assert np.isclose(rec, 1.0)
+    assert np.isclose(mAcc, 1.0)
+    
+
+# def test_compute_precision_recall_3() -> None:
+#     """All correct predictions."""
+#     y_pred = np.array([0,0,0])
+#     y_true = np.array([1,1,0])
+
+#     import pdb; pdb.set_trace()
+#     prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
+
+    
+#     # no false positives, but low recall
+#     assert np.isclose(prec, 1.0)
+#     assert np.isclose(rec, 1/3)
+
+
+def test_compute_precision_recall_4() -> None:
+    """All correct predictions."""
+    y_pred = np.array([0,1,0,1])
+    y_true = np.array([1,1,0,0])
+
+    prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
+
+    # no false positives, but low recall
+    assert np.isclose(prec, 0.5)
+    assert np.isclose(rec, 0.5)
+    assert np.isclose(mAcc, 2.0)
 
 
 def visualize_examples(batch_idx: int, split: str, args, x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor, x4: torch.Tensor, **kwargs) -> None:
@@ -108,7 +236,7 @@ def visualize_examples(batch_idx: int, split: str, args, x1: torch.Tensor, x2: t
     fp2 = kwargs["fp2"]
     fp3 = kwargs["fp3"]
 
-    n, _, h, w = x.shape
+    n, _, h, w = x1.shape
 
     for j in range(n):
 
@@ -117,29 +245,29 @@ def visualize_examples(batch_idx: int, split: str, args, x1: torch.Tensor, x2: t
         plt.figure(figsize=(10,5))
         mean, std = get_imagenet_mean_std()
 
-        unnormalize_img(x1[k].cpu(), mean, std)
-        unnormalize_img(x2[k].cpu(), mean, std)
-        unnormalize_img(x3[k].cpu(), mean, std)
-        unnormalize_img(x4[k].cpu(), mean, std)
+        unnormalize_img(x1[j].cpu(), mean, std)
+        unnormalize_img(x2[j].cpu(), mean, std)
+        unnormalize_img(x3[j].cpu(), mean, std)
+        unnormalize_img(x4[j].cpu(), mean, std)
 
         plt.subplot(2,2,1)
-        plt.imshow(x1[k].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.imshow(x1[j].numpy().transpose(1,2,0).astype(np.uint8))
 
         plt.subplot(2,2,2)
-        plt.imshow(x2[k].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.imshow(x2[j].numpy().transpose(1,2,0).astype(np.uint8))
 
         plt.subplot(2,2,3)
-        plt.imshow(x3[k].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.imshow(x3[j].numpy().transpose(1,2,0).astype(np.uint8))
 
         plt.subplot(2,2,4)
-        plt.imshow(x4[k].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.imshow(x4[j].numpy().transpose(1,2,0).astype(np.uint8))
 
-        plt.title("Is match" + str(is_match[k].numpy().item()))
+        plt.title("Is match" + str(y_true[j].numpy().item()))
 
-        print(fp0[k])
-        print(fp1[k])
-        print(fp2[k])
-        print(fp3[k])
+        print(fp0[j])
+        print(fp1[j])
+        print(fp2[j])
+        print(fp3[j])
         print()
 
         pred_label_idx = y_hat[j].cpu().numpy().item()
@@ -147,14 +275,13 @@ def visualize_examples(batch_idx: int, split: str, args, x1: torch.Tensor, x2: t
         title = f"Pred class {pred_label_idx}, GT Class: {true_label_idx}"
         title += f"w/ prob {probs[j, pred_label_idx].cpu().numpy():.2f}"
 
-        plt.suptitle("title")
+        plt.suptitle(title)
 
-        check_mkdir(vis_save_dir)
-        plt.savefig(f"{vis_save_dir}/batch{batch_idx}_example{j}.jpg")
-        plt.close("all")
+        # check_mkdir(vis_save_dir)
+        # plt.savefig(f"{vis_save_dir}/batch{batch_idx}_example{j}.jpg")
 
         plt.show()
-
+        plt.close("all")
 
 
 def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
@@ -167,7 +294,6 @@ def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
 
     with torch.no_grad():
         metrics_dict = run_test_epoch(model, data_loader, split, save_viz)
-
 
 
 def plot_metrics(json_fpath: str) -> None:
@@ -198,13 +324,17 @@ def plot_metrics(json_fpath: str) -> None:
         plt.ylabel(metric_name)
         plt.xlabel("epoch")
 
-    import pdb; pdb.set_trace()
-
     plt.legend(loc="lower right")
     plt.show()
 
 
 if __name__ == "__main__":
+
+    # test_compute_precision_recall_1()
+    # test_compute_precision_recall_2()
+    # #test_compute_precision_recall_3()
+    # test_compute_precision_recall_4()
+    # quit()
 
     model_results_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
 
@@ -222,8 +352,10 @@ if __name__ == "__main__":
         cfg = hydra.compose(config_name=config_name)
         args = instantiate(cfg.TrainingConfig)
 
-    # always use single-GPU for inference
-    args.dataparallel = False
+    # # use single-GPU for inference?
+    # args.dataparallel = False
+
+    args.batch_size = 8
 
     split = "val"
     save_viz = True
