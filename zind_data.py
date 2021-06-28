@@ -109,6 +109,9 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
     """
     Note: is_match = 1 means True.
     """
+    if not Path(args.data_root).exists():
+        raise RuntimeError("Dataset root directory does not exist on this machine. Exitting...")
+
     data_list = []
     logging.info(f"Populating data list for split {split}...")
 
@@ -141,7 +144,7 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
                 if len(tuples) == 0:
                     continue
                 data_list.extend(tuples)
-    
+
     logging.info(f"Data list for split {split} has {len(data_list)} tuples.")
     return data_list
 

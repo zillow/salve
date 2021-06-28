@@ -5,15 +5,17 @@ import os
 import random
 import time
 from collections import defaultdict
+from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Dict
 
+import hydra
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from argoverse.utils.datetime_utils import generate_datetime_string
 from argoverse.utils.json_utils import save_json_dict
-
+from hydra.utils import instantiate
 from mseg_semantic.utils.avg_meter import AverageMeter, SegmentationAverageMeter
 
 from train_utils import (
@@ -29,8 +31,8 @@ from logger_utils import get_logger, setup_file_logger
 
 #logger = get_logger()
 
-#home_dir = "/Users/johnlam/Downloads"
-home_dir = "/mnt/data/johnlam"
+home_dir = "/Users/johnlam/Downloads"
+#home_dir = "/mnt/data/johnlam"
 setup_file_logger(home_dir, program_name="training")
 
 
@@ -230,41 +232,50 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
     return metrics_dict
 
 
+@dataclass(frozen=False)
+class TrainingConfig:
+    lr_annealing_strategy: str
+    base_lr: float
+    weight_decay: float
+    num_ce_classes: int
+    print_every: int
+    poly_lr_power: float
+    optimizer_algo: str
+    num_layers: int
+    pretrained: bool
+    dataparallel: bool
+    resize_h: int
+    resize_w: int
+    train_h: int
+    train_w: int
+
+    cfg_stem: str
+    num_epochs: int
+    workers: int
+    batch_size: int
+
+    data_root: str
+    model_save_dirpath: str
+    gpu_ids: str = None
+
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gpu_ids", type=str, help="GPU device IDs to use for training.")
+    parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
     opts = parser.parse_args()
 
-    args = SimpleNamespace(
-        **{
-            "lr_annealing_strategy": "poly",
-            "base_lr": 0.001,
-            "weight_decay": 0.0001,
-            "num_ce_classes": 2,
-            "print_every": 10,
-            "poly_lr_power": 0.9,
-            "optimizer_algo": "adam",
-            "num_layers": 18,
-            "pretrained": True,
-            "dataparallel": True,
-            "resize_h": 234,
-            "resize_w": 234,
-            "train_h": 224,
-            "train_w": 224,
+    config_name = "2021_06_26_08_38_09__resnet18_floor_ceiling_rgbonly.yaml"
 
-            "cfg_stem": "rgb_only_4tuple",
-            "num_epochs": 50,
-            "workers": 16,
-            "batch_size": 128, #128, # 2, #256,
+    with hydra.initialize_config_module(config_module="afp.configs"):
+        # config is relative to the gtsfm module
+        cfg = hydra.compose(config_name=config_name)
+        args = instantiate(cfg.TrainingConfig)
 
-            #"data_root": "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
-            "data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25",
-            #"model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
-            "model_save_dirpath": "/mnt/data/johnlam/ZinD_trained_models_2021_06_25",
-            "gpu_ids": opts.gpu_ids
-        }
-    )
+    # always take from the command line
+    args.gpu_ids = opts.gpu_ids
+
     print("Using GPUs ", args.gpu_ids)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
 
