@@ -47,7 +47,7 @@ def run_test_epoch(model: nn.Module, data_loader, split: str, save_viz: bool) ->
     for i, test_example in enumerate(data_loader):
 
         # assume cross entropy loss only currently
-        x1, x2, x3, x4, is_match, fp0, fp1, fp2, fp3 = example
+        x1, x2, x3, x4, is_match, fp0, fp1, fp2, fp3 = test_example
 
         n = x1.size(0)
 
@@ -160,7 +160,7 @@ def visualize_examples(batch_idx: int, split: str, args, x1: torch.Tensor, x2: t
 def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
     """ """
     cudnn.benchmark = True
-    
+
     data_loader = get_dataloader(args, split=split)
     model = get_model(args)
     model = load_model_checkpoint(ckpt_fpath, model, args)
