@@ -1,7 +1,7 @@
 
-
-
+import argparse
 import glob
+import os
 from typing import Any, Dict, Tuple
 
 import hydra
@@ -30,6 +30,9 @@ def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfi
     """ """
     if not Path(ckpt_fpath).exists():
         raise RuntimeError(f"=> no checkpoint found at {ckpt_fpath}")
+
+    import pdb; pdb.set_trace()
+    print(next(model.parameters()).device)
 
     map_location = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -330,11 +333,12 @@ def plot_metrics(json_fpath: str) -> None:
 
 if __name__ == "__main__":
 
-    # test_compute_precision_recall_1()
-    # test_compute_precision_recall_2()
-    # #test_compute_precision_recall_3()
-    # test_compute_precision_recall_4()
-    # quit()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
+    opts = parser.parse_args()
+
+    print("Using GPUs ", opts.gpu_ids)
+    os.environ["CUDA_VISIBLE_DEVICES"] = opts.gpu_ids
 
     model_results_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
 
@@ -364,4 +368,13 @@ if __name__ == "__main__":
     train_results_json['val_mAcc'] = read_json_file(train_results_fpath)
     print("Num epochs trained", len(val_mAccs))
     print("Max val mAcc", max(val_mAccs))
+
+
+
+    # test_compute_precision_recall_1()
+    # test_compute_precision_recall_2()
+    # #test_compute_precision_recall_3()
+    # test_compute_precision_recall_4()
+    # quit()
+
 
