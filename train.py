@@ -26,6 +26,7 @@ from train_utils import (
     get_model,
     cross_entropy_forward,
     print_time_remaining,
+    load_model_checkpoint
 )
 from logger_utils import get_logger, setup_file_logger
 
@@ -53,6 +54,12 @@ def main(args) -> None:
 
     model = get_model(args)
     optimizer = get_optimizer(args, model)
+
+    model = load_model_checkpoint(
+        ckpt_fpath="/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26",
+        model=model,
+        args=args
+    )
 
     cfg_stem = args.cfg_stem
     exp_start_time = generate_datetime_string()
@@ -116,11 +123,11 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
     loss_meter = AverageMeter()
     sam = SegmentationAverageMeter()
 
-    if split == "train":
-        model.train()
+    # if split == "train":
+    #     model.train()
 
-    else:
-        model.eval()
+    # else:
+    model.eval()
 
     end = time.time()
 
