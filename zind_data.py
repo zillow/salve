@@ -146,6 +146,7 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
                     continue
                 data_list.extend(tuples)
 
+    import pdb; pdb.set_trace()
     logging.info(f"Data list for split {split} has {len(data_list)} tuples.")
     return data_list
 
@@ -178,3 +179,4 @@ class ZindData(Dataset):
         x1, x2, x3, x4 = self.transform(x1, x2, x3, x4)
 
         return x1, x2, x3, x4, is_match, x1_fpath, x2_fpath, x3_fpath, x4_fpath
+
