@@ -31,8 +31,7 @@ def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfi
     if not Path(ckpt_fpath).exists():
         raise RuntimeError(f"=> no checkpoint found at {ckpt_fpath}")
 
-    import pdb; pdb.set_trace()
-    print(next(model.parameters()).device)
+    #Alternatively, get device from print(next(model.parameters()).device)
 
     map_location = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -361,13 +360,14 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 8
+    #args.batch_size = 8
 
     split = "val"
     save_viz = True
     evaluate_model(ckpt_fpath, args, split, save_viz)
 
-    train_results_json['val_mAcc'] = read_json_file(train_results_fpath)
+    train_results_json = read_json_file(train_results_fpath)
+    print("Val accs: ", train_results_json['val_mAcc'])
     print("Num epochs trained", len(val_mAccs))
     print("Max val mAcc", max(val_mAccs))
 
