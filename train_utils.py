@@ -11,6 +11,7 @@ import tbv_transform
 from early_fusion import EarlyFusionCEResnet
 from logger_utils import get_logger
 
+from afp.training_config import TrainingConfig
 from zind_data import ZindData
 
 

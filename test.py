@@ -17,7 +17,6 @@ from mseg_semantic.utils.avg_meter import SegmentationAverageMeter
 from pathlib import Path
 from torch import nn
 
-from afp.training_config import TrainingConfig
 from logger_utils import get_logger
 from train_utils import (
     get_dataloader,
