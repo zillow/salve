@@ -20,7 +20,7 @@ TrainingConfig:
     cfg_stem: 
     num_epochs: 50
     workers: 16
-    batch_size: 128 #128, # 2, #256,
+    batch_size: 256 #128, # 2, #256,
 
     #data_root: "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
     data_root: /mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25
