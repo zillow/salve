@@ -360,7 +360,8 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    #args.batch_size = 8
+    args.batch_size = 32
+    args.workers = 4
 
     split = "val"
     save_viz = True
