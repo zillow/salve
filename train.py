@@ -70,7 +70,8 @@ def main(args) -> None:
         for k, v in train_metrics_dict.items():
             results_dict[f"train_{k}"] += [v]
 
-        val_metrics_dict = run_epoch(args, epoch, model, val_loader, optimizer, split="val")
+        with torch.no_grad():
+            val_metrics_dict = run_epoch(args, epoch, model, val_loader, optimizer, split="val")
 
         for k, v in val_metrics_dict.items():
             results_dict[f"val_{k}"] += [v]

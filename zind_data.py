@@ -115,6 +115,7 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
     data_list = []
     logging.info(f"Populating data list for split {split}...")
 
+    # TODO: search from both folders instead
     available_building_ids = get_available_building_ids(dataset_root=f"{args.data_root}/gt_alignment_approx")
 
     # split into train and val now --> keep 85% of building_id's in train
@@ -133,7 +134,7 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
     for label_name, label_idx in label_dict.items():
         for building_id in split_building_ids:
 
-            logging.info(f"\tOn building {building_id} -- so far, for split {split}, found {len(data_list)} tuples...")
+            logging.info(f"\t{label_name}: On building {building_id} -- so far, for split {split}, found {len(data_list)} tuples...")
 
             for floor_id in ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04"]:
 

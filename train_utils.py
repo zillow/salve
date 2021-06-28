@@ -59,7 +59,6 @@ def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: flo
     return lr
 
 
-
 def get_train_transform_list(args) -> List[Callable]:
     """ """
     mean, std = get_imagenet_mean_std()
@@ -119,7 +118,6 @@ def get_optimizer(args, model: nn.Module) -> torch.optim.Optimizer:
     return optimizer
 
 
-
 def get_dataloader(args, split: str) -> torch.utils.data.DataLoader:
     """ """
     data_transform = get_img_transform_list(args, split=split)
@@ -164,6 +162,5 @@ def get_model(args) -> nn.Module:
 def unnormalize_img(input: Tensor, mean: Tuple[float,float,float], std: Tuple[float,float,float]) -> None:
     """Pass in by reference a Pytorch tensor.
     """
-
     for t,m,s in zip(input, mean, std):
         t.mul_(s).add_(m)
