@@ -164,3 +164,20 @@ def unnormalize_img(input: Tensor, mean: Tuple[float,float,float], std: Tuple[fl
     """
     for t,m,s in zip(input, mean, std):
         t.mul_(s).add_(m)
+
+
+def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfig) -> nn.Module:
+    """ """
+    if not Path(ckpt_fpath).exists():
+        raise RuntimeError(f"=> no checkpoint found at {ckpt_fpath}")
+
+    #Alternatively, get device from print(next(model.parameters()).device)
+
+    map_location = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    print(f"=> loading checkpoint '{ckpt_fpath}'")
+    checkpoint = torch.load(ckpt_fpath, map_location=map_location)
+    model.load_state_dict(checkpoint['state_dict'], strict=False)
+    print(f"=> loaded checkpoiint '{ckpt_fpath}'")
+
+    return model
