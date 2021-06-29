@@ -234,7 +234,7 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
 
         mean, std = get_imagenet_mean_std()
 
-        plt.figure(figsize=(10,5))
+        fig = plt.figure(figsize=(10,5))
         gs1 = gridspec.GridSpec(ncols=2, nrows=2)
         gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
         mean, std = get_imagenet_mean_std()
