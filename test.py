@@ -275,14 +275,14 @@ def visualize_examples(batch_idx: int, split: str, args, x1: torch.Tensor, x2: t
 def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
     """ """
     cudnn.benchmark = True
-
-    model.eval()
-
+    
     import pdb; pdb.set_trace()
 
     data_loader = get_dataloader(args, split=split)
     model = get_model(args)
     model = load_model_checkpoint(ckpt_fpath, model, args)
+
+    model.eval()
 
     with torch.no_grad():
         metrics_dict = run_test_epoch(model, data_loader, split, save_viz)
