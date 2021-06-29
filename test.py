@@ -29,7 +29,7 @@ from train_utils import (
 logger = get_logger()
 
 
-def run_test_epoch(model: nn.Module, data_loader, split: str, save_viz: bool) -> Dict[str,Any]:
+def run_test_epoch(ckpt_fpath: str, model: nn.Module, data_loader, split: str, save_viz: bool) -> Dict[str,Any]:
     """ """
     pr_meter = PrecisionRecallMeter()
 
@@ -68,22 +68,23 @@ def run_test_epoch(model: nn.Module, data_loader, split: str, save_viz: bool) ->
             y_hat=torch.argmax(is_match_probs, dim=1).cpu().numpy()
         )
 
-        # visualize_examples(
-        #     batch_idx=i,
-        #     split=split,
-        #     args=args,
-        #     x1=x1,
-        #     x2=x2,
-        #     x3=x3,
-        #     x4=x4,
-        #     y_hat=y_hat,
-        #     y_true=gt_is_match,
-        #     probs=is_match_probs,
-        #     fp0 = fp0,
-        #     fp1 = fp1,
-        #     fp2 = fp2,
-        #     fp3 = fp3
-        # )
+        visualize_examples(
+            ckpt_fpath=ckpt_fpath,
+            batch_idx=i,
+            split=split,
+            args=args,
+            x1=x1,
+            x2=x2,
+            x3=x3,
+            x4=x4,
+            y_hat=y_hat,
+            y_true=gt_is_match,
+            probs=is_match_probs,
+            fp0 = fp0,
+            fp1 = fp1,
+            fp2 = fp2,
+            fp3 = fp3
+        )
 
         _, accs, _, avg_mAcc, _ = sam.get_metrics()
         print(f"{split} result: mAcc{avg_mAcc:.4f}", "Cls Accuracies:", [ float(f"{acc:.2f}") for acc in accs ])
@@ -213,8 +214,10 @@ def test_compute_precision_recall_4() -> None:
     assert np.isclose(mAcc, 2.0)
 
 
-def visualize_examples(batch_idx: int, split: str, args, x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor, x4: torch.Tensor, **kwargs) -> None:
+def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor, x4: torch.Tensor, **kwargs) -> None:
     """ """
+    vis_save_dir = f"{Path(ckpt_fpath).parent}/{split}_examples"
+
     y_hat = kwargs["y_hat"]
     y_true = kwargs["y_true"]
     probs = kwargs["probs"]
@@ -265,18 +268,20 @@ def visualize_examples(batch_idx: int, split: str, args, x1: torch.Tensor, x2: t
 
         plt.suptitle(title)
 
-        # check_mkdir(vis_save_dir)
-        # plt.savefig(f"{vis_save_dir}/batch{batch_idx}_example{j}.jpg")
+        check_mkdir(vis_save_dir)
+        plt.savefig(f"{vis_save_dir}/batch{batch_idx}_example{j}.jpg", dpi=500)
 
-        plt.show()
+        #plt.show()
         plt.close("all")
+
+
+def check_mkdir(dirpath: str) -> None:
+    os.makedirs(dirpath, exist_ok=True)
 
 
 def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
     """ """
     cudnn.benchmark = True
-    
-    import pdb; pdb.set_trace()
 
     data_loader = get_dataloader(args, split=split)
     model = get_model(args)
@@ -285,7 +290,7 @@ def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
     model.eval()
 
     with torch.no_grad():
-        metrics_dict = run_test_epoch(model, data_loader, split, save_viz)
+        metrics_dict = run_test_epoch(ckpt_fpath, model, data_loader, split, save_viz)
 
 
 def plot_metrics(json_fpath: str) -> None:

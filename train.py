@@ -122,12 +122,11 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
     batch_time = AverageMeter()
     loss_meter = AverageMeter()
     sam = SegmentationAverageMeter()
-
-    # if split == "train":
-    #     model.train()
-
-    # else:
-    model.eval()
+    
+    if split == "train":
+        model.train()
+    else:
+        model.eval()
 
     end = time.time()
 
@@ -189,8 +188,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
             gt_is_match = is_match.cuda(non_blocking=True)
         else:
             gt_is_match = is_match
-
-        #import pdb; pdb.set_trace()
+        
         is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, gt_is_match)
 
         sam.update_metrics_cpu(
