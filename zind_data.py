@@ -1,4 +1,3 @@
-
 import glob
 import logging
 from collections import defaultdict
@@ -22,7 +21,7 @@ def pair_idx_from_fpath(fpath: str) -> int:
 
 def test_pair_idx_from_fpath() -> None:
     """ """
-    fpath = '/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25/gt_alignment_approx/000/pair_10_floor_rgb_floor_01_partial_room_01_pano_15.jpg'
+    fpath = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25/gt_alignment_approx/000/pair_10_floor_rgb_floor_01_partial_room_01_pano_15.jpg"
     pair_idx = pair_idx_from_fpath(fpath)
 
     assert pair_idx == 10
@@ -42,7 +41,7 @@ def test_pano_id_from_fpath() -> None:
     assert pano_id == 25
 
 
-def get_4tuples_from_list(fpaths: List[str], label_idx: int) -> List[Tuple[str,str,str,str,int]]:
+def get_4tuples_from_list(fpaths: List[str], label_idx: int) -> List[Tuple[str, str, str, str, int]]:
     """
     label_idx: index of ground truth class to associate with 4-tuple
     """
@@ -105,7 +104,7 @@ def get_available_building_ids(dataset_root: str) -> List[str]:
     return building_ids
 
 
-def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
+def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
     """
     Note: is_match = 1 means True.
     """
@@ -126,15 +125,14 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
     elif split in ["val", "test"]:
         split_building_ids = available_building_ids[split_idx:]
 
-    label_dict = {
-        "gt_alignment_approx": 1, # is_match = True
-        "incorrect_alignment": 0
-    }
+    label_dict = {"gt_alignment_approx": 1, "incorrect_alignment": 0}  # is_match = True
 
     for label_name, label_idx in label_dict.items():
         for building_id in split_building_ids:
 
-            logging.info(f"\t{label_name}: On building {building_id} -- so far, for split {split}, found {len(data_list)} tuples...")
+            logging.info(
+                f"\t{label_name}: On building {building_id} -- so far, for split {split}, found {len(data_list)} tuples..."
+            )
 
             for floor_id in ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04"]:
 
@@ -146,7 +144,6 @@ def make_dataset(split: str, args) -> List[Tuple[str,str,str,str,int]]:
                     continue
                 data_list.extend(tuples)
 
-    import pdb; pdb.set_trace()
     logging.info(f"Data list for split {split} has {len(data_list)} tuples.")
     return data_list
 
@@ -159,11 +156,9 @@ class ZindData(Dataset):
         self.transform = transform
         self.data_list = make_dataset(split, args)
 
-
     def __len__(self) -> int:
         """ """
         return len(self.data_list)
-
 
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor, Tensor, int, str, str, str, str]:
         """
@@ -179,4 +174,3 @@ class ZindData(Dataset):
         x1, x2, x3, x4 = self.transform(x1, x2, x3, x4)
 
         return x1, x2, x3, x4, is_match, x1_fpath, x2_fpath, x3_fpath, x4_fpath
-
