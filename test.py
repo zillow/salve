@@ -227,8 +227,6 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
     fp1 = kwargs["fp1"]
     fp2 = kwargs["fp2"]
     fp3 = kwargs["fp3"]
-
-    # import pdb; pdb.set_trace()
     
     n, _, h, w = x1.shape
 
@@ -262,6 +260,7 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
 
         plt.suptitle(title)
 
+        import pdb; pdb.set_trace()
         building_id = Path(fp0[j]).parent.stem
 
         check_mkdir(vis_save_dir)
