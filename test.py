@@ -239,8 +239,7 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
         gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
         mean, std = get_imagenet_mean_std()
 
-        import pdb; pdb.set_trace()
-        for i, x in zip(range(4), [x1,x2,x4,x4]):
+        for i, x in zip(range(4), [x1,x2,x3,x4]):
             unnormalize_img(x[j], mean, std)
 
             ax = plt.subplot(gs1[i])
@@ -260,6 +259,7 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
         title += f"w/ prob {probs[j, pred_label_idx].cpu().numpy():.2f}"
 
         plt.suptitle(title)
+        fig.tight_layout()
 
         
         building_id = Path(fp0[j]).parent.stem
