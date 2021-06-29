@@ -228,13 +228,14 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
     fp2 = kwargs["fp2"]
     fp3 = kwargs["fp3"]
 
+    import pdb; pdb.set_trace()
     building_id = Path(fp0).parent.stem
 
     n, _, h, w = x1.shape
 
     for j in range(n):
 
-        import pdb; pdb.set_trace()
+
         mean, std = get_imagenet_mean_std()
 
         plt.figure(figsize=(10,5))
