@@ -276,6 +276,8 @@ def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
     """ """
     cudnn.benchmark = True
 
+    model.eval()
+
     import pdb; pdb.set_trace()
 
     data_loader = get_dataloader(args, split=split)

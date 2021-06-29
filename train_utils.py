@@ -180,6 +180,6 @@ def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfi
     print(f"=> loading checkpoint '{ckpt_fpath}'")
     checkpoint = torch.load(ckpt_fpath)#, map_location=map_location)
     model.load_state_dict(checkpoint['state_dict'], strict=True) #False)
-    print(f"=> loaded checkpoiint '{ckpt_fpath}'")
+    print(f"=> loaded checkpoint '{ckpt_fpath}'")
 
     return model
