@@ -175,10 +175,10 @@ def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfi
 
     #Alternatively, get device from print(next(model.parameters()).device)
 
-    map_location = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    import pdb; pdb.set_trace()
+    #map_location = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    #import pdb; pdb.set_trace()
     print(f"=> loading checkpoint '{ckpt_fpath}'")
-    checkpoint = torch.load(ckpt_fpath, map_location=map_location)
+    checkpoint = torch.load(ckpt_fpath)#, map_location=map_location)
     model.load_state_dict(checkpoint['state_dict'], strict=True) #False)
     print(f"=> loaded checkpoiint '{ckpt_fpath}'")
 
