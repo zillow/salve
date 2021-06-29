@@ -228,13 +228,11 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
     fp2 = kwargs["fp2"]
     fp3 = kwargs["fp3"]
 
-    import pdb; pdb.set_trace()
-    building_id = Path(fp0).parent.stem
-
+    # import pdb; pdb.set_trace()
+    
     n, _, h, w = x1.shape
 
     for j in range(n):
-
 
         mean, std = get_imagenet_mean_std()
 
@@ -263,6 +261,8 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
         title += f"w/ prob {probs[j, pred_label_idx].cpu().numpy():.2f}"
 
         plt.suptitle(title)
+
+        building_id = Path(fp0[j]).parent.stem
 
         check_mkdir(vis_save_dir)
         plt.savefig(f"{vis_save_dir}/building_{building_id}__{Path(fp0).stem}.jpg", dpi=500)
