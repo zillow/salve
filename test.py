@@ -5,6 +5,7 @@ import os
 from typing import Any, Dict, Tuple
 
 import hydra
+import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -227,34 +228,27 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
     fp2 = kwargs["fp2"]
     fp3 = kwargs["fp3"]
 
+    building_id = Path(fp0).parent.stem
+
     n, _, h, w = x1.shape
 
     for j in range(n):
 
+        import pdb; pdb.set_trace()
         mean, std = get_imagenet_mean_std()
 
         plt.figure(figsize=(10,5))
+        gs1 = gridspec.GridSpec(ncols=4, nrows=4)
+        gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
         mean, std = get_imagenet_mean_std()
 
-        unnormalize_img(x1[j], mean, std)
-        unnormalize_img(x2[j], mean, std)
-        unnormalize_img(x3[j], mean, std)
-        unnormalize_img(x4[j], mean, std)
+        for i, x in zip(range(4), [x1,x2,x4,x4]):
+            unnormalize_img(x[j], mean, std)
 
-        #import pdb; pdb.set_trace()
-        plt.subplot(2,2,1)
-        plt.imshow(x1[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
+            ax = plt.subplot(gs1[i])
+            ax.imshow(x[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
 
-        plt.subplot(2,2,2)
-        plt.imshow(x2[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
-
-        plt.subplot(2,2,3)
-        plt.imshow(x3[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
-
-        plt.subplot(2,2,4)
-        plt.imshow(x4[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
-
-        plt.title("Is match" + str(y_true[j].cpu().numpy().item()))
+        #plt.title("Is match" + str(y_true[j].cpu().numpy().item()))
 
         print(fp0[j])
         print(fp1[j])
@@ -264,13 +258,13 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
 
         pred_label_idx = y_hat[j].cpu().numpy().item()
         true_label_idx = y_true[j].cpu().numpy().item()
-        title = f"Pred class {pred_label_idx}, GT Class: {true_label_idx}"
+        title = f"Pred class {pred_label_idx}, GT Class (is_match?): {true_label_idx}"
         title += f"w/ prob {probs[j, pred_label_idx].cpu().numpy():.2f}"
 
         plt.suptitle(title)
 
         check_mkdir(vis_save_dir)
-        plt.savefig(f"{vis_save_dir}/batch{batch_idx}_example{j}.jpg", dpi=500)
+        plt.savefig(f"{vis_save_dir}/building_{building_id}__{Path(fp0).stem}.jpg", dpi=500)
 
         #plt.show()
         plt.close("all")
