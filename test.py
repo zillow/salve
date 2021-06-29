@@ -253,7 +253,7 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
         plt.subplot(2,2,4)
         plt.imshow(x4[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
 
-        plt.title("Is match" + str(y_true[j].numpy().item()))
+        plt.title("Is match" + str(y_true[j].cpu().numpy().item()))
 
         print(fp0[j])
         print(fp1[j])
