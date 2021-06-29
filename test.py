@@ -235,15 +235,16 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
         mean, std = get_imagenet_mean_std()
 
         fig = plt.figure(figsize=(10,5))
-        gs1 = gridspec.GridSpec(ncols=2, nrows=2)
-        gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
+        #gs1 = gridspec.GridSpec(ncols=2, nrows=2)
+        #gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
         mean, std = get_imagenet_mean_std()
 
         for i, x in zip(range(4), [x1,x2,x3,x4]):
             unnormalize_img(x[j], mean, std)
 
-            ax = plt.subplot(gs1[i])
-            ax.imshow(x[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
+            #ax = plt.subplot(gs1[i])
+            plt.subplot(2,2,i+1)
+            plt.imshow(x[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
 
         #plt.title("Is match" + str(y_true[j].cpu().numpy().item()))
 
