@@ -55,11 +55,11 @@ def main(args) -> None:
     model = get_model(args)
     optimizer = get_optimizer(args, model)
 
-    model = load_model_checkpoint(
-        ckpt_fpath="/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/train_ckpt.pth",
-        model=model,
-        args=args
-    )
+    # model = load_model_checkpoint(
+    #     ckpt_fpath="/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/train_ckpt.pth",
+    #     model=model,
+    #     args=args
+    # )
 
     cfg_stem = args.cfg_stem
     exp_start_time = generate_datetime_string()

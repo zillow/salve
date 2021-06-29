@@ -242,16 +242,16 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
         unnormalize_img(x4[j].cpu(), mean, std)
 
         plt.subplot(2,2,1)
-        plt.imshow(x1[j].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.imshow(x1[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
 
         plt.subplot(2,2,2)
-        plt.imshow(x2[j].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.imshow(x2[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
 
         plt.subplot(2,2,3)
-        plt.imshow(x3[j].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.imshow(x3[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
 
         plt.subplot(2,2,4)
-        plt.imshow(x4[j].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.imshow(x4[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
 
         plt.title("Is match" + str(y_true[j].numpy().item()))
 
