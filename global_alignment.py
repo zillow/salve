@@ -24,8 +24,8 @@ def main():
 		"gt_alignment_approx": 1
 	]
 
-	hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
-	#hypotheses_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_alignment_hypotheses_2021_06_25"
+	#hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
+	hypotheses_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_alignment_hypotheses_2021_06_25"
 
 	building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_dir}/*")]
 
@@ -57,9 +57,19 @@ def main():
 			floor_label_idxs[idxs_to_pollute] = 1 - floor_label_idxs[idxs_to_pollute]
 
 			# for a single floor, find all of the triplets
+			two_view_reports_dict = {}
 
+			i2Ri1_dict = {}
+			i2Ui1_dict = {}
 
 			# check if the triplet is self consistent
+
+			i2Ri1_consistent, i2Ui1_consistent = filter_to_cycle_consistent_edges(
+    			i2Ri1_dict,
+    			i2Ui1_dict,
+    			two_view_reports_dict,
+    			visualize=False
+    		)
 
 			# if so, admit the 3 edges to the graph
 
@@ -69,3 +79,5 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
+
