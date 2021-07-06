@@ -106,11 +106,11 @@ def main():
 			for sim2_json_fpath, corrupted_class_idx, gt_class_idx in zip(floor_sim2_json_fpaths, corrupted_floor_label_idxs, floor_label_idxs):
 
 				# add if potentially corrupted label said it was a match
-				# if corrupted_class_idx != 1:
-				# 	continue
-
-				if gt_class_idx != 1:
+				if corrupted_class_idx != 1:
 					continue
+
+				# if gt_class_idx != 1:
+				# 	continue
 
 				i1, i2 = Path(sim2_json_fpath).stem.split("_")[:2]
 				i1, i2 = int(i1), int(i2)
@@ -123,7 +123,7 @@ def main():
 
 			#print(i2Ri1_dict.keys())
 
-			method = "shonan" # "greedy"
+			method = "greedy" # "shonan" # 
 			if method == "shonan":
 				import pdb; pdb.set_trace()
 				wRi_list = globalaveraging2d(i2Ri1_dict)
@@ -137,7 +137,7 @@ def main():
 				# wRi_list = posegraph3d_to_posegraph2d(wRi_list_Rot3)
 
 			elif method == "greedy":
-				wRi_list = greedily_construct_mst(i2Ri1_dict)
+				wRi_list = greedily_construct_st(i2Ri1_dict)
 
 			errs = []
 
@@ -172,7 +172,8 @@ def main():
 
 			all_floor_rot_errs.extend(errs)
 
-			print("Mean error: ", np.mean(all_floor_rot_errs))
+			mean_err = np.mean(all_floor_rot_errs)
+			print(f"Mean error: {mean_err:.2f}")
 
 			# plt.hist(all_floor_rot_errs, bins=10)
 			# plt.ylabel("Counts")
@@ -349,7 +350,6 @@ def global_averaging(i2Ri1_dict: Dict[Tuple[int,int], np.ndarray]) -> List[Optio
 		max_pano_id = max(i2, max_pano_id)
 
 	#import pdb; pdb.set_trace()
-
 	from gtsfm.averaging.rotation.shonan import ShonanRotationAveraging
 	shonan_obj = ShonanRotationAveraging()
 	num_images = max_pano_id + 1
@@ -383,8 +383,8 @@ class TwoViewEstimationReport:
 
 
 
-def greedily_construct_mst(i2Ri1_dict: Dict[Tuple[int,int], Rot3]) -> List[np.ndarray]:
-	""" Minimum spanning tree
+def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int,int], np.ndarray]) -> List[np.ndarray]:
+	"""Greedily assemble a spanning tree (not a minimum spanning tree).
 
 	Args:
 	    i2Ri1_dict: relative rotations
@@ -412,7 +412,6 @@ def greedily_construct_mst(i2Ri1_dict: Dict[Tuple[int,int], Rot3]) -> List[np.nd
 	# choose origin node
 	origin_node = cc_nodes[0]
 	wRi_list[origin_node] = np.eye(2)
-
 	
 	G = nx.Graph()
 	G.add_edges_from(edges)
@@ -425,8 +424,14 @@ def greedily_construct_mst(i2Ri1_dict: Dict[Tuple[int,int], Rot3]) -> List[np.nd
 
 		wRi = np.eye(2)
 		for (i1, i2) in zip(path[:-1], path[1:]):
+			
+			# i1, i2 may not be in sorted order here. May need to reverse ordering
+			if i1 < i2:
+				i1Ri2 = i2Ri1_dict[(i1, i2)].T # use inverse
+			else:
+				i1Ri2 = i2Ri1_dict[(i2, i1)]
+
 			# wRi = wR0 * 0R1
-			i1Ri2 = i2Ri1_dict[i1, i2].T # use inverse
 			wRi = wRi @ i1Ri2
 
 		wRi_list[dst_node] = wRi
@@ -434,8 +439,10 @@ def greedily_construct_mst(i2Ri1_dict: Dict[Tuple[int,int], Rot3]) -> List[np.nd
 	return wRi_list
 
 
-def test_greedily_construct_mst():
+def test_greedily_construct_st():
 	"""
+	Below, we specify i1 < i2 for all edges (i1,i2)
+
 	Graph topology:
 
               | 2     | 3
@@ -472,7 +479,7 @@ def test_greedily_construct_mst():
 	for (i1, i2), i2Ri1 in i2Ri1_dict.items():
 		print(f"EDGE_SE2 {i1} {i2} 0 0 {cycle_utils.rotmat2theta_deg(i2Ri1)}")
 
-	wRi_list_greedy = greedily_construct_mst(i2Ri1_dict)
+	wRi_list_greedy = greedily_construct_st(i2Ri1_dict)
 
 	# expected angles
 	wRi_list_euler_deg_exp = [
@@ -510,6 +517,64 @@ def test_greedily_construct_mst():
 	# assert np.allclose(wRi_list_shonan_exp, wRi_list_shonan_est, atol=0.01)
 
 
+
+def test_greedily_construct_st2():
+	"""
+	Below, we do NOT specify i1 < i2 for all edges (i1,i2). 
+
+	Graph topology:
+
+              | 3     | 0
+              o-- ... o-- 
+              .       .
+              .       .
+	|         |       |
+	o-- ... --o     --o
+	4         1       2
+
+	"""
+	# ground truth 2d rotations
+	wRi_list_gt = [
+		rotmat2d(0), # 0
+		rotmat2d(90), # 1
+		rotmat2d(90), # 2
+		rotmat2d(0),
+		rotmat2d(0)
+		# Rot3(), # 0
+		# Rot3.Rz(np.deg2rad(90)), # 1
+		# Rot3(), # 2
+		# Rot3(), # 3
+		# Rot3.Rz(np.deg2rad(90))# 4
+	]
+
+	edges = [(1,4),(1,3),(0,3),(0,2)]
+	
+	i2Ri1_dict = {}
+	for (i1,i2) in edges:
+		wRi2 = wRi_list_gt[i2]
+		wRi1 = wRi_list_gt[i1]
+		i2Ri1_dict[(i1,i2)] = wRi2.T @ wRi1
+
+	for (i1, i2), i2Ri1 in i2Ri1_dict.items():
+		print(f"EDGE_SE2 {i1} {i2} 0 0 {cycle_utils.rotmat2theta_deg(i2Ri1)}")
+
+	import pdb; pdb.set_trace()
+	wRi_list_greedy = greedily_construct_st(i2Ri1_dict)
+
+	# expected angles
+	wRi_list_euler_deg_exp = [
+		 0,
+		90,
+		90,
+		 0,
+		 0,
+	]
+	#wRi_list_euler_deg_est = [ np.rad2deg(wRi.xyz()).tolist() for wRi in wRi_list_greedy]
+	wRi_list_euler_deg_est = [ cycle_utils.rotmat2theta_deg(wRi) for wRi in wRi_list_greedy]
+	assert wRi_list_euler_deg_exp == wRi_list_euler_deg_est
+
+
+
 def globalaveraging2d_consecutive_ordering(i2Ri1_dict: Dict[Tuple[int,int],np.ndarray]) -> List[np.ndarray]:
 	""" """
 	input_file = "shonan_input.g2o"
@@ -525,7 +590,10 @@ def globalaveraging2d_consecutive_ordering(i2Ri1_dict: Dict[Tuple[int,int],np.nd
 	if shonan.nrUnknowns() == 0:
 		raise ValueError("No 2D pose constraints found, try -d 3.")
 	initial = shonan.initializeRandomly()
-	rotations, _ = shonan.run(initial, 2, 10)
+
+	pmin = 2
+	pmax = 100
+	rotations, _ = shonan.run(initial, pmin, pmax)
 
 	wRi_list = [ rotations.atRot2(j).matrix() for j in range(rotations.size()) ]
 	return wRi_list
@@ -597,7 +665,9 @@ def globalaveraging2d(i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -
 if __name__ == "__main__":
 	""" """
 
-	#test_greedily_construct_mst()
+	#test_greedily_construct_st2()
+
+	#test_greedily_construct_st()
 
 	#test_shonanaveraging2()
 
