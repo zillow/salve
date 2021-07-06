@@ -70,6 +70,18 @@ def extract_triplets_adjacency_list_intersection(i2Ri1_dict: Dict[Tuple[int, int
     return list(triplets)
 
 
+def rotmat2theta_deg(R) -> float:
+    """Recover the rotation angle `theta` (in degrees) from the 2d rotation matrix.
+    Note: the first column of the rotation matrix R provides sine and cosine of theta,
+        since R is encoded as [c,-s]
+                              [s, c]
+    We use the following identity: tan(theta) = s/c = (opp/hyp) / (adj/hyp) = opp/adj
+    """
+    c, s = R[0, 0], R[1, 0]
+    theta_rad = np.arctan2(s, c)
+    return float(np.rad2deg(theta_rad))
+
+
 def compute_cycle_error(
     i2Ri1_dict: Dict[Tuple[int, int], Rot3],
     cycle_nodes: Tuple[int, int, int],
@@ -101,13 +113,12 @@ def compute_cycle_error(
 
     i1Ri0 = i2Ri1_dict[(i0, i1)]
     i2Ri1 = i2Ri1_dict[(i1, i2)]
-    i0Ri2 = i2Ri1_dict[(i0, i2)].inverse()
+    i0Ri2 = i2Ri1_dict[(i0, i2)].T
 
     # should compose to identity, with ideal measurements
-    i0Ri0 = i0Ri2.compose(i2Ri1).compose(i1Ri0)
+    i0Ri0 = i0Ri2 @ i2Ri1 @ i1Ri0
 
-    I_3x3 = Rot3()
-    cycle_error = comp_utils.compute_relative_rotation_angle(I_3x3, i0Ri0)
+    cycle_error = np.abs(rotmat2theta_deg(i0Ri0))
 
     # form 3 edges between fully connected subgraph (nodes i,j,k)
     e_i = (i0, i1)
@@ -126,23 +137,19 @@ def compute_cycle_error(
         max_rot_error = None
         max_trans_error = None
 
-    if verbose:
-        i1Ri0_euler = Rotation.from_matrix(i1Ri0.matrix()).as_euler(seq="xyz", degrees=True).tolist()
-        i2Ri1_euler = Rotation.from_matrix(i2Ri1.matrix()).as_euler(seq="xyz", degrees=True).tolist()
-        i0Ri2_euler = Rotation.from_matrix(i0Ri2.matrix()).as_euler(seq="xyz", degrees=True).tolist()
+    gt_classes = [two_view_reports_dict[e].gt_class for e in [e_i, e_j, e_k]]
 
-        euler_x = [i1Ri0_euler[0], i2Ri1_euler[0], i0Ri2_euler[0]]
-        euler_y = [i1Ri0_euler[1], i2Ri1_euler[1], i0Ri2_euler[1]]
-        euler_z = [i1Ri0_euler[2], i2Ri1_euler[2], i0Ri2_euler[2]]
+    if verbose:
+        i1Ri0_theta = rotmat2theta_deg(i1Ri0)
+        i2Ri1_theta = rotmat2theta_deg(i2Ri1)
+        i0Ri2_theta = rotmat2theta_deg(i0Ri2)
 
         logger.info("\n")
         logger.info(f"{i0},{i1},{i2} --> Cycle error is: {cycle_error:.1f}")
         if gt_known:
             logger.info(f"Triplet: w/ max. R err {max_rot_error:.1f}, and w/ max. t err {max_trans_error:.1f}")
 
-        logger.info("X: (0->1) %.1f deg., (1->2) %.1f deg., (2->0) %.1f deg.", euler_x[0], euler_x[1], euler_x[2])
-        logger.info("Y: (0->1) %.1f deg., (1->2) %.1f deg., (2->0) %.1f deg.", euler_y[0], euler_y[1], euler_y[2])
-        logger.info("Z: (0->1) %.1f deg., (1->2) %.1f deg., (2->0) %.1f deg.", euler_z[0], euler_z[1], euler_z[2])
+        logger.info("GT %s Theta: (0->1) %.1f deg., (1->2) %.1f deg., (2->0) %.1f deg.", str(gt_classes), i1Ri0_theta, i2Ri1_theta, i0Ri2_theta)
 
     return cycle_error, max_rot_error, max_trans_error
 
@@ -196,7 +203,7 @@ def filter_to_cycle_consistent_edges(
 
     for (i0, i1, i2) in triplets:
         cycle_error, max_rot_error, max_trans_error = compute_cycle_error(
-            i2Ri1_dict, [i0, i1, i2], two_view_reports_dict
+            i2Ri1_dict, [i0, i1, i2], two_view_reports_dict, verbose=False
         )
 
         if cycle_error < CYCLE_ERROR_THRESHOLD:
@@ -220,7 +227,7 @@ def filter_to_cycle_consistent_edges(
         plt.ylabel("Avg. Unit3 error over cycle triplet")
         plt.savefig(os.path.join("plots", "cycle_error_vs_GT_trans_error.jpg"), dpi=200)
 
-    logger.info("cycle_consistent_keys: " + str(cycle_consistent_keys))
+    #logger.info("cycle_consistent_keys: " + str(cycle_consistent_keys))
 
     i2Ri1_dict_consistent, i2Ui1_dict_consistent = {}, {}
     for (i1, i2) in cycle_consistent_keys:
