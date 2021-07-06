@@ -136,7 +136,7 @@ def render_building_floor_pairs(
                     # everything 50 cm and above camera
                     crop_z_range = [0.5, float("inf")]
 
-                i2Ti1 = sim2_from_json(json_fpath=pair_fpath)
+                i2Ti1 = Sim2.from_json(json_fpath=pair_fpath)
 
                 i1, i2 = Path(pair_fpath).stem.split("_")[:2]
                 i1, i2 = int(i1), int(i2)
@@ -196,22 +196,6 @@ def render_building_floor_pairs(
 
                 imageio.imwrite(bev_fpath1, bev_img1)
                 imageio.imwrite(bev_fpath2, bev_img2)
-
-
-def sim2_from_json(json_fpath: str) -> Sim2:
-    """Generate class inst. from a JSON file containing Sim(2) parameters as flattened matrices (row-major)."""
-    import json
-
-    with open(json_fpath, "r") as f:
-        json_data = json.load(f)
-
-    R = np.array(json_data["R"]).reshape(2, 2)
-    t = np.array(json_data["t"]).reshape(2)
-    s = float(json_data["s"])
-
-    print("Identity? ", np.round(R.T @ R, 1))
-
-    return Sim2(R, t, s)
 
 
 def render_pairs(
