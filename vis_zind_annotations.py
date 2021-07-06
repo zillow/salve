@@ -28,7 +28,7 @@ def plot_room_layout(
     R_refl = np.array([[-1.0, 0], [0, 1]])
     world_Sim2_reflworld = Sim2(R_refl, t=np.zeros(2), s=1.0)
 
-    hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
+    #hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
 
     assert coord_frame in ["global", "local"]
 
@@ -37,7 +37,7 @@ def plot_room_layout(
     else:
         room_vertices = pano_obj.room_vertices_local_2d
 
-    room_vertices = hohopano_Sim2_zindpano.transform_from(room_vertices)
+    #room_vertices = hohopano_Sim2_zindpano.transform_from(room_vertices)
     room_vertices = world_Sim2_reflworld.transform_from(room_vertices)
 
     color = np.random.rand(3)
@@ -88,7 +88,7 @@ def plot_room_layout(
         else:
             wdo_points = wdo.vertices_local_2d
 
-        wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
+        #wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
         wdo_points = world_Sim2_reflworld.transform_from(wdo_points)
 
         # zfm_points_list = Polygon.list_to_points(wdo_points)
@@ -107,7 +107,7 @@ def plot_room_layout(
             label = None
         plt.scatter(wdo_points[:, 0], wdo_points[:, 1], 10, color=wdo_color, marker="o", label=label)
         plt.plot(wdo_points[:, 0], wdo_points[:, 1], color=wdo_color, linestyle="dotted")
-        plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
+        #plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
 
         if wdo_objs_seen_on_floor is not None:
             wdo_objs_seen_on_floor.add(wdo_type)
@@ -124,7 +124,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
     """
     floor_map_json has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'
     """
-    FLOORPLANS_OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_06_25"
+    FLOORPLANS_OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_07_02"
 
     floor_map_json = read_json_file(json_annot_fpath)
 
@@ -136,6 +136,11 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
 
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
+
+        
+        # if floor_id != 'floor_02':
+        #     continue
+        # import pdb; pdb.set_trace()
 
         fd = FloorData.from_json(floor_data, floor_id)
 
@@ -173,15 +178,15 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
 
 def export_pano_visualizations(raw_dataset_dir: str) -> None:
     """ """
-    import pdb
-
-    pdb.set_trace()
+    
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
 
-    args = []
-
     for building_id in building_ids:
+
+        if building_id != '1442':
+            continue
+
         print(f"Render floor maps for {building_id}")
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"

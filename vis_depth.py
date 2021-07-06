@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Optional, Tuple
 
 import cv2
 import matplotlib.pyplot as plt
