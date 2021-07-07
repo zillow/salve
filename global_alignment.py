@@ -25,21 +25,21 @@ import gtsfm.utils.logger as logger_utils
 logger = logger_utils.get_logger()
 
 from vis_depth import rotmat2d
+from posegraph2d import PoseGraph2d, get_gt_pose_graph
 
 # class TwoViewEdge(NamedTuple)
 
 
-def main():
+def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     """ """
+    np.random.seed(0)
+
     inside_triplet_percent_list = []
     accs = []
 
     label_dict = {"incorrect_alignment": 0, "gt_alignment_approx": 1}
 
     all_floor_rot_errs = []
-
-    # hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
-    hypotheses_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_alignment_hypotheses_2021_06_25"
 
     building_ids = [int(Path(dirpath).stem) for dirpath in glob.glob(f"{hypotheses_dir}/*")]
 
@@ -120,7 +120,7 @@ def main():
 
             # print(i2Ri1_dict.keys())
 
-            method = "greedy"  # "shonan" #
+            method = "shonan" # "greedy"  # 
             if method == "shonan":
                 import pdb
 
@@ -138,43 +138,11 @@ def main():
             elif method == "greedy":
                 wRi_list = greedily_construct_st(i2Ri1_dict)
 
-            errs = []
 
-            # check if relative constraints are still satisfied w.r.t. global list
-            for sim2_json_fpath, corrupted_class_idx, gt_class_idx in zip(
-                floor_sim2_json_fpaths, corrupted_floor_label_idxs, floor_label_idxs
-            ):
+            est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
+            gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
-                if gt_class_idx != 1:
-                    continue
-
-                i1, i2 = Path(sim2_json_fpath).stem.split("_")[:2]
-                i1, i2 = int(i1), int(i2)
-
-                i2Ti1 = Sim2.from_json(json_fpath=sim2_json_fpath)
-
-                theta_deg = i2Ti1.theta_deg
-
-                wRi1 = wRi_list[i1]
-                wRi2 = wRi_list[i2]
-
-                if wRi1 is None or wRi2 is None:
-                    continue
-
-                i2Ri1 = wRi2.T @ wRi1
-
-                theta_deg_est = cycle_utils.rotmat2theta_deg(i2Ri1)
-                print(f"({i1},{i2}): GT {theta_deg:.2f} vs. {theta_deg_est:.2f}")
-                # import pdb; pdb.set_trace()
-
-                # need to wrap around at 360
-                err = wrap_angle_deg(theta_deg, theta_deg_est)
-                errs.append(err)
-
-            all_floor_rot_errs.extend(errs)
-
-            mean_err = np.mean(all_floor_rot_errs)
-            print(f"Mean error: {mean_err:.2f}")
+            mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
 
             # plt.hist(all_floor_rot_errs, bins=10)
             # plt.ylabel("Counts")
@@ -661,7 +629,11 @@ if __name__ == "__main__":
 
     # test_shonanaveraging2()
 
-    main()
+    # hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
+    hypotheses_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_alignment_hypotheses_2021_06_25"
+    
+    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    main(hypotheses_dir, raw_dataset_dir)
     # test_node_present_in_any_triplet()
 
     # test_wrap_angle_deg()
