@@ -1,4 +1,10 @@
 
+"""
+Transformation (R,t) followed by a reflection over the x-axis is equivalent to 
+Transformation by (R^T,-t) followed by no reflection.
+"""
+
+
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
@@ -60,10 +66,14 @@ class WDO(NamedTuple):
     def from_object_array(cls, wdo_data: Any, global_SIM2_local: Sim2, type: str) -> "WDO":
         """
         """
+        pt1 = wdo_data[0]
+        pt2 = wdo_data[1]
+        pt1[0] *= -1
+        pt2[0] *= -1
         return cls(
             global_SIM2_local=global_SIM2_local,
-            pt1=wdo_data[0],
-            pt2=wdo_data[1],
+            pt1=pt1,
+            pt2=pt2,
             bottom_z=wdo_data[2],
             top_z=wdo_data[3],
             type=type
@@ -140,9 +150,6 @@ class PanoData(NamedTuple):
         #print('Camera height: ', pano_data['camera_height'])
         assert pano_data['camera_height'] == 1.0
 
-        global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
-        room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
-
         doors = []
         windows = []
         openings = []
@@ -150,6 +157,10 @@ class PanoData(NamedTuple):
         label = pano_data['label']
 
         pano_id = int(Path(image_path).stem.split('_')[-1])
+
+        global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
+        room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
+        room_vertices_local_2d[:,0] *= -1
 
         # DWO objects
         geometry_type = "layout_raw" #, "layout_complete", "layout_visible"]
@@ -216,9 +227,10 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim
     """
     scale = transform_data["scale"]
     t = np.array(transform_data["translation"]) / scale
+    t *= np.array([-1., 1.])
     theta_deg = transform_data["rotation"]
 
-    R = rotmat2d(theta_deg)
+    R = rotmat2d(-theta_deg)
 
     assert np.allclose(R.T @ R, np.eye(2))
 
