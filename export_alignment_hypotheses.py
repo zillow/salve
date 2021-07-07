@@ -417,11 +417,6 @@ def align_rooms_by_wd(
 
     TODO: maybe perform alignment in 2d, instead of 3d? so we have less unknowns?
 
-    Args:
-        pano1_obj
-        pano2_obj
-        alignment_object: "door" or "window"
-
     What heuristic tells us if they should be identity or mirrored in configuration?
     Are there any new WDs that should not be visible? walls should not cross on top of each other? know same-room connections, first
 
@@ -431,7 +426,14 @@ def align_rooms_by_wd(
     - Rooms may be joined at a door.
     - Predicted wall cannot lie behind another wall, if line of sight is clear.
 
-    Returns a list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
+    Args:
+        pano1_obj
+        pano2_obj
+        alignment_object: "door" or "window"
+
+    Returns:
+        possible_alignment_info: list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
+        num_invalid_configurations: 
     """
     verbose = False
 
@@ -509,13 +511,8 @@ def align_rooms_by_wd(
                     # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
                     # evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
 
-                    R_refl = np.array([[-1.0, 0], [0, 1]])
-                    world_Sim2_reflworld = Sim2(R_refl, t=np.zeros(2), s=1.0)
-
                     aligned_pts1 = aligned_pts1[:, :2]
                     pano2_wd_pts = pano2_wd_pts[:, :2]
-                    aligned_pts1 = world_Sim2_reflworld.transform_from(aligned_pts1)
-                    pano2_wd_pts = world_Sim2_reflworld.transform_from(pano2_wd_pts)
 
                     if visualize:
                         plt.scatter(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], 200, color="r", marker=".")
@@ -526,8 +523,8 @@ def align_rooms_by_wd(
 
                     all_pano1_pts = i2Ti1.transform_from(all_pano1_pts[:, :2])
 
-                    all_pano1_pts = world_Sim2_reflworld.transform_from(all_pano1_pts[:, :2])
-                    all_pano2_pts = world_Sim2_reflworld.transform_from(all_pano2_pts[:, :2])
+                    all_pano1_pts = all_pano1_pts[:, :2]
+                    all_pano2_pts = all_pano2_pts[:, :2]
 
                     if visualize:
                         plt.scatter(all_pano1_pts[:, 0], all_pano1_pts[:, 1], 200, color="g", marker="+")
@@ -537,8 +534,8 @@ def align_rooms_by_wd(
                     pano1_room_vertices = i2Ti1.transform_from(pano1_room_vertices)
                     pano2_room_vertices = pano2_obj.room_vertices_local_2d
 
-                    pano1_room_vertices = world_Sim2_reflworld.transform_from(pano1_room_vertices[:, :2])
-                    pano2_room_vertices = world_Sim2_reflworld.transform_from(pano2_room_vertices[:, :2])
+                    pano1_room_vertices = pano1_room_vertices[:, :2]
+                    pano2_room_vertices = pano2_room_vertices[:, :2]
 
                     is_valid = determine_invalid_wall_overlap(
                         pano1_id, pano2_id, i, j, pano1_room_vertices, pano2_room_vertices, wall_buffer_m=0.3
@@ -808,11 +805,6 @@ def plot_room_walls(
     if i2Ti1:
         room_vertices = i2Ti1.transform_from(room_vertices)
 
-    R_refl = np.array([[-1.0, 0], [0, 1]])
-    world_Sim2_reflworld = Sim2(R_refl, t=np.zeros(2), s=1.0)
-
-    room_vertices = world_Sim2_reflworld.transform_from(room_vertices)
-
     color = np.random.rand(3)
     plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color, alpha=alpha)
     plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=alpha, linewidth=linewidth)
@@ -968,8 +960,6 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
     sRp + st
 
     Maybe compose with other Sim(2)
-
-    Reflection must come after the Sim(2) --> otherwise the global poses will be wrong.
     """
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
@@ -995,14 +985,15 @@ if __name__ == "__main__":
     """ """
     # teaser file
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
+    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
 
-    num_processes = 4
+    num_processes = 1
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
