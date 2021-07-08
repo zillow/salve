@@ -15,7 +15,7 @@ from sim3_align_dw import rotmat2d
 
 class WDO(NamedTuple):
     """define windows/doors/openings by left and right boundaries"""
-    global_SIM2_local: Sim2
+    global_Sim2_local: Sim2
     pt1: Tuple[float,float] # (x1,y1)
     pt2: Tuple[float,float] # (x2,y2)
     bottom_z: float
@@ -31,7 +31,7 @@ class WDO(NamedTuple):
     @property
     def vertices_global_2d(self) -> np.ndarray:
         """ """
-        return self.global_SIM2_local.transform_from(self.vertices_local_2d)
+        return self.global_Sim2_local.transform_from(self.vertices_local_2d)
 
     @property
     def vertices_local_3d(self) -> np.ndarray:
@@ -43,7 +43,7 @@ class WDO(NamedTuple):
     @property
     def vertices_global_3d(self) -> np.ndarray:
         """ """
-        return self.global_SIM2_local.transform_from(self.vertices_local_3d)
+        return self.global_Sim2_local.transform_from(self.vertices_local_3d)
 
     def get_wd_normal_2d(self) -> np.ndarray:
         """return 2-vector describing normal to line segment (rotate CCW from vector linking pt1->pt2)"""
@@ -63,7 +63,7 @@ class WDO(NamedTuple):
         return np.array([ [x1,y1,self.bottom_z], [x1,y1,self.top_z], [x2,y2,self.top_z], [x2,y2,self.bottom_z], [x1,y1,self.bottom_z] ])
 
     @classmethod
-    def from_object_array(cls, wdo_data: Any, global_SIM2_local: Sim2, type: str) -> "WDO":
+    def from_object_array(cls, wdo_data: Any, global_Sim2_local: Sim2, type: str) -> "WDO":
         """
         """
         pt1 = wdo_data[0]
@@ -71,7 +71,7 @@ class WDO(NamedTuple):
         pt1[0] *= -1
         pt2[0] *= -1
         return cls(
-            global_SIM2_local=global_SIM2_local,
+            global_Sim2_local=global_Sim2_local,
             pt1=pt1,
             pt2=pt2,
             bottom_z=wdo_data[2],
@@ -82,7 +82,7 @@ class WDO(NamedTuple):
     def get_rotated_version(self) -> "WDO":
         """Rotate WDO by 180 degrees"""
         self_rotated = WDO(
-            global_SIM2_local=self.global_SIM2_local,
+            global_Sim2_local=self.global_Sim2_local,
             pt1=self.pt2,
             pt2=self.pt1,
             bottom_z=self.bottom_z,
@@ -98,7 +98,7 @@ def test_get_wd_normal_2d() -> None:
 
     # flat horizontal line for window
     wd1 = WDO(
-        global_SIM2_local=None,
+        global_Sim2_local=None,
         pt1=(-2,0),
         pt2=(2,0),
         bottom_z=-1,
@@ -112,7 +112,7 @@ def test_get_wd_normal_2d() -> None:
 
     # upwards diagonal for window, y=x
     wd2 = WDO(
-        global_SIM2_local=None,
+        global_Sim2_local=None,
         pt1=(0,0),
         pt2=(3,3),
         bottom_z=-1,
@@ -129,7 +129,7 @@ def test_get_wd_normal_2d() -> None:
 class PanoData(NamedTuple):
     """ """
     id: int
-    global_SIM2_local: Sim2
+    global_Sim2_local: Sim2
     room_vertices_local_2d: np.ndarray
     image_path: str
     label: str
@@ -140,7 +140,7 @@ class PanoData(NamedTuple):
     @property
     def room_vertices_global_2d(self):
         """ """
-        return self.global_SIM2_local.transform_from(self.room_vertices_local_2d)
+        return self.global_Sim2_local.transform_from(self.room_vertices_local_2d)
 
     @classmethod
     def from_json(cls, pano_data: Any) -> "PanoData":
@@ -158,7 +158,7 @@ class PanoData(NamedTuple):
 
         pano_id = int(Path(image_path).stem.split('_')[-1])
 
-        global_SIM2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
+        global_Sim2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
         room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
         room_vertices_local_2d[:,0] *= -1
 
@@ -178,7 +178,7 @@ class PanoData(NamedTuple):
 
             num_wdo = len(wdo_data) // 4
             for wdo_idx in range(num_wdo):
-                wdo = WDO.from_object_array(wdo_data[ wdo_idx * 4 : (wdo_idx+1) * 4], global_SIM2_local, wdo_type)
+                wdo = WDO.from_object_array(wdo_data[ wdo_idx * 4 : (wdo_idx+1) * 4], global_Sim2_local, wdo_type)
                 wdos.append(wdo)
 
             if wdo_type == "windows":
@@ -188,7 +188,7 @@ class PanoData(NamedTuple):
             elif wdo_type == "openings":
                 openings = wdos
 
-        return cls(pano_id, global_SIM2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
+        return cls(pano_id, global_Sim2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
 
 
 
@@ -234,6 +234,6 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim
 
     assert np.allclose(R.T @ R, np.eye(2))
 
-    global_SIM2_local = Sim2(R=R, t=t, s=scale)
-    return global_SIM2_local
+    global_Sim2_local = Sim2(R=R, t=t, s=scale)
+    return global_Sim2_local
 
