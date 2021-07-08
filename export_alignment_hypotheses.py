@@ -20,10 +20,10 @@ from typing import Dict, List, Optional, Set, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.polyline_density import get_polyline_length
-from argoverse.utils.interpolate import interp_arc
+from argoverse.utils.interpolate import interp_arc, get_duplicate_indices_1d
 from argoverse.utils.json_utils import read_json_file, save_json_dict
 from argoverse.utils.sim2 import Sim2
-from shapely.geometry import Point, Polygon
+from shapely.geometry import MultiPolygon, Point, Polygon
 
 from sim3_align_dw import align_points_sim3, rotmat2d
 from pano_data import FloorData, PanoData, WDO
@@ -133,13 +133,13 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
 
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
 
-                try:
-                    possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
-                        pano_dict[i1], pano_dict[i2]
-                    )
-                except Exception:
-                    logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
-                    continue
+                # try:
+                possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
+                    pano_dict[i1], pano_dict[i2]
+                )
+                # except Exception:
+                #     logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
+                #     continue
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
@@ -599,7 +599,63 @@ def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
     shrink_distance = center.distance(min_corner) * shrink_factor
 
     polygon_shrunk = polygon.buffer(-shrink_distance)  # shrink
+
+    # It's possible for a MultiPolygon to result as a result of the buffer operation, i.e. especially for unusual shapes
+    # We choose the largest polygon inside the MultiPolygon, and return it
+    if isinstance(polygon_shrunk, MultiPolygon):
+        subpolygon_areas = [subpolygon.area for subpolygon in polygon_shrunk.geoms]
+        largest_poly_idx = np.argmax(subpolygon_areas)
+        polygon_shrunk = polygon_shrunk.geoms[largest_poly_idx]
+
     return polygon_shrunk
+
+
+def test_shrink_polygon() -> None:
+    """
+    If not handled correctly, will see the following error:
+        *** AttributeError: 'MultiPolygon' object has no attribute 'exterior'
+    """
+    def draw_polyline(polyline: np.ndarray, color: str) -> None:
+        """ """
+        plt.scatter(polyline[:,0], polyline[:,1], 10, color=color, marker='.')
+        plt.plot(polyline[:,0], polyline[:,1], color=color)
+
+    pano1_room_vertices = np.array(
+        [
+            [ 0.61807389, -1.0028074 ],
+            [ 0.59331251, -0.48251453],
+            [ 0.63846121, -0.38975602],
+            [ 0.81566386, -0.02569123],
+            [ 0.85433859,  0.05376642],
+            [-1.9087475 ,  1.3986739 ],
+            [-0.71553403,  3.85014409],
+            [ 2.87482109,  2.10250285],
+            [ 2.51753773,  1.36848825],
+            [ 2.26585724,  1.49099615],
+            [ 1.31355939, -0.46543567],
+            [ 1.32937937, -1.00994635]
+        ]
+    )
+    polygon1 = Polygon(pano1_room_vertices)
+    shrunk_poly1 = shrink_polygon(polygon1)
+
+    assert np.isclose(shrunk_poly1.area, 6.275, atol=1e-3)
+
+    # draw_polyline(pano1_room_vertices, "b")
+
+    # colors = ["r", "g"]
+    # for i in range(2):
+    #     print(f"poly {i}: ", shrunk_poly1.geoms[i].area)
+    #     poly = np.array(list(shrunk_poly1.geoms[i].exterior.coords))
+    #     draw_polyline(poly, colors[i])
+    # plt.show()
+
+    shrunk_poly1_verts = np.array(list(shrunk_poly1.exterior.coords))
+
+    # draw_polyline(shrunk_poly1_verts, "r")
+    # plt.show()
+
+    assert isinstance(shrunk_poly1_verts, np.ndarray)
 
 
 def interp_evenly_spaced_points(polyline: np.ndarray, interval_m) -> np.ndarray:
@@ -607,9 +663,121 @@ def interp_evenly_spaced_points(polyline: np.ndarray, interval_m) -> np.ndarray:
 
     length_m = get_polyline_length(polyline)
     n_waypoints = int(np.ceil(length_m / interval_m))
-    interp_polyline = interp_arc(t=n_waypoints, px=polyline[:, 0], py=polyline[:, 1])
+    px, py = eliminate_duplicates_2d(polyline[:, 0], py=polyline[:, 1])
+    interp_polyline = interp_arc(t=n_waypoints, px=px, py=py)
 
     return interp_polyline
+
+
+def test_interp_evenly_spaced_points() -> None:
+    """ """
+    pano2_room_vertices = np.array(
+        [
+            [ 3.41491678,  0.82735686],
+            [ 2.5812492 , -2.36060637],
+            [ 0.2083626 , -1.74008522],
+            [ 0.53871724, -0.47680178],
+            [ 0.40395381, -0.4415605 ],
+            [ 0.40395381, -0.4415605 ],
+            [-0.36244272, -0.24114416],
+            [-0.36244272, -0.24114416],
+            [-0.56108295, -0.18919879],
+            [-0.14397634,  1.40582611],
+            [ 0.06767395,  1.35047855],
+            [ 0.15388028,  1.68013345]
+        ]
+    )
+    pano2_room_vertices_interp = interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)  # meters
+
+    assert isinstance(pano2_room_vertices_interp, np.ndarray)
+    assert pano2_room_vertices_interp.shape == (104,2)
+
+
+# def test_interp_arc() -> None:
+#     """ """
+#     polyline = np.array(
+#         [
+#             [ 3.41491678,  0.82735686],
+#             [ 2.5812492 , -2.36060637],
+#             [ 0.2083626 , -1.74008522],
+#             [ 0.53871724, -0.47680178],
+#             [ 0.40395381, -0.4415605 ],
+#             [ 0.40395381, -0.4415605 ],
+#             [-0.36244272, -0.24114416],
+#             [-0.36244272, -0.24114416],
+#             [-0.56108295, -0.18919879],
+#             [-0.14397634,  1.40582611],
+#             [ 0.06767395,  1.35047855],
+#             [ 0.15388028,  1.68013345]
+#         ]
+#     )
+#     n_waypoints = 104
+#     import pdb; pdb.set_trace()
+#     interp_polyline = interp_arc(t=n_waypoints, px=polyline[:, 0], py=polyline[:, 1])
+
+#     assert isinstance(interp_polyline, np.ndarray)
+
+
+def eliminate_duplicates_2d(px: np.ndarray, py: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+
+    Note: Differs from the argoverse implementation.
+
+    We compare indices to ensure that deleted values are exactly
+    adjacent to each other in the polyline sequence.
+    """
+    num_pts = px.shape[0]
+    assert px.shape[0] == py.shape[0]
+    px_dup_inds = get_duplicate_indices_1d(px)
+    py_dup_inds = get_duplicate_indices_1d(py)
+    shared_dup_inds = np.intersect1d(px_dup_inds, py_dup_inds)
+
+    px = np.delete(px, [shared_dup_inds])
+    py = np.delete(py, [shared_dup_inds])
+
+    return px, py
+
+
+
+def test_eliminate_duplicates_2d() -> None:
+    """Ensure two duplicated waypoints are removed.
+
+    Duplicates are at indices 4,5 and 6,7, so rows 5 and 7 should be removed.
+    """
+    polyline = np.array(
+        [
+            [ 3.41491678,  0.82735686], # 0
+            [ 2.5812492 , -2.36060637], # 1
+            [ 0.2083626 , -1.74008522], # 2
+            [ 0.53871724, -0.47680178], # 3
+            [ 0.40395381, -0.4415605 ], # 4
+            [ 0.40395381, -0.4415605 ], # 5
+            [-0.36244272, -0.24114416], # 6
+            [-0.36244272, -0.24114416], # 7
+            [-0.56108295, -0.18919879], # 8
+            [-0.14397634,  1.40582611], # 9
+            [ 0.06767395,  1.35047855], # 10
+            [ 0.15388028,  1.68013345] # 11
+        ]
+    )
+    px, py = eliminate_duplicates_2d(px=polyline[:,0], py=polyline[:,1])
+    polyline_no_dups = np.stack([px,py], axis=-1)
+
+    expected_polyline_no_dups = np.array(
+        [
+            [ 3.41491678,  0.82735686],
+            [ 2.5812492 , -2.36060637],
+            [ 0.2083626 , -1.74008522],
+            [ 0.53871724, -0.47680178],
+            [ 0.40395381, -0.4415605 ],
+            [-0.36244272, -0.24114416],
+            [-0.56108295, -0.18919879],
+            [-0.14397634,  1.40582611],
+            [ 0.06767395,  1.35047855],
+            [ 0.15388028,  1.68013345]
+        ]
+    )
+    assert np.allclose(polyline_no_dups, expected_polyline_no_dups)
 
 
 def determine_invalid_wall_overlap(
@@ -651,6 +819,7 @@ def determine_invalid_wall_overlap(
 
     shrunk_poly2 = shrink_polygon(polygon2)
     shrunk_poly2_verts = np.array(list(shrunk_poly2.exterior.coords))
+
 
     def count_verts_inside_poly(polygon: Polygon, query_verts: np.ndarray) -> int:
         """
@@ -974,7 +1143,13 @@ if __name__ == "__main__":
 
     num_processes = 1
 
-    export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
+    #export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
+
+    test_shrink_polygon()
+
+    # test_interp_evenly_spaced_points()
+    #test_interp_arc()
+    # test_eliminate_duplicates_2d()
 
     # test_reflections_2()
     # test_determine_invalid_wall_overlap1()
