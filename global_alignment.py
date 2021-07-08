@@ -27,8 +27,6 @@ logger = logger_utils.get_logger()
 from vis_depth import rotmat2d
 from posegraph2d import PoseGraph2d, get_gt_pose_graph
 
-# class TwoViewEdge(NamedTuple)
-
 
 def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     """ """
@@ -122,9 +120,7 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
             method = "shonan" # "greedy"  # 
             if method == "shonan":
-                import pdb
-
-                pdb.set_trace()
+                import pdb; pdb.set_trace()
                 wRi_list = globalaveraging2d(i2Ri1_dict)
                 # wRi_list_Rot3 = global_averaging(i2Ri1_dict)
                 # #print(wRi_list_Rot3)
@@ -631,7 +627,7 @@ if __name__ == "__main__":
 
     # hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
     hypotheses_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_alignment_hypotheses_2021_06_25"
-    
+
     raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     main(hypotheses_dir, raw_dataset_dir)
     # test_node_present_in_any_triplet()
