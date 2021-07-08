@@ -127,19 +127,19 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
                 if i1 >= i2:
                     continue
 
-                logger.info(f"\tOn {i1}-{i2}")
+                logger.info(f"\tOn pano pair ({i1},{i2})")
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
 
-                # try:
-                possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
-                    pano_dict[i1], pano_dict[i2]
-                )
-                # except Exception:
-                #     logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
-                #     continue
+                try:
+                    possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
+                        pano_dict[i1], pano_dict[i2]
+                    )
+                except Exception:
+                    logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
+                    continue
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
@@ -1143,9 +1143,9 @@ if __name__ == "__main__":
 
     num_processes = 1
 
-    #export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
+    export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
-    test_shrink_polygon()
+    # test_shrink_polygon()
 
     # test_interp_evenly_spaced_points()
     #test_interp_arc()
