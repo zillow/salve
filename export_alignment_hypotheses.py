@@ -426,6 +426,9 @@ def align_rooms_by_wd(
     - Rooms may be joined at a door.
     - Predicted wall cannot lie behind another wall, if line of sight is clear.
 
+    Note: when fitting Sim(3), note that if the heights are the same, but door width scale is different, perfect door-width alignment
+    cannot be possible, since the height figures into the least squares problem.
+
     Args:
         pano1_obj
         pano2_obj
@@ -543,29 +546,6 @@ def align_rooms_by_wd(
                     # logger.error("Pano1 room verts: %s", str(pano1_room_vertices))
                     # logger.error("Pano2 room verts: %s", str(pano2_room_vertices))
 
-                    # window_normals_compatible = True
-                    # WINDOW_NORMAL_ALIGNMENT_THRESH = 10
-                    # # if touch at windows, normals must be in the same direction
-                    # if alignment_object == "window":
-                    #     import pdb; pdb.set_trace()
-                    #     #import pdb; pdb.set_trace()
-                    #     window_normal1 = pano1_wd.get_wd_normal_2d()
-                    #     window_normal1 = i2Ti1.rotation @ window_normal1 # this must be a rotation, and no translation may be added here
-                    #     window_normal2 = pano2_wd_.get_wd_normal_2d()
-                    #     print("\tN1: ", np.round(window_normal1, 1))
-                    #     print("\tN2: ", np.round(window_normal2, 1))
-
-                    #     plt.plot([0, window_normal1[0]], [0, window_normal1[1]], color="r", linewidth=10, alpha=0.1)
-                    #     plt.plot([0, window_normal2[0]], [0, window_normal2[1]], color="b", linewidth=1, alpha=0.1)
-
-                    #     rel_angle_deg = get_relative_angle(vec1=window_normal1, vec2=window_normal2)
-                    #     print("\tRelative angle (deg.) = ", rel_angle_deg)
-
-                    #     if rel_angle_deg > WINDOW_NORMAL_ALIGNMENT_THRESH:
-                    #         is_valid = False
-                    #         window_normals_compatible = False
-                    #         #print("Alignment of window normals is invalid/implausible")
-
                     if is_valid:
                         possible_alignment_info += [(i2Ti1, alignment_object)]
                         classification = "valid"
@@ -598,7 +578,6 @@ def align_rooms_by_wd(
                         # plt.show()
                         plt.close("all")
 
-    # assert best_alignment_object in ["door","window"]
     return possible_alignment_info, num_invalid_configurations
 
 
@@ -984,8 +963,8 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 if __name__ == "__main__":
     """ """
     # teaser file
-    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     #raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
