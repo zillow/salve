@@ -25,9 +25,6 @@ def plot_room_layout(
     """
     coord_frame: either 'local' or 'global'
     """
-    R_refl = np.array([[-1.0, 0], [0, 1]])
-    world_Sim2_reflworld = Sim2(R_refl, t=np.zeros(2), s=1.0)
-
     #hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
 
     assert coord_frame in ["global", "local"]
@@ -50,13 +47,8 @@ def plot_room_layout(
     pano_position = np.zeros((1, 2))
     if coord_frame == "global":
         pano_position_local = pano_position
-        pano_position_reflworld = pano_obj.global_SIM2_local.transform_from(pano_position_local)
-        pano_position_world = pano_position_reflworld
+        pano_position_world = pano_obj.global_SIM2_local.transform_from(pano_position_local)
         pano_position = pano_position_world
-    else:
-        pano_position_refllocal = pano_position
-        pano_position_local = world_Sim2_reflworld.transform_from(pano_position_refllocal)
-        pano_position = pano_position_local
 
     plt.scatter(pano_position[0, 0], pano_position[0, 1], 30, marker="+", color=color)
 
