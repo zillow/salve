@@ -3,20 +3,13 @@ import glob
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Tuple
 
+import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 
+from gtsam import Rot3
+
 from pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
-
-
-class PoseGraphNode2d(NamedTuple):
-    """
-    Args:
-        global_Sim2_local
-        pano_id
-    """
-    global_Sim2_local: Sim2
-    pano_id: int
 
 
 class PoseGraph2d(NamedTuple):
@@ -47,6 +40,29 @@ class PoseGraph2d(NamedTuple):
         """ """
         pass
 
+    @classmethod
+    def from_wRi_list(cls, wRi_list: List[Rot3], building_id: int, floor_id: str) -> "PoseGraph2d":
+        """ """
+        import pdb; pdb.set_trace()
+
+        for i, wRi in enumerate(wRi_list):
+            if wRi is None:
+                continue
+
+            nodes[i] = PanoData(
+                id=i,
+                global_SIM2_local = Sim2(R=wRi, t=np.zeros(3), s=1.0),
+                room_vertices_local_2d = np.zeros((0,2)),
+                image_path="",
+                label="",
+                doors = None,
+                windows = None,
+                openings = None
+            )
+
+        return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
+
+
     def as_json(self, json_fpath: str) -> None:
         """ """
         pass
@@ -64,7 +80,7 @@ class PoseGraph2d(NamedTuple):
             mean_relative_rot_err: average error on each relative rotation.
         """
         errs = []
-        for pano_id, est_pano_obj in self.nodes:
+        for pano_id, est_pano_obj in self.nodes.items():
 
             theta_deg_est = est_pano_obj.global_Sim2_local.theta_deg
             theta_deg_gt = gt_floor_pg.nodes[pano_id].global_Sim2_local.theta_deg
@@ -75,9 +91,8 @@ class PoseGraph2d(NamedTuple):
             err = wrap_angle_deg(theta_deg_gt, theta_deg_est)
             errs.append(err)
 
-
         mean_err = np.mean(errs)
-        print(f"Mean abs rot. error: {mean_err:.2f}")
+        print(f"Mean abs rot. error: {mean_err:.2f}. Estimated rotation for {len(self.nodes)} of {len(self.gt_floor_pg.nodes)} GT panos.")
         return mean_err
 
 
