@@ -79,6 +79,8 @@ class PoseGraph2d(NamedTuple):
         Returns:
             mean_relative_rot_err: average error on each relative rotation.
         """
+        # TODO: have to do a pose-graph alignment first, or Karcher-mean alignment first.
+
         errs = []
         for pano_id, est_pano_obj in self.nodes.items():
 
@@ -94,6 +96,49 @@ class PoseGraph2d(NamedTuple):
         mean_err = np.mean(errs)
         print(f"Mean abs rot. error: {mean_err:.2f}. Estimated rotation for {len(self.nodes)} of {len(self.gt_floor_pg.nodes)} GT panos.")
         return mean_err
+
+
+def wrap_angle_deg(angle1: float, angle2: float):
+    """
+    https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
+    """
+    # mod n will wrap x to [0,n)
+    diff = (angle2 - angle1 + 180) % 360 - 180
+    if diff < -180:
+        return np.absolute(diff + 360)
+    else:
+        return np.absolute(diff)
+
+
+def test_wrap_angle_deg() -> None:
+    """ """
+    angle1 = 180
+    angle2 = -180
+    orientation_err = wrap_angle_deg(angle1, angle2)
+    assert orientation_err == 0
+
+    angle1 = -180
+    angle2 = 180
+    import pdb
+
+    pdb.set_trace()
+    orientation_err = wrap_angle_deg(angle1, angle2)
+    assert orientation_err == 0
+
+    angle1 = -45
+    angle2 = -47
+    orientation_err = wrap_angle_deg(angle1, angle2)
+    assert orientation_err == 2
+
+    angle1 = 1
+    angle2 = -1
+    orientation_err = wrap_angle_deg(angle1, angle2)
+    assert orientation_err == 2
+
+    angle1 = 10
+    angle2 = 11.5
+    orientation_err = wrap_angle_deg(angle1, angle2)
+    assert orientation_err == 1.5
 
 
 def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_fpath: str) -> Dict[str, PoseGraph2d]:

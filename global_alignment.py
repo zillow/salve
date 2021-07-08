@@ -218,47 +218,6 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 #     return angles
 
 
-def wrap_angle_deg(angle1: float, angle2: float):
-    """
-    https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
-    """
-    # mod n will wrap x to [0,n)
-    diff = (angle2 - angle1 + 180) % 360 - 180
-    if diff < -180:
-        return np.absolute(diff + 360)
-    else:
-        return np.absolute(diff)
-
-
-def test_wrap_angle_deg() -> None:
-    """ """
-    angle1 = 180
-    angle2 = -180
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 0
-
-    angle1 = -180
-    angle2 = 180
-    import pdb
-
-    pdb.set_trace()
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 0
-
-    angle1 = -45
-    angle2 = -47
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 2
-
-    angle1 = 1
-    angle2 = -1
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 2
-
-    angle1 = 10
-    angle2 = 11.5
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 1.5
 
 
 def posegraph2d_to_posegraph3d(wRi_list: List[Optional[np.ndarray]]) -> List[Optional[Rot3]]:
