@@ -82,9 +82,10 @@ def test_reorthonormalize():
 
 
 
-def test_align_horseshoe() -> None:
-    """ """
+def test_align_points_sim3_horseshoe() -> None:
+    """Ensure align_points_sim3() works properly.
 
+    """
     # small horseshoe
     pts_a = np.array(
         [
@@ -103,8 +104,29 @@ def test_align_horseshoe() -> None:
             [ 3,5,10]
         ]).tolist()
 
-    
+    # a is the reference, and b will be transformed to a_
     aSb, pts_a_ = align_points_sim3(pts_a, pts_b)
+
+    # fmt: off
+
+    # shift:
+    # [ 3,1]         = [6,2]       = [3,1]
+    # [-1,1] + [3,1] = [2,2] * 0.5 = [1,1]
+    # [-1,5]         = [2,6]       = [1,3]
+    # [ 3,5]         = [6,6]       = [3,3]
+
+    expected_pts_a_ = np.array([
+        [3, 1, 0],
+        [1, 1, 0],
+        [1, 3, 0],
+        [3, 3, 0]
+    ])
+    # fmt: on
+
+    assert np.allclose(expected_pts_a_, pts_a)
+    assert aSb.scale == 0.5
+    assert np.allclose(aSb.rotation, np.eye(2))
+    assert np.allclose(aSb.translation, np.array([3,1]))
 
 
 def test_rotmat2d() -> None:
@@ -138,7 +160,7 @@ def rotmat2d(theta_deg: float) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    test_align_horseshoe()
+    test_align_points_sim3_horseshoe()
 
     #test_rotmat2d()
     #test_reorthonormalize()
