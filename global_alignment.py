@@ -29,31 +29,30 @@ from posegraph2d import PoseGraph2d, get_gt_pose_graph
 
 
 def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
-    """ """
+    """
+    Evaluate the quality of a global alignment, when noise is synthetically injected into the binary measurements.
+    """
     np.random.seed(0)
 
     inside_triplet_percent_list = []
     accs = []
 
-    label_dict = {"incorrect_alignment": 0, "gt_alignment_approx": 1}
+    label_dict = {"incorrect_alignment": 0, "gt_alignment_exact":1}# "gt_alignment_approx": 1}
 
     all_floor_rot_errs = []
 
-    building_ids = [int(Path(dirpath).stem) for dirpath in glob.glob(f"{hypotheses_dir}/*")]
+    building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_dir}/*")]
+    building_ids.sort()
+
+    mean_rel_rot_errs = []
 
     for building_id in building_ids:
-
-        if building_id != 1442:
-            continue
 
         # if len(inside_triplet_percent_list) > 10:
         # 	break
 
         floor_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_dir}/{building_id}/*")]
         for floor_id in floor_ids:
-
-            # if not (building_id == 338 and floor_id == "floor_01"):
-            # 	continue
 
             logger.info(f"Building {building_id}, floor {floor_id}")
 
@@ -75,8 +74,11 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             num_floor_labels = len(floor_label_idxs)
             idxs_to_pollute = np.random.choice(a=num_floor_labels, size=int(POLLUTION_FRAC * num_floor_labels))
 
-            corrupted_floor_label_idxs = copy.deepcopy(floor_label_idxs)
-            corrupted_floor_label_idxs[idxs_to_pollute] = 1 - corrupted_floor_label_idxs[idxs_to_pollute]
+            print(f"{len(idxs_to_pollute)} of {num_floor_labels} were polluted")
+
+            predicted_idxs = copy.deepcopy(floor_label_idxs)
+            # perform logical NOT operation via arithmetic
+            predicted_idxs[idxs_to_pollute] = 1 - predicted_idxs[idxs_to_pollute]
 
             # for a single floor, find all of the triplets
             two_view_reports_dict = {}
@@ -85,6 +87,7 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             i2ti1_dict = {}
 
             floor_pano_ids = []
+            gt_edges = []
             for sim2_json_fpath, gt_class_idx in zip(floor_sim2_json_fpaths, floor_label_idxs):
 
                 if gt_class_idx != 1:
@@ -96,12 +99,14 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
                 floor_pano_ids.append(i1)
                 floor_pano_ids.append(i2)
 
-            for sim2_json_fpath, corrupted_class_idx, gt_class_idx in zip(
-                floor_sim2_json_fpaths, corrupted_floor_label_idxs, floor_label_idxs
+                gt_edges.append((i1,i2))
+
+            for sim2_json_fpath, predicted_idx, gt_class_idx in zip(
+                floor_sim2_json_fpaths, predicted_idxs, floor_label_idxs
             ):
 
                 # add if potentially corrupted label said it was a match
-                if corrupted_class_idx != 1:
+                if predicted_idx != 1:
                     continue
 
                 # if gt_class_idx != 1:
@@ -118,9 +123,8 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
             # print(i2Ri1_dict.keys())
 
-            method = "shonan" # "greedy"  # 
+            method = "shonan" #  "greedy"  # 
             if method == "shonan":
-                import pdb; pdb.set_trace()
                 wRi_list = globalaveraging2d(i2Ri1_dict)
                 # wRi_list_Rot3 = global_averaging(i2Ri1_dict)
                 # #print(wRi_list_Rot3)
@@ -134,20 +138,18 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             elif method == "greedy":
                 wRi_list = greedily_construct_st(i2Ri1_dict)
 
-
             est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
             gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
-            mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
+            #mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
+
+            mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
+            mean_rel_rot_errs.append(mean_rel_rot_err)
 
             # plt.hist(all_floor_rot_errs, bins=10)
             # plt.ylabel("Counts")
             # plt.xlabel("Absolute rotation error (degrees)")
             # plt.show()
-
-            import pdb
-
-            pdb.set_trace()
 
             # try greedy composition
             # draw the edges in a top-down floor plan, visible edges
@@ -188,13 +190,14 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             # accs.append(acc)
             # logger.info(f"Building {building_id}, floor {floor_id}, Mean accuracy: {acc:.2f}\n")
 
-    plt.scatter(inside_triplet_percent_list, accs)
-    plt.show()
+    print(f"Over {len(mean_rel_rot_errs)} floors of all buildings, mean relative rotation error was {np.mean(mean_rel_rot_errs):.1f}")
+    # plt.scatter(inside_triplet_percent_list, accs)
+    # plt.show()
 
-    plt.hist(inside_triplet_percent_list, bins=50)
-    plt.xlabel("Fraction of nodes found in any triplet")
-    plt.ylabel("Counts")
-    plt.show()
+    # plt.hist(inside_triplet_percent_list, bins=50)
+    # plt.xlabel("Fraction of nodes found in any triplet")
+    # plt.ylabel("Counts")
+    # plt.show()
 
 
 # def wrap_angle_deg(angles: np.ndarray, period: float = 360) -> np.ndarray:
@@ -585,7 +588,8 @@ if __name__ == "__main__":
     # test_shonanaveraging2()
 
     # hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
-    hypotheses_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_alignment_hypotheses_2021_06_25"
+    #hypotheses_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_alignment_hypotheses_2021_06_25"
+    hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
 
     raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     main(hypotheses_dir, raw_dataset_dir)
