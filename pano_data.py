@@ -14,6 +14,13 @@ from argoverse.utils.sim2 import Sim2
 
 from sim3_align_dw import rotmat2d
 
+
+RED = [1, 0, 0]
+GREEN = [0, 1, 0]
+BLUE = [0, 0, 1]
+wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
+
+
 class WDO(NamedTuple):
     """define windows/doors/openings by left and right boundaries"""
     global_Sim2_local: Sim2
@@ -228,14 +235,14 @@ class PanoData(NamedTuple):
         pano_position = np.zeros((1, 2))
         if coord_frame == "global":
             pano_position_local = pano_position
-            pano_position_world = self.global_SIM2_local.transform_from(pano_position_local)
+            pano_position_world = self.global_Sim2_local.transform_from(pano_position_local)
             pano_position = pano_position_world
 
         plt.scatter(pano_position[0, 0], pano_position[0, 1], 30, marker="+", color=color)
 
         point_ahead = np.array([1, 0]).reshape(1, 2)
         if coord_frame == "global":
-            point_ahead = self.global_SIM2_local.transform_from(point_ahead)
+            point_ahead = self.global_Sim2_local.transform_from(point_ahead)
 
         plt.plot([pano_position[0, 0], point_ahead[0, 0]], [pano_position[0, 1], point_ahead[0, 1]], color=color)
         pano_id = self.id
