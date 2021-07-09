@@ -15,7 +15,7 @@ import networkx as nx
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
-from gtsam import Rot2, Rot3
+from gtsam import Point3, Rot2, Rot3, Unit3
 
 import cycle_consistency as cycle_utils
 
@@ -25,7 +25,7 @@ import gtsfm.utils.logger as logger_utils
 logger = logger_utils.get_logger()
 
 from vis_depth import rotmat2d
-from posegraph2d import PoseGraph2d, get_gt_pose_graph
+from posegraph2d import PoseGraph2d, get_gt_pose_graph, rot2x2_to_Rot3
 
 
 def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
@@ -54,6 +54,9 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
         floor_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_dir}/{building_id}/*")]
         for floor_id in floor_ids:
 
+            if (building_id == "004" and floor_id == "floor_02") or (building_id == "007" and floor_id == "floor_01"):
+                continue
+
             logger.info(f"Building {building_id}, {floor_id}")
 
             floor_label_idxs = []
@@ -69,7 +72,8 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             floor_label_idxs = np.array(floor_label_idxs)
 
             # TODO: cache all of the model results beforehand (suppose we randomly pollute 8.5% of the results)
-            POLLUTION_FRAC = 0.085
+            #POLLUTION_FRAC = 0.085
+            POLLUTION_FRAC = 0.050
 
             num_floor_labels = len(floor_label_idxs)
             idxs_to_pollute = np.random.choice(a=num_floor_labels, size=int(POLLUTION_FRAC * num_floor_labels))
@@ -123,7 +127,9 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
             # print(i2Ri1_dict.keys())
 
-            enforce_cycle_consistency = True
+            enforce_cycle_consistency = True # False
+            method ="shonan" #   "greedy"  #   
+
             if enforce_cycle_consistency:
                 #check which triplets are self consistent. if so, admit the 3 edges to the graph
                 i2Ri1_dict_consistent, i2ti1_dict_consistent = cycle_utils.filter_to_cycle_consistent_edges(
@@ -134,8 +140,6 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
                 )
                 i2Ri1_dict = i2Ri1_dict_consistent
                 i2ti1_dict_ = i2ti1_dict_consistent
-
-            method = "shonan" #  "greedy"  # 
 
             print(f"Estimate global rotations using {method} from {len(i2Ri1_dict)} edges.")
 
@@ -153,8 +157,25 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             elif method == "greedy":
                 wRi_list = greedily_construct_st(i2Ri1_dict)
 
-            est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
+
+            # run 1dsfm
+            from gtsfm.averaging.translation.averaging_1dsfm import TranslationAveraging1DSFM
+
+            import pdb; pdb.set_trace()
+            wRi_Rot3_list = [ rot2x2_to_Rot3(wRi)  if wRi is not None else None for wRi in wRi_list ]
+            i2Ui1_dict = {(i1,i2): Unit3(np.array([i2ti1[0], i2ti1[1], 0])) for (i1,i2), i2ti1 in i2ti1_dict.items()}
+            trans_avg = TranslationAveraging1DSFM()
+            wti_list = trans_avg.run(num_images=len(wRi_Rot3_list), i2Ui1_dict=i2Ui1_dict, wRi_list=wRi_Rot3_list)
+
+            wti_list = wti_list_3d_to_2d(wti_list)
+            est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, building_id, floor_id)
+
+            #est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
             gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+
+
+            est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+            continue
 
             #mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
 
@@ -207,6 +228,19 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     # plt.show()
 
 
+def wti_list_3d_to_2d(wti_list_3d: List[Point3]):
+    """ """
+    num_images = len(wti_list_3d)
+    wti_list = [None] * num_images
+    for i, wti in enumerate(wti_list_3d):
+        if wti is None:
+            continue
+        wti_list[i] = wti[:2]
+
+    return wti_list
+
+
+
 # def wrap_angle_deg(angles: np.ndarray, period: float = 360) -> np.ndarray:
 #     """Map angles (in degrees) from domain [-∞, ∞] to [0, 180). This function is
 #         the inverse of `np.unwrap`.
@@ -228,6 +262,150 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 #     return angles
 
 
+def test_globalaveraging2d_shonan() -> None:
+    """ """
+    # Building 007, floor_01
+    i2Ri1_dict = {
+        (3, 4): np.array(
+            [
+                [ 0.72099364,  0.6929417 ],
+                [-0.6929417 ,  0.72099364]
+            ], dtype=np.float32),
+        (3, 7): np.array(
+            [
+                [-0.7078902,  0.7063225],
+                [-0.7063225, -0.7078902]
+            ], dtype=np.float32),
+        (4, 6): np.array(
+            [
+                [ 0.29828665, -0.95447636],
+                [ 0.95447636,  0.29828665]
+            ], dtype=np.float32),
+        (5, 7): np.array(
+            [
+                [-0.46576393, -0.88490903],
+                [ 0.88490903, -0.46576393]
+            ], dtype=np.float32),
+        (8, 9): np.array(
+            [
+                [ 0.85045004,  0.5260558 ],
+                [-0.52605575,  0.85045004]
+            ], dtype=np.float32),
+        (9, 14): np.array(
+            [
+                [-0.99782497, -0.04734466],
+                [ 0.04428102, -0.99685955]
+            ], dtype=np.float32),
+        (8, 12): np.array(
+            [
+                [-0.68945694,  0.7243267 ],
+                [-0.7243267 , -0.68945694]
+            ], dtype=np.float32),
+        (9, 11): np.array(
+            [
+                [-0.01023931,  0.99994755],
+                [-0.9999476 , -0.01023931]
+            ], dtype=np.float32),
+        (2, 5): np.array(
+            [
+                [-0.6022301, -0.7983226],
+                [ 0.7983226, -0.6022301]
+            ], dtype=np.float32),
+        (11, 14): np.array(
+            [
+                [-0.03764843,  0.99786335],
+                [-0.99651164, -0.03350743]
+            ], dtype=np.float32),
+        (6, 11): np.array(
+            [
+                [ 0.6206304 , -0.7841033 ],
+                [ 0.7841033 ,  0.62063044]
+            ], dtype=np.float32),
+        (6, 8): np.array(
+            [
+                [-0.9944558 , -0.10515608],
+                [ 0.10515605, -0.99445575]
+            ], dtype=np.float32),
+        (6, 14): np.array(
+            [
+                [-0.7614757, -0.6481934],
+                [ 0.6481934, -0.7614757]
+            ], dtype=np.float32),
+        (4, 5): np.array(
+            [
+                [-0.87495995, -0.48419532],
+                [ 0.48419532, -0.87496   ]
+            ], dtype=np.float32),
+        (5, 6): np.array(
+            [
+                [ 0.20116411,  0.9795576 ],
+                [-0.9795576 ,  0.20116411]
+            ], dtype=np.float32),
+        (3, 6): np.array(
+            [
+                [ 0.87645924, -0.48147613],
+                [ 0.48147613,  0.87645924]
+            ], dtype=np.float32),
+        (8, 11): np.array(
+            [
+                [-0.5347363 ,  0.84501904],
+                [-0.84501904, -0.5347363 ]
+            ], dtype=np.float32),
+        (2, 4): np.array(
+            [
+                [ 0.9134712 ,  0.40690336],
+                [-0.40690336,  0.9134713 ]
+            ], dtype=np.float32),
+        (7, 9): np.array(
+            [
+                [ 0.5887703 ,  0.80829966],
+                [-0.80829835,  0.58877134]
+            ], dtype=np.float32),
+        (6, 7): np.array(
+            [
+                [-0.9605143 ,  0.27823064],
+                [-0.27823064, -0.9605143 ]
+            ], dtype=np.float32),
+        (4, 7): np.array(
+            [
+                [-0.02094402,  0.99978065],
+                [-0.99978065, -0.02094402]
+            ], dtype=np.float32),
+        (3, 5): np.array(
+            [
+                [-0.2953214 , -0.95539796],
+                [ 0.955398  , -0.29532143]
+            ], dtype=np.float32),
+        (9, 12): np.array(
+            [
+                [-0.21155617,  0.9738934 ],
+                [-0.9657355 , -0.19534206]
+            ], dtype=np.float32),
+        (2, 3): np.array(
+            [
+                [ 0.94056726, -0.33960763],
+                [ 0.3396076 ,  0.94056726]
+            ], dtype=np.float32),
+        (7, 11): np.array(
+            [
+                [-0.81428593,  0.580464  ],
+                [-0.580464  , -0.81428593]
+            ], dtype=np.float32),
+        (7, 8): np.array(
+            [
+                [ 0.92593133,  0.37769195],
+                [-0.37769195,  0.92593133]
+            ], dtype=np.float32),
+        (7, 14): np.array(
+            [
+                [ 0.55106103,  0.8344649 ],
+                [-0.8344649 ,  0.55106103]
+            ], dtype=np.float32)
+        }
+    edges = i2Ri1_dict.keys()
+    cc_nodes = graph_utils.get_nodes_in_largest_connected_component(edges)
+    wRi_list = globalaveraging2d(i2Ri1_dict)
+
 
 
 def posegraph2d_to_posegraph3d(wRi_list: List[Optional[np.ndarray]]) -> List[Optional[Rot3]]:
@@ -239,10 +417,8 @@ def posegraph2d_to_posegraph3d(wRi_list: List[Optional[np.ndarray]]) -> List[Opt
         if wRi is None:
             continue
 
-        wRi_Rot3 = np.eye(3)
-        wRi_Rot3[:2, :2] = wRi
-
-        wRi_list_Rot3[i] = Rot3(wRi_Rot3)
+        wRi_Rot3 = rot2x2_to_Rot3(wRi)
+        wRi_list_Rot3[i] = wRi_Rot3
     return wRi_list_Rot3
 
 
@@ -603,3 +779,4 @@ if __name__ == "__main__":
     # test_node_present_in_any_triplet()
 
     # test_wrap_angle_deg()
+    #test_globalaveraging2d_shonan()
