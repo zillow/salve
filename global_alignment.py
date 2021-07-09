@@ -123,7 +123,22 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
             # print(i2Ri1_dict.keys())
 
+            enforce_cycle_consistency = True
+            if enforce_cycle_consistency:
+                #check which triplets are self consistent. if so, admit the 3 edges to the graph
+                i2Ri1_dict_consistent, i2ti1_dict_consistent = cycle_utils.filter_to_cycle_consistent_edges(
+                    i2Ri1_dict,
+                    i2ti1_dict,
+                    two_view_reports_dict,
+                    visualize=False
+                )
+                i2Ri1_dict = i2Ri1_dict_consistent
+                i2ti1_dict_ = i2ti1_dict_consistent
+
             method = "shonan" #  "greedy"  # 
+
+            print(f"Estimate global rotations using {method} from {len(i2Ri1_dict)} edges.")
+
             if method == "shonan":
                 wRi_list = globalaveraging2d(i2Ri1_dict)
                 # wRi_list_Rot3 = global_averaging(i2Ri1_dict)
@@ -170,14 +185,6 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             # logger.info(f"Building {building_id}, floor {floor_id}, % nodes in any triplet? {inside_triplet_percent:.3f}")
 
             # inside_triplet_percent_list.append(inside_triplet_percent)
-
-            # check which triplets are self consistent. if so, admit the 3 edges to the graph
-            # i2Ri1_consistent, i2Ui1_consistent = cycle_utils.filter_to_cycle_consistent_edges(
-            #  			i2Ri1_dict,
-            #  			i2ti1_dict,
-            #  			two_view_reports_dict,
-            #  			visualize=False
-            #  		)
 
             # # import pdb; pdb.set_trace()
 
