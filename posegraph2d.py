@@ -12,6 +12,10 @@ from gtsam import Rot3
 from pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
 from vis_depth import rotmat2d
 
+
+REDTEXT = '\033[91m'
+ENDCOLOR = '\033[0m'
+
 class PoseGraph2d(NamedTuple):
     """Pose graph for a single floor.
 
@@ -31,7 +35,7 @@ class PoseGraph2d(NamedTuple):
         return f"Graph has {len(self.nodes.keys())} nodes in Building {self.building_id}, {self.floor_id}: {self.nodes.keys()}"
 
     @classmethod
-    def from_floor_data(cls, building_id: int, fd: FloorData) -> "PoseGraph2d":
+    def from_floor_data(cls, building_id: str, fd: FloorData) -> "PoseGraph2d":
         """ """
         return cls(building_id=building_id, floor_id=fd.floor_id, nodes={p.id: p for p in fd.panos})
 
@@ -41,7 +45,7 @@ class PoseGraph2d(NamedTuple):
         pass
 
     @classmethod
-    def from_wRi_list(cls, wRi_list: List[Rot3], building_id: int, floor_id: str) -> "PoseGraph2d":
+    def from_wRi_list(cls, wRi_list: List[Rot3], building_id: str, floor_id: str) -> "PoseGraph2d":
         """
 
         Fill other pano metadata with dummy values. Alternatively, could populate them from the GT pose graph.
@@ -89,14 +93,14 @@ class PoseGraph2d(NamedTuple):
             theta_deg_est = est_pano_obj.global_Sim2_local.theta_deg
             theta_deg_gt = gt_floor_pg.nodes[pano_id].global_Sim2_local.theta_deg
 
-            print(f"Pano {pano_id}: GT {theta_deg_gt:.2f} vs. {theta_deg_est:.2f}")
+            print(f"\tPano {pano_id}: GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}")
 
             # need to wrap around at 360
             err = wrap_angle_deg(theta_deg_gt, theta_deg_est)
             errs.append(err)
 
         mean_err = np.mean(errs)
-        print(f"Mean absolute rot. error: {mean_err:.2f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos.")
+        print(f"Mean absolute rot. error: {mean_err:.1f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos.")
         return mean_err
 
 
@@ -109,6 +113,9 @@ class PoseGraph2d(NamedTuple):
         errs = []
         for (i1,i2) in gt_edges:
 
+            if not (i1 in self.nodes and i2 in self.nodes):
+                continue
+
             wTi1_gt = gt_floor_pg.nodes[i1].global_Sim2_local
             wTi2_gt = gt_floor_pg.nodes[i2].global_Sim2_local
             i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
@@ -120,14 +127,17 @@ class PoseGraph2d(NamedTuple):
             theta_deg_est = i2Ti1.theta_deg
             theta_deg_gt = i2Ti1_gt.theta_deg
 
-            print(f"Pano pair ({i1},{i2}): GT {theta_deg_gt:.2f} vs. {theta_deg_est:.2f}")
+            print(f"\tPano pair ({i1},{i2}): GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}")
 
             # need to wrap around at 360
             err = wrap_angle_deg(theta_deg_gt, theta_deg_est)
             errs.append(err)
 
         mean_err = np.mean(errs)
-        print(f"Mean relative rot. error: {mean_err:.2f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos.")
+        print_str = f"Mean relative rot. error: {mean_err:.1f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos"
+        print_str += f", estimated {len(errs)} / {len(gt_edges)} GT edges"
+        print(REDTEXT + print_str + ENDCOLOR)
+        
         return mean_err
 
 
@@ -205,13 +215,52 @@ def test_measure_avg_rel_rotation_err() -> None:
 
     gt_edges = [(0,1)]
     mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
-    # both are incorrect by the same amount
+    # both are incorrect by the same amount, cancelling out to zero error
     assert mean_rel_rot_err == 0
 
     gt_edges = [(0,1),(1,2),(0,2)]
     mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
     assert np.isclose(mean_rel_rot_err, 10/3, atol=1e-3)
     
+
+
+def test_measure_avg_rel_rotation_err_unestimated() -> None:
+    """Estimate average relative pose (rotation) error when some nodes are unestimated.
+
+    Create a dummy scenario, to make sure relative rotation errors are evaluated properly.
+
+    GT rotation graph:
+
+      | 1
+    --o
+      | .
+      .   .
+      .     .
+      |       |
+      o-- ... o--
+    0          2
+    """
+    building_id = "000"
+    floor_id = "floor_01"
+
+    # only 1 edge can be measured for correctness
+    wRi_list = [
+        rotmat2d(-5),
+        rotmat2d(-90),
+        None
+    ]
+    est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
+
+    wRi_list_gt = [
+        rotmat2d(0),
+        rotmat2d(-90),
+        rotmat2d(0)
+    ]
+    gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
+
+    gt_edges = [(0,1),(1,2),(0,2)]
+    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
+    assert mean_rel_rot_err == 5.0
 
 
 def wrap_angle_deg(angle1: float, angle2: float):
@@ -310,8 +359,9 @@ if __name__ == "__main__":
     raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     #export_dataset_pose_graphs(raw_dataset_dir)
 
-    test_measure_avg_rel_rotation_err()
+    #test_measure_avg_rel_rotation_err()
     #test_measure_avg_abs_rotation_err()
+    test_measure_avg_rel_rotation_err_unestimated()
 
 
 
