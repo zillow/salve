@@ -6,8 +6,9 @@ Transformation by (R^T,-t) followed by no reflection.
 
 
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
@@ -189,6 +190,94 @@ class PanoData(NamedTuple):
                 openings = wdos
 
         return cls(pano_id, global_Sim2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
+
+
+
+    def plot_room_layout(
+        self, coord_frame: str, wdo_objs_seen_on_floor: Optional[Set] = None, show_plot: bool = True
+    ) -> None:
+        """Plot the room shape for this panorama, either in a global or local frame
+
+        Args:
+            coord_frame: either 'local' or 'global'
+            wdo_objs_seen_on_floor
+            show_plot
+        
+        Returns:
+
+        """
+        #hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
+
+        assert coord_frame in ["global", "local"]
+
+        if coord_frame == "global":
+            room_vertices = self.room_vertices_global_2d
+        else:
+            room_vertices = self.room_vertices_local_2d
+
+        #room_vertices = hohopano_Sim2_zindpano.transform_from(room_vertices)
+
+        color = np.random.rand(3)
+        plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color)
+        plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=0.5)
+        # draw edge to close each polygon
+        last_vert = room_vertices[-1]
+        first_vert = room_vertices[0]
+        plt.plot([last_vert[0], first_vert[0]], [last_vert[1], first_vert[1]], color=color, alpha=0.5)
+
+        pano_position = np.zeros((1, 2))
+        if coord_frame == "global":
+            pano_position_local = pano_position
+            pano_position_world = self.global_SIM2_local.transform_from(pano_position_local)
+            pano_position = pano_position_world
+
+        plt.scatter(pano_position[0, 0], pano_position[0, 1], 30, marker="+", color=color)
+
+        point_ahead = np.array([1, 0]).reshape(1, 2)
+        if coord_frame == "global":
+            point_ahead = self.global_SIM2_local.transform_from(point_ahead)
+
+        plt.plot([pano_position[0, 0], point_ahead[0, 0]], [pano_position[0, 1], point_ahead[0, 1]], color=color)
+        pano_id = self.id
+
+        pano_text = self.label + f" {pano_id}"
+        TEXT_LEFT_OFFSET = 0.15
+        # mean_loc = np.mean(room_vertices_global, axis=0)
+        # mean position
+        noise = np.clip(np.random.randn(2), a_min=-0.05, a_max=0.05)
+        text_loc = pano_position[0] + noise
+        plt.text(
+            (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize="xx-small"
+        )  # , 'x-small', 'small', 'medium',)
+
+        for wdo_idx, wdo in enumerate(self.doors + self.windows + self.openings):
+
+            if coord_frame == "global":
+                wdo_points = wdo.vertices_global_2d
+            else:
+                wdo_points = wdo.vertices_local_2d
+
+            #wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
+            wdo_type = wdo.type
+            wdo_color = wdo_color_dict[wdo_type]
+
+            if (wdo_objs_seen_on_floor is not None) and (wdo_type not in wdo_objs_seen_on_floor):
+                label = wdo_type
+            else:
+                label = None
+            plt.scatter(wdo_points[:, 0], wdo_points[:, 1], 10, color=wdo_color, marker="o", label=label)
+            plt.plot(wdo_points[:, 0], wdo_points[:, 1], color=wdo_color, linestyle="dotted")
+            #plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
+
+            if wdo_objs_seen_on_floor is not None:
+                wdo_objs_seen_on_floor.add(wdo_type)
+
+        if show_plot:
+            plt.axis("equal")
+            plt.show()
+            plt.close("all")
+
+        return wdo_objs_seen_on_floor
 
 
 
