@@ -1,13 +1,13 @@
 
 import glob
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 
-from gtsam import Rot3
+from gtsam import Point3, Rot3, Pose3
 
 from pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
 from vis_depth import rotmat2d
@@ -45,8 +45,9 @@ class PoseGraph2d(NamedTuple):
         pass
 
     @classmethod
-    def from_wRi_list(cls, wRi_list: List[Rot3], building_id: str, floor_id: str) -> "PoseGraph2d":
+    def from_wRi_list(cls, wRi_list: List[np.ndarray], building_id: str, floor_id: str) -> "PoseGraph2d":
         """
+        from 2x2 rotations
 
         Fill other pano metadata with dummy values. Alternatively, could populate them from the GT pose graph.
         """
@@ -69,9 +70,80 @@ class PoseGraph2d(NamedTuple):
         return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
 
 
+    def as_3d_pose_graph(self) -> List[Optional[Pose3]]:
+        """ """
+        num_images = max(self.nodes.keys()) + 1
+        wTi_list = [None] * num_images
+        for i, pano_obj in self.nodes.items():
+
+            wRi = pano_obj.global_Sim2_local.rotation
+            wti = pano_obj.global_Sim2_local.translation
+            wti = np.array([wti[0],wti[1],0.0])
+            wRi = rot2x2_to_Rot3(wRi)
+
+            wTi = Pose3(wRi, Point3(wti))
+
+            wTi_list[i] = wTi
+
+        return wTi_list
+
+
+    @classmethod
+    def from_wRi_wti_lists(cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], building_id: str, floor_id: str) -> "PoseGraph2d":
+        """
+        2x2
+        and 2,
+
+        Fill other pano metadata with dummy values. Alternatively, could populate them from the GT pose graph.
+        """
+        nodes = {}
+        for i, (wRi, wti) in enumerate(zip(wRi_list, wti_list)):
+            if wRi is None or wti is None:
+                continue
+
+            nodes[i] = PanoData(
+                id=i,
+                global_Sim2_local = Sim2(R=wRi, t=wti, s=1.0),
+                room_vertices_local_2d = np.zeros((0,2)),
+                image_path="",
+                label="",
+                doors = None,
+                windows = None,
+                openings = None
+            )
+
+        return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
+
+
     def as_json(self, json_fpath: str) -> None:
         """ """
         pass
+
+
+    def measure_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> float:
+        """ """
+        from gtsfm.utils.geometry_comparisons import compute_relative_rotation_angle, align_poses_sim3_ignore_missing
+
+        aTi_list = gt_floor_pg.as_3d_pose_graph() # reference
+        bTi_list = self.as_3d_pose_graph()
+        # align the pose graphs
+        aligned_bTi_list = align_poses_sim3_ignore_missing(aTi_list, bTi_list)
+        import pdb; pdb.set_trace()
+
+        rotation_errors = []
+        translation_errors = []
+        for (aTi, aTi_) in zip(aTi_list, aligned_bTi_list):
+            if aTi is None or aTi_ is None:
+                continue
+            rot_err = compute_relative_rotation_angle(aTi.rotation(), aTi_.rotation())
+            trans_err = np.linalg.norm(aTi.translation() - aTi_.translation())
+
+            rotation_errors.append(rot_err)
+            translation_errors.append(trans_err)
+
+
+        print(f"Mean translation error: {np.mean(translation_errors):.1f}, Mean rotation error: {np.mean(rotation_errors):.1f}")
+
 
 
     def measure_avg_abs_rotation_err(self, gt_floor_pg: "PoseGraph2d") -> float:
@@ -352,6 +424,15 @@ def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> 
     json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
     floor_pg_dict = get_single_building_pose_graphs(building_id, pano_dir, json_annot_fpath)
     return floor_pg_dict[floor_id]
+
+
+def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
+    """
+    2x2 rotation matrix to Rot3 object
+    """
+    R_Rot3 = np.eye(3)
+    R_Rot3[:2, :2] = R
+    return Rot3(R_Rot3)
 
 
 if __name__ == "__main__":
