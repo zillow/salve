@@ -3,6 +3,7 @@ import glob
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
@@ -19,7 +20,7 @@ ENDCOLOR = '\033[0m'
 class PoseGraph2d(NamedTuple):
     """Pose graph for a single floor.
 
-    Note: edges are not included here, since there are different types of adjacency (spatial vs. vsible)
+    Note: edges are not included here, since there are different types of adjacency (spatial vs. visible)
 
     Args:
         building_id
@@ -89,12 +90,12 @@ class PoseGraph2d(NamedTuple):
 
 
     @classmethod
-    def from_wRi_wti_lists(cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], building_id: str, floor_id: str) -> "PoseGraph2d":
+    def from_wRi_wti_lists(cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], gt_floor_pg: "PoseGraph2d", building_id: str, floor_id: str) -> "PoseGraph2d":
         """
         2x2
         and 2,
 
-        Fill other pano metadata with dummy values. Alternatively, could populate them from the GT pose graph.
+        Fill other pano metadata with values from the ground truth pose graph.
         """
         nodes = {}
         for i, (wRi, wti) in enumerate(zip(wRi_list, wti_list)):
@@ -104,12 +105,12 @@ class PoseGraph2d(NamedTuple):
             nodes[i] = PanoData(
                 id=i,
                 global_Sim2_local = Sim2(R=wRi, t=wti, s=1.0),
-                room_vertices_local_2d = np.zeros((0,2)),
-                image_path="",
-                label="",
-                doors = None,
-                windows = None,
-                openings = None
+                room_vertices_local_2d = gt_floor_pg.nodes[i].room_vertices_local_2d,
+                image_path=gt_floor_pg.nodes[i].image_path,
+                label=gt_floor_pg.nodes[i].label,
+                doors = gt_floor_pg.nodes[i].doors,
+                windows = gt_floor_pg.nodes[i].windows,
+                openings = gt_floor_pg.nodes[i].openings
             )
 
         return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
@@ -124,15 +125,14 @@ class PoseGraph2d(NamedTuple):
         """ """
         from gtsfm.utils.geometry_comparisons import compute_relative_rotation_angle, align_poses_sim3_ignore_missing
 
-        aTi_list = gt_floor_pg.as_3d_pose_graph() # reference
-        bTi_list = self.as_3d_pose_graph()
+        aTi_list_gt = gt_floor_pg.as_3d_pose_graph() # reference
+        bTi_list_est = self.as_3d_pose_graph()
         # align the pose graphs
-        aligned_bTi_list = align_poses_sim3_ignore_missing(aTi_list, bTi_list)
-        import pdb; pdb.set_trace()
+        aligned_bTi_list_est = align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
         rotation_errors = []
         translation_errors = []
-        for (aTi, aTi_) in zip(aTi_list, aligned_bTi_list):
+        for (aTi, aTi_) in zip(aTi_list_gt, aligned_bTi_list_est):
             if aTi is None or aTi_ is None:
                 continue
             rot_err = compute_relative_rotation_angle(aTi.rotation(), aTi_.rotation())
@@ -141,9 +141,10 @@ class PoseGraph2d(NamedTuple):
             rotation_errors.append(rot_err)
             translation_errors.append(trans_err)
 
-
-        print(f"Mean translation error: {np.mean(translation_errors):.1f}, Mean rotation error: {np.mean(rotation_errors):.1f}")
-
+        mean_rot_err = np.mean(rotation_errors)
+        mean_trans_err = np.mean(translation_errors)
+        print(f"Mean translation error: {mean_trans_err:.1f}, Mean rotation error: {mean_rot_err:.1f}")
+        return mean_rot_err, mean_trans_err
 
 
     def measure_avg_abs_rotation_err(self, gt_floor_pg: "PoseGraph2d") -> float:
@@ -212,10 +213,86 @@ class PoseGraph2d(NamedTuple):
         
         return mean_err
 
+    def render_estimated_layout(self) -> None:
+        """
+        """
+        for i, pano_obj in self.nodes.items():
+
+            pano_obj.plot_room_layout(coord_frame="global", show_plot=False)
+
+        plt.title(f"Building {self.building_id}, {self.floor_id}")
+        plt.axis("equal")
+        plt.show()
+
+
+
+def test_measure_abs_pose_error_shifted() -> None:
+    """Pose graph is shifted to the left by 1 meter, but Sim(3) alignment should fix this. Should have zero error.
+
+    TODO: fix rotations to be +90
+
+    GT pose graph:
+
+       | pano 1 = (0,4)
+     --o
+       | .
+       .   .
+       .     .
+       |       |
+       o-- ... o--
+    pano 0          pano 2 = (4,0)
+      (0,0)
+
+    Estimated PG:
+       | pano 1 = (-1,4)
+     --o
+       | .
+       .   .
+       .     .
+       |       |
+       o-- ... o--
+    pano 0          pano 2 = (3,0)
+      (-1,0)
+    """
+    building_id = "000"
+    floor_id = "floor_01"
+
+    wRi_list = [
+        rotmat2d(0),
+        rotmat2d(-90),
+        rotmat2d(0)
+    ]
+    wti_list = [
+        np.array([-1,0]),
+        np.array([-1,4]),
+        np.array([3,0])
+    ]
+
+    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, building_id, floor_id)
+
+    wRi_list_gt = [
+        rotmat2d(0),
+        rotmat2d(-90),
+        rotmat2d(0)
+    ]
+    wti_list_gt = [
+        np.array([0,0]),
+        np.array([0,4]),
+        np.array([4,0])
+    ]
+    gt_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list_gt, wti_list, building_id, floor_id)
+
+    avg_rot_error, avg_trans_error = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+    
+    assert np.isclose(avg_rot_error, 0.0, atol=1e-3)
+    assert np.isclose(avg_trans_error, 0.0, atol=1e-3)
+
 
 def test_measure_avg_abs_rotation_err() -> None:
     """
     Create a dummy scenario, to make sure absolute rotation errors are evaluated properly.
+    
+    TODO: fix rotations to be +90
 
     GT rotation graph:
 
@@ -250,12 +327,13 @@ def test_measure_avg_abs_rotation_err() -> None:
 
     assert np.isclose(mean_abs_rot_err, 10/3, atol=1e-3)
 
-    # TODO: compute if some pano poses are unestimated (i.e. None)
 
 
 def test_measure_avg_rel_rotation_err() -> None:
     """
     Create a dummy scenario, to make sure relative rotation errors are evaluated properly.
+
+    TODO: fix rotations to be +90
 
     GT rotation graph:
 
@@ -300,6 +378,8 @@ def test_measure_avg_rel_rotation_err_unestimated() -> None:
     """Estimate average relative pose (rotation) error when some nodes are unestimated.
 
     Create a dummy scenario, to make sure relative rotation errors are evaluated properly.
+
+    TODO: fix rotations to be +90
 
     GT rotation graph:
 
@@ -442,7 +522,10 @@ if __name__ == "__main__":
 
     #test_measure_avg_rel_rotation_err()
     #test_measure_avg_abs_rotation_err()
-    test_measure_avg_rel_rotation_err_unestimated()
+    #test_measure_avg_rel_rotation_err_unestimated()
+    #test_measure_abs_pose_error()
+
+    test_measure_abs_pose_error_shifted()
 
 
 
