@@ -73,7 +73,8 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
             # TODO: cache all of the model results beforehand (suppose we randomly pollute 8.5% of the results)
             #POLLUTION_FRAC = 0.085
-            POLLUTION_FRAC = 0.050
+            #POLLUTION_FRAC = 0.050
+            POLLUTION_FRAC = 0.0
 
             num_floor_labels = len(floor_label_idxs)
             idxs_to_pollute = np.random.choice(a=num_floor_labels, size=int(POLLUTION_FRAC * num_floor_labels))
@@ -109,7 +110,7 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
                 floor_sim2_json_fpaths, predicted_idxs, floor_label_idxs
             ):
 
-                # add if potentially corrupted label said it was a match
+                # add if prediction (i.e. a potentially corrupted label) said it was a match
                 if predicted_idx != 1:
                     continue
 
@@ -128,7 +129,7 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             # print(i2Ri1_dict.keys())
 
             enforce_cycle_consistency = True # False
-            method ="shonan" #   "greedy"  #   
+            method = "greedy"  #   "shonan" #   
 
             if enforce_cycle_consistency:
                 #check which triplets are self consistent. if so, admit the 3 edges to the graph
@@ -159,22 +160,18 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
 
             # run 1dsfm
-            from gtsfm.averaging.translation.averaging_1dsfm import TranslationAveraging1DSFM
-
             import pdb; pdb.set_trace()
-            wRi_Rot3_list = [ rot2x2_to_Rot3(wRi)  if wRi is not None else None for wRi in wRi_list ]
-            i2Ui1_dict = {(i1,i2): Unit3(np.array([i2ti1[0], i2ti1[1], 0])) for (i1,i2), i2ti1 in i2ti1_dict.items()}
-            trans_avg = TranslationAveraging1DSFM()
-            wti_list = trans_avg.run(num_images=len(wRi_Rot3_list), i2Ui1_dict=i2Ui1_dict, wRi_list=wRi_Rot3_list)
-
-            wti_list = wti_list_3d_to_2d(wti_list)
-            est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, building_id, floor_id)
+            wti_list = run_translation_averaging(i2ti1_dict, wRi_list)
 
             #est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
             gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
 
-            est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+            est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id)
+
+            mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+
+            est_floor_pose_graph.render_estimated_layout()
             continue
 
             #mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
@@ -226,6 +223,74 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     # plt.xlabel("Fraction of nodes found in any triplet")
     # plt.ylabel("Counts")
     # plt.show()
+
+
+def run_translation_averaging(i2ti1_dict: Dict[Tuple[int,int],np.ndarray], wRi_list: List[np.ndarray]) -> List[Optional[np.ndarray]]:
+    """
+    What if we fix the scale?
+
+    Args:
+        Given 2x2 rotations
+        Given (2,) translation directions
+
+    Returns:
+        wti_list: global translations/positions
+    """
+    from gtsfm.averaging.translation.averaging_1dsfm import TranslationAveraging1DSFM
+
+
+    wRi_Rot3_list = [ rot2x2_to_Rot3(wRi)  if wRi is not None else None for wRi in wRi_list ]
+    i2Ui1_dict = {(i1,i2): Unit3(np.array([i2ti1[0], i2ti1[1], 0])) for (i1,i2), i2ti1 in i2ti1_dict.items()}
+    trans_avg = TranslationAveraging1DSFM()
+    wti_list = trans_avg.run(num_images=len(wRi_Rot3_list), i2Ui1_dict=i2Ui1_dict, wRi_list=wRi_Rot3_list)
+
+    wti_list = wti_list_3d_to_2d(wti_list)
+    return wti_list
+
+
+def test_run_translation_averaging() -> None:
+    """
+    Ensure translation averaging can recover translations for a simple 2d case.
+
+    GT pose graph:
+
+       | pano 1 = (0,4)
+     --o
+       | .
+       .   .
+       .     .
+       |       |
+       o-- ... o--
+    pano 0          pano 2 = (4,0)
+      (0,0)
+
+    """
+    from gtsam import Pose2, Rot2
+    wTi_list = [
+        Pose2(Rot2.fromDegrees(0), np.array([0,0])),
+        Pose2(Rot2.fromDegrees(90), np.array([0,4])),
+        Pose2(Rot2.fromDegrees(0), np.array([4,0]))
+    ]
+
+    i2ti1_dict = {
+        (0,1): wTi_list[1].between(wTi_list[0]).translation(),
+        (1,2): wTi_list[2].between(wTi_list[1]).translation(),
+        (0,2): wTi_list[2].between(wTi_list[0]).translation()
+    }
+    wRi_list = [ wTi.rotation().matrix() for wTi in wTi_list ]
+
+    wti_list = run_translation_averaging(i2ti1_dict, wRi_list)
+    
+    # fmt: off
+    wti_list_expected = np.array(
+        [
+        [-0., -1.],
+        [-0., -0.],
+        [ 1., -1.]
+    ])
+
+    # fmt: on
+    assert np.allclose(wti_list_expected, np.array(wti_list))
 
 
 def wti_list_3d_to_2d(wti_list_3d: List[Point3]):
@@ -775,8 +840,12 @@ if __name__ == "__main__":
     hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
 
     raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    main(hypotheses_dir, raw_dataset_dir)
+    #main(hypotheses_dir, raw_dataset_dir)
     # test_node_present_in_any_triplet()
 
     # test_wrap_angle_deg()
     #test_globalaveraging2d_shonan()
+
+    test_run_translation_averaging()
+
+
