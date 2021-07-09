@@ -54,7 +54,7 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
         floor_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_dir}/{building_id}/*")]
         for floor_id in floor_ids:
 
-            logger.info(f"Building {building_id}, floor {floor_id}")
+            logger.info(f"Building {building_id}, {floor_id}")
 
             floor_label_idxs = []
             floor_sim2_json_fpaths = []
