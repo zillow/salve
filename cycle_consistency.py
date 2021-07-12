@@ -6,6 +6,7 @@ Author: John Lambert
 
 import os
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
@@ -13,18 +14,26 @@ import numpy as np
 from gtsam import Rot3, Unit3
 from scipy.spatial.transform import Rotation
 
-import gtsfm.utils.geometry_comparisons as comp_utils
 import gtsfm.utils.logger as logger_utils
-from gtsfm.two_view_estimator import TwoViewEstimationReport
 
+from pr_utils import compute_precision_recall
 
 logger = logger_utils.get_logger()
 
 
-CYCLE_ERROR_THRESHOLD = 5.0
+CYCLE_ERROR_THRESHOLD = 0.3
 
 
-def extract_triplets_adjacency_list_intersection(i2Ri1_dict: Dict[Tuple[int, int], Rot3]) -> List[Tuple[int, int, int]]:
+@dataclass(frozen=False)
+class TwoViewEstimationReport:
+
+    gt_class: int
+    R_error_deg: Optional[float] = None
+    U_error_deg: Optional[float] = None
+
+
+
+def extract_triplets_adjacency_list_intersection(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tuple[int, int, int]]:
     """Discover triplets from a graph, without O(n^3) complexity.
 
     Based off of Theia's implementation:
@@ -83,7 +92,7 @@ def rotmat2theta_deg(R) -> float:
 
 
 def compute_cycle_error(
-    i2Ri1_dict: Dict[Tuple[int, int], Rot3],
+    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
     cycle_nodes: Tuple[int, int, int],
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
     verbose: bool = True,
@@ -155,11 +164,11 @@ def compute_cycle_error(
 
 
 def filter_to_cycle_consistent_edges(
-    i2Ri1_dict: Dict[Tuple[int, int], Rot3],
-    i2Ui1_dict: Dict[Tuple[int, int], Unit3],
+    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
+    i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
     visualize: bool = True,
-) -> Tuple[Dict[Tuple[int, int], Rot3], Dict[Tuple[int, int], Unit3]]:
+) -> Tuple[Dict[Tuple[int, int], np.ndarray], Dict[Tuple[int, int], np.ndarray]]:
     """Remove edges in a graph where concatenated transformations along a 3-cycle does not compose to identity.
 
     Note: Will return only a subset of these two dictionaries
@@ -238,3 +247,81 @@ def filter_to_cycle_consistent_edges(
     logger.info("Found %d consistent rel. rotations from %d original edges.", num_consistent_rotations, n_valid_edges)
     assert len(i2Ui1_dict_consistent) == num_consistent_rotations
     return i2Ri1_dict_consistent, i2Ui1_dict_consistent
+
+
+def estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict) -> float:
+    """
+            Predicted
+    Actual   ...
+    
+    Args:
+        i2Ri1_dict:
+        i2Ri1_dict_consistent:
+        two_view_reports_dict:
+
+    Returns:
+        mean accuracy:
+    """
+    keys = list(i2Ri1_dict.keys())
+    num_keys = len(keys)
+
+    # create confusion matrix
+    gt_idxs = np.zeros(num_keys, dtype=np.uint32)
+    pred_idxs = np.zeros(num_keys, dtype=np.uint32)
+
+    for i, key in enumerate(keys):
+        gt_idxs[i] = two_view_reports_dict[key].gt_class
+        pred_idxs[i] = 1 if key in i2Ri1_dict_consistent else 0
+    
+    C = np.zeros((2,2))
+    for i, (gt_idx, pred_idx) in enumerate(zip(gt_idxs, pred_idxs)):
+        C[gt_idx, pred_idx] += 1
+
+    # normalize each row, and make sure we don't try to divide by zero.
+    if C[0].sum() != 0:
+        C[0] /= C[0].sum()
+    
+    if C[1].sum() != 0:
+        C[1] /= C[1].sum()
+
+    return np.diag(C).mean()
+
+
+def test_estimate_rot_cycle_filtering_classification_acc() -> None:
+    """ """
+    i2Ri1 = np.eye(2) # dummy value
+
+    i2Ri1_dict = {
+        (0,1): i2Ri1, # model TP, cycle TP
+        (1,2): i2Ri1, # model TP, cycle TP
+        (2,3): i2Ri1, # model FP, cycle TN
+        (3,4): i2Ri1, # model FP, cycle TP
+        (4,5): i2Ri1  # model TP, cycle FN
+    }
+
+    # only predicted positives go into the initial graph, and are eligible for cycle estimation.
+    # 1 indicates a match
+    two_view_reports_dict = {
+        (0,1): TwoViewEstimationReport(gt_class=1), # model TP, cycle TP
+        (1,2): TwoViewEstimationReport(gt_class=1), # model TP, cycle TP
+        (2,3): TwoViewEstimationReport(gt_class=0), # model FP, cycle TN
+        (3,4): TwoViewEstimationReport(gt_class=0), # model FP, cycle TP
+        (4,5): TwoViewEstimationReport(gt_class=1)  # model TP, cycle FN
+    }
+
+    # note: (4,5) was erroneously removed by the cycle-based filtering, and (2,3) was correctly filtered out
+    i2Ri1_dict_consistent = {
+        (0,1): i2Ri1,
+        (1,2): i2Ri1,
+        (3,4): i2Ri1,
+    }
+    acc = estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict)
+    # 1 / 2 false positives are discarded -> 0.5 for class 0
+    # 2 / 3 true positives were kept -> 0.67 for class 1
+    assert acc == np.mean(np.array([1/2, 2/3]))
+
+
+if __name__ == '__main__':
+    test_estimate_rot_cycle_filtering_classification_acc()
+
+
