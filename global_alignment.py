@@ -5,7 +5,6 @@ Global alignment.
 import copy
 import glob
 from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
@@ -18,6 +17,7 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Rot2, Rot3, Unit3
 
 import cycle_consistency as cycle_utils
+from cycle_consistency import TwoViewEstimationReport
 
 import gtsfm.utils.graph as graph_utils
 import gtsfm.utils.logger as logger_utils
@@ -28,16 +28,27 @@ from vis_depth import rotmat2d
 from posegraph2d import PoseGraph2d, get_gt_pose_graph, rot2x2_to_Rot3
 
 
+
+
 def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     """
     Evaluate the quality of a global alignment, when noise is synthetically injected into the binary measurements.
     """
+    # TODO: cache all of the model results beforehand (suppose we randomly pollute 8.5% of the results)
+    POLLUTION_FRAC = 0.085
+    #POLLUTION_FRAC = 0.050
+    #POLLUTION_FRAC = 0.025
+    #POLLUTION_FRAC = 0.0
+
+    enforce_cycle_consistency =  True # False #
+    method =  "shonan" #  "greedy"  #
+
     np.random.seed(0)
 
     inside_triplet_percent_list = []
     accs = []
 
-    label_dict = {"incorrect_alignment": 0, "gt_alignment_exact":1}# "gt_alignment_approx": 1}
+    label_dict = {"gt_alignment_exact":1, "incorrect_alignment": 0}# "gt_alignment_approx": 1}
 
     all_floor_rot_errs = []
 
@@ -45,6 +56,10 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     building_ids.sort()
 
     mean_rel_rot_errs = []
+
+    cycle_precs = []
+    cycle_recs = []
+    cycle_mAccs = []
 
     for building_id in building_ids:
 
@@ -54,8 +69,14 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
         floor_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_dir}/{building_id}/*")]
         for floor_id in floor_ids:
 
-            if (building_id == "004" and floor_id == "floor_02") or (building_id == "007" and floor_id == "floor_01"):
+            # #  or 
+            # # 
+            if  (building_id == "004" and floor_id == "floor_02") or (building_id == "007" and floor_id == "floor_01") or (building_id == "008" and floor_id == "floor_01") or (building_id == "009" and floor_id == "floor_01"):# ):
                 continue
+
+            # if (building_id == "012" and floor_id == "floor_00"):
+            #     import pdb; pdb.set_trace()
+
 
             logger.info(f"Building {building_id}, {floor_id}")
 
@@ -70,11 +91,6 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
                 floor_label_idxs.extend(label_idxs)
 
             floor_label_idxs = np.array(floor_label_idxs)
-
-            # TODO: cache all of the model results beforehand (suppose we randomly pollute 8.5% of the results)
-            #POLLUTION_FRAC = 0.085
-            #POLLUTION_FRAC = 0.050
-            POLLUTION_FRAC = 0.0
 
             num_floor_labels = len(floor_label_idxs)
             idxs_to_pollute = np.random.choice(a=num_floor_labels, size=int(POLLUTION_FRAC * num_floor_labels))
@@ -128,9 +144,6 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
             # print(i2Ri1_dict.keys())
 
-            enforce_cycle_consistency = True # False
-            method = "greedy"  #   "shonan" #   
-
             if enforce_cycle_consistency:
                 #check which triplets are self consistent. if so, admit the 3 edges to the graph
                 i2Ri1_dict_consistent, i2ti1_dict_consistent = cycle_utils.filter_to_cycle_consistent_edges(
@@ -139,13 +152,21 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
                     two_view_reports_dict,
                     visualize=False
                 )
+
+                cycle_prec, cycle_rec, cycle_mAcc = cycle_utils.estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict)
+                print(f"Rotation cycle accuracy: {cycle_mAcc:.2f}, prec: {cycle_prec:.2f}, rec: {cycle_rec:.2f}")
+
+                cycle_precs.append(cycle_prec)
+                cycle_recs.append(cycle_rec)
+                cycle_mAccs.append(cycle_mAcc)
+
                 i2Ri1_dict = i2Ri1_dict_consistent
                 i2ti1_dict_ = i2ti1_dict_consistent
 
             print(f"Estimate global rotations using {method} from {len(i2Ri1_dict)} edges.")
 
             if method == "shonan":
-                wRi_list = globalaveraging2d(i2Ri1_dict)
+                wRi_list = globalaveraging2d(building_id, floor_id, i2Ri1_dict)
                 # wRi_list_Rot3 = global_averaging(i2Ri1_dict)
                 # #print(wRi_list_Rot3)
 
@@ -160,23 +181,23 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
 
             # run 1dsfm
-            import pdb; pdb.set_trace()
-            wti_list = run_translation_averaging(i2ti1_dict, wRi_list)
+            #wti_list = run_translation_averaging(i2ti1_dict, wRi_list)
 
-            #est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
+            est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
             gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
 
-            est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id)
+            #est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id)
 
-            mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+            #mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
 
-            est_floor_pose_graph.render_estimated_layout()
-            continue
+            #est_floor_pose_graph.render_estimated_layout()
+            #continue
 
             #mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
 
-            mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
+            verbose = False
+            mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=verbose)
             mean_rel_rot_errs.append(mean_rel_rot_err)
 
             # plt.hist(all_floor_rot_errs, bins=10)
@@ -215,7 +236,12 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             # accs.append(acc)
             # logger.info(f"Building {building_id}, floor {floor_id}, Mean accuracy: {acc:.2f}\n")
 
-    print(f"Over {len(mean_rel_rot_errs)} floors of all buildings, mean relative rotation error was {np.mean(mean_rel_rot_errs):.1f}")
+    print(f"Over {len(mean_rel_rot_errs)} floors of all buildings, mean relative rotation error was {np.mean(mean_rel_rot_errs):.1f} +- {np.std(mean_rel_rot_errs):.2f}")
+    
+    print(f"Over {len(cycle_mAccs)} floors of all buildings, mean rot-based cycle filtering mAccs. was {np.mean(cycle_mAccs):2f}")
+    print(f"Over {len(cycle_precs)} floors of all buildings, mean rot-based cycle filtering Precision was {np.mean(cycle_precs):2f}")
+    print(f"Over {len(cycle_recs)} floors of all buildings, mean rot-based cycle filtering Recall was {np.mean(cycle_recs):2f}")
+
     # plt.scatter(inside_triplet_percent_list, accs)
     # plt.show()
 
@@ -223,6 +249,19 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     # plt.xlabel("Fraction of nodes found in any triplet")
     # plt.ylabel("Counts")
     # plt.show()
+
+
+
+def form_adjacency_matrix(edges: List[Tuple[int,int]]) -> np.ndarray:
+    """ """
+    num_nodes = max([max(i1, i2) for i1, i2 in edges]) + 1
+
+    adj_matrix = np.zeros((num_nodes, num_nodes), dtype=np.uint8)
+    for (i1,i2) in edges:
+        adj_matrix[i1,i2] = 1
+        adj_matrix[i2,i1] = 1
+
+    return adj_matrix
 
 
 def run_translation_averaging(i2ti1_dict: Dict[Tuple[int,int],np.ndarray], wRi_list: List[np.ndarray]) -> List[Optional[np.ndarray]]:
@@ -548,12 +587,6 @@ def test_node_present_in_any_triplet():
     assert node_present_in_any_triplet(3, triplets)
 
 
-@dataclass(frozen=False)
-class TwoViewEstimationReport:
-
-    gt_class: int
-    R_error_deg: Optional[float] = None
-    U_error_deg: Optional[float] = None
 
 
 def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[np.ndarray]:
@@ -747,6 +780,7 @@ def test_greedily_construct_st2():
 def globalaveraging2d_consecutive_ordering(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[np.ndarray]:
     """ """
     input_file = "shonan_input.g2o"
+    #print(i2Ri1_dict)
     with open(input_file, "w") as f:
         x = 0
         y = 0
@@ -768,7 +802,60 @@ def globalaveraging2d_consecutive_ordering(i2Ri1_dict: Dict[Tuple[int, int], np.
     return wRi_list
 
 
-def globalaveraging2d(i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -> List[Optional[np.ndarray]]:
+def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[np.ndarray]:
+    """
+    Args:
+
+    Returns:
+    """
+    # adj_matrix = form_adjacency_matrix(list(i2Ri1_dict.keys()))
+    # plt.imshow(adj_matrix)
+    # plt.title(f"Building {building_id}, {floor_id}")
+    # plt.savefig(f"graph_adjacency_matrices/building_{building_id}_{floor_id}.jpg", dpi=500)
+    # #plt.show()
+    # return None
+
+    from gtsam import (
+        BetweenFactorPose2,
+        LevenbergMarquardtParams,
+        Rot2,
+        Pose2,
+        ShonanAveraging2,
+        ShonanAveragingParameters2,
+        ShonanAveraging3,
+        ShonanAveragingParameters3
+    )
+
+    lm_params = LevenbergMarquardtParams.CeresDefaults()
+    shonan_params = ShonanAveragingParameters2(lm_params)
+    shonan_params.setUseHuber(False)
+    shonan_params.setCertifyOptimality(True)
+
+    noise_model = gtsam.noiseModel.Unit.Create(3)
+    between_factors = gtsam.BetweenFactorPose2s()
+    
+    for (i1, i2), i2Ri1 in i2Ri1_dict.items():
+
+        theta_deg = cycle_utils.rotmat2theta_deg(i2Ri1)
+        #print("Bad edges:")
+        print(f"({i1},{i2}): {theta_deg:.6f}")
+        i2Ri1 = Rot2.fromDegrees(theta_deg)
+        i2Ti1 = Pose2(i2Ri1, np.zeros(2))
+        between_factors.append(BetweenFactorPose2(i2, i1, i2Ti1, noise_model))
+
+    obj = ShonanAveraging2(between_factors, shonan_params)
+    initial = obj.initializeRandomly()
+
+    pmin = 2
+    pmax = 100
+    result_values, _ = obj.run(initial, min_p=pmin, max_p=pmax)
+
+    wRi_list = [result_values.atRot2(i).matrix() for i in range(result_values.size())]
+    return wRi_list
+
+
+
+def globalaveraging2d(building_id, floor_id, i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -> List[Optional[np.ndarray]]:
     """Run the rotation averaging on a connected graph with arbitrary keys, where each key is a image/pose index.
     Note: run() functions as a wrapper that re-orders keys to prepare a graph w/ N keys ordered [0,...,N-1].
     All input nodes must belong to a single connected component, in order to obtain an absolute pose for each
@@ -804,7 +891,8 @@ def globalaveraging2d(i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -
         i2_ = reordered_idx_map[i2]
         i2Ri1_dict_reordered[(i1_, i2_)] = i2Ri1
 
-    wRi_list_subset = globalaveraging2d_consecutive_ordering(i2Ri1_dict=i2Ri1_dict_reordered)
+    #wRi_list_subset = globalaveraging2d_consecutive_ordering(i2Ri1_dict=i2Ri1_dict_reordered)
+    wRi_list_subset = ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict=i2Ri1_dict_reordered)
 
     wRi_list = [None] * num_images
     for remapped_i, original_i in enumerate(connected_nodes):
@@ -840,12 +928,13 @@ if __name__ == "__main__":
     hypotheses_dir = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
 
     raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    #main(hypotheses_dir, raw_dataset_dir)
+    main(hypotheses_dir, raw_dataset_dir)
     # test_node_present_in_any_triplet()
 
     # test_wrap_angle_deg()
     #test_globalaveraging2d_shonan()
 
-    test_run_translation_averaging()
+    #test_run_translation_averaging()
+    # test_estimate_rot_cycle_filtering_classification_acc()
 
 
