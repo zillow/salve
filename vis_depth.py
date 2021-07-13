@@ -395,25 +395,26 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
     print(i2Ti1)
 
     # because of the reflection!
-    xyzrgb1[:, 0] *= -1
-    xyzrgb2[:, 0] *= -1
+    # xyzrgb1[:, 0] *= -1
+    # xyzrgb2[:, 0] *= -1
 
     # HoHoNet center of pano is to -x, but in ZinD center of pano is +y
-    R = rotmat2d(90)
+    R = rotmat2d(-90)
 
     xyzrgb1[:, :2] = xyzrgb1[:, :2] @ R.T
     xyzrgb2[:, :2] = xyzrgb2[:, :2] @ R.T
 
     HOHO_S_ZIND_SCALE_FACTOR = 1.5
 
+
     xyzrgb1[:, :2] = (xyzrgb1[:, :2] @ i2Ti1.rotation.T) + (
         i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR
     )  # * scale_meters_per_coordinate # * np.array([-1,1]))
     # xyzrgb1[:,:2] = i2Ti1.transform_from(xyzrgb1[:,:2]) #
 
-    # reflect back to Cartesian space
-    xyzrgb1[:, 0] *= -1
-    xyzrgb2[:, 0] *= -1
+    # # reflect back to Cartesian space
+    # # xyzrgb1[:, 0] *= -1
+    # # xyzrgb2[:, 0] *= -1
 
     bev_params = BEVParams()
     img1 = render_bev_image(bev_params, xyzrgb1, is_semantics=is_semantics)
@@ -434,11 +435,11 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
 
         plt.title("")
         plt.axis("equal")
-        # plt.show()
-        save_fpath = f"aligned_examples_2021_06_22/gt_aligned_approx/{building_id}/{floor_id}/{i1}_{i2}.jpg"
-        os.makedirs(Path(save_fpath).parent, exist_ok=True)
-        plt.savefig(save_fpath, dpi=1000)
-        plt.close("all")
+        plt.show()
+        # save_fpath = f"aligned_examples_2021_07_12/gt_aligned_approx/{building_id}/{floor_id}/{i1}_{i2}.jpg"
+        # os.makedirs(Path(save_fpath).parent, exist_ok=True)
+        # plt.savefig(save_fpath, dpi=1000)
+        # plt.close("all")
 
         # 30,35 on floor2 bug
 
