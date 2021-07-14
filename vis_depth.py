@@ -394,10 +394,6 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
     scale_meters_per_coordinate = 3.7066488344243465
     print(i2Ti1)
 
-    # because of the reflection!
-    # xyzrgb1[:, 0] *= -1
-    # xyzrgb2[:, 0] *= -1
-
     # HoHoNet center of pano is to -x, but in ZinD center of pano is +y
     R = rotmat2d(-90)
 
@@ -411,10 +407,6 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
         i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR
     )  # * scale_meters_per_coordinate # * np.array([-1,1]))
     # xyzrgb1[:,:2] = i2Ti1.transform_from(xyzrgb1[:,:2]) #
-
-    # # reflect back to Cartesian space
-    # # xyzrgb1[:, 0] *= -1
-    # # xyzrgb2[:, 0] *= -1
 
     bev_params = BEVParams()
     img1 = render_bev_image(bev_params, xyzrgb1, is_semantics=is_semantics)
@@ -444,6 +436,36 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
         # 30,35 on floor2 bug
 
     return img1, img2
+
+
+def get_bev_pair_xyzrgb(args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool) -> Tuple[Optional[np.ndarray],Optional[np.ndarray]]:
+    """ """
+
+    xyzrgb1 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i1, rgb_fpath=args.img_i1, is_semantics=is_semantics)
+    xyzrgb2 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i2, rgb_fpath=args.img_i2, is_semantics=is_semantics)
+
+    # floor_map_json['scale_meters_per_coordinate']
+    scale_meters_per_coordinate = 3.7066488344243465
+    print(i2Ti1)
+
+    # HoHoNet center of pano is to -x, but in ZinD center of pano is +y
+    R = rotmat2d(-90)
+
+    xyzrgb1[:, :2] = xyzrgb1[:, :2] @ R.T
+    xyzrgb2[:, :2] = xyzrgb2[:, :2] @ R.T
+
+    HOHO_S_ZIND_SCALE_FACTOR = 1.5
+
+
+    xyzrgb1[:, :2] = (xyzrgb1[:, :2] @ i2Ti1.rotation.T) + (
+        i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR
+    )  # * scale_meters_per_coordinate # * np.array([-1,1]))
+    # xyzrgb1[:,:2] = i2Ti1.transform_from(xyzrgb1[:,:2]) #
+
+    return xyzrgb1, xyzrgb2
+
+
+
 
 if __name__ == "__main__":
 
