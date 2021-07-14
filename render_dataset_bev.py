@@ -174,17 +174,17 @@ def render_building_floor_pairs(
                 building_bev_save_dir = f"{bev_save_root}/{label_type}/{building_id}"
                 os.makedirs(building_bev_save_dir, exist_ok=True)
 
-                def bev_fpath_from_img_fpath(pair_uuid: str, surface_type: str, img_fpath: str) -> None:
+                def bev_fpath_from_img_fpath(pair_idx: int, pair_uuid: str, surface_type: str, img_fpath: str) -> None:
                     """ """
                     fname_stem = Path(img_fpath).stem
                     if is_semantics:
-                        img_name = f"pair_{pair_uuid}_{surface_type}_semantics_{fname_stem}.jpg"
+                        img_name = f"pair_{pair_idx}___{pair_uuid}_{surface_type}_semantics_{fname_stem}.jpg"
                     else:
-                        img_name = f"pair_{pair_uuid}_{surface_type}_rgb_{fname_stem}.jpg"
+                        img_name = f"pair_{pair_idx}___{pair_uuid}_{surface_type}_rgb_{fname_stem}.jpg"
                     return img_name
 
-                bev_fname1 = bev_fpath_from_img_fpath(pair_uuid, surface_type, img1_fpath)
-                bev_fname2 = bev_fpath_from_img_fpath(pair_uuid, surface_type, img2_fpath)
+                bev_fname1 = bev_fpath_from_img_fpath(pair_idx, pair_uuid, surface_type, img1_fpath)
+                bev_fname2 = bev_fpath_from_img_fpath(pair_idx, pair_uuid, surface_type, img2_fpath)
 
                 bev_fpath1 = f"{building_bev_save_dir}/{bev_fname1}"
                 bev_fpath2 = f"{building_bev_save_dir}/{bev_fname2}"
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
     #bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
-    bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14"
+    bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
