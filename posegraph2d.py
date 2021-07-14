@@ -177,7 +177,7 @@ class PoseGraph2d(NamedTuple):
         return mean_err
 
 
-    def measure_avg_rel_rotation_err(self, gt_floor_pg: "PoseGraph2d", gt_edges=List[Tuple[int,int]]) -> float:
+    def measure_avg_rel_rotation_err(self, gt_floor_pg: "PoseGraph2d", gt_edges: List[Tuple[int,int]], verbose: bool) -> float:
         """
 
         Args:
@@ -200,7 +200,8 @@ class PoseGraph2d(NamedTuple):
             theta_deg_est = i2Ti1.theta_deg
             theta_deg_gt = i2Ti1_gt.theta_deg
 
-            print(f"\tPano pair ({i1},{i2}): GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}")
+            if verbose:
+                print(f"\tPano pair ({i1},{i2}): GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}")
 
             # need to wrap around at 360
             err = wrap_angle_deg(theta_deg_gt, theta_deg_est)
@@ -223,6 +224,16 @@ class PoseGraph2d(NamedTuple):
         plt.title(f"Building {self.building_id}, {self.floor_id}")
         plt.axis("equal")
         plt.show()
+
+    def draw_edge(self, i1: int, i2: int, color: str) -> None:
+        """ """
+        t1 = self.nodes[i1].global_Sim2_local.transform_from(np.zeros((1,2)))
+        t2 = self.nodes[i2].global_Sim2_local.transform_from(np.zeros((1,2)))
+
+        t1 = t1.squeeze()
+        t2 = t2.squeeze()
+
+        plt.plot([t1[0],t2[0]], [t1[1],t2[1]], c=color, linestyle="dotted", alpha=0.6)
 
 
 
