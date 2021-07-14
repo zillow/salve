@@ -2,11 +2,12 @@
 import glob
 from collections import defaultdict
 from pathlib import Path
-from typing import NamedTuple
+from typing import Dict, List, NamedTuple, Tuple
 
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 
+from posegraph2d import PoseGraph2d, get_gt_pose_graph
 from pr_utils import assign_tp_fp_fn_tn
 
 
@@ -22,11 +23,18 @@ class EdgeClassification(NamedTuple):
 	pair_idx: int
 
 
-def main(json_dir: str, raw_dataset_dir: str) -> None:
-	""" """
+def get_edge_classifications_from_serialized_preds(serialized_preds_json_dir: str) -> Dict[Tuple[str,str], List[EdgeClassification]]:
+	"""
+
+	Args:
+	    serialized_preds_json_dir: 
+
+	Returns:
+	    floor_edgeclassifications_dict
+	"""
 	floor_edgeclassifications_dict = defaultdict(list)
 
-	json_fpaths = glob.glob(f"{json_dir}/batch*.json")
+	json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
 	for json_fpath in json_fpaths:
 
 		json_data = read_json_file(json_fpath)
@@ -50,6 +58,12 @@ def main(json_dir: str, raw_dataset_dir: str) -> None:
 			pair_idx = Path(fp0).stem.split('_')[1]
 
 			floor_edgeclassifications_dict[(building_id, floor_id)] += [EdgeClassification(i1, i2, y_hat_prob, y_hat, y_true, pair_idx)]
+	return floor_edgeclassifications_dict
+
+
+def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
+	""" """
+	floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
 	color_dict = {
 		'TP': 'green',
@@ -65,6 +79,7 @@ def main(json_dir: str, raw_dataset_dir: str) -> None:
 			continue
 
 		print(f"On building {building_id}, {floor_id}")
+		gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
 		# gather all of the edge classifications
 		y_hat = np.array([m.y_hat for m in measurements])
@@ -72,10 +87,6 @@ def main(json_dir: str, raw_dataset_dir: str) -> None:
 
 		# classify into TPs, FPs, FNs, TNs
 		is_TP, is_FP, is_FN, is_TN = assign_tp_fp_fn_tn(y_true, y_pred=y_hat)
-
-		from posegraph2d import PoseGraph2d, get_gt_pose_graph
-		gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
-
 		for m, is_tp, is_fp, is_fn, is_tn in zip(measurements, is_TP, is_FP, is_FN, is_TN):
 
 			# then render the edges
@@ -103,22 +114,31 @@ def main(json_dir: str, raw_dataset_dir: str) -> None:
 
 
 
-def run_incremental_reconstruction(json_dir: str, raw_dataset_dir: str):
+def run_incremental_reconstruction(serialized_preds_json_dir: str, raw_dataset_dir: str):
 	""" """
+	floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
+	# loop over each building and floor
+	# for each building/floor tuple
+	for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
+		print(f"On building {building_id}, {floor_id}")
+
+		# find all of the predictions where pred class is 1
+
+		#look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
 
 
 if __name__ == "__main__":
 	""" """
-	#json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
-	json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
+	#serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
+	serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
 
 	raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 	#raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-	main(json_dir, raw_dataset_dir)
+	vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
 
-	run_incremental_reconstruction(json_dir, raw_dataset_dir)
+	run_incremental_reconstruction(serialized_preds_json_dir, raw_dataset_dir)
 
 
 
