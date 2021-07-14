@@ -145,7 +145,7 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
                 floor_n_invalid_configurations += num_invalid_configurations
 
                 # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
-                i2Ti1_gt = pano_dict[i2].global_SIM2_local.inverse().compose(pano_dict[i1].global_SIM2_local)
+                i2Ti1_gt = pano_dict[i2].global_Sim2_local.inverse().compose(pano_dict[i1].global_Sim2_local)
                 gt_fname = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
                 if visibly_adjacent:
                     save_Sim2(gt_fname, i2Ti1_gt)
@@ -324,7 +324,7 @@ def test_align_rooms_by_wd() -> None:
     # fmt: off
     pano1_obj = PanoData(
         id=5,
-        global_SIM2_local=wTi5,
+        global_Sim2_local=wTi5,
         room_vertices_local_2d=np.array(
             [
                 [ 1.46363621, -2.43808616],
@@ -341,7 +341,7 @@ def test_align_rooms_by_wd() -> None:
         doors=[],
         windows=[
             WDO(
-                global_SIM2_local=wTi5,
+                global_Sim2_local=wTi5,
                 pt1=[-1.0367953294361147, -2.5213585867749635],
                 pt2=[-0.4661345615720372, -2.5023537435761822],
                 bottom_z=-0.5746298535133153,
@@ -349,7 +349,7 @@ def test_align_rooms_by_wd() -> None:
                 type='windows'
             ),
             WDO(
-                global_SIM2_local=wTi5,
+                global_Sim2_local=wTi5,
                 pt1=[0.823799786466513, -2.45939477144822],
                 pt2=[1.404932996095547, -2.4400411621788427],
                 bottom_z=-0.5885416433689703,
@@ -363,7 +363,7 @@ def test_align_rooms_by_wd() -> None:
 
     pano2_obj = PanoData(
         id=8,
-        global_SIM2_local=wTi8,
+        global_Sim2_local=wTi8,
         room_vertices_local_2d=np.array(
             [
                 [-0.7336625 , -1.3968136 ],
@@ -380,7 +380,7 @@ def test_align_rooms_by_wd() -> None:
         doors=[],
         windows=[
             WDO(
-                global_SIM2_local=wTi8,
+                global_Sim2_local=wTi8,
                 pt1=[-0.9276784906829552, 1.0974698581331057],
                 pt2=[-0.8833992085857922, 0.5282122352406332],
                 bottom_z=-0.5746298535133153,
@@ -388,7 +388,7 @@ def test_align_rooms_by_wd() -> None:
                 type='windows'
             ),
             WDO(
-                global_SIM2_local=wTi8,
+                global_Sim2_local=wTi8,
                 pt1=[-0.7833093301499523, -0.758550412558342],
                 pt2=[-0.7382174598580689, -1.338254727497497],
                 bottom_z=-0.5885416433689703,
@@ -1115,6 +1115,10 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
     args = []
 
     for building_id in building_ids:
+
+        if building_id not in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+            continue
+
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
         # render_building(building_id, pano_dir, json_annot_fpath)
@@ -1132,8 +1136,8 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 if __name__ == "__main__":
     """ """
     # teaser file
-    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     #raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
@@ -1141,7 +1145,7 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
 
-    num_processes = 1
+    num_processes = 4
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
