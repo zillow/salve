@@ -11,7 +11,7 @@ import numpy as np
 import seaborn as sns
 import torch
 import torch.backends.cudnn as cudnn
-from argoverse.utils.json_utils import read_json_file
+from argoverse.utils.json_utils import read_json_file, save_json_dict
 from hydra.utils import instantiate
 from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
 from mseg_semantic.utils.avg_meter import SegmentationAverageMeter
@@ -26,6 +26,7 @@ from train_utils import (
     unnormalize_img,
     load_model_checkpoint
 )
+from pr_utils import compute_precision_recall
 
 logger = get_logger()
 
@@ -33,14 +34,12 @@ logger = get_logger()
 def run_test_epoch(ckpt_fpath: str, model: nn.Module, data_loader, split: str, save_viz: bool) -> Dict[str,Any]:
     """ """
     pr_meter = PrecisionRecallMeter()
-
     sam = SegmentationAverageMeter()
 
     for i, test_example in enumerate(data_loader):
 
         # assume cross entropy loss only currently
         x1, x2, x3, x4, is_match, fp0, fp1, fp2, fp3 = test_example
-
         n = x1.size(0)
 
         if torch.cuda.is_available():
@@ -53,7 +52,6 @@ def run_test_epoch(ckpt_fpath: str, model: nn.Module, data_loader, split: str, s
         else:
             gt_is_match = is_match
 
-        #import pdb; pdb.set_trace()
         is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, gt_is_match)
 
         y_hat = torch.argmax(is_match_probs, dim=1)
@@ -69,23 +67,37 @@ def run_test_epoch(ckpt_fpath: str, model: nn.Module, data_loader, split: str, s
             y_hat=torch.argmax(is_match_probs, dim=1).cpu().numpy()
         )
 
-        visualize_examples(
-            ckpt_fpath=ckpt_fpath,
-            batch_idx=i,
-            split=split,
-            args=args,
-            x1=x1,
-            x2=x2,
-            x3=x3,
-            x4=x4,
-            y_hat=y_hat,
-            y_true=gt_is_match,
-            probs=is_match_probs,
-            fp0 = fp0,
-            fp1 = fp1,
-            fp2 = fp2,
-            fp3 = fp3
-        )
+        if save_viz:
+            visualize_examples(
+                ckpt_fpath=ckpt_fpath,
+                batch_idx=i,
+                split=split,
+                args=args,
+                x1=x1,
+                x2=x2,
+                x3=x3,
+                x4=x4,
+                y_hat=y_hat,
+                y_true=gt_is_match,
+                probs=is_match_probs,
+                fp0=fp0,
+                fp1=fp1,
+                fp2=fp2,
+                fp3=fp3
+            )
+
+        serialize_predictions = False
+        if serialize_predictions:
+            save_edge_classifications_to_disk(
+                batch_idx=i,
+                y_hat=y_hat,
+                y_true=gt_is_match,
+                probs=is_match_probs,
+                fp0=fp0,
+                fp1=fp1,
+                fp2=fp2,
+                fp3=fp3
+            )
 
         _, accs, _, avg_mAcc, _ = sam.get_metrics()
         print(f"{split} result: mAcc{avg_mAcc:.4f}", "Cls Accuracies:", [ float(f"{acc:.2f}") for acc in accs ])
@@ -101,7 +113,7 @@ def run_test_epoch(ckpt_fpath: str, model: nn.Module, data_loader, split: str, s
 
 class PrecisionRecallMeter:
 
-    def __init__(self):
+    def __init__(self) -> None:
         """ """
         self.all_y_true = np.zeros((0,1))
         self.all_y_hat = np.zeros((0,1))
@@ -120,104 +132,36 @@ class PrecisionRecallMeter:
         return prec, rec, mAcc
 
 
-def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[float,float,float]:
-    """ Define 1 as the target class (positive)
+def save_edge_classifications_to_disk(
+    batch_idx: int,
+    y_hat: torch.Tensor,
+    y_true: torch.Tensor,
+    probs: torch.Tensor,
+    fp0: torch.Tensor,
+    fp1: torch.Tensor,
+    fp2: torch.Tensor,
+    fp3: torch.Tensor,
+) -> None:
+    """ """
+    n = y_hat.shape[0]
+    save_dict = {
+        'y_hat': y_hat.cpu().numpy().tolist(),
+        'y_true': y_true.cpu().numpy().tolist(),
+        'y_hat_probs': probs[torch.arange(n), y_hat].cpu().numpy().tolist(),
+        'fp0': fp0,
+        'fp1': fp1,
+        'fp2': fp2,
+        'fp3': fp3,
+    }
+    save_dir = "2021_07_13_edge_classifications_fixed_argmax_bug"
+    os.makedirs(save_dir, exist_ok=True)
+    save_json_dict(f'{save_dir}/batch_{batch_idx}.json', save_dict)
 
-    In confusion matrix, `actual` are along rows, `predicted` are columns:
-
-              Predicted
-          \\ P  N
-    Actual P TP FN
-           N FP TN
-    """
-    EPS = 1e-7
-
-    TP = np.logical_and(y_true == y_pred, y_pred == 1).sum()
-    FP = np.logical_and(y_true != y_pred, y_pred == 1).sum()
-
-    FN = np.logical_and(y_true != y_pred, y_pred == 0).sum()
-    TN = np.logical_and(y_true == y_pred, y_pred == 0).sum()
-
-    # form a confusion matrix
-    C = np.zeros((2,2))
-    C[0,0] = TP
-    C[0,1] = FN
-
-    C[1,0] = FP
-    C[1,1] = TN
-
-    # Normalize the confusion matrix
-    C[0] /= (C[0].sum() + EPS)
-    C[1] /= (C[1].sum() + EPS)
-
-    mAcc = np.mean(np.diag(C))
-
-    prec = TP / (TP + FP + EPS)
-    rec = TP / (TP + FN + EPS)
-
-    if (TP + FN) == 0:
-        # there were no positive GT elements
-        raise Warning("Recall undefined...")
-
-    #import sklearn.metrics
-    #prec, rec, _, support = sklearn.metrics.precision_recall_fscore_support(y_true, y_pred)
-    return prec, rec, mAcc
-
-
-def test_compute_precision_recall_1() -> None:
-    """All incorrect predictions."""
-    y_pred = np.array([0,0,1])
-    y_true = np.array([1,1,0])
-
-    prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
-
-    assert prec == 0.0
-    assert rec == 0.0
-    assert mAcc == 0.0
-    
-
-def test_compute_precision_recall_2() -> None:
-    """All correct predictions."""
-    y_pred = np.array([1,1,0])
-    y_true = np.array([1,1,0])
-
-    prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
-
-    assert np.isclose(prec, 1.0)
-    assert np.isclose(rec, 1.0)
-    assert np.isclose(mAcc, 1.0)
-    
-
-# def test_compute_precision_recall_3() -> None:
-#     """All correct predictions."""
-#     y_pred = np.array([0,0,0])
-#     y_true = np.array([1,1,0])
-
-#     import pdb; pdb.set_trace()
-#     prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
-
-    
-#     # no false positives, but low recall
-#     assert np.isclose(prec, 1.0)
-#     assert np.isclose(rec, 1/3)
-
-
-def test_compute_precision_recall_4() -> None:
-    """All correct predictions."""
-    y_pred = np.array([0,1,0,1])
-    y_true = np.array([1,1,0,0])
-
-    prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
-
-    # no false positives, but low recall
-    assert np.isclose(prec, 0.5)
-    assert np.isclose(rec, 0.5)
-    assert np.isclose(mAcc, 2.0)
 
 
 def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor, x4: torch.Tensor, **kwargs) -> None:
     """ """
-    vis_save_dir = f"{Path(ckpt_fpath).parent}/{split}_examples"
+    vis_save_dir = f"{Path(ckpt_fpath).parent}/{split}_examples_2021_07_13"
 
     y_hat = kwargs["y_hat"]
     y_true = kwargs["y_true"]
