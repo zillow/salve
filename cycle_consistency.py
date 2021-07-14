@@ -249,6 +249,19 @@ def filter_to_cycle_consistent_edges(
     return i2Ri1_dict_consistent, i2Ui1_dict_consistent
 
 
+
+
+def filter_to_translation_cycle_consistent_edges(i2Ri1_dict, i2ti1_dict):
+    """ """
+
+    # 
+
+
+    return i2Ri1_dict_consistent, i2ti1_dict_consistent
+
+
+
+
 def estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict) -> float:
     """
             Predicted
