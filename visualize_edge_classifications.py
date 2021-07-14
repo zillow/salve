@@ -75,8 +75,8 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
 	# loop over each building and floor
 	for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-		if building_id != '1490': # '1394':# '1635':
-			continue
+		# if building_id != '1490': # '1394':# '1635':
+		# 	continue
 
 		print(f"On building {building_id}, {floor_id}")
 		gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
@@ -92,16 +92,19 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
 			# then render the edges
 			if is_tp:
 				color = color_dict['TP']
+				#gt_floor_pose_graph.draw_edge(m.i1, m.i2, color)
+				print(f"\tFP: ({m.i1},{m.i2}) for pair {m.pair_idx}")
 
 			elif is_fp:
 				color = color_dict['FP']
-				gt_floor_pose_graph.draw_edge(m.i1, m.i2, color)
-				print(f"\tFP: ({m.i1},{m.i2}) for pair {m.pair_idx}")
+				
 			elif is_fn:
 				color = color_dict['FN']
 				#gt_floor_pose_graph.draw_edge(m.i1, m.i2, color)
+
 			elif is_tn:
 				color = color_dict['TN']
+				gt_floor_pose_graph.draw_edge(m.i1, m.i2, color)
 
 			# if m.i1 or m.i2 not in gt_floor_pose_graph.nodes:
 			# 	import pdb; pdb.set_trace()
@@ -138,7 +141,7 @@ if __name__ == "__main__":
 	#raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
 	vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
 
-	run_incremental_reconstruction(serialized_preds_json_dir, raw_dataset_dir)
+	#run_incremental_reconstruction(serialized_preds_json_dir, raw_dataset_dir)
 
 
 
