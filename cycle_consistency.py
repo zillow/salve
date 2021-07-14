@@ -21,7 +21,7 @@ from pr_utils import compute_precision_recall
 logger = logger_utils.get_logger()
 
 
-CYCLE_ERROR_THRESHOLD = 0.3
+CYCLE_ERROR_THRESHOLD = 5.0 # 2.5 # 1.0 # 0.3
 
 
 @dataclass(frozen=False)
@@ -273,18 +273,8 @@ def estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consi
         gt_idxs[i] = two_view_reports_dict[key].gt_class
         pred_idxs[i] = 1 if key in i2Ri1_dict_consistent else 0
     
-    C = np.zeros((2,2))
-    for i, (gt_idx, pred_idx) in enumerate(zip(gt_idxs, pred_idxs)):
-        C[gt_idx, pred_idx] += 1
-
-    # normalize each row, and make sure we don't try to divide by zero.
-    if C[0].sum() != 0:
-        C[0] /= C[0].sum()
-    
-    if C[1].sum() != 0:
-        C[1] /= C[1].sum()
-
-    return np.diag(C).mean()
+    prec, rec, mAcc = compute_precision_recall(y_true=gt_idxs, y_pred=pred_idxs)
+    return prec, rec, mAcc
 
 
 def test_estimate_rot_cycle_filtering_classification_acc() -> None:
