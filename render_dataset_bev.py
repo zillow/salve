@@ -142,6 +142,9 @@ def render_building_floor_pairs(
                 i1, i2 = Path(pair_fpath).stem.split("_")[:2]
                 i1, i2 = int(i1), int(i2)
 
+                # e.g. 'door_0_0_identity'
+                pair_uuid = Path(pair_fpath).stem.split('__')[-1]
+
                 print(f"On {i1},{i2}")
 
                 img1_fpath = img_fpaths_dict[i1]
@@ -171,17 +174,17 @@ def render_building_floor_pairs(
                 building_bev_save_dir = f"{bev_save_root}/{label_type}/{building_id}"
                 os.makedirs(building_bev_save_dir, exist_ok=True)
 
-                def bev_fpath_from_img_fpath(pair_idx: int, surface_type: str, img_fpath: str) -> None:
+                def bev_fpath_from_img_fpath(pair_uuid: str, surface_type: str, img_fpath: str) -> None:
                     """ """
                     fname_stem = Path(img_fpath).stem
                     if is_semantics:
-                        img_name = f"pair_{pair_idx}_{surface_type}_semantics_{fname_stem}.jpg"
+                        img_name = f"pair_{pair_uuid}_{surface_type}_semantics_{fname_stem}.jpg"
                     else:
-                        img_name = f"pair_{pair_idx}_{surface_type}_rgb_{fname_stem}.jpg"
+                        img_name = f"pair_{pair_uuid}_{surface_type}_rgb_{fname_stem}.jpg"
                     return img_name
 
-                bev_fname1 = bev_fpath_from_img_fpath(pair_idx, surface_type, img1_fpath)
-                bev_fname2 = bev_fpath_from_img_fpath(pair_idx, surface_type, img2_fpath)
+                bev_fname1 = bev_fpath_from_img_fpath(pair_uuid, surface_type, img1_fpath)
+                bev_fname2 = bev_fpath_from_img_fpath(pair_uuid, surface_type, img2_fpath)
 
                 bev_fpath1 = f"{building_bev_save_dir}/{bev_fname1}"
                 bev_fpath2 = f"{building_bev_save_dir}/{bev_fname2}"
@@ -199,7 +202,6 @@ def render_building_floor_pairs(
                 imageio.imwrite(bev_fpath2, bev_img2)
 
 
-
 def render_floor_texture(
     depth_save_root: str,
     bev_save_root: str,
@@ -210,6 +212,13 @@ def render_floor_texture(
 ) -> None:
     """
 
+    Args:
+        depth_save_root: 
+        bev_save_root: 
+        hypotheses_save_root: 
+        raw_dataset_dir: 
+        building_id: 
+        floor_id: 
     """
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
     img_fpaths_dict = {panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
@@ -221,16 +230,12 @@ def render_floor_texture(
 
         for surface_type in ["floor", "ceiling"]:
 
-            # i2Ri1_dict = {}
-            # i2ti1_dict = {}
             i2Si1_dict = {}
             for sim2_json_fpath in pairs:
                 i1, i2 = Path(sim2_json_fpath).stem.split("_")[:2]
                 i1, i2 = int(i1), int(i2)
 
                 i2Si1 = Sim2.from_json(json_fpath=sim2_json_fpath)
-                # i2Ri1_dict[(i1, i2)] = i2Ti1.rotation
-                # i2ti1_dict[(i1, i2)] = i2Ti1.translation
                 i2Si1_dict[(i1,i2)] = i2Si1
 
             # find the minimal spanning tree, and the absolute poses from it
@@ -322,6 +327,10 @@ def render_pairs(
     args = []
 
     for building_id in building_ids:
+
+        if building_id not in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+            continue
+
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
         floor_map_json = read_json_file(json_annot_fpath)
 
@@ -353,16 +362,19 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v2_w_wdo_idxs"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
     #bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
-    bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_10"
+    bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
