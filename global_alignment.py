@@ -35,8 +35,8 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     Evaluate the quality of a global alignment, when noise is synthetically injected into the binary measurements.
     """
     # TODO: cache all of the model results beforehand (suppose we randomly pollute 8.5% of the results)
-    POLLUTION_FRAC = 0.085
-    #POLLUTION_FRAC = 0.050
+    #POLLUTION_FRAC = 0.085
+    POLLUTION_FRAC = 0.050
     #POLLUTION_FRAC = 0.025
     #POLLUTION_FRAC = 0.0
 
@@ -48,7 +48,7 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     inside_triplet_percent_list = []
     accs = []
 
-    label_dict = {"gt_alignment_exact":1, "incorrect_alignment": 0}# "gt_alignment_approx": 1}
+    label_dict = {"incorrect_alignment": 0, "gt_alignment_exact":1}# "gt_alignment_approx": 1}
 
     all_floor_rot_errs = []
 
@@ -161,7 +161,10 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
                 cycle_mAccs.append(cycle_mAcc)
 
                 i2Ri1_dict = i2Ri1_dict_consistent
-                i2ti1_dict_ = i2ti1_dict_consistent
+                i2ti1_dict = i2ti1_dict_consistent
+
+                # filter to cycle consistent translation directions
+                i2Ri1_dict_consistent, i2ti1_dict_consistent = cycle_utils.filter_to_translation_cycle_consistent_edges(i2Ri1_dict, i2ti1_dict)
 
             print(f"Estimate global rotations using {method} from {len(i2Ri1_dict)} edges.")
 
@@ -181,17 +184,20 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
 
 
             # run 1dsfm
-            #wti_list = run_translation_averaging(i2ti1_dict, wRi_list)
+            wti_list = run_translation_averaging(i2ti1_dict, wRi_list)
+            for i in range(len(wti_list)):
+                if wti_list[i] is not None:
+                    wti_list[i] /= 25
 
-            est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
+            # est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
             gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
 
-            #est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id)
+            est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id)
 
-            #mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
-
-            #est_floor_pose_graph.render_estimated_layout()
+            mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+            print(f"Avg translation error: {mean_abs_trans_err}")
+            est_floor_pose_graph.render_estimated_layout()
             #continue
 
             #mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
@@ -249,8 +255,6 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
     # plt.xlabel("Fraction of nodes found in any triplet")
     # plt.ylabel("Counts")
     # plt.show()
-
-
 
 def form_adjacency_matrix(edges: List[Tuple[int,int]]) -> np.ndarray:
     """ """
@@ -606,14 +610,6 @@ def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List
     cc_nodes = graph_utils.get_nodes_in_largest_connected_component(edges)
     cc_nodes = sorted(cc_nodes)
 
-    # form adjacency list
-    adj_list = defaultdict(set)
-
-    for (i1, i2), i2Ri1 in i2Ri1_dict.items():
-
-        adj_list[i1].add(i2)
-        adj_list[i2].add(i1)
-
     wRi_list = [None] * num_nodes
     # choose origin node
     origin_node = cc_nodes[0]
@@ -643,6 +639,55 @@ def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List
         wRi_list[dst_node] = wRi
 
     return wRi_list
+
+
+
+def greedily_construct_st_Sim2(i2Si1_dict: Dict[Tuple[int, int], Sim2]) -> List[np.ndarray]:
+    """Greedily assemble a spanning tree (not a minimum spanning tree).
+
+    Args:
+        i2Ri1_dict: relative rotations
+
+    Returns:
+        wSi_list: global 2d Sim(2) transformations / posees
+    """
+    # find the largest connected component
+    edges = i2Si1_dict.keys()
+
+    num_nodes = max([max(i1, i2) for i1, i2 in edges]) + 1
+
+    cc_nodes = graph_utils.get_nodes_in_largest_connected_component(edges)
+    cc_nodes = sorted(cc_nodes)
+
+    wSi_list = [None] * num_nodes
+    # choose origin node
+    origin_node = cc_nodes[0]
+    wSi_list[origin_node] = Sim2(R=np.eye(2),t=np.zeros(2), s=1.0)
+
+    G = nx.Graph()
+    G.add_edges_from(edges)
+
+    # ignore 0th node, as we already set its global pose as the origin
+    for dst_node in cc_nodes[1:]:
+
+        # determine the path to this node from the origin. ordered from [origin_node,...,dst_node]
+        path = nx.shortest_path(G, source=origin_node, target=dst_node)
+
+        wSi = Sim2(R=np.eye(2),t=np.zeros(2), s=1.0)
+        for (i1, i2) in zip(path[:-1], path[1:]):
+
+            # i1, i2 may not be in sorted order here. May need to reverse ordering
+            if i1 < i2:
+                i1Si2 = i2Si1_dict[(i1, i2)].inverse()  # use inverse
+            else:
+                i1Si2 = i2Si1_dict[(i2, i1)]
+
+            # wRi = wR0 * 0R1
+            wSi = wSi.compose(i1Si2)
+
+        wSi_list[dst_node] = wSi
+
+    return wSi_list
 
 
 def test_greedily_construct_st():
@@ -854,20 +899,20 @@ def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int
     return wRi_list
 
 
-
 def globalaveraging2d(building_id, floor_id, i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -> List[Optional[np.ndarray]]:
     """Run the rotation averaging on a connected graph with arbitrary keys, where each key is a image/pose index.
     Note: run() functions as a wrapper that re-orders keys to prepare a graph w/ N keys ordered [0,...,N-1].
     All input nodes must belong to a single connected component, in order to obtain an absolute pose for each
     camera in a single, global coordinate frame.
+    
     Args:
-    num_images: number of images. Since we have one pose per image, it is also the number of poses.
-    i2Ri1_dict: relative rotations for each image pair-edge as dictionary (i1, i2): i2Ri1.
+        num_images: number of images. Since we have one pose per image, it is also the number of poses.
+        i2Ri1_dict: relative rotations for each image pair-edge as dictionary (i1, i2): i2Ri1.
     Returns:
-    Global rotations for each camera pose, i.e. wRi, as a list. The number of entries in the list is
-    `num_images`. The list may contain `None` where the global rotation could not be computed (either
-    underconstrained system or ill-constrained system), or where the camera pose had no valid observation
-    in the input to run().
+        Global rotations for each camera pose, i.e. wRi, as a list. The number of entries in the list is
+           `num_images`. The list may contain `None` where the global rotation could not be computed (either
+           underconstrained system or ill-constrained system), or where the camera pose had no valid observation
+           in the input to run().
     """
     edges = i2Ri1_dict.keys()
     num_images = max([max(i1, i2) for i1, i2 in edges]) + 1
@@ -899,6 +944,17 @@ def globalaveraging2d(building_id, floor_id, i2Ri1_dict: Dict[Tuple[int, int], O
         wRi_list[original_i] = wRi_list_subset[remapped_i]
 
     return wRi_list
+
+
+
+def count_connected_components(edges: List[Tuple[int,int]]) -> int:
+    """ """
+    input_graph = nx.Graph()
+    input_graph.add_edges_from(edges)
+
+    # get the largest connected component
+    cc = nx.connected_components(input_graph)
+    import pdb; pdb.set_trace()
 
 
 # def test_shonanaveraging2():
