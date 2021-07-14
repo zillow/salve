@@ -354,10 +354,10 @@ def render_pairs(
 if __name__ == "__main__":
     # render_isolated_examples()
 
-    num_processes = 1
+    num_processes = 10
 
-    depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
-    # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
+    #depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
+    depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
@@ -365,16 +365,19 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v2_w_wdo_idxs"
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
     #bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
-    bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
+    #bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
+    bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3"
+
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
