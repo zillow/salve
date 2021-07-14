@@ -52,7 +52,7 @@ class AlignmentHypothesis(NamedTuple):
     wdo_alignment_object: str # either 'door', 'window', or 'opening'
     i1_wdo_idx: int # this is the WDO index for Pano i1 (known as i)
     i2_wdo_idx: int # this is the WDO index for Pano i2 (known as j)
-
+    configuration: str # either identity or rotated
 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
@@ -168,9 +168,10 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
 
                 labels = []
-                for k, alignment_hypothesis in enumerate(pruned_possible_alignment_info):
+                # loop over the alignment hypotheses
+                for k, ah in enumerate(pruned_possible_alignment_info):
 
-                    if obj_almost_equal(alignment_hypothesis.i2Ti1, i2Ti1_gt):
+                    if obj_almost_equal(ah.i2Ti1, i2Ti1_gt):
                         label = "aligned"
                         save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx"
                     else:
@@ -178,9 +179,9 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
                         save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment"
                     labels.append(label)
 
-                    fname = f"{i1}_{i2}_{alignment_hypothesis.wdo_alignment_object}___{alignment_hypothesis.i1_wdo_idx}_{alignment_hypothesis.i2_wdo_idx}.json"
+                    fname = f"{i1}_{i2}__{ah.wdo_alignment_object}_{ah.i1_wdo_idx}_{ah.i2_wdo_idx}_{ah.configuration}.json"
                     proposed_fpath = f"{save_dir}/{fname}"
-                    save_Sim2(proposed_fpath, alignment_hypothesis.i2Ti1)
+                    save_Sim2(proposed_fpath, ah.i2Ti1)
 
                     # print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
                     # print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)
@@ -252,10 +253,10 @@ def test_prune_to_unique_sim2_objs() -> None:
     ws2 = 3.0
 
     possible_alignment_info = [
-        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=1, i2_wdo_idx=5),
-        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=2, i2_wdo_idx=6),
-        AlignmentHypothesis(i2Ti1=Sim2(wR2, wt2, ws2), wdo_alignment_object="window", i1_wdo_idx=3, i2_wdo_idx=7),
-        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=4, i2_wdo_idx=8),
+        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=1, i2_wdo_idx=5, configuration="identity"),
+        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=2, i2_wdo_idx=6, configuration="identity"),
+        AlignmentHypothesis(i2Ti1=Sim2(wR2, wt2, ws2), wdo_alignment_object="window", i1_wdo_idx=3, i2_wdo_idx=7, configuration="identity"),
+        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=4, i2_wdo_idx=8, configuration="identity"),
     ]
     pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
     assert len(pruned_possible_alignment_info) == 2
@@ -551,7 +552,7 @@ def align_rooms_by_wd(
 
                     if is_valid:
                         possible_alignment_info.append(
-                            AlignmentHypothesis(i2Ti1=i2Ti1, wdo_alignment_object=alignment_object, i1_wdo_idx=i, i2_wdo_idx=j)
+                            AlignmentHypothesis(i2Ti1=i2Ti1, wdo_alignment_object=alignment_object, i1_wdo_idx=i, i2_wdo_idx=j, configuration=configuration)
                         )
                         classification = "valid"
                     else:
@@ -1148,9 +1149,9 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
-    num_processes = 1
+    num_processes = 6
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
