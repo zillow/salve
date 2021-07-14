@@ -15,7 +15,7 @@ import os
 from enum import Enum
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -44,6 +44,14 @@ class PolygonType(Enum):
 
 
 PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, "openings": PolygonType.OPENING}
+
+
+class AlignmentHypothesis(NamedTuple):
+    """ """
+    i2Ti1: Sim2
+    wdo_alignment_object: str # either 'door', 'window', or 'opening'
+    i1_wdo_idx: int # this is the WDO index for Pano i1 (known as i)
+    i2_wdo_idx: int # this is the WDO index for Pano i2 (known as j)
 
 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
@@ -160,9 +168,9 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
 
                 labels = []
-                for k, (i2Ti1, alignment_object) in enumerate(pruned_possible_alignment_info):
+                for k, alignment_hypothesis in enumerate(pruned_possible_alignment_info):
 
-                    if obj_almost_equal(i2Ti1, i2Ti1_gt):
+                    if obj_almost_equal(alignment_hypothesis.i2Ti1, i2Ti1_gt):
                         label = "aligned"
                         save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx"
                     else:
@@ -170,8 +178,9 @@ def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, jso
                         save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment"
                     labels.append(label)
 
-                    proposed_fname = f"{save_dir}/{i1}_{i2}_{alignment_object}___variant_{k}.json"
-                    save_Sim2(proposed_fname, i2Ti1)
+                    fname = f"{i1}_{i2}_{alignment_hypothesis.wdo_alignment_object}___{alignment_hypothesis.i1_wdo_idx}_{alignment_hypothesis.i2_wdo_idx}.json"
+                    proposed_fpath = f"{save_dir}/{fname}"
+                    save_Sim2(proposed_fpath, alignment_hypothesis.i2Ti1)
 
                     # print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
                     # print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)
@@ -213,20 +222,15 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     return True
 
 
-def prune_to_unique_sim2_objs(possible_alignment_info: List[Tuple[Sim2, str]]) -> List[Tuple[Sim2, str]]:
+def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]) -> List[AlignmentHypothesis]:
     """ """
     pruned_possible_alignment_info = []
 
-    for j, (i2Ti1, alignment_object) in enumerate(possible_alignment_info):
-
-        item_is_used = False
-        for (i2Ti1_, _) in pruned_possible_alignment_info:
-
-            if i2Ti1 == i2Ti1_:
-                item_is_used = True
-
-        if not item_is_used:
-            pruned_possible_alignment_info += [(i2Ti1, alignment_object)]
+    for j, alignment_hypothesis in enumerate(possible_alignment_info):
+        is_dup = any([alignment_hypothesis.i2Ti1 == inserted_alignment_hypothesis.i2Ti1 for inserted_alignment_hypothesis in pruned_possible_alignment_info])
+        # has not been used yet
+        if not is_dup:
+            pruned_possible_alignment_info.append(alignment_hypothesis)
 
     num_orig_objs = len(possible_alignment_info)
     num_pruned_objs = len(pruned_possible_alignment_info)
@@ -248,16 +252,16 @@ def test_prune_to_unique_sim2_objs() -> None:
     ws2 = 3.0
 
     possible_alignment_info = [
-        (Sim2(wR1, wt1, ws1), "window"),
-        (Sim2(wR1, wt1, ws1), "window"),
-        (Sim2(wR2, wt2, ws2), "window"),
-        (Sim2(wR1, wt1, ws1), "window"),
+        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=1, i2_wdo_idx=5),
+        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=2, i2_wdo_idx=6),
+        AlignmentHypothesis(i2Ti1=Sim2(wR2, wt2, ws2), wdo_alignment_object="window", i1_wdo_idx=3, i2_wdo_idx=7),
+        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=4, i2_wdo_idx=8),
     ]
     pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
     assert len(pruned_possible_alignment_info) == 2
 
-    assert pruned_possible_alignment_info[0][0].scale == 1.5
-    assert pruned_possible_alignment_info[1][0].scale == 3.0
+    assert pruned_possible_alignment_info[0].i2Ti1.scale == 1.5
+    assert pruned_possible_alignment_info[1].i2Ti1.scale == 3.0
 
 
 def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
@@ -406,7 +410,7 @@ def test_align_rooms_by_wd() -> None:
 
 def align_rooms_by_wd(
     pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool = False
-) -> Tuple[List[Tuple[Sim2, str]], int]:
+) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
 
@@ -446,7 +450,6 @@ def align_rooms_by_wd(
     num_invalid_configurations = 0
     possible_alignment_info = []
 
-    # import pdb; pdb.set_trace()
     for alignment_object in ["door", "window", "opening"]:
 
         if alignment_object == "door":
@@ -547,7 +550,9 @@ def align_rooms_by_wd(
                     # logger.error("Pano2 room verts: %s", str(pano2_room_vertices))
 
                     if is_valid:
-                        possible_alignment_info += [(i2Ti1, alignment_object)]
+                        possible_alignment_info.append(
+                            AlignmentHypothesis(i2Ti1=i2Ti1, wdo_alignment_object=alignment_object, i1_wdo_idx=i, i2_wdo_idx=j)
+                        )
                         classification = "valid"
                     else:
                         num_invalid_configurations += 1
@@ -1143,9 +1148,9 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
 
-    num_processes = 4
+    num_processes = 1
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
