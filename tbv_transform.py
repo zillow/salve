@@ -6,7 +6,7 @@ from typing import Callable, List, Optional, Tuple, Union
 import cv2
 import numbers
 import numpy as np
-
+import torchvision
 import torch
 from torch import Tensor
 
@@ -309,3 +309,143 @@ class RandomVerticalFlipQuadruplet(object):
 #         if random.random() < 0.5:
 #             image = cv2.GaussianBlur(image, (self.radius, self.radius), 0)
 #         return image, label
+
+
+class PhotometricShift(object):
+    def __init__(self, jitter_types: List[str] = ["brightness","contrast","saturation","hue"]) -> None:
+        """
+
+        brightness (float or tuple of python:float (min, max)) – How much to jitter brightness. 
+        brightness_factor is chosen uniformly from [max(0, 1 - brightness), 1 + brightness] or the given [min, max].
+        Should be non negative numbers.
+
+        contrast (float or tuple of python:float (min, max)) – How much to jitter contrast.
+        contrast_factor is chosen uniformly from [max(0, 1 - contrast), 1 + contrast] or the given [min, max].
+        Should be non negative numbers.
+
+        saturation (float or tuple of python:float (min, max)) – How much to jitter saturation.
+        saturation_factor is chosen uniformly from [max(0, 1 - saturation), 1 + saturation] or the given [min, max].
+        Should be non negative numbers.
+
+        hue (float or tuple of python:float (min, max)) – How much to jitter hue.
+        hue_factor is chosen uniformly from [-hue, hue] or the given [min, max].
+        Should have 0<= hue <= 0.5 or -0.5 <= min <= max <= 0.5.
+
+        brightness basically performs weighted average with all zeros. 0.5 will blend with [0.5,1.5] range
+
+        contrast is multiplicative. hue changes the color from red to yellow, etc.
+
+        hue should be changed in a very minor way, only. (never more than 0.05). Hue changes the color itself
+
+        Args:
+            jitter_types: types of jitter to apply.
+        """
+        self.jitter_types = jitter_types
+
+        self.brightness_jitter = 0.5 if "brightness" in jitter_types else 0
+        self.contrast_jitter = 0.5  if "contrast" in jitter_types else 0
+        self.saturation_jitter = 0.5  if "saturation" in jitter_types else 0
+        self.hue_jitter = 0.05  if "hue" in jitter_types else 0
+
+    def __call__(
+            self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
+        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        If the image is torch Tensor, it is expected to have […, 3, H, W] shape, where … means an arbitrary number of leading dimensions.
+        
+        """
+        jitter = torchvision.transforms.ColorJitter(
+            brightness=self.brightness_jitter,
+            contrast=self.contrast_jitter,
+            saturation=self.saturation_jitter,
+            hue=self.hue_jitter
+        )
+
+        imgs = [image1, image2, image3, image4]
+        jittered_imgs = []
+        for img in imgs:
+            img_pytorch = torch.from_numpy(img).permute(2,0,1)
+            # import pdb; pdb.set_trace()
+            img_pytorch = jitter(img_pytorch)
+            jittered_imgs.append(img_pytorch.numpy().transpose(1,2,0))
+
+        image1, image2, image3, image4 = jittered_imgs
+        return image1, image2, image3, image4
+
+
+
+def test_PhotometricShift() -> None:
+    """ """
+    import imageio
+    import matplotlib.pyplot as plt
+    img_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_07_14/ZinD_BEV_RGB_only_2021_07_14_v3/gt_alignment_approx/1583"
+
+
+
+    # for i, img in enumerate([image1,image2,image3,image4]):
+    #     plt.subplot(2,4,1 + i)
+    #     plt.imshow(img)
+
+    import copy
+    for trial in range(100):
+    
+        # image1 = imageio.imread(f"{img_dir}/pair_5___opening_1_0_rotated_ceiling_rgb_floor_01_partial_room_01_pano_2.jpg")
+        # image2 = imageio.imread(f"{img_dir}/pair_5___opening_1_0_rotated_ceiling_rgb_floor_01_partial_room_02_pano_3.jpg")
+        # image3 = imageio.imread(f"{img_dir}/pair_5___opening_1_0_rotated_floor_rgb_floor_01_partial_room_01_pano_2.jpg")
+        # image4 = imageio.imread(f"{img_dir}/pair_5___opening_1_0_rotated_floor_rgb_floor_01_partial_room_02_pano_3.jpg")
+
+        image1 = imageio.imread(f"{img_dir}/pair_28___opening_1_0_identity_floor_rgb_floor_01_partial_room_06_pano_13.jpg")
+        image2 = imageio.imread(f"{img_dir}/pair_28___opening_1_0_identity_ceiling_rgb_floor_01_partial_room_02_pano_11.jpg")
+        image3 = imageio.imread(f"{img_dir}/pair_28___opening_1_0_identity_ceiling_rgb_floor_01_partial_room_06_pano_13.jpg")
+        image4 = imageio.imread(f"{img_dir}/pair_28___opening_1_0_identity_floor_rgb_floor_01_partial_room_02_pano_11.jpg")
+
+        grid_row1 = np.hstack([image1, image2, image3, image4])
+
+        print(f"Mean before: {image1.mean():.1f}, {image2.mean():.1f}, {image3.mean():.1f}, {image4.mean():.1f}")
+
+        transform = PhotometricShift()
+        image1, image2, image3, image4 = transform(image1, image2, image3, image4)
+        # for i, img in enumerate([image1,image2,image3,image4]):
+        #     plt.subplot(2,4,1 + 4 + i)
+        #     plt.imshow(img)
+
+        print(f"Mean after: {image1.mean():.1f}, {image2.mean():.1f}, {image3.mean():.1f}, {image4.mean():.1f}")
+
+        grid_row2 = np.hstack([image1, image2, image3, image4])
+        grid = np.vstack([grid_row1, grid_row2])
+
+        imageio.imwrite(f"photometric_shift_examples/all_types/all_types_{trial}_0.02_grid.jpg", grid)
+        #imageio.imwrite(f"photometric_shift_examples/hue/hue_{trial}_0.02_grid.jpg", grid)
+
+        # plt.figure(figsize=(16,10))
+        # plt.tight_layout()
+        # plt.axis("off")
+        # plt.imshow(grid)
+        # plt.show()
+
+def test_PhotometricShift_unmodified() -> None:
+    """ """
+    img_dir = "/Users/johnlam/Downloads/DGX-rendering-2021_07_14/ZinD_BEV_RGB_only_2021_07_14_v3/gt_alignment_approx/1583"
+
+    import imageio
+    for trial in range(40):
+        np.random.seed(trial)
+        print(trial)
+        image1 = imageio.imread(f"{img_dir}/pair_28___opening_1_0_identity_floor_rgb_floor_01_partial_room_06_pano_13.jpg")
+        image2 = imageio.imread(f"{img_dir}/pair_28___opening_1_0_identity_ceiling_rgb_floor_01_partial_room_02_pano_11.jpg")
+        image3 = imageio.imread(f"{img_dir}/pair_28___opening_1_0_identity_ceiling_rgb_floor_01_partial_room_06_pano_13.jpg")
+        image4 = imageio.imread(f"{img_dir}/pair_28___opening_1_0_identity_floor_rgb_floor_01_partial_room_02_pano_11.jpg")
+
+        transform = PhotometricShift(jitter_types=[])
+        image1_, image2_, image3_, image4_ = transform(image1, image2, image3, image4)
+
+        assert np.allclose(image1, image1_)
+        assert np.allclose(image2, image2_)
+        assert np.allclose(image3, image3_)
+        assert np.allclose(image4, image4_)
+
+if __name__ == '__main__':
+    #test_PhotometricShift_unmodified()
+    test_PhotometricShift()
+
+
