@@ -17,7 +17,7 @@ from scipy.interpolate import griddata  # not quite the same as `matplotlib.mlab
 
 from zorder_utils import choose_elevated_repeated_vals
 from interp_artifact_removal import remove_hallucinated_content
-
+from rotation_utils import rotmat2d
 
 def get_uni_sphere_xyz(H, W):
     """Make spherical system match the world system"""
@@ -364,24 +364,6 @@ def vis_depth(args):
     o3d.visualization.draw_geometries(
         [pcd, o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.3, origin=[0, 0, 0])]
     )
-
-
-def rotmat2d(theta_deg: float) -> np.ndarray:
-    """Generate 2x2 rotation matrix, given a rotation angle in degrees."""
-    theta_rad = np.deg2rad(theta_deg)
-
-    s = np.sin(theta_rad)
-    c = np.cos(theta_rad)
-
-    # fmt: off
-    R = np.array(
-        [
-            [c, -s],
-            [s, c]
-        ]
-    )
-    # fmt: on
-    return R
 
 
 def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool) -> Tuple[Optional[np.ndarray],Optional[np.ndarray]]:
