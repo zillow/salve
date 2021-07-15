@@ -303,10 +303,10 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 128
-    args.workers = 16
+    args.batch_size = 16
+    args.workers = 6
 
-    serialization_save_dir = "2021_07_15_serialized_edge_classifications"
+    serialization_save_dir = "2021_07_15_serialized_edge_classifications_v2"
 
     split = "val"
     save_viz = False
