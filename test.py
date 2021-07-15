@@ -1,4 +1,3 @@
-
 import argparse
 import glob
 import os
@@ -19,19 +18,15 @@ from pathlib import Path
 from torch import nn
 
 from logger_utils import get_logger
-from train_utils import (
-    get_dataloader,
-    get_model,
-    cross_entropy_forward,
-    unnormalize_img,
-    load_model_checkpoint
-)
+from train_utils import get_dataloader, get_model, cross_entropy_forward, unnormalize_img, load_model_checkpoint
 from pr_utils import compute_precision_recall
 
 logger = get_logger()
 
 
-def run_test_epoch(serialization_save_dir: str, ckpt_fpath: str, model: nn.Module, data_loader, split: str, save_viz: bool) -> Dict[str,Any]:
+def run_test_epoch(
+    serialization_save_dir: str, ckpt_fpath: str, model: nn.Module, data_loader, split: str, save_viz: bool
+) -> Dict[str, Any]:
     """ """
     pr_meter = PrecisionRecallMeter()
     sam = SegmentationAverageMeter()
@@ -63,8 +58,7 @@ def run_test_epoch(serialization_save_dir: str, ckpt_fpath: str, model: nn.Modul
         )
 
         pr_meter.update(
-            y_true=gt_is_match.squeeze().cpu().numpy(),
-            y_hat=torch.argmax(is_match_probs, dim=1).cpu().numpy()
+            y_true=gt_is_match.squeeze().cpu().numpy(), y_hat=torch.argmax(is_match_probs, dim=1).cpu().numpy()
         )
 
         if save_viz:
@@ -83,7 +77,7 @@ def run_test_epoch(serialization_save_dir: str, ckpt_fpath: str, model: nn.Modul
                 fp0=fp0,
                 fp1=fp1,
                 fp2=fp2,
-                fp3=fp3
+                fp3=fp3,
             )
 
         serialize_predictions = True
@@ -97,11 +91,11 @@ def run_test_epoch(serialization_save_dir: str, ckpt_fpath: str, model: nn.Modul
                 fp0=fp0,
                 fp1=fp1,
                 fp2=fp2,
-                fp3=fp3
+                fp3=fp3,
             )
 
         _, accs, _, avg_mAcc, _ = sam.get_metrics()
-        print(f"{split} result: mAcc{avg_mAcc:.4f}", "Cls Accuracies:", [ float(f"{acc:.2f}") for acc in accs ])
+        print(f"{split} result: mAcc{avg_mAcc:.4f}", "Cls Accuracies:", [float(f"{acc:.2f}") for acc in accs])
 
         # check recall and precision
         # treat correctly aligned as a `positive`
@@ -113,28 +107,27 @@ def run_test_epoch(serialization_save_dir: str, ckpt_fpath: str, model: nn.Modul
 
 
 class PrecisionRecallMeter:
-
     def __init__(self) -> None:
         """ """
-        self.all_y_true = np.zeros((0,1))
-        self.all_y_hat = np.zeros((0,1))
+        self.all_y_true = np.zeros((0, 1))
+        self.all_y_hat = np.zeros((0, 1))
 
     def update(self, y_true: np.ndarray, y_hat: np.ndarray) -> None:
         """ """
-        y_true = y_true.reshape(-1,1)
-        y_hat = y_hat.reshape(-1,1)
+        y_true = y_true.reshape(-1, 1)
+        y_hat = y_hat.reshape(-1, 1)
 
         self.all_y_true = np.vstack([self.all_y_true, y_true])
         self.all_y_hat = np.vstack([self.all_y_hat, y_hat])
 
-    def get_metrics(self) -> Tuple[float,float,float]:
+    def get_metrics(self) -> Tuple[float, float, float]:
         """ """
         prec, rec, mAcc = compute_precision_recall(y_true=self.all_y_true, y_pred=self.all_y_hat)
         return prec, rec, mAcc
 
 
 def save_edge_classifications_to_disk(
-    serialization_save_dir: str, 
+    serialization_save_dir: str,
     batch_idx: int,
     y_hat: torch.Tensor,
     y_true: torch.Tensor,
@@ -147,20 +140,29 @@ def save_edge_classifications_to_disk(
     """ """
     n = y_hat.shape[0]
     save_dict = {
-        'y_hat': y_hat.cpu().numpy().tolist(),
-        'y_true': y_true.cpu().numpy().tolist(),
-        'y_hat_probs': probs[torch.arange(n), y_hat].cpu().numpy().tolist(),
-        'fp0': fp0,
-        'fp1': fp1,
-        'fp2': fp2,
-        'fp3': fp3,
+        "y_hat": y_hat.cpu().numpy().tolist(),
+        "y_true": y_true.cpu().numpy().tolist(),
+        "y_hat_probs": probs[torch.arange(n), y_hat].cpu().numpy().tolist(),
+        "fp0": fp0,
+        "fp1": fp1,
+        "fp2": fp2,
+        "fp3": fp3,
     }
     os.makedirs(serialization_save_dir, exist_ok=True)
-    save_json_dict(f'{serialization_save_dir}/batch_{batch_idx}.json', save_dict)
+    save_json_dict(f"{serialization_save_dir}/batch_{batch_idx}.json", save_dict)
 
 
-
-def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor, x4: torch.Tensor, **kwargs) -> None:
+def visualize_examples(
+    ckpt_fpath: str,
+    batch_idx: int,
+    split: str,
+    args,
+    x1: torch.Tensor,
+    x2: torch.Tensor,
+    x3: torch.Tensor,
+    x4: torch.Tensor,
+    **kwargs,
+) -> None:
     """ """
     vis_save_dir = f"{Path(ckpt_fpath).parent}/{split}_examples_2021_07_13"
 
@@ -172,26 +174,26 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
     fp1 = kwargs["fp1"]
     fp2 = kwargs["fp2"]
     fp3 = kwargs["fp3"]
-    
+
     n, _, h, w = x1.shape
 
     for j in range(n):
 
         mean, std = get_imagenet_mean_std()
 
-        fig = plt.figure(figsize=(10,5))
-        #gs1 = gridspec.GridSpec(ncols=2, nrows=2)
-        #gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
+        fig = plt.figure(figsize=(10, 5))
+        # gs1 = gridspec.GridSpec(ncols=2, nrows=2)
+        # gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes.
         mean, std = get_imagenet_mean_std()
 
-        for i, x in zip(range(4), [x1,x2,x3,x4]):
+        for i, x in zip(range(4), [x1, x2, x3, x4]):
             unnormalize_img(x[j], mean, std)
 
-            #ax = plt.subplot(gs1[i])
-            plt.subplot(2,2,i+1)
-            plt.imshow(x[j].cpu().numpy().transpose(1,2,0).astype(np.uint8))
+            # ax = plt.subplot(gs1[i])
+            plt.subplot(2, 2, i + 1)
+            plt.imshow(x[j].cpu().numpy().transpose(1, 2, 0).astype(np.uint8))
 
-        #plt.title("Is match" + str(y_true[j].cpu().numpy().item()))
+        # plt.title("Is match" + str(y_true[j].cpu().numpy().item()))
 
         # print(fp0[j])
         # print(fp1[j])
@@ -207,13 +209,12 @@ def visualize_examples(ckpt_fpath: str, batch_idx: int, split: str, args, x1: to
         plt.suptitle(title)
         fig.tight_layout()
 
-        
         building_id = Path(fp0[j]).parent.stem
 
         check_mkdir(vis_save_dir)
         plt.savefig(f"{vis_save_dir}/building_{building_id}__{Path(fp0[j]).stem}.jpg", dpi=500)
 
-        #plt.show()
+        # plt.show()
         plt.close("all")
 
 
@@ -240,24 +241,24 @@ def plot_metrics(json_fpath: str) -> None:
     json_data = read_json_file(json_fpath)
 
     fig = plt.figure(dpi=200, facecolor="white")
-    plt.style.use('ggplot')
-    sns.set_style({'font_famiily': 'Times New Roman'})
+    plt.style.use("ggplot")
+    sns.set_style({"font_famiily": "Times New Roman"})
 
     num_rows = 1
-    metrics = ['avg_loss', 'mAcc']
+    metrics = ["avg_loss", "mAcc"]
     num_cols = 2
 
-    color_dict = {'train': 'r', 'val': 'g'}
+    color_dict = {"train": "r", "val": "g"}
 
     for i, metric_name in enumerate(metrics):
 
-        subplot_id = int(f'{num_rows}{num_cols}{i+1}')
+        subplot_id = int(f"{num_rows}{num_cols}{i+1}")
         fig.add_subplot(subplot_id)
 
-        for split in ['train', 'val']:
+        for split in ["train", "val"]:
             color = color_dict[split]
 
-            metric_vals = json_data[f'{split}_{metric_name}']
+            metric_vals = json_data[f"{split}_{metric_name}"]
             plt.plot(range(len(metric_vals)), metric_vals, color, label=split)
 
         plt.ylabel(metric_name)
@@ -277,20 +278,20 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = opts.gpu_ids
 
     # ResNet-18, floor and ceiling, RGB-only
-    #model_results_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
-    #model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
+    # model_results_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
+    # model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
 
     # ResNet-50, floor and ceiling, RGB-only
     model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26"
 
     # model_results_dir should have only these 3 files within it
-    #config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
+    # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
     ckpt_fpath = glob.glob(f"{model_results_dir}/*.pth")[0]
     train_results_fpath = glob.glob(f"{model_results_dir}/*.json")[0]
 
     config_fpath = "afp/configs/2021_07_15_resnet50_ceiling_floor_rgbonly_test_set_inference.yaml"
 
-    #plot_metrics(json_fpath=train_results_fpath)
+    # plot_metrics(json_fpath=train_results_fpath)
 
     config_name = Path(config_fpath).name
 
@@ -312,7 +313,7 @@ if __name__ == "__main__":
     evaluate_model(serialization_save_dir, ckpt_fpath, args, split, save_viz)
 
     train_results_json = read_json_file(train_results_fpath)
-    val_mAccs = train_results_json['val_mAcc']
+    val_mAccs = train_results_json["val_mAcc"]
     print("Val accs: ", val_mAccs)
     print("Num epochs trained", len(val_mAccs))
     print("Max val mAcc", max(val_mAccs))
@@ -322,5 +323,3 @@ if __name__ == "__main__":
     # #test_compute_precision_recall_3()
     # test_compute_precision_recall_4()
     # quit()
-
-
