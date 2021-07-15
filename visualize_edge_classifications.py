@@ -21,6 +21,8 @@ class EdgeClassification(NamedTuple):
 	y_hat: int
 	y_true: int
 	pair_idx: int
+	wdo_pair_uuid: str
+	configuration: str
 
 
 def get_edge_classifications_from_serialized_preds(serialized_preds_json_dir: str) -> Dict[Tuple[str,str], List[EdgeClassification]]:
@@ -57,7 +59,27 @@ def get_edge_classifications_from_serialized_preds(serialized_preds_json_dir: st
 
 			pair_idx = Path(fp0).stem.split('_')[1]
 
-			floor_edgeclassifications_dict[(building_id, floor_id)] += [EdgeClassification(i1, i2, y_hat_prob, y_hat, y_true, pair_idx)]
+			is_identity = "identity" in Path(fp0).stem
+			configuration = "identity" if is_identity else "rotated"
+
+			k = Path(fp0).stem.split('___')[1].find(f'_{configuration}')
+			assert k != -1
+
+			wdo_pair_uuid = Path(fp0).stem.split('___')[1][:k]
+			assert any([wdo_type in wdo_pair_uuid for wdo_type in ['door', 'window', 'opening']])
+
+			floor_edgeclassifications_dict[(building_id, floor_id)] += [
+				EdgeClassification(
+					i1=i1,
+					i2=i2,
+					prob=y_hat_prob,
+					y_hat=y_hat,
+					y_true=y_true,
+					pair_idx=pair_idx,
+					wdo_pair_uuid=wdo_pair_uuid,
+					configuration=configuration
+				)
+			]
 	return floor_edgeclassifications_dict
 
 
@@ -117,7 +139,7 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
 
 
 
-def run_incremental_reconstruction(serialized_preds_json_dir: str, raw_dataset_dir: str):
+def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str):
 	""" """
 	floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
@@ -127,21 +149,36 @@ def run_incremental_reconstruction(serialized_preds_json_dir: str, raw_dataset_d
 
 		print(f"On building {building_id}, {floor_id}")
 
-		# find all of the predictions where pred class is 1
+		for m in measurements:
+			# find all of the predictions where pred class is 1
+			if m.y_hat != 1:
+				continue
 
-		#look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
+			import pdb; pdb.set_trace()
+
+			#look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
+			label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
+			fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json")
+			assert len(fpaths) == 1
+			i2Ti1 = Sim2.from_json(fpaths[0])
+
+			
 
 
 if __name__ == "__main__":
 	""" """
 	#serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
-	serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
+	#serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
+	serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
 
 	raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 	#raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-	vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
+	#vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
 
-	#run_incremental_reconstruction(serialized_preds_json_dir, raw_dataset_dir)
+	hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+
+
+	run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
 
 
 
