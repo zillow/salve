@@ -120,6 +120,7 @@ def render_building_floor_pairs(
 
     for label_type in ["gt_alignment_approx", "incorrect_alignment"]:  # "gt_alignment_exact"
         pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
+        pairs.sort()
 
         for pair_idx, pair_fpath in enumerate(pairs):
 
