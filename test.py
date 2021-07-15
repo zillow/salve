@@ -31,7 +31,7 @@ from pr_utils import compute_precision_recall
 logger = get_logger()
 
 
-def run_test_epoch(ckpt_fpath: str, model: nn.Module, data_loader, split: str, save_viz: bool) -> Dict[str,Any]:
+def run_test_epoch(serialization_save_dir: str, ckpt_fpath: str, model: nn.Module, data_loader, split: str, save_viz: bool) -> Dict[str,Any]:
     """ """
     pr_meter = PrecisionRecallMeter()
     sam = SegmentationAverageMeter()
@@ -85,10 +85,11 @@ def run_test_epoch(ckpt_fpath: str, model: nn.Module, data_loader, split: str, s
                 fp2=fp2,
                 fp3=fp3
             )
-        
+
         serialize_predictions = True
         if serialize_predictions:
             save_edge_classifications_to_disk(
+                serialization_save_dir,
                 batch_idx=i,
                 y_hat=y_hat,
                 y_true=gt_is_match,
@@ -133,6 +134,7 @@ class PrecisionRecallMeter:
 
 
 def save_edge_classifications_to_disk(
+    serialization_save_dir: str, 
     batch_idx: int,
     y_hat: torch.Tensor,
     y_true: torch.Tensor,
@@ -153,9 +155,8 @@ def save_edge_classifications_to_disk(
         'fp2': fp2,
         'fp3': fp3,
     }
-    save_dir = "2021_07_13_edge_classifications_fixed_argmax_bug"
-    os.makedirs(save_dir, exist_ok=True)
-    save_json_dict(f'{save_dir}/batch_{batch_idx}.json', save_dict)
+    os.makedirs(serialization_save_dir, exist_ok=True)
+    save_json_dict(f'{serialization_save_dir}/batch_{batch_idx}.json', save_dict)
 
 
 
@@ -220,7 +221,7 @@ def check_mkdir(dirpath: str) -> None:
     os.makedirs(dirpath, exist_ok=True)
 
 
-def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
+def evaluate_model(serialization_save_dir: str, ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
     """ """
     cudnn.benchmark = True
 
@@ -231,7 +232,7 @@ def evaluate_model(ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
     model.eval()
 
     with torch.no_grad():
-        metrics_dict = run_test_epoch(ckpt_fpath, model, data_loader, split, save_viz)
+        metrics_dict = run_test_epoch(serialization_save_dir, ckpt_fpath, model, data_loader, split, save_viz)
 
 
 def plot_metrics(json_fpath: str) -> None:
@@ -304,9 +305,11 @@ if __name__ == "__main__":
     args.batch_size = 128
     args.workers = 16
 
+    serialization_save_dir = "2021_07_15_serialized_edge_classifications"
+
     split = "val"
     save_viz = False
-    evaluate_model(ckpt_fpath, args, split, save_viz)
+    evaluate_model(serialization_save_dir, ckpt_fpath, args, split, save_viz)
 
     train_results_json = read_json_file(train_results_fpath)
     val_mAccs = train_results_json['val_mAcc']
