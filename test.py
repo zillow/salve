@@ -85,8 +85,8 @@ def run_test_epoch(ckpt_fpath: str, model: nn.Module, data_loader, split: str, s
                 fp2=fp2,
                 fp3=fp3
             )
-
-        serialize_predictions = False
+        
+        serialize_predictions = True
         if serialize_predictions:
             save_edge_classifications_to_disk(
                 batch_idx=i,
@@ -283,9 +283,11 @@ if __name__ == "__main__":
     model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26"
 
     # model_results_dir should have only these 3 files within it
-    config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
+    #config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
     ckpt_fpath = glob.glob(f"{model_results_dir}/*.pth")[0]
     train_results_fpath = glob.glob(f"{model_results_dir}/*.json")[0]
+
+    config_fpath = "afp/configs/2021_07_15_resnet50_ceiling_floor_rgbonly_test_set_inference.yaml"
 
     #plot_metrics(json_fpath=train_results_fpath)
 
@@ -303,7 +305,7 @@ if __name__ == "__main__":
     args.workers = 16
 
     split = "val"
-    save_viz = True
+    save_viz = False
     evaluate_model(ckpt_fpath, args, split, save_viz)
 
     train_results_json = read_json_file(train_results_fpath)
@@ -311,8 +313,6 @@ if __name__ == "__main__":
     print("Val accs: ", val_mAccs)
     print("Num epochs trained", len(val_mAccs))
     print("Max val mAcc", max(val_mAccs))
-
-
 
     # test_compute_precision_recall_1()
     # test_compute_precision_recall_2()
