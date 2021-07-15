@@ -9,19 +9,20 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
+import gtsfm.utils.logger as logger_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Rot3, Unit3
+from argoverse.utils.sim2 import Sim2
+from gtsam import Pose2, Rot2, Rot3, Unit3 
 from scipy.spatial.transform import Rotation
 
-import gtsfm.utils.logger as logger_utils
-
 from pr_utils import compute_precision_recall
+from rotation_utils import rotmat2d, rotmat2theta_deg
 
 logger = logger_utils.get_logger()
 
 
-CYCLE_ERROR_THRESHOLD = 5.0 # 2.5 # 1.0 # 0.3
+ROT_CYCLE_ERROR_THRESHOLD = 5.0 # 2.5 # 1.0 # 0.3
 
 
 @dataclass(frozen=False)
@@ -77,18 +78,6 @@ def extract_triplets_adjacency_list_intersection(i2Ri1_dict: Dict[Tuple[int, int
             triplets.add(cycle_nodes)
 
     return list(triplets)
-
-
-def rotmat2theta_deg(R) -> float:
-    """Recover the rotation angle `theta` (in degrees) from the 2d rotation matrix.
-    Note: the first column of the rotation matrix R provides sine and cosine of theta,
-        since R is encoded as [c,-s]
-                              [s, c]
-    We use the following identity: tan(theta) = s/c = (opp/hyp) / (adj/hyp) = opp/adj
-    """
-    c, s = R[0, 0], R[1, 0]
-    theta_rad = np.arctan2(s, c)
-    return float(np.rad2deg(theta_rad))
 
 
 def compute_cycle_error(
@@ -163,7 +152,7 @@ def compute_cycle_error(
     return cycle_error, max_rot_error, max_trans_error
 
 
-def filter_to_cycle_consistent_edges(
+def filter_to_rotation_cycle_consistent_edges(
     i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
     i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
@@ -215,7 +204,7 @@ def filter_to_cycle_consistent_edges(
             i2Ri1_dict, [i0, i1, i2], two_view_reports_dict, verbose=False
         )
 
-        if cycle_error < CYCLE_ERROR_THRESHOLD:
+        if cycle_error < ROT_CYCLE_ERROR_THRESHOLD:
 
             cycle_consistent_keys.add((i0, i1))
             cycle_consistent_keys.add((i1, i2))
@@ -251,15 +240,135 @@ def filter_to_cycle_consistent_edges(
 
 
 
-def filter_to_translation_cycle_consistent_edges(i2Ri1_dict, i2ti1_dict):
+def filter_to_translation_cycle_consistent_edges(wRi_list: List[np.ndarray], i2Si1_dict: Dict[Tuple[int,int], Sim2], translation_cycle_thresh: 0.5) -> Dict[Tuple[int,int], Sim2]:
+    """
+    """
+    cycle_errors = []
+    n_valid_edges = len([i2Si1 for (i1, i2), i2Si1 in i2Si1_dict.items() if i2Si1 is not None])
+
+    cycle_consistent_keys = set()
+    triplets = extract_triplets_adjacency_list_intersection(i2Si1_dict)
+
+    for (i0, i1, i2) in triplets:
+        cycle_error = compute_translation_cycle_error(wRi_list, i2Si1_dict, cycle_nodes=(i0, i1, i2), verbose=False)
+
+        if cycle_error < translation_cycle_thresh:
+
+            cycle_consistent_keys.add((i0, i1))
+            cycle_consistent_keys.add((i1, i2))
+            cycle_consistent_keys.add((i0, i2))
+
+        cycle_errors.append(cycle_error)
+        # max_rot_errors.append(max_rot_error)
+        # max_trans_errors.append(max_trans_error)
+
+    # if visualize:
+    #     plt.scatter(cycle_errors, max_rot_errors)
+    #     plt.xlabel("Cycle error")
+    #     plt.ylabel("Avg. Rot3 error over cycle triplet")
+    #     plt.savefig(os.path.join("plots", "cycle_error_vs_GT_rot_error.jpg"), dpi=200)
+
+    #     plt.scatter(cycle_errors, max_trans_errors)
+    #     plt.xlabel("Cycle error")
+    #     plt.ylabel("Avg. Unit3 error over cycle triplet")
+    #     plt.savefig(os.path.join("plots", "cycle_error_vs_GT_trans_error.jpg"), dpi=200)
+
+    #logger.info("cycle_consistent_keys: " + str(cycle_consistent_keys))
+
+    i2Si1_dict_consistent = {}
+    for (i1, i2) in cycle_consistent_keys:
+        i2Si1_dict_consistent[(i1, i2)] = i2Si1_dict[(i1, i2)]
+
+    num_consistent_rotations = len(i2Si1_dict_consistent)
+    logger.info("Found %d consistent rel. rotations from %d original edges.", num_consistent_rotations, n_valid_edges)
+    return i2Si1_dict_consistent
+
+
+def compute_translation_cycle_error(wRi_list: List[np.ndarray], i2Si1_dict: Dict[Tuple[int,int], Sim2], cycle_nodes: Tuple[int,int,int], verbose: bool) -> float:
     """ """
+    cycle_nodes = list(cycle_nodes)
+    cycle_nodes.sort()
 
-    # 
+    i0, i1, i2 = cycle_nodes
+
+    # translations must be in the world frame to make sense
+    i1ti0 = wRi_list[1] @ i2Si1_dict[(i0, i1)].translation
+    i2ti1 = wRi_list[2] @ i2Si1_dict[(i1, i2)].translation
+    i0ti2 = wRi_list[0] @ i2Si1_dict[(i0, i2)].inverse().translation
+
+    # should add to zero translation, with ideal measurements
+    i0ti0 = i0ti2 + i2ti1 + i1ti0
+
+    cycle_error = np.linalg.norm(i0ti0)
+    if verbose:
+        logger.info(f"Cycle {i0}->{i1}->{i2} had cycle error {cycle_error:.2f}")
+    return cycle_error
 
 
-    return i2Ri1_dict_consistent, i2ti1_dict_consistent
+def test_compute_translation_cycle_error() -> None:
+    """ """
+    wTi_list = [
+        Pose2(Rot2.fromDegrees(0), np.array([0,0])),
+        Pose2(Rot2.fromDegrees(90), np.array([0,4])),
+        Pose2(Rot2.fromDegrees(0), np.array([4,0])),
+        Pose2(Rot2.fromDegrees(0), np.array([8,0]))
+    ]
+    wRi_list = [wTi.rotation().matrix() for wTi in wTi_list]
+
+    i2Si1_dict = {
+        (0,1): Sim2(R=rotmat2d(-90), t=np.array([-4, 0]),    s=1.0),
+        (1,2): Sim2(R=rotmat2d(90),  t=np.array([-4,4]),     s=1.0),
+        (0,2): Sim2(R=np.eye(2),     t=np.array([-4,0]),     s=1.0),
+        (1,3): Sim2(R=-rotmat2d(90), t=np.array([-8.2,4]),   s=1.0), # add 0.2 noise
+        (0,3): Sim2(R=np.eye(2),     t=np.array([-8, -0.2]), s=1.0) # add 0.2 noise
+    }
+
+    cycle_nodes = (0,1,2)
+    cycle_error = compute_translation_cycle_error(wRi_list, i2Si1_dict, cycle_nodes=cycle_nodes, verbose=True)
+    # should be approximately zero error on this triplet
+    assert np.isclose(cycle_error, 0.0, atol=1e-4)
+
+    cycle_nodes = (0,1,3)
+    cycle_error = compute_translation_cycle_error(wRi_list, i2Si1_dict, cycle_nodes=cycle_nodes, verbose=True)
+    expected_cycle_error = np.sqrt(0.2**2 + 0.2**2)
+    assert np.isclose(cycle_error, expected_cycle_error)
 
 
+def test_filter_to_translation_cycle_consistent_edges() -> None:
+    """
+    GT pose graph:
+
+          | pano 1 = (0,4)
+        --o .
+          | .    .
+          .    .     .
+          .       .       .
+          |         |         . |
+          o--  ...  o--  ...    o---
+    pano 0     pano 2 = (4,0)  pano 3 = (8,0)
+      (0,0)
+    """
+    wTi_list = [
+        Pose2(Rot2.fromDegrees(0), np.array([0,0])),
+        Pose2(Rot2.fromDegrees(90), np.array([0,4])),
+        Pose2(Rot2.fromDegrees(0), np.array([4,0])),
+        Pose2(Rot2.fromDegrees(0), np.array([8,0]))
+    ]
+    wRi_list = [wTi.rotation().matrix() for wTi in wTi_list]
+
+    i2Si1_dict = {
+        (0,1): Sim2(R=rotmat2d(-90), t=np.array([-4.6, 0]),  s=1.0), # add 0.6 noise
+        (1,2): Sim2(R=rotmat2d(90),  t=np.array([-4,4]),     s=1.0),
+        (0,2): Sim2(R=np.eye(2),     t=np.array([-4,0]),     s=1.0),
+        (1,3): Sim2(R=-rotmat2d(90), t=np.array([-8.2,4]),   s=1.0), # add 0.2 noise
+        (0,3): Sim2(R=np.eye(2),     t=np.array([-8, -0.2]), s=1.0) # add 0.2 noise
+    }
+
+    # with a 0.5 meter thresh
+    i2Si1_cycle_consistent = filter_to_translation_cycle_consistent_edges(wRi_list, i2Si1_dict, translation_cycle_thresh=0.5)
+
+    # one triplet was too noisy, and is filtered out.
+    assert set(list(i2Si1_cycle_consistent.keys())) == { (0, 1), (0, 3), (1, 3) }
 
 
 def estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict) -> float:
@@ -318,13 +427,16 @@ def test_estimate_rot_cycle_filtering_classification_acc() -> None:
         (1,2): i2Ri1,
         (3,4): i2Ri1,
     }
-    acc = estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict)
+    prec, rec, mAcc = estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict)
     # 1 / 2 false positives are discarded -> 0.5 for class 0
     # 2 / 3 true positives were kept -> 0.67 for class 1
-    assert acc == np.mean(np.array([1/2, 2/3]))
+    expected_mAcc = np.mean(np.array([1/2, 2/3]))
+    assert np.isclose(mAcc, expected_mAcc, atol=1e-4)
 
 
 if __name__ == '__main__':
-    test_estimate_rot_cycle_filtering_classification_acc()
+    #test_estimate_rot_cycle_filtering_classification_acc()
+
+    test_filter_to_translation_cycle_consistent_edges()
 
 
