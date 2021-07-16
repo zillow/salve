@@ -7,16 +7,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 
+import cycle_consistency as cycle_utils
+import rotation_averaging
+from cycle_consistency import TwoViewEstimationReport
 from posegraph2d import PoseGraph2d, get_gt_pose_graph
 from pr_utils import assign_tp_fp_fn_tn
-import cycle_consistency as cycle_utils
-from cycle_consistency import TwoViewEstimationReport
-import rotation_averaging
 from rotation_utils import rotmat2d, wrap_angle_deg, rotmat2theta_deg
+from spanning_tree import greedily_construct_st_Sim2
 
 
 @dataclass(frozen=False)
@@ -152,23 +154,31 @@ def run_incremental_reconstruction(
     """ """
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
-    i2Si1_dict = {}
-    i2Ri1_dict = {}
-    i2Ui1_dict = {}
-    two_view_reports_dict = {}
-
     # loop over each building and floor
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-        from posegraph2d import get_gt_pose_graph
+        i2Si1_dict = {}
+        i2Ri1_dict = {}
+        i2Ui1_dict = {}
+        two_view_reports_dict = {}
+
+        if not (building_id == '1635' and floor_id == 'floor_01'):
+            continue
 
         gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
-
         print(f"On building {building_id}, {floor_id}")
+
+        num_gt_positives = 0
+        num_gt_negatives = 0
 
         gt_edges = []
         for m in measurements:
+
+            if m.y_true == 1:
+                num_gt_positives += 1
+            else:
+                num_gt_negatives += 1
 
             # TODO: remove this debugging condition
             # if m.y_true != 1:
@@ -202,6 +212,8 @@ def run_incremental_reconstruction(
             i2Si1 = Sim2.from_json(fpaths[0])
 
             # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
+            # use model confidence
+            # CHECK WEIRD IMBALANCE RATE
 
             i2Si1_dict[(m.i1, m.i2)] = i2Si1
 
@@ -217,77 +229,103 @@ def run_incremental_reconstruction(
             if m.y_true == 1:
                 gt_edges.append((m.i1, m.i2))
 
+        class_imbalance_ratio = num_gt_negatives / num_gt_positives
+        print(f"\tClass imbalance ratio {class_imbalance_ratio:.2f}")
+
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
-        print(f"Unfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
+        print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
 
-        i2Ri1_dict_consistent, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
-            i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
-        )
 
-        filtered_edge_acc = get_edge_accuracy(
-            edges=i2Ri1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
-        )
-        print(f"Filtered by rot cycles Edge Acc = {filtered_edge_acc:.2f}")
+        build_filtered_spanning_tree(building_id, floor_id, i2Si1_dict, i2Ri1_dict, i2Ui1_dict, gt_edges, two_view_reports_dict, gt_floor_pose_graph)
 
-        # # could count how many nodes or edges never appeared in any triplet
-        # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
-        # dropped_edges = set(i2Ri1_dict.keys()) - set(i2Ri1_dict_consistent.keys())
-        # print("Dropped ")
 
-        wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict_consistent)
-        # TODO: measure the error in rotations
+def build_filtered_spanning_tree(building_id: str, floor_id: str, i2Si1_dict: Dict[Tuple[int,int],Sim2], i2Ri1_dict: Dict[Tuple[int,int],np.ndarray], i2Ui1_dict: Dict[Tuple[int,int],np.ndarray], gt_edges, two_view_reports_dict: Dict[Tuple[int,int], TwoViewEstimationReport], gt_floor_pose_graph: PoseGraph2d) -> None:
+    """ """
 
-        i2Ri1_dict = filter_measurements_to_absolute_rotations(wRi_list, i2Ri1_dict, max_allowed_deviation=5)
+    i2Ri1_dict, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
+        i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
+    )
 
-        consistent_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
-        print(f"Filtered relative by abs. rotation deviation Edge Acc = {consistent_edge_acc:.2f}")
+    filtered_edge_acc = get_edge_accuracy(
+        edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict
+    )
+    print(f"\tFiltered by rot cycles Edge Acc = {filtered_edge_acc:.2f}")
 
-        est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
-        mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
-            gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=True
-        )
-        print(f"Mean relative rotation error {mean_rel_rot_err:.2f} deg.")
+    # # could count how many nodes or edges never appeared in any triplet
+    # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
+    # dropped_edges = set(i2Ri1_dict.keys()) - set(i2Ri1_dict_consistent.keys())
+    # print("Dropped ")
 
-        # filter to rotations that are consistent with global
+    wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict)
+    # TODO: measure the error in rotations
 
-        i2Si1_dict_consistent = cycle_utils.filter_to_translation_cycle_consistent_edges(
-            wRi_list, i2Si1_dict, translation_cycle_thresh=0.5, two_view_reports_dict=two_view_reports_dict
-        )
-        filtered_edge_acc = get_edge_accuracy(
-            edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
-        )
-        print(f"Filtered by trans. cycle Edge Acc = {filtered_edge_acc:.2f}")
+    # filter to rotations that are consistent with global
+    i2Ri1_dict = filter_measurements_to_absolute_rotations(wRi_list, i2Ri1_dict, max_allowed_deviation=5, two_view_reports_dict=two_view_reports_dict)
 
-        from spanning_tree import greedily_construct_st_Sim2
+    consistent_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
+    print(f"\tFiltered relative by abs. rotation deviation Edge Acc = {consistent_edge_acc:.2f}")
 
-        wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent)
+    est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
+    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
+        gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=False
+    )
+    print(f"\tMean relative rotation error {mean_rel_rot_err:.2f} deg.")
 
-        # try spanning tree version, vs. Shonan version
-        # wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list ]
-        wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
+    # remove the edges that we deem to be outliers
+    outlier_edges = set(i2Si1_dict.keys()) - set(i2Ri1_dict.keys())
+    for outlier_edge in outlier_edges:
+        del i2Si1_dict[outlier_edge]
 
-        import pdb
+    i2Si1_dict_consistent = cycle_utils.filter_to_translation_cycle_consistent_edges(
+        wRi_list, i2Si1_dict, translation_cycle_thresh=0.25, two_view_reports_dict=two_view_reports_dict
+    )
+    filtered_edge_acc = get_edge_accuracy(
+        edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
+    )
+    print(f"\tFiltered by trans. cycle Edge Acc = {filtered_edge_acc:.2f}")
 
-        pdb.set_trace()
+    print([two_view_reports_dict[(i1,i2)].gt_class for (i1,i2) in i2Si1_dict_consistent.keys() ])
+    import pdb; pdb.set_trace()
 
-        est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
-            wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
-        )
+    wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
 
-        mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(
-            gt_floor_pg=gt_floor_pose_graph
-        )
-        print(f"Avg translation error: {mean_abs_trans_err}")
-        est_floor_pose_graph.render_estimated_layout()
+    num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
+    num_floor_panos = len(gt_floor_pose_graph.nodes)
+    print(f"Localized {num_localized_panos/num_floor_panos*100:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
+
+    if wSi_list is None:
+        print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
+        return
+
+    # TODO: try spanning tree version, vs. Shonan version
+    wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list ]
+    wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
+
+    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
+        wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
+    )
+
+    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(
+        gt_floor_pg=gt_floor_pose_graph
+    )
+    print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
+    est_floor_pose_graph.render_estimated_layout()
+
+
 
 
 def filter_measurements_to_absolute_rotations(
     wRi_list: List[Optional[np.ndarray]],
     i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
     max_allowed_deviation: float = 5,
-    verbose: bool = True,
+    verbose: bool = False,
+    two_view_reports_dict = None
 ) -> Dict[Tuple[int, int], np.ndarray]:
     """ """
+
+    deviations = []
+    is_gt_edge = []
+
     edges = i2Ri1_dict.keys()
 
     i2Ri1_dict_consistent = {}
@@ -315,8 +353,34 @@ def filter_measurements_to_absolute_rotations(
         if err < max_allowed_deviation:
             i2Ri1_dict_consistent[(i1, i2)] = i2Ri1_measured
 
-    print(f"Found that {len(i2Ri1_dict_consistent)} of {len(i2Ri1_dict)} rotations were consistent")
+        if two_view_reports_dict is not None:
+            is_gt_edge.append(two_view_reports_dict[(i1,i2)].gt_class)
+            deviations.append(err)
 
+    if two_view_reports_dict is not None:
+        deviations = np.array(deviations)
+        is_gt_edge = np.array(is_gt_edge)
+        misclassified_errs = deviations[ is_gt_edge == 0 ]
+        plt.figure(figsize=(16,5))
+        plt.subplot(1,2,1)
+        plt.hist(misclassified_errs, bins=30)
+        plt.ylabel("Counts")
+        plt.xlabel("Deviation from measurement (degrees)")
+        plt.title("False Positive Edge")
+        plt.ylim(0, deviations.size)
+        plt.xlim(0, 180)
+
+        correct_classified_errs = deviations[ is_gt_edge == 1 ]
+        plt.subplot(1,2,2)
+        plt.hist(correct_classified_errs, bins=30)
+        plt.title("GT edge")
+        plt.ylim(0, deviations.size)
+        plt.xlim(0, 180)
+
+        plt.suptitle("Filtering rot avg result to be consistent with measurements")
+        plt.show()
+            
+    print(f"\tFound that {len(i2Ri1_dict_consistent)} of {len(i2Ri1_dict)} rotations were consistent w/ global rotations")
     return i2Ri1_dict_consistent
 
 
@@ -343,7 +407,7 @@ if __name__ == "__main__":
 
     raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
+    #vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
 
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
