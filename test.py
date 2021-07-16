@@ -100,7 +100,7 @@ def run_test_epoch(
         # check recall and precision
         # treat correctly aligned as a `positive`
         prec, rec, mAcc = pr_meter.get_metrics()
-        print(f"Prec {prec:.2f}, Rec {rec:.2f}, mAcc {mAcc:.2f}")
+        print(f"Iter {i}/{len(data_loader)} Prec {prec:.2f}, Rec {rec:.2f}, mAcc {mAcc:.2f}")
 
     metrics_dict = {}
     return metrics_dict
