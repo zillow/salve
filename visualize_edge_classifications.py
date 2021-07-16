@@ -152,6 +152,9 @@ def run_incremental_reconstruction(
     hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
 ) -> None:
     """ """
+    method = "growing_consensus"
+    confidence_threshold = 0.95
+
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
     # loop over each building and floor
@@ -214,6 +217,9 @@ def run_incremental_reconstruction(
             if m.y_hat != 1:
                 continue
 
+            if m.prob < confidence_threshold:
+                continue
+
             # TODO: this should never happen bc sorted, figure out why it occurs
             if m.i1 >= m.i2:
                 i2 = m.i1
@@ -261,16 +267,47 @@ def run_incremental_reconstruction(
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
 
-        build_filtered_spanning_tree(
-            building_id,
-            floor_id,
-            i2Si1_dict,
-            i2Ri1_dict,
-            i2Ui1_dict,
-            gt_edges,
-            two_view_reports_dict,
-            gt_floor_pose_graph,
-        )
+        if method == "spanning_tree":
+            build_filtered_spanning_tree(
+                building_id,
+                floor_id,
+                i2Si1_dict,
+                i2Ri1_dict,
+                i2Ui1_dict,
+                gt_edges,
+                two_view_reports_dict,
+                gt_floor_pose_graph,
+            )
+
+        elif method == "growing_consensus":
+            growing_consensus(
+                building_id,
+                floor_id,
+                i2Si1_dict,
+                i2Ri1_dict,
+                i2Ui1_dict,
+                gt_edges,
+                two_view_reports_dict,
+                gt_floor_pose_graph,
+            )
+        else:
+            raise RuntimeError("Unknown method.")
+
+
+def growing_consensus(
+    building_id: str,
+    floor_id: str,
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
+    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
+    i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
+    gt_edges,
+    two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
+    gt_floor_pose_graph: PoseGraph2d,
+) -> None:
+    """ """
+    pass
+
+
 
 
 def build_filtered_spanning_tree(
@@ -298,6 +335,11 @@ def build_filtered_spanning_tree(
     # print("Dropped ")
 
     wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict)
+    if wRi_list is None:
+        print(f"Rotation averaging failed, because {len(i2Ri1_dict)} measurements provided.")
+        print()
+        print()
+        return
     # TODO: measure the error in rotations
 
     # filter to rotations that are consistent with global
@@ -335,6 +377,8 @@ def build_filtered_spanning_tree(
 
     if wSi_list is None:
         print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
+        print()
+        print()
         return
 
     num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
@@ -353,7 +397,10 @@ def build_filtered_spanning_tree(
 
     mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
     print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
-    est_floor_pose_graph.render_estimated_layout()
+    #est_floor_pose_graph.render_estimated_layout()
+
+    print()
+    print()
 
 
 def filter_measurements_to_absolute_rotations(
