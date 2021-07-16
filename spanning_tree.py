@@ -67,17 +67,20 @@ def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List
     return wRi_list
 
 
-def greedily_construct_st_Sim2(i2Si1_dict: Dict[Tuple[int, int], Sim2]) -> List[np.ndarray]:
+def greedily_construct_st_Sim2(i2Si1_dict: Dict[Tuple[int, int], Sim2], verbose: bool = True) -> Optional[List[np.ndarray]]:
     """Greedily assemble a spanning tree (not a minimum spanning tree).
 
     Args:
         i2Ri1_dict: relative rotations
 
     Returns:
-        wSi_list: global 2d Sim(2) transformations / posees
+        wSi_list: global 2d Sim(2) transformations / poses, or None if no edges
     """
     # find the largest connected component
     edges = i2Si1_dict.keys()
+
+    if len(edges) == 0:
+        return None
 
     num_nodes = max([max(i1, i2) for i1, i2 in edges]) + 1
 
@@ -97,6 +100,9 @@ def greedily_construct_st_Sim2(i2Si1_dict: Dict[Tuple[int, int], Sim2]) -> List[
 
         # determine the path to this node from the origin. ordered from [origin_node,...,dst_node]
         path = nx.shortest_path(G, source=origin_node, target=dst_node)
+
+        if verbose:
+            print(f"\tPath from {origin_node}->{dst_node}: {str(path)}")
 
         wSi = Sim2(R=np.eye(2),t=np.zeros(2), s=1.0)
         for (i1, i2) in zip(path[:-1], path[1:]):
