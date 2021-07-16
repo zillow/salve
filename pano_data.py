@@ -4,7 +4,7 @@ Transformation (R,t) followed by a reflection over the x-axis is equivalent to
 Transformation by (R^T,-t) followed by no reflection.
 """
 
-
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
@@ -21,7 +21,8 @@ BLUE = [0, 0, 1]
 wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
-class WDO(NamedTuple):
+@dataclass(frozen=False)
+class WDO:
     """define windows/doors/openings by left and right boundaries"""
     global_Sim2_local: Sim2
     pt1: Tuple[float,float] # (x1,y1)
