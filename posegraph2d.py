@@ -11,7 +11,7 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Rot3, Pose3
 
 from pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
-from vis_depth import rotmat2d
+from rotation_utils import rotmat2d, wrap_angle_deg
 
 
 REDTEXT = '\033[91m'
@@ -127,6 +127,11 @@ class PoseGraph2d(NamedTuple):
 
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph() # reference
         bTi_list_est = self.as_3d_pose_graph()
+
+        # if the estimate pose graph is missing a few nodes, pad it up to the GT list length
+        pad_len = len(aTi_list_gt) - len(bTi_list_est)
+        bTi_list_est.extend([None] * pad_len)
+
         # align the pose graphs
         aligned_bTi_list_est = align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
@@ -424,46 +429,6 @@ def test_measure_avg_rel_rotation_err_unestimated() -> None:
     gt_edges = [(0,1),(1,2),(0,2)]
     mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
     assert mean_rel_rot_err == 5.0
-
-
-def wrap_angle_deg(angle1: float, angle2: float):
-    """
-    https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
-    """
-    # mod n will wrap x to [0,n)
-    diff = (angle2 - angle1 + 180) % 360 - 180
-    if diff < -180:
-        return np.absolute(diff + 360)
-    else:
-        return np.absolute(diff)
-
-
-def test_wrap_angle_deg() -> None:
-    """ """
-    angle1 = 180
-    angle2 = -180
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 0
-
-    angle1 = -180
-    angle2 = 180
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 0
-
-    angle1 = -45
-    angle2 = -47
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 2
-
-    angle1 = 1
-    angle2 = -1
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 2
-
-    angle1 = 10
-    angle2 = 11.5
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 1.5
 
 
 def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_fpath: str) -> Dict[str, PoseGraph2d]:
