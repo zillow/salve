@@ -163,11 +163,37 @@ def run_incremental_reconstruction(
         i2Ui1_dict = {}
         two_view_reports_dict = {}
 
-        if not (building_id == "1635" and floor_id == "floor_01"):
-            continue
+        # if not (building_id == "1635" and floor_id == "floor_01"):
+        #     continue
 
         gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
+
+        visualize_confidence_histograms = False
+        if visualize_confidence_histograms:
+            probs = np.array([m.prob for m in measurements])
+            y_true_array = np.array([m.y_true for m in measurements])
+            y_hat_array = np.array([m.y_hat for m in measurements])
+            is_TP, is_FP, is_FN, is_TN = assign_tp_fp_fn_tn(y_true_array, y_hat_array)
+
+            plt.subplot(2,2,1)
+            plt.hist(probs[is_TP], bins=15)
+            plt.title("TP")
+
+            plt.subplot(2,2,2)
+            plt.hist(probs[is_FP], bins=15)
+            plt.title("FP")
+
+            plt.subplot(2,2,3)
+            plt.hist(probs[is_FN], bins=15)
+            plt.title("FN")
+
+            plt.subplot(2,2,4)
+            plt.hist(probs[is_TN], bins=15)
+            plt.title("TN")
+
+            plt.show()
+
 
         num_gt_positives = 0
         num_gt_negatives = 0
@@ -301,22 +327,21 @@ def build_filtered_spanning_tree(
     )
     print(f"\tFiltered by trans. cycle Edge Acc = {filtered_edge_acc:.2f}")
 
-    print([two_view_reports_dict[(i1, i2)].gt_class for (i1, i2) in i2Si1_dict_consistent.keys()])
-    import pdb
-
-    pdb.set_trace()
+    labels = np.array([two_view_reports_dict[(i1, i2)].gt_class for (i1, i2) in i2Si1_dict_consistent.keys()])
+    num_fps_for_st = (labels == 0).sum()
+    print(f"{num_fps_for_st} FPs were fed to spanning tree.")
 
     wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
+
+    if wSi_list is None:
+        print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
+        return
 
     num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
     num_floor_panos = len(gt_floor_pose_graph.nodes)
     print(
         f"Localized {num_localized_panos/num_floor_panos*100:.2f}% of panos: {num_localized_panos} / {num_floor_panos}"
     )
-
-    if wSi_list is None:
-        print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
-        return
 
     # TODO: try spanning tree version, vs. Shonan version
     wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
@@ -337,6 +362,7 @@ def filter_measurements_to_absolute_rotations(
     max_allowed_deviation: float = 5,
     verbose: bool = False,
     two_view_reports_dict=None,
+    visualize: bool = False
 ) -> Dict[Tuple[int, int], np.ndarray]:
     """ """
 
@@ -374,7 +400,7 @@ def filter_measurements_to_absolute_rotations(
             is_gt_edge.append(two_view_reports_dict[(i1, i2)].gt_class)
             deviations.append(err)
 
-    if two_view_reports_dict is not None:
+    if two_view_reports_dict is not None and visualize:
         deviations = np.array(deviations)
         is_gt_edge = np.array(is_gt_edge)
         misclassified_errs = deviations[is_gt_edge == 0]
