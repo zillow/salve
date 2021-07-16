@@ -52,7 +52,7 @@ def globalaveraging2d_consecutive_ordering(i2Ri1_dict: Dict[Tuple[int, int], np.
     return wRi_list
 
 
-def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[np.ndarray]:
+def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray], use_huber: bool = False) -> List[np.ndarray]:
     """
     Args:
 
@@ -67,8 +67,8 @@ def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int
 
     lm_params = LevenbergMarquardtParams.CeresDefaults()
     shonan_params = ShonanAveragingParameters2(lm_params)
-    shonan_params.setUseHuber(False)
-    shonan_params.setCertifyOptimality(True)
+    shonan_params.setUseHuber(use_huber)
+    shonan_params.setCertifyOptimality(not use_huber)
 
     noise_model = gtsam.noiseModel.Unit.Create(3)
     between_factors = gtsam.BetweenFactorPose2s()
@@ -85,8 +85,12 @@ def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int
     obj = ShonanAveraging2(between_factors, shonan_params)
     initial = obj.initializeRandomly()
 
-    pmin = 2
-    pmax = 100
+    if use_huber:
+        pmin = 2
+        pmax = 2
+    else:
+        pmin = 2
+        pmax = 100
     result_values, _ = obj.run(initial, min_p=pmin, max_p=pmax)
 
     wRi_list = [result_values.atRot2(i).matrix() for i in range(result_values.size())]
