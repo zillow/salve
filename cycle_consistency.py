@@ -7,7 +7,7 @@ Author: John Lambert
 import os
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import DefaultDict, Dict, List, Optional, Set, Tuple
 
 import gtsfm.utils.logger as logger_utils
 import matplotlib.pyplot as plt
@@ -34,7 +34,7 @@ class TwoViewEstimationReport:
 
 
 def extract_triplets(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tuple[int, int, int]]:
-    """Discover triplets from a graph, without O(n^3) complexity.
+    """Discover triplets from a graph, without O(n^3) complexity, by using intersection within adjacency lists.
 
     Based off of Theia's implementation:
         https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/math/graph/triplet_extractor.h
@@ -49,10 +49,46 @@ def extract_triplets(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tupl
     Returns:
         triplets: 3-tuples of nodes that form a cycle. Nodes of each triplet are provided in sorted order.
     """
+    adj_list = create_adjacency_list(i2Ri1_dict)
+
     # only want to keep the unique ones
     triplets = set()
 
-    # form adjacency list
+    # find intersections
+    for (i1, i2), i2Ri1 in i2Ri1_dict.items():
+        if i2Ri1 is None:
+            continue
+
+        if i1 >= i2:
+            raise RuntimeError("Graph edges (i1,i2) must be ordered with i1 < i2 in the image loader.")
+
+        nodes_from_i1 = adj_list[i1]
+        nodes_from_i2 = adj_list[i2]
+        node_intersection = (nodes_from_i1).intersection(nodes_from_i2)
+        for node in node_intersection:
+            cycle_nodes = tuple(sorted([i1, i2, node]))
+            if cycle_nodes not in triplets:
+                triplets.add(cycle_nodes)
+
+    return list(triplets)
+
+
+def create_adjacency_list(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> DefaultDict[int, Set[int]]:
+    """Create an adjacency-list representation of a **rotation** graph G=(V,E) when provided its edges E.
+
+    Note: this is specific to the rotation averaging use case, where some edges may be unestimated
+    (i.e. their relative rotation is None), in which case they are not incorporated into the graph.
+
+    In an adjacency list, the neighbors of each vertex may be listed efficiently, in time proportional to the
+    degree of the vertex. In an adjacency matrix, this operation takes time proportional to the number of
+    vertices in the graph, which may be significantly higher than the degree.
+
+    Args:
+        i2Ri1_dict: mapping from image pair indices to relative rotation.
+
+    Returns:
+        adj_list: adjacency list representation of the graph, mapping an image index to its neighbors
+    """
     adj_list = defaultdict(set)
 
     for (i1, i2), i2Ri1 in i2Ri1_dict.items():
@@ -62,21 +98,7 @@ def extract_triplets(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tupl
         adj_list[i1].add(i2)
         adj_list[i2].add(i1)
 
-    # find intersections
-    for (i1, i2), i2Ri1 in i2Ri1_dict.items():
-        if i2Ri1 is None:
-            continue
-
-        nodes_from_i1 = adj_list[i1]
-        nodes_from_i2 = adj_list[i2]
-
-        node_intersection = (nodes_from_i1).intersection(nodes_from_i2)
-
-        for node in node_intersection:
-            cycle_nodes = tuple(sorted([i1, i2, node]))
-            triplets.add(cycle_nodes)
-
-    return list(triplets)
+    return adj_list
 
 
 def compute_cycle_error(
