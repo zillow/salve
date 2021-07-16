@@ -113,6 +113,10 @@ def globalaveraging2d(i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -
            in the input to run().
     """
     edges = i2Ri1_dict.keys()
+
+    if len(edges) == 0:
+        return None
+
     num_images = max([max(i1, i2) for i1, i2 in edges]) + 1
 
     connected_nodes = set()
