@@ -163,7 +163,7 @@ def run_incremental_reconstruction(
         i2Ui1_dict = {}
         two_view_reports_dict = {}
 
-        if not (building_id == '1635' and floor_id == 'floor_01'):
+        if not (building_id == "1635" and floor_id == "floor_01"):
             continue
 
         gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
@@ -235,20 +235,35 @@ def run_incremental_reconstruction(
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
 
+        build_filtered_spanning_tree(
+            building_id,
+            floor_id,
+            i2Si1_dict,
+            i2Ri1_dict,
+            i2Ui1_dict,
+            gt_edges,
+            two_view_reports_dict,
+            gt_floor_pose_graph,
+        )
 
-        build_filtered_spanning_tree(building_id, floor_id, i2Si1_dict, i2Ri1_dict, i2Ui1_dict, gt_edges, two_view_reports_dict, gt_floor_pose_graph)
 
-
-def build_filtered_spanning_tree(building_id: str, floor_id: str, i2Si1_dict: Dict[Tuple[int,int],Sim2], i2Ri1_dict: Dict[Tuple[int,int],np.ndarray], i2Ui1_dict: Dict[Tuple[int,int],np.ndarray], gt_edges, two_view_reports_dict: Dict[Tuple[int,int], TwoViewEstimationReport], gt_floor_pose_graph: PoseGraph2d) -> None:
+def build_filtered_spanning_tree(
+    building_id: str,
+    floor_id: str,
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
+    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
+    i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
+    gt_edges,
+    two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
+    gt_floor_pose_graph: PoseGraph2d,
+) -> None:
     """ """
 
     i2Ri1_dict, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
         i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
     )
 
-    filtered_edge_acc = get_edge_accuracy(
-        edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict
-    )
+    filtered_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
     print(f"\tFiltered by rot cycles Edge Acc = {filtered_edge_acc:.2f}")
 
     # # could count how many nodes or edges never appeared in any triplet
@@ -260,7 +275,9 @@ def build_filtered_spanning_tree(building_id: str, floor_id: str, i2Si1_dict: Di
     # TODO: measure the error in rotations
 
     # filter to rotations that are consistent with global
-    i2Ri1_dict = filter_measurements_to_absolute_rotations(wRi_list, i2Ri1_dict, max_allowed_deviation=5, two_view_reports_dict=two_view_reports_dict)
+    i2Ri1_dict = filter_measurements_to_absolute_rotations(
+        wRi_list, i2Ri1_dict, max_allowed_deviation=5, two_view_reports_dict=two_view_reports_dict
+    )
 
     consistent_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
     print(f"\tFiltered relative by abs. rotation deviation Edge Acc = {consistent_edge_acc:.2f}")
@@ -284,34 +301,34 @@ def build_filtered_spanning_tree(building_id: str, floor_id: str, i2Si1_dict: Di
     )
     print(f"\tFiltered by trans. cycle Edge Acc = {filtered_edge_acc:.2f}")
 
-    print([two_view_reports_dict[(i1,i2)].gt_class for (i1,i2) in i2Si1_dict_consistent.keys() ])
-    import pdb; pdb.set_trace()
+    print([two_view_reports_dict[(i1, i2)].gt_class for (i1, i2) in i2Si1_dict_consistent.keys()])
+    import pdb
+
+    pdb.set_trace()
 
     wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
 
     num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
     num_floor_panos = len(gt_floor_pose_graph.nodes)
-    print(f"Localized {num_localized_panos/num_floor_panos*100:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
+    print(
+        f"Localized {num_localized_panos/num_floor_panos*100:.2f}% of panos: {num_localized_panos} / {num_floor_panos}"
+    )
 
     if wSi_list is None:
         print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
         return
 
     # TODO: try spanning tree version, vs. Shonan version
-    wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list ]
+    wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
     wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
 
     est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
         wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
     )
 
-    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(
-        gt_floor_pg=gt_floor_pose_graph
-    )
+    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
     print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
     est_floor_pose_graph.render_estimated_layout()
-
-
 
 
 def filter_measurements_to_absolute_rotations(
@@ -319,7 +336,7 @@ def filter_measurements_to_absolute_rotations(
     i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
     max_allowed_deviation: float = 5,
     verbose: bool = False,
-    two_view_reports_dict = None
+    two_view_reports_dict=None,
 ) -> Dict[Tuple[int, int], np.ndarray]:
     """ """
 
@@ -354,15 +371,15 @@ def filter_measurements_to_absolute_rotations(
             i2Ri1_dict_consistent[(i1, i2)] = i2Ri1_measured
 
         if two_view_reports_dict is not None:
-            is_gt_edge.append(two_view_reports_dict[(i1,i2)].gt_class)
+            is_gt_edge.append(two_view_reports_dict[(i1, i2)].gt_class)
             deviations.append(err)
 
     if two_view_reports_dict is not None:
         deviations = np.array(deviations)
         is_gt_edge = np.array(is_gt_edge)
-        misclassified_errs = deviations[ is_gt_edge == 0 ]
-        plt.figure(figsize=(16,5))
-        plt.subplot(1,2,1)
+        misclassified_errs = deviations[is_gt_edge == 0]
+        plt.figure(figsize=(16, 5))
+        plt.subplot(1, 2, 1)
         plt.hist(misclassified_errs, bins=30)
         plt.ylabel("Counts")
         plt.xlabel("Deviation from measurement (degrees)")
@@ -370,8 +387,8 @@ def filter_measurements_to_absolute_rotations(
         plt.ylim(0, deviations.size)
         plt.xlim(0, 180)
 
-        correct_classified_errs = deviations[ is_gt_edge == 1 ]
-        plt.subplot(1,2,2)
+        correct_classified_errs = deviations[is_gt_edge == 1]
+        plt.subplot(1, 2, 2)
         plt.hist(correct_classified_errs, bins=30)
         plt.title("GT edge")
         plt.ylim(0, deviations.size)
@@ -379,8 +396,10 @@ def filter_measurements_to_absolute_rotations(
 
         plt.suptitle("Filtering rot avg result to be consistent with measurements")
         plt.show()
-            
-    print(f"\tFound that {len(i2Ri1_dict_consistent)} of {len(i2Ri1_dict)} rotations were consistent w/ global rotations")
+
+    print(
+        f"\tFound that {len(i2Ri1_dict_consistent)} of {len(i2Ri1_dict)} rotations were consistent w/ global rotations"
+    )
     return i2Ri1_dict_consistent
 
 
@@ -407,7 +426,7 @@ if __name__ == "__main__":
 
     raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    #vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
+    # vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
 
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
