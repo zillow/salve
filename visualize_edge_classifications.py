@@ -1,16 +1,25 @@
+
+"""
+"""
+
 import glob
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
+from argoverse.utils.sim2 import Sim2
 
 from posegraph2d import PoseGraph2d, get_gt_pose_graph
 from pr_utils import assign_tp_fp_fn_tn
+import cycle_consistency as cycle_utils
+from cycle_consistency import TwoViewEstimationReport
+import rotation_averaging
 
-
-class EdgeClassification(NamedTuple):
+@dataclass(frozen=False)
+class EdgeClassification:
     """
     i1 and i2 are panorama id's
     """
@@ -136,9 +145,14 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
         # continue
 
 
-def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str):
+def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
     """ """
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
+
+    i2Si1_dict = {}
+    i2Ri1_dict = {}
+    i2Ui1_dict = {}
+    two_view_reports_dict = {}
 
     # loop over each building and floor
     # for each building/floor tuple
@@ -147,21 +161,90 @@ def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_j
         print(f"On building {building_id}, {floor_id}")
 
         for m in measurements:
+
+            # TODO: remove this debugging condition
+            # if m.y_true != 1:
+            #     continue
+
             # find all of the predictions where pred class is 1
             if m.y_hat != 1:
                 continue
 
-            import pdb
+            # TODO: this should never happen bc sorted, figure out why it occurs
+            if m.i1 >= m.i2:
+                i2 = m.i1
+                i1 = m.i2
 
-            pdb.set_trace()
+                m.i1 = i1
+                m.i2 = i2
 
             # look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
             label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
             fpaths = glob.glob(
                 f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
             )
-            assert len(fpaths) == 1
-            i2Ti1 = Sim2.from_json(fpaths[0])
+
+            # label_dirname = "gt_alignment_exact"
+            # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
+
+            if not len(fpaths) == 1:
+                import pdb; pdb.set_trace()
+            i2Si1 = Sim2.from_json(fpaths[0])
+
+            # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
+
+            i2Si1_dict[(m.i1,m.i2)] = i2Si1
+
+            i2Ri1_dict[(m.i1,m.i2)] = i2Si1.rotation
+            i2Ui1_dict[(m.i1,m.i2)] = i2Si1.translation
+
+            R_error_deg = 0
+            U_error_deg = 0
+            two_view_reports_dict[(m.i1,m.i2)] = cycle_utils.TwoViewEstimationReport(gt_class=m.y_true, R_error_deg=R_error_deg, U_error_deg=U_error_deg)
+
+        unfiltered_edge_acc = get_edge_accuracy(
+            edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict
+        )
+        print(f"Unfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
+
+        # from posegraph2d import get_gt_pose_graph
+        # gt_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+
+        i2Ri1_dict_consistent, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
+            i2Ri1_dict,
+            i2Ui1_dict,
+            two_view_reports_dict,
+            visualize=True
+        )
+
+        # # could count how many nodes or edges never appeared in any triplet
+        # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
+        # dropped_edges = set(i2Ri1_dict.keys()) - set(i2Ri1_dict_consistent.keys())
+        # print("Dropped ")
+
+        wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict_consistent)
+        # TODO: measure the error in rotations
+
+        i2Si1_dict_consistent = cycle_utils.filter_to_translation_cycle_consistent_edges(
+            wRi_list, i2Si1_dict, translation_cycle_thresh=0.5, two_view_reports_dict=two_view_reports_dict
+        )
+        filtered_edge_acc = get_edge_accuracy(
+            edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
+        )
+        print(f"Filtered Edge Acc = {filtered_edge_acc:.2f}")
+
+
+def get_edge_accuracy(edges: List[Tuple[int,int]], two_view_reports_dict: Dict[Tuple[int,int], TwoViewEstimationReport]) -> float:
+    """
+    Check GT for each predicted (i.e. allowed) edge.
+    """
+    preds = []
+    # what is the purity of what comes out?
+    for (i1,i2) in edges:
+        preds.append(two_view_reports_dict[(i1,i2)].gt_class)
+
+    acc = np.mean(preds)
+    return acc
 
 
 if __name__ == "__main__":
@@ -177,3 +260,5 @@ if __name__ == "__main__":
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
+
+
