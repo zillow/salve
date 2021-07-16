@@ -1,4 +1,5 @@
 
+import copy
 import glob
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
@@ -102,15 +103,30 @@ class PoseGraph2d(NamedTuple):
             if wRi is None or wti is None:
                 continue
 
+            # update the global pose associated with each WDO object
+            global_Sim2_local = Sim2(R=wRi, t=wti, s=1.0)
+            doors = copy.deepcopy(gt_floor_pg.nodes[i].doors)
+            windows = copy.deepcopy(gt_floor_pg.nodes[i].windows)
+            openings = copy.deepcopy(gt_floor_pg.nodes[i].openings)
+
+            for door in doors:
+                door.global_Sim2_local = copy.deepcopy(global_Sim2_local)
+
+            for window in windows:
+                window.global_Sim2_local = copy.deepcopy(global_Sim2_local)
+
+            for opening in openings:
+                opening.global_Sim2_local = copy.deepcopy(global_Sim2_local)
+
             nodes[i] = PanoData(
                 id=i,
-                global_Sim2_local = Sim2(R=wRi, t=wti, s=1.0),
+                global_Sim2_local = global_Sim2_local,
                 room_vertices_local_2d = gt_floor_pg.nodes[i].room_vertices_local_2d,
                 image_path=gt_floor_pg.nodes[i].image_path,
                 label=gt_floor_pg.nodes[i].label,
-                doors = gt_floor_pg.nodes[i].doors,
-                windows = gt_floor_pg.nodes[i].windows,
-                openings = gt_floor_pg.nodes[i].openings
+                doors = doors,
+                windows = windows,
+                openings = openings
             )
 
         return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
@@ -122,7 +138,15 @@ class PoseGraph2d(NamedTuple):
 
 
     def measure_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> float:
-        """ """
+        """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
+        
+        Args:
+            gt_floor_pg
+
+        Returns:
+            mean_rot_err
+            mean_trans_err
+        """
         from gtsfm.utils.geometry_comparisons import compute_relative_rotation_angle, align_poses_sim3_ignore_missing
 
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph() # reference
@@ -163,6 +187,7 @@ class PoseGraph2d(NamedTuple):
         Returns:
             mean_relative_rot_err: average error on each relative rotation.
         """
+        raise NotImplementedError("Add alignment")
         # TODO: have to do a pose-graph alignment first, or Karcher-mean alignment first.
 
         errs = []
