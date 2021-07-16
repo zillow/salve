@@ -215,7 +215,7 @@ def main(hypotheses_dir: str, raw_dataset_dir: str) -> None:
             # use confidence value. would be good for it to be a reliable number.
             # visualize the O(n^2k^2) graph, put it in a confusion matrix
 
-            # triplets = cycle_utils.extract_triplets_adjacency_list_intersection(i2Ri1_dict)
+            # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
 
             # present_in_any_triplet = np.zeros((len(floor_pano_ids)), dtype=bool)
             # # for each node
