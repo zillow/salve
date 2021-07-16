@@ -13,7 +13,7 @@ import gtsfm.utils.logger as logger_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-from gtsam import Pose2, Rot2, Rot3, Unit3 
+from gtsam import Pose2, Rot2, Rot3, Unit3
 from scipy.spatial.transform import Rotation
 
 from pr_utils import compute_precision_recall
@@ -22,7 +22,7 @@ from rotation_utils import rotmat2d, rotmat2theta_deg
 logger = logger_utils.get_logger()
 
 
-ROT_CYCLE_ERROR_THRESHOLD = 0.5 # 1.0 # 5.0 # 2.5 # 1.0 # 0.3
+ROT_CYCLE_ERROR_THRESHOLD = 0.5  # 1.0 # 5.0 # 2.5 # 1.0 # 0.3
 
 
 @dataclass(frozen=False)
@@ -31,7 +31,6 @@ class TwoViewEstimationReport:
     gt_class: int
     R_error_deg: Optional[float] = None
     U_error_deg: Optional[float] = None
-
 
 
 def extract_triplets(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tuple[int, int, int]]:
@@ -147,7 +146,13 @@ def compute_cycle_error(
         if gt_known:
             logger.info(f"Triplet: w/ max. R err {max_rot_error:.1f}, and w/ max. t err {max_trans_error:.1f}")
 
-        logger.info("GT %s Theta: (0->1) %.1f deg., (1->2) %.1f deg., (2->0) %.1f deg.", str(gt_classes), i1Ri0_theta, i2Ri1_theta, i0Ri2_theta)
+        logger.info(
+            "GT %s Theta: (0->1) %.1f deg., (1->2) %.1f deg., (2->0) %.1f deg.",
+            str(gt_classes),
+            i1Ri0_theta,
+            i2Ri1_theta,
+            i0Ri2_theta,
+        )
 
     return cycle_error, max_rot_error, max_trans_error
 
@@ -156,7 +161,7 @@ def filter_to_rotation_cycle_consistent_edges(
     i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
     i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
-    visualize: bool = True,
+    visualize: bool = False,
 ) -> Tuple[Dict[Tuple[int, int], np.ndarray], Dict[Tuple[int, int], np.ndarray]]:
     """Remove edges in a graph where concatenated transformations along a 3-cycle does not compose to identity.
 
@@ -226,7 +231,7 @@ def filter_to_rotation_cycle_consistent_edges(
         plt.ylabel("Avg. Unit3 error over cycle triplet")
         plt.savefig(os.path.join("plots", "cycle_error_vs_GT_trans_error.jpg"), dpi=200)
 
-    #logger.info("cycle_consistent_keys: " + str(cycle_consistent_keys))
+    # logger.info("cycle_consistent_keys: " + str(cycle_consistent_keys))
 
     i2Ri1_dict_consistent, i2Ui1_dict_consistent = {}, {}
     for (i1, i2) in cycle_consistent_keys:
@@ -239,19 +244,20 @@ def filter_to_rotation_cycle_consistent_edges(
     return i2Ri1_dict_consistent, i2Ui1_dict_consistent
 
 
-
-
 def filter_to_translation_cycle_consistent_edges(
-    wRi_list: List[np.ndarray], i2Si1_dict: Dict[Tuple[int,int], Sim2], translation_cycle_thresh: 0.5, two_view_reports_dict = None, visualize: bool = False
-) -> Dict[Tuple[int,int], Sim2]:
-    """
-    """
+    wRi_list: List[np.ndarray],
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
+    translation_cycle_thresh: 0.5,
+    two_view_reports_dict=None,
+    visualize: bool = False,
+) -> Dict[Tuple[int, int], Sim2]:
+    """ """
 
     # translation measurement not useful if missing rotation
-    for (i1,i2) in i2Si1_dict:
+    for (i1, i2) in i2Si1_dict:
         if wRi_list[i1] is None or wRi_list[i2] is None:
-             #effectively remove such measurements
-            i2Si1_dict[(i1,i2)] = None
+            # effectively remove such measurements
+            i2Si1_dict[(i1, i2)] = None
 
     num_outliers_per_cycle = []
     cycle_errors = []
@@ -301,7 +307,7 @@ def filter_to_translation_cycle_consistent_edges(
     #     plt.ylabel("Avg. Unit3 error over cycle triplet")
     #     plt.savefig(os.path.join("plots", "cycle_error_vs_GT_trans_error.jpg"), dpi=200)
 
-    #logger.info("cycle_consistent_keys: " + str(cycle_consistent_keys))
+    # logger.info("cycle_consistent_keys: " + str(cycle_consistent_keys))
 
     i2Si1_dict_consistent = {}
     for (i1, i2) in cycle_consistent_keys:
@@ -310,7 +316,6 @@ def filter_to_translation_cycle_consistent_edges(
     num_consistent_rotations = len(i2Si1_dict_consistent)
     logger.info("Found %d consistent rel. rotations from %d original edges.", num_consistent_rotations, n_valid_edges)
     return i2Si1_dict_consistent
-
 
 
 def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors: np.ndarray) -> None:
@@ -322,7 +327,7 @@ def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors:
     Returns:
         cycle_errors:
     """
-    plt.figure(figsize=(16,5))
+    plt.figure(figsize=(16, 5))
     bins = np.unique(num_outliers_per_cycle)
     num_bins = len(bins)
     min_err_bin_edge = 0
@@ -330,7 +335,7 @@ def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors:
     bin_edges = np.linspace(min_err_bin_edge, max_err_bin_edge, 10)
 
     # for ylim setting for shared y axis
-    max_bin_count = 0 
+    max_bin_count = 0
     for i, bin in enumerate(bins):
         idxs = num_outliers_per_cycle == bin
         bin_errors = cycle_errors[idxs]
@@ -347,7 +352,7 @@ def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors:
         plt.hist(bin_errors, bins=bin_edges)
         plt.title(f"Num outliers = {bin}")
 
-        plt.ylim(0,max_bin_count + ylim_offset)
+        plt.ylim(0, max_bin_count + ylim_offset)
 
         if i == 0:
             plt.xlabel("Cycle translation error")
@@ -359,12 +364,17 @@ def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors:
 
 def test_render_binned_cycle_errors() -> None:
     """ """
-    num_outliers_per_cycle = np.array([1,2,0, 0])
-    cycle_errors = np.array([1.5,2.5, 0, 0.1])
+    num_outliers_per_cycle = np.array([1, 2, 0, 0])
+    cycle_errors = np.array([1.5, 2.5, 0, 0.1])
     render_binned_cycle_errors(num_outliers_per_cycle, cycle_errors)
 
 
-def compute_translation_cycle_error(wRi_list: List[np.ndarray], i2Si1_dict: Dict[Tuple[int,int], Sim2], cycle_nodes: Tuple[int,int,int], verbose: bool) -> float:
+def compute_translation_cycle_error(
+    wRi_list: List[np.ndarray],
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
+    cycle_nodes: Tuple[int, int, int],
+    verbose: bool,
+) -> float:
     """ """
     cycle_nodes = list(cycle_nodes)
     cycle_nodes.sort()
@@ -388,29 +398,29 @@ def compute_translation_cycle_error(wRi_list: List[np.ndarray], i2Si1_dict: Dict
 def test_compute_translation_cycle_error() -> None:
     """ """
     wTi_list = [
-        Pose2(Rot2.fromDegrees(0), np.array([0,0])),
-        Pose2(Rot2.fromDegrees(90), np.array([0,4])),
-        Pose2(Rot2.fromDegrees(0), np.array([4,0])),
-        Pose2(Rot2.fromDegrees(0), np.array([8,0]))
+        Pose2(Rot2.fromDegrees(0), np.array([0, 0])),
+        Pose2(Rot2.fromDegrees(90), np.array([0, 4])),
+        Pose2(Rot2.fromDegrees(0), np.array([4, 0])),
+        Pose2(Rot2.fromDegrees(0), np.array([8, 0])),
     ]
     wRi_list = [wTi.rotation().matrix() for wTi in wTi_list]
 
     i2Si1_dict = {
-        (0,1): Sim2(R=rotmat2d(-90), t=np.array([-4, 0]),    s=1.0),
-        (1,2): Sim2(R=rotmat2d(90),  t=np.array([-4,4]),     s=1.0),
-        (0,2): Sim2(R=np.eye(2),     t=np.array([-4,0]),     s=1.0),
-        (1,3): Sim2(R=-rotmat2d(90), t=np.array([-8.2,4]),   s=1.0), # add 0.2 noise
-        (0,3): Sim2(R=np.eye(2),     t=np.array([-8, -0.2]), s=1.0) # add 0.2 noise
+        (0, 1): Sim2(R=rotmat2d(-90), t=np.array([-4, 0]), s=1.0),
+        (1, 2): Sim2(R=rotmat2d(90), t=np.array([-4, 4]), s=1.0),
+        (0, 2): Sim2(R=np.eye(2), t=np.array([-4, 0]), s=1.0),
+        (1, 3): Sim2(R=-rotmat2d(90), t=np.array([-8.2, 4]), s=1.0),  # add 0.2 noise
+        (0, 3): Sim2(R=np.eye(2), t=np.array([-8, -0.2]), s=1.0),  # add 0.2 noise
     }
 
-    cycle_nodes = (0,1,2)
+    cycle_nodes = (0, 1, 2)
     cycle_error = compute_translation_cycle_error(wRi_list, i2Si1_dict, cycle_nodes=cycle_nodes, verbose=True)
     # should be approximately zero error on this triplet
     assert np.isclose(cycle_error, 0.0, atol=1e-4)
 
-    cycle_nodes = (0,1,3)
+    cycle_nodes = (0, 1, 3)
     cycle_error = compute_translation_cycle_error(wRi_list, i2Si1_dict, cycle_nodes=cycle_nodes, verbose=True)
-    expected_cycle_error = np.sqrt(0.2**2 + 0.2**2)
+    expected_cycle_error = np.sqrt(0.2 ** 2 + 0.2 ** 2)
     assert np.isclose(cycle_error, expected_cycle_error)
 
 
@@ -429,33 +439,35 @@ def test_filter_to_translation_cycle_consistent_edges() -> None:
       (0,0)
     """
     wTi_list = [
-        Pose2(Rot2.fromDegrees(0), np.array([0,0])),
-        Pose2(Rot2.fromDegrees(90), np.array([0,4])),
-        Pose2(Rot2.fromDegrees(0), np.array([4,0])),
-        Pose2(Rot2.fromDegrees(0), np.array([8,0]))
+        Pose2(Rot2.fromDegrees(0), np.array([0, 0])),
+        Pose2(Rot2.fromDegrees(90), np.array([0, 4])),
+        Pose2(Rot2.fromDegrees(0), np.array([4, 0])),
+        Pose2(Rot2.fromDegrees(0), np.array([8, 0])),
     ]
     wRi_list = [wTi.rotation().matrix() for wTi in wTi_list]
 
     i2Si1_dict = {
-        (0,1): Sim2(R=rotmat2d(-90), t=np.array([-4.6, 0]),  s=1.0), # add 0.6 noise
-        (1,2): Sim2(R=rotmat2d(90),  t=np.array([-4,4]),     s=1.0),
-        (0,2): Sim2(R=np.eye(2),     t=np.array([-4,0]),     s=1.0),
-        (1,3): Sim2(R=-rotmat2d(90), t=np.array([-8.2,4]),   s=1.0), # add 0.2 noise
-        (0,3): Sim2(R=np.eye(2),     t=np.array([-8, -0.2]), s=1.0) # add 0.2 noise
+        (0, 1): Sim2(R=rotmat2d(-90), t=np.array([-4.6, 0]), s=1.0),  # add 0.6 noise
+        (1, 2): Sim2(R=rotmat2d(90), t=np.array([-4, 4]), s=1.0),
+        (0, 2): Sim2(R=np.eye(2), t=np.array([-4, 0]), s=1.0),
+        (1, 3): Sim2(R=-rotmat2d(90), t=np.array([-8.2, 4]), s=1.0),  # add 0.2 noise
+        (0, 3): Sim2(R=np.eye(2), t=np.array([-8, -0.2]), s=1.0),  # add 0.2 noise
     }
 
     # with a 0.5 meter thresh
-    i2Si1_cycle_consistent = filter_to_translation_cycle_consistent_edges(wRi_list, i2Si1_dict, translation_cycle_thresh=0.5)
+    i2Si1_cycle_consistent = filter_to_translation_cycle_consistent_edges(
+        wRi_list, i2Si1_dict, translation_cycle_thresh=0.5
+    )
 
     # one triplet was too noisy, and is filtered out.
-    assert set(list(i2Si1_cycle_consistent.keys())) == { (0, 1), (0, 3), (1, 3) }
+    assert set(list(i2Si1_cycle_consistent.keys())) == {(0, 1), (0, 3), (1, 3)}
 
 
 def estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict) -> float:
     """
             Predicted
     Actual   ...
-    
+
     Args:
         i2Ri1_dict:
         i2Ri1_dict_consistent:
@@ -474,51 +486,51 @@ def estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consi
     for i, key in enumerate(keys):
         gt_idxs[i] = two_view_reports_dict[key].gt_class
         pred_idxs[i] = 1 if key in i2Ri1_dict_consistent else 0
-    
+
     prec, rec, mAcc = compute_precision_recall(y_true=gt_idxs, y_pred=pred_idxs)
     return prec, rec, mAcc
 
 
 def test_estimate_rot_cycle_filtering_classification_acc() -> None:
     """ """
-    i2Ri1 = np.eye(2) # dummy value
+    i2Ri1 = np.eye(2)  # dummy value
 
     i2Ri1_dict = {
-        (0,1): i2Ri1, # model TP, cycle TP
-        (1,2): i2Ri1, # model TP, cycle TP
-        (2,3): i2Ri1, # model FP, cycle TN
-        (3,4): i2Ri1, # model FP, cycle TP
-        (4,5): i2Ri1  # model TP, cycle FN
+        (0, 1): i2Ri1,  # model TP, cycle TP
+        (1, 2): i2Ri1,  # model TP, cycle TP
+        (2, 3): i2Ri1,  # model FP, cycle TN
+        (3, 4): i2Ri1,  # model FP, cycle TP
+        (4, 5): i2Ri1,  # model TP, cycle FN
     }
 
     # only predicted positives go into the initial graph, and are eligible for cycle estimation.
     # 1 indicates a match
     two_view_reports_dict = {
-        (0,1): TwoViewEstimationReport(gt_class=1), # model TP, cycle TP
-        (1,2): TwoViewEstimationReport(gt_class=1), # model TP, cycle TP
-        (2,3): TwoViewEstimationReport(gt_class=0), # model FP, cycle TN
-        (3,4): TwoViewEstimationReport(gt_class=0), # model FP, cycle TP
-        (4,5): TwoViewEstimationReport(gt_class=1)  # model TP, cycle FN
+        (0, 1): TwoViewEstimationReport(gt_class=1),  # model TP, cycle TP
+        (1, 2): TwoViewEstimationReport(gt_class=1),  # model TP, cycle TP
+        (2, 3): TwoViewEstimationReport(gt_class=0),  # model FP, cycle TN
+        (3, 4): TwoViewEstimationReport(gt_class=0),  # model FP, cycle TP
+        (4, 5): TwoViewEstimationReport(gt_class=1),  # model TP, cycle FN
     }
 
     # note: (4,5) was erroneously removed by the cycle-based filtering, and (2,3) was correctly filtered out
     i2Ri1_dict_consistent = {
-        (0,1): i2Ri1,
-        (1,2): i2Ri1,
-        (3,4): i2Ri1,
+        (0, 1): i2Ri1,
+        (1, 2): i2Ri1,
+        (3, 4): i2Ri1,
     }
-    prec, rec, mAcc = estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict)
+    prec, rec, mAcc = estimate_rot_cycle_filtering_classification_acc(
+        i2Ri1_dict, i2Ri1_dict_consistent, two_view_reports_dict
+    )
     # 1 / 2 false positives are discarded -> 0.5 for class 0
     # 2 / 3 true positives were kept -> 0.67 for class 1
-    expected_mAcc = np.mean(np.array([1/2, 2/3]))
+    expected_mAcc = np.mean(np.array([1 / 2, 2 / 3]))
     assert np.isclose(mAcc, expected_mAcc, atol=1e-4)
 
 
-if __name__ == '__main__':
-    #test_estimate_rot_cycle_filtering_classification_acc()
+if __name__ == "__main__":
+    # test_estimate_rot_cycle_filtering_classification_acc()
 
-    #test_filter_to_translation_cycle_consistent_edges()
+    # test_filter_to_translation_cycle_consistent_edges()
 
     test_render_binned_cycle_errors()
-
-
