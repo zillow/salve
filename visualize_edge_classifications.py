@@ -1,4 +1,3 @@
-
 """
 """
 
@@ -147,7 +146,9 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
         # continue
 
 
-def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
+def run_incremental_reconstruction(
+    hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
+) -> None:
     """ """
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
@@ -161,6 +162,7 @@ def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_j
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
         from posegraph2d import get_gt_pose_graph
+
         gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
         print(f"On building {building_id}, {floor_id}")
@@ -194,41 +196,38 @@ def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_j
             # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
 
             if not len(fpaths) == 1:
-                import pdb; pdb.set_trace()
+                import pdb
+
+                pdb.set_trace()
             i2Si1 = Sim2.from_json(fpaths[0])
 
             # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
 
-            i2Si1_dict[(m.i1,m.i2)] = i2Si1
+            i2Si1_dict[(m.i1, m.i2)] = i2Si1
 
-            i2Ri1_dict[(m.i1,m.i2)] = i2Si1.rotation
-            i2Ui1_dict[(m.i1,m.i2)] = i2Si1.translation
+            i2Ri1_dict[(m.i1, m.i2)] = i2Si1.rotation
+            i2Ui1_dict[(m.i1, m.i2)] = i2Si1.translation
 
             R_error_deg = 0
             U_error_deg = 0
-            two_view_reports_dict[(m.i1,m.i2)] = cycle_utils.TwoViewEstimationReport(gt_class=m.y_true, R_error_deg=R_error_deg, U_error_deg=U_error_deg)
+            two_view_reports_dict[(m.i1, m.i2)] = cycle_utils.TwoViewEstimationReport(
+                gt_class=m.y_true, R_error_deg=R_error_deg, U_error_deg=U_error_deg
+            )
 
             if m.y_true == 1:
-                gt_edges.append((m.i1,m.i2))
+                gt_edges.append((m.i1, m.i2))
 
-        unfiltered_edge_acc = get_edge_accuracy(
-            edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict
-        )
+        unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"Unfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
 
-
         i2Ri1_dict_consistent, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
-            i2Ri1_dict,
-            i2Ui1_dict,
-            two_view_reports_dict,
-            visualize=False
+            i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
         )
 
         filtered_edge_acc = get_edge_accuracy(
             edges=i2Ri1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
         )
         print(f"Filtered by rot cycles Edge Acc = {filtered_edge_acc:.2f}")
-
 
         # # could count how many nodes or edges never appeared in any triplet
         # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
@@ -240,18 +239,16 @@ def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_j
 
         i2Ri1_dict = filter_measurements_to_absolute_rotations(wRi_list, i2Ri1_dict, max_allowed_deviation=5)
 
-        consistent_edge_acc = get_edge_accuracy(
-            edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict
-        )
+        consistent_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"Filtered relative by abs. rotation deviation Edge Acc = {consistent_edge_acc:.2f}")
 
-
         est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
-        mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=True)
+        mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
+            gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=True
+        )
         print(f"Mean relative rotation error {mean_rel_rot_err:.2f} deg.")
 
         # filter to rotations that are consistent with global
-
 
         i2Si1_dict_consistent = cycle_utils.filter_to_translation_cycle_consistent_edges(
             wRi_list, i2Si1_dict, translation_cycle_thresh=0.5, two_view_reports_dict=two_view_reports_dict
@@ -262,28 +259,40 @@ def run_incremental_reconstruction(hypotheses_save_root: str, serialized_preds_j
         print(f"Filtered by trans. cycle Edge Acc = {filtered_edge_acc:.2f}")
 
         from spanning_tree import greedily_construct_st_Sim2
+
         wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent)
 
         # try spanning tree version, vs. Shonan version
-        #wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list ]
-        wti_list = [wSi.translation if wSi else None for wSi in wSi_list ]
+        # wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list ]
+        wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
 
-        import pdb; pdb.set_trace()
+        import pdb
 
-        est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id)
+        pdb.set_trace()
 
-        mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+        est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
+            wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
+        )
+
+        mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(
+            gt_floor_pg=gt_floor_pose_graph
+        )
         print(f"Avg translation error: {mean_abs_trans_err}")
         est_floor_pose_graph.render_estimated_layout()
 
 
-def filter_measurements_to_absolute_rotations(wRi_list: List[Optional[np.ndarray]], i2Ri1_dict: Dict[Tuple[int,int],np.ndarray], max_allowed_deviation: float = 5, verbose: bool = True) -> Dict[Tuple[int,int],np.ndarray]:
+def filter_measurements_to_absolute_rotations(
+    wRi_list: List[Optional[np.ndarray]],
+    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
+    max_allowed_deviation: float = 5,
+    verbose: bool = True,
+) -> Dict[Tuple[int, int], np.ndarray]:
     """ """
     edges = i2Ri1_dict.keys()
 
     i2Ri1_dict_consistent = {}
 
-    for (i1,i2) in edges:
+    for (i1, i2) in edges:
 
         if wRi_list[i1] is None or wRi_list[i2] is None:
             continue
@@ -293,7 +302,7 @@ def filter_measurements_to_absolute_rotations(wRi_list: List[Optional[np.ndarray
         wTi2 = wRi_list[i2]
         i2Ri1_inferred = wTi2.T @ wTi1
 
-        i2Ri1_measured = i2Ri1_dict[(i1,i2)]
+        i2Ri1_measured = i2Ri1_dict[(i1, i2)]
 
         theta_deg_inferred = rotmat2theta_deg(i2Ri1_inferred)
         theta_deg_measured = rotmat2theta_deg(i2Ri1_measured)
@@ -304,21 +313,23 @@ def filter_measurements_to_absolute_rotations(wRi_list: List[Optional[np.ndarray
         # need to wrap around at 360
         err = wrap_angle_deg(theta_deg_inferred, theta_deg_measured)
         if err < max_allowed_deviation:
-            i2Ri1_dict_consistent[(i1,i2)] = i2Ri1_measured
+            i2Ri1_dict_consistent[(i1, i2)] = i2Ri1_measured
 
     print(f"Found that {len(i2Ri1_dict_consistent)} of {len(i2Ri1_dict)} rotations were consistent")
 
     return i2Ri1_dict_consistent
 
 
-def get_edge_accuracy(edges: List[Tuple[int,int]], two_view_reports_dict: Dict[Tuple[int,int], TwoViewEstimationReport]) -> float:
+def get_edge_accuracy(
+    edges: List[Tuple[int, int]], two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport]
+) -> float:
     """
     Check GT for each predicted (i.e. allowed) edge.
     """
     preds = []
     # what is the purity of what comes out?
-    for (i1,i2) in edges:
-        preds.append(two_view_reports_dict[(i1,i2)].gt_class)
+    for (i1, i2) in edges:
+        preds.append(two_view_reports_dict[(i1, i2)].gt_class)
 
     acc = np.mean(preds)
     return acc
@@ -337,5 +348,3 @@ if __name__ == "__main__":
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
-
-
