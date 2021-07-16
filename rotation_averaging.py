@@ -77,7 +77,7 @@ def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int
 
         theta_deg = rotmat2theta_deg(i2Ri1)
         #print("Bad edges:")
-        print(f"({i1},{i2}): {theta_deg:.6f}")
+        #print(f"({i1},{i2}): {theta_deg:.6f}")
         i2Ri1 = Rot2.fromDegrees(theta_deg)
         i2Ti1 = Pose2(i2Ri1, np.zeros(2))
         between_factors.append(BetweenFactorPose2(i2, i1, i2Ti1, noise_model))
