@@ -1,4 +1,3 @@
-
 import copy
 import glob
 from pathlib import Path
@@ -15,8 +14,9 @@ from pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transfor
 from rotation_utils import rotmat2d, wrap_angle_deg
 
 
-REDTEXT = '\033[91m'
-ENDCOLOR = '\033[0m'
+REDTEXT = "\033[91m"
+ENDCOLOR = "\033[0m"
+
 
 class PoseGraph2d(NamedTuple):
     """Pose graph for a single floor.
@@ -28,6 +28,7 @@ class PoseGraph2d(NamedTuple):
         floor_id
         nodes:
     """
+
     building_id: int
     floor_id: str
     nodes: Dict[int, PanoData]
@@ -60,17 +61,16 @@ class PoseGraph2d(NamedTuple):
 
             nodes[i] = PanoData(
                 id=i,
-                global_Sim2_local = Sim2(R=wRi, t=np.zeros(2), s=1.0),
-                room_vertices_local_2d = np.zeros((0,2)),
+                global_Sim2_local=Sim2(R=wRi, t=np.zeros(2), s=1.0),
+                room_vertices_local_2d=np.zeros((0, 2)),
                 image_path="",
                 label="",
-                doors = None,
-                windows = None,
-                openings = None
+                doors=None,
+                windows=None,
+                openings=None,
             )
 
         return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
-
 
     def as_3d_pose_graph(self) -> List[Optional[Pose3]]:
         """ """
@@ -80,7 +80,7 @@ class PoseGraph2d(NamedTuple):
 
             wRi = pano_obj.global_Sim2_local.rotation
             wti = pano_obj.global_Sim2_local.translation
-            wti = np.array([wti[0],wti[1],0.0])
+            wti = np.array([wti[0], wti[1], 0.0])
             wRi = rot2x2_to_Rot3(wRi)
 
             wTi = Pose3(wRi, Point3(wti))
@@ -89,9 +89,15 @@ class PoseGraph2d(NamedTuple):
 
         return wTi_list
 
-
     @classmethod
-    def from_wRi_wti_lists(cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], gt_floor_pg: "PoseGraph2d", building_id: str, floor_id: str) -> "PoseGraph2d":
+    def from_wRi_wti_lists(
+        cls,
+        wRi_list: List[np.ndarray],
+        wti_list: List[np.ndarray],
+        gt_floor_pg: "PoseGraph2d",
+        building_id: str,
+        floor_id: str,
+    ) -> "PoseGraph2d":
         """
         2x2
         and 2,
@@ -120,26 +126,24 @@ class PoseGraph2d(NamedTuple):
 
             nodes[i] = PanoData(
                 id=i,
-                global_Sim2_local = global_Sim2_local,
-                room_vertices_local_2d = gt_floor_pg.nodes[i].room_vertices_local_2d,
+                global_Sim2_local=global_Sim2_local,
+                room_vertices_local_2d=gt_floor_pg.nodes[i].room_vertices_local_2d,
                 image_path=gt_floor_pg.nodes[i].image_path,
                 label=gt_floor_pg.nodes[i].label,
-                doors = doors,
-                windows = windows,
-                openings = openings
+                doors=doors,
+                windows=windows,
+                openings=openings,
             )
 
         return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
-
 
     def as_json(self, json_fpath: str) -> None:
         """ """
         pass
 
-
     def measure_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> float:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
-        
+
         Args:
             gt_floor_pg
 
@@ -149,7 +153,7 @@ class PoseGraph2d(NamedTuple):
         """
         from gtsfm.utils.geometry_comparisons import compute_relative_rotation_angle, align_poses_sim3_ignore_missing
 
-        aTi_list_gt = gt_floor_pg.as_3d_pose_graph() # reference
+        aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
         bTi_list_est = self.as_3d_pose_graph()
 
         # if the estimate pose graph is missing a few nodes, pad it up to the GT list length
@@ -174,7 +178,6 @@ class PoseGraph2d(NamedTuple):
         mean_trans_err = np.mean(translation_errors)
         print(f"Mean translation error: {mean_trans_err:.1f}, Mean rotation error: {mean_rot_err:.1f}")
         return mean_rot_err, mean_trans_err
-
 
     def measure_avg_abs_rotation_err(self, gt_floor_pg: "PoseGraph2d") -> float:
         """Measure how the absolute poses satisfy the individual binary measurement constraints.
@@ -203,18 +206,21 @@ class PoseGraph2d(NamedTuple):
             errs.append(err)
 
         mean_err = np.mean(errs)
-        print(f"Mean absolute rot. error: {mean_err:.1f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos.")
+        print(
+            f"Mean absolute rot. error: {mean_err:.1f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos."
+        )
         return mean_err
 
-
-    def measure_avg_rel_rotation_err(self, gt_floor_pg: "PoseGraph2d", gt_edges: List[Tuple[int,int]], verbose: bool) -> float:
+    def measure_avg_rel_rotation_err(
+        self, gt_floor_pg: "PoseGraph2d", gt_edges: List[Tuple[int, int]], verbose: bool
+    ) -> float:
         """
 
         Args:
             gt_edges: list of (i1,i2) pairs representing panorama pairs where a WDO is found closeby between the two
         """
         errs = []
-        for (i1,i2) in gt_edges:
+        for (i1, i2) in gt_edges:
 
             if not (i1 in self.nodes and i2 in self.nodes):
                 continue
@@ -241,12 +247,11 @@ class PoseGraph2d(NamedTuple):
         print_str = f"Mean relative rot. error: {mean_err:.1f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos"
         print_str += f", estimated {len(errs)} / {len(gt_edges)} GT edges"
         print(REDTEXT + print_str + ENDCOLOR)
-        
+
         return mean_err
 
     def render_estimated_layout(self) -> None:
-        """
-        """
+        """ """
         for i, pano_obj in self.nodes.items():
 
             pano_obj.plot_room_layout(coord_frame="global", show_plot=False)
@@ -257,14 +262,13 @@ class PoseGraph2d(NamedTuple):
 
     def draw_edge(self, i1: int, i2: int, color: str) -> None:
         """ """
-        t1 = self.nodes[i1].global_Sim2_local.transform_from(np.zeros((1,2)))
-        t2 = self.nodes[i2].global_Sim2_local.transform_from(np.zeros((1,2)))
+        t1 = self.nodes[i1].global_Sim2_local.transform_from(np.zeros((1, 2)))
+        t2 = self.nodes[i2].global_Sim2_local.transform_from(np.zeros((1, 2)))
 
         t1 = t1.squeeze()
         t2 = t2.squeeze()
 
-        plt.plot([t1[0],t2[0]], [t1[1],t2[1]], c=color, linestyle="dotted", alpha=0.6)
-
+        plt.plot([t1[0], t2[0]], [t1[1], t2[1]], c=color, linestyle="dotted", alpha=0.6)
 
 
 def test_measure_abs_pose_error_shifted() -> None:
@@ -298,33 +302,17 @@ def test_measure_abs_pose_error_shifted() -> None:
     building_id = "000"
     floor_id = "floor_01"
 
-    wRi_list = [
-        rotmat2d(0),
-        rotmat2d(-90),
-        rotmat2d(0)
-    ]
-    wti_list = [
-        np.array([-1,0]),
-        np.array([-1,4]),
-        np.array([3,0])
-    ]
+    wRi_list = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
+    wti_list = [np.array([-1, 0]), np.array([-1, 4]), np.array([3, 0])]
 
     est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, building_id, floor_id)
 
-    wRi_list_gt = [
-        rotmat2d(0),
-        rotmat2d(-90),
-        rotmat2d(0)
-    ]
-    wti_list_gt = [
-        np.array([0,0]),
-        np.array([0,4]),
-        np.array([4,0])
-    ]
+    wRi_list_gt = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
+    wti_list_gt = [np.array([0, 0]), np.array([0, 4]), np.array([4, 0])]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list_gt, wti_list, building_id, floor_id)
 
     avg_rot_error, avg_trans_error = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
-    
+
     assert np.isclose(avg_rot_error, 0.0, atol=1e-3)
     assert np.isclose(avg_trans_error, 0.0, atol=1e-3)
 
@@ -332,7 +320,7 @@ def test_measure_abs_pose_error_shifted() -> None:
 def test_measure_avg_abs_rotation_err() -> None:
     """
     Create a dummy scenario, to make sure absolute rotation errors are evaluated properly.
-    
+
     TODO: fix rotations to be +90
 
     GT rotation graph:
@@ -349,25 +337,16 @@ def test_measure_avg_abs_rotation_err() -> None:
     building_id = "000"
     floor_id = "floor_01"
 
-    wRi_list = [
-        rotmat2d(-5),
-        rotmat2d(-95),
-        rotmat2d(0)
-    ]
-    
+    wRi_list = [rotmat2d(-5), rotmat2d(-95), rotmat2d(0)]
+
     est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
 
-    wRi_list_gt = [
-        rotmat2d(0),
-        rotmat2d(-90),
-        rotmat2d(0)
-    ]
+    wRi_list_gt = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
 
     mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
 
-    assert np.isclose(mean_abs_rot_err, 10/3, atol=1e-3)
-
+    assert np.isclose(mean_abs_rot_err, 10 / 3, atol=1e-3)
 
 
 def test_measure_avg_rel_rotation_err() -> None:
@@ -390,29 +369,24 @@ def test_measure_avg_rel_rotation_err() -> None:
     building_id = "000"
     floor_id = "floor_01"
 
-    wRi_list = [
-        rotmat2d(-5),
-        rotmat2d(-95),
-        rotmat2d(0)
-    ]
+    wRi_list = [rotmat2d(-5), rotmat2d(-95), rotmat2d(0)]
     est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
 
-    wRi_list_gt = [
-        rotmat2d(0),
-        rotmat2d(-90),
-        rotmat2d(0)
-    ]
+    wRi_list_gt = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
 
-    gt_edges = [(0,1)]
-    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
+    gt_edges = [(0, 1)]
+    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
+        gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges
+    )
     # both are incorrect by the same amount, cancelling out to zero error
     assert mean_rel_rot_err == 0
 
-    gt_edges = [(0,1),(1,2),(0,2)]
-    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
-    assert np.isclose(mean_rel_rot_err, 10/3, atol=1e-3)
-    
+    gt_edges = [(0, 1), (1, 2), (0, 2)]
+    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
+        gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges
+    )
+    assert np.isclose(mean_rel_rot_err, 10 / 3, atol=1e-3)
 
 
 def test_measure_avg_rel_rotation_err_unestimated() -> None:
@@ -437,22 +411,16 @@ def test_measure_avg_rel_rotation_err_unestimated() -> None:
     floor_id = "floor_01"
 
     # only 1 edge can be measured for correctness
-    wRi_list = [
-        rotmat2d(-5),
-        rotmat2d(-90),
-        None
-    ]
+    wRi_list = [rotmat2d(-5), rotmat2d(-90), None]
     est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
 
-    wRi_list_gt = [
-        rotmat2d(0),
-        rotmat2d(-90),
-        rotmat2d(0)
-    ]
+    wRi_list_gt = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
 
-    gt_edges = [(0,1),(1,2),(0,2)]
-    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges)
+    gt_edges = [(0, 1), (1, 2), (0, 2)]
+    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
+        gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges
+    )
     assert mean_rel_rot_err == 5.0
 
 
@@ -490,13 +458,15 @@ def export_dataset_pose_graphs(raw_dataset_dir: str) -> None:
 
     for building_id in building_ids:
 
-        if building_id != '000': # '1442':
+        if building_id != "000":  # '1442':
             continue
 
         print(f"Render floor maps for {building_id}")
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
-        floor_pg_dict = get_single_building_pose_graphs(building_id=building_id, pano_dir=pano_dir, json_annot_fpath=json_annot_fpath)
+        floor_pg_dict = get_single_building_pose_graphs(
+            building_id=building_id, pano_dir=pano_dir, json_annot_fpath=json_annot_fpath
+        )
 
 
 def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> PoseGraph2d:
@@ -519,16 +489,11 @@ def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
 if __name__ == "__main__":
     """ """
     raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    #export_dataset_pose_graphs(raw_dataset_dir)
+    # export_dataset_pose_graphs(raw_dataset_dir)
 
-    #test_measure_avg_rel_rotation_err()
-    #test_measure_avg_abs_rotation_err()
-    #test_measure_avg_rel_rotation_err_unestimated()
-    #test_measure_abs_pose_error()
+    # test_measure_avg_rel_rotation_err()
+    # test_measure_avg_abs_rotation_err()
+    # test_measure_avg_rel_rotation_err_unestimated()
+    # test_measure_abs_pose_error()
 
     test_measure_abs_pose_error_shifted()
-
-
-
-
-
