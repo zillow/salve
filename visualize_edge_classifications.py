@@ -5,7 +5,7 @@ import glob
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -294,6 +294,27 @@ def run_incremental_reconstruction(
             raise RuntimeError("Unknown method.")
 
 
+def find_max_degree_vertex(i2Ti1_dict: Dict[Tuple[int,int], Any]) -> int:
+    """Find the node inside of a graph G=(V,E) with highest degree.
+
+    Args:
+        i2Ti1_dict: edges E of a graph G=(V,E)
+
+    Returns:
+        seed_node: integer id of 
+    """
+    # find the seed (vertex with highest degree)
+    adj_list = cycle_utils.create_adjacency_list(i2Ti1_dict)
+    seed_node = -1
+    max_neighbors = 0
+    for v, neighbors in adj_list.items():
+        if len(neighbors) > max_neighbors:
+            seed_node = v
+            max_neighbors = len(neighbors)
+
+    return seed_node
+
+
 def growing_consensus(
     building_id: str,
     floor_id: str,
@@ -304,10 +325,31 @@ def growing_consensus(
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
     gt_floor_pose_graph: PoseGraph2d,
 ) -> None:
-    """ """
-    pass
+    """Implements a variant of the Growing Consensus" algorithm described below:
 
+    Reference:
+    https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Son_Solving_Small-Piece_Jigsaw_CVPR_2016_paper.pdf
+    
+    Args:
+    """
+    seed_node = find_max_degree_vertex(i2Si1_dict)
+    unused_triplets = cycle_utils.extract_triplets(i2Si1_dict)
+    unused_triplets = set(unused_triplets)
 
+    i2Si1_dict_consensus = {}
+
+    # compute cycle errors for each triplet connected to seed_node
+    # find one with low cycle_error
+
+    while True:
+        for triplet in unused_triplets:
+            import pdb; pdb.set_trace()
+
+        # compute all cycle errors with these new edges added
+        # if all errors are low, then:
+            # unused_triplets.remove(triplet)
+
+    
 
 
 def build_filtered_spanning_tree(
