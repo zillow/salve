@@ -22,7 +22,7 @@ from rotation_utils import rotmat2d, rotmat2theta_deg
 logger = logger_utils.get_logger()
 
 
-ROT_CYCLE_ERROR_THRESHOLD = 5.0 # 2.5 # 1.0 # 0.3
+ROT_CYCLE_ERROR_THRESHOLD = 0.5 # 1.0 # 5.0 # 2.5 # 1.0 # 0.3
 
 
 @dataclass(frozen=False)
@@ -34,7 +34,7 @@ class TwoViewEstimationReport:
 
 
 
-def extract_triplets_adjacency_list_intersection(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tuple[int, int, int]]:
+def extract_triplets(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tuple[int, int, int]]:
     """Discover triplets from a graph, without O(n^3) complexity.
 
     Based off of Theia's implementation:
@@ -197,7 +197,7 @@ def filter_to_rotation_cycle_consistent_edges(
     # (i1,i2) pairs
     cycle_consistent_keys = set()
 
-    triplets = extract_triplets_adjacency_list_intersection(i2Ri1_dict)
+    triplets = extract_triplets(i2Ri1_dict)
 
     for (i0, i1, i2) in triplets:
         cycle_error, max_rot_error, max_trans_error = compute_cycle_error(
@@ -215,6 +215,7 @@ def filter_to_rotation_cycle_consistent_edges(
         max_trans_errors.append(max_trans_error)
 
     if visualize:
+        os.makedirs("plots", exist_ok=True)
         plt.scatter(cycle_errors, max_rot_errors)
         plt.xlabel("Cycle error")
         plt.ylabel("Avg. Rot3 error over cycle triplet")
@@ -240,14 +241,25 @@ def filter_to_rotation_cycle_consistent_edges(
 
 
 
-def filter_to_translation_cycle_consistent_edges(wRi_list: List[np.ndarray], i2Si1_dict: Dict[Tuple[int,int], Sim2], translation_cycle_thresh: 0.5) -> Dict[Tuple[int,int], Sim2]:
+def filter_to_translation_cycle_consistent_edges(
+    wRi_list: List[np.ndarray], i2Si1_dict: Dict[Tuple[int,int], Sim2], translation_cycle_thresh: 0.5, two_view_reports_dict = None, visualize: bool = False
+) -> Dict[Tuple[int,int], Sim2]:
     """
     """
+
+    # translation measurement not useful if missing rotation
+    for (i1,i2) in i2Si1_dict:
+        if wRi_list[i1] is None or wRi_list[i2] is None:
+             #effectively remove such measurements
+            i2Si1_dict[(i1,i2)] = None
+
+    num_outliers_per_cycle = []
     cycle_errors = []
+    valid_edges = []
     n_valid_edges = len([i2Si1 for (i1, i2), i2Si1 in i2Si1_dict.items() if i2Si1 is not None])
 
     cycle_consistent_keys = set()
-    triplets = extract_triplets_adjacency_list_intersection(i2Si1_dict)
+    triplets = extract_triplets(i2Si1_dict)
 
     for (i0, i1, i2) in triplets:
         cycle_error = compute_translation_cycle_error(wRi_list, i2Si1_dict, cycle_nodes=(i0, i1, i2), verbose=False)
@@ -261,6 +273,22 @@ def filter_to_translation_cycle_consistent_edges(wRi_list: List[np.ndarray], i2S
         cycle_errors.append(cycle_error)
         # max_rot_errors.append(max_rot_error)
         # max_trans_errors.append(max_trans_error)
+
+        # if (i0,i1,i2) == (15, 17, 18):
+        #     import pdb; pdb.set_trace()
+
+        if two_view_reports_dict is not None and visualize:
+            num_outliers = 0
+            edges = [(i0, i1), (i1, i2), (i0, i2)]
+            for edge in edges:
+                if two_view_reports_dict[edge].gt_class != 1:
+                    num_outliers += 1
+            num_outliers_per_cycle.append(num_outliers)
+
+    if two_view_reports_dict is not None and visualize:
+        num_outliers_per_cycle = np.array(num_outliers_per_cycle)
+        cycle_errors = np.array(cycle_errors)
+        render_binned_cycle_errors(num_outliers_per_cycle, cycle_errors)
 
     # if visualize:
     #     plt.scatter(cycle_errors, max_rot_errors)
@@ -284,6 +312,58 @@ def filter_to_translation_cycle_consistent_edges(wRi_list: List[np.ndarray], i2S
     return i2Si1_dict_consistent
 
 
+
+def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors: np.ndarray) -> None:
+    """Consider how many edges of the 3 triplet edges are corrupted.
+
+    Args:
+        num_outliers_per_cycle:
+
+    Returns:
+        cycle_errors:
+    """
+    plt.figure(figsize=(16,5))
+    bins = np.unique(num_outliers_per_cycle)
+    num_bins = len(bins)
+    min_err_bin_edge = 0
+    max_err_bin_edge = 2
+    bin_edges = np.linspace(min_err_bin_edge, max_err_bin_edge, 10)
+
+    # for ylim setting for shared y axis
+    max_bin_count = 0 
+    for i, bin in enumerate(bins):
+        idxs = num_outliers_per_cycle == bin
+        bin_errors = cycle_errors[idxs]
+        assigned_bins = np.digitize(x=bin_errors, bins=bin_edges)
+        # If values in x are beyond the bounds of bins, 0 or len(bins) is returned as appropriate, so ignore last.
+        max_bin_count = max(max_bin_count, np.bincount(assigned_bins)[:-1].max())
+
+    ylim_offset = 5
+    for i, bin in enumerate(bins):
+
+        plt.subplot(1, num_bins, i + 1)
+        idxs = num_outliers_per_cycle == bin
+        bin_errors = cycle_errors[idxs]
+        plt.hist(bin_errors, bins=bin_edges)
+        plt.title(f"Num outliers = {bin}")
+
+        plt.ylim(0,max_bin_count + ylim_offset)
+
+        if i == 0:
+            plt.xlabel("Cycle translation error")
+            plt.ylabel("Counts")
+
+    plt.show()
+    plt.close("all")
+
+
+def test_render_binned_cycle_errors() -> None:
+    """ """
+    num_outliers_per_cycle = np.array([1,2,0, 0])
+    cycle_errors = np.array([1.5,2.5, 0, 0.1])
+    render_binned_cycle_errors(num_outliers_per_cycle, cycle_errors)
+
+
 def compute_translation_cycle_error(wRi_list: List[np.ndarray], i2Si1_dict: Dict[Tuple[int,int], Sim2], cycle_nodes: Tuple[int,int,int], verbose: bool) -> float:
     """ """
     cycle_nodes = list(cycle_nodes)
@@ -292,9 +372,9 @@ def compute_translation_cycle_error(wRi_list: List[np.ndarray], i2Si1_dict: Dict
     i0, i1, i2 = cycle_nodes
 
     # translations must be in the world frame to make sense
-    i1ti0 = wRi_list[1] @ i2Si1_dict[(i0, i1)].translation
-    i2ti1 = wRi_list[2] @ i2Si1_dict[(i1, i2)].translation
-    i0ti2 = wRi_list[0] @ i2Si1_dict[(i0, i2)].inverse().translation
+    i1ti0 = wRi_list[i1] @ i2Si1_dict[(i0, i1)].translation * i2Si1_dict[(i0, i1)].scale
+    i2ti1 = wRi_list[i2] @ i2Si1_dict[(i1, i2)].translation * i2Si1_dict[(i1, i2)].scale
+    i0ti2 = wRi_list[i0] @ i2Si1_dict[(i0, i2)].inverse().translation * i2Si1_dict[(i0, i2)].inverse().scale
 
     # should add to zero translation, with ideal measurements
     i0ti0 = i0ti2 + i2ti1 + i1ti0
@@ -437,6 +517,8 @@ def test_estimate_rot_cycle_filtering_classification_acc() -> None:
 if __name__ == '__main__':
     #test_estimate_rot_cycle_filtering_classification_acc()
 
-    test_filter_to_translation_cycle_consistent_edges()
+    #test_filter_to_translation_cycle_consistent_edges()
+
+    test_render_binned_cycle_errors()
 
 
