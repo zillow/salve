@@ -1,6 +1,6 @@
 """
 """
-
+import copy
 import glob
 from collections import defaultdict
 from dataclasses import dataclass
@@ -152,8 +152,13 @@ def run_incremental_reconstruction(
     hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
 ) -> None:
     """ """
-    method = "growing_consensus"
-    confidence_threshold = 0.95
+    # TODO: determine why some FPs have zero cycle error? why so close to GT?
+
+
+    method = "spanning_tree" # "SE2_cycles" #"growing_consensus"
+    confidence_threshold = 0.95 # 1.01 #= 0.95
+
+    plot_save_dir = f"2021_07_17_{method}_floorplans_with_gt_conf_{confidence_threshold}"
 
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
@@ -277,6 +282,7 @@ def run_incremental_reconstruction(
                 gt_edges,
                 two_view_reports_dict,
                 gt_floor_pose_graph,
+                plot_save_dir
             )
 
         elif method == "growing_consensus":
@@ -290,8 +296,67 @@ def run_incremental_reconstruction(
                 two_view_reports_dict,
                 gt_floor_pose_graph,
             )
+        elif method == "SE2_cycles":
+            cycles_SE2_spanning_tree(
+                building_id,
+                floor_id,
+                i2Si1_dict,
+                i2Ri1_dict,
+                i2Ui1_dict,
+                gt_edges,
+                two_view_reports_dict,
+                gt_floor_pose_graph,
+            )
         else:
+
             raise RuntimeError("Unknown method.")
+
+
+
+def cycles_SE2_spanning_tree(
+    building_id: str,
+    floor_id: str,
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
+    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
+    i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
+    gt_edges,
+    two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
+    gt_floor_pose_graph: PoseGraph2d,
+) -> None:
+    """ """
+    i2Si1_dict_consistent = cycle_utils.filter_to_SE2_cycle_consistent_edges(i2Si1_dict, two_view_reports_dict)
+
+    filtered_edge_acc = get_edge_accuracy(edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict)
+    print(f"\tFiltered by SE(2) cycles Edge Acc = {filtered_edge_acc:.2f}")
+
+    wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
+
+    if wSi_list is None:
+        print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
+        print()
+        print()
+        return
+
+    num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
+    num_floor_panos = len(gt_floor_pose_graph.nodes)
+    print(
+        f"Localized {num_localized_panos/num_floor_panos*100:.2f}% of panos: {num_localized_panos} / {num_floor_panos}"
+    )
+
+    # TODO: try spanning tree version, vs. Shonan version
+    wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
+    wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
+
+    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
+        wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
+    )
+
+    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+    print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
+    est_floor_pose_graph.render_estimated_layout()
+
+    print()
+    print()
 
 
 def find_max_degree_vertex(i2Ti1_dict: Dict[Tuple[int,int], Any]) -> int:
@@ -332,25 +397,49 @@ def growing_consensus(
     
     Args:
     """
+    i2Ri1_dict = { (i1,i2): i2Si1.rotation for (i1,i2), i2Si1 in i2Si1_dict.items()}
+
     seed_node = find_max_degree_vertex(i2Si1_dict)
     unused_triplets = cycle_utils.extract_triplets(i2Si1_dict)
     unused_triplets = set(unused_triplets)
 
-    i2Si1_dict_consensus = {}
-
+    seed_cycle_errors = []
     # compute cycle errors for each triplet connected to seed_node
+    connected_triplets = [t for t in unused_triplets if seed_node in t]
+    for triplet in connected_triplets:
+        cycle_error, _, _ = cycle_utils.compute_rot_cycle_error(
+            i2Ri1_dict,
+            cycle_nodes = triplet,
+            two_view_reports_dict=two_view_reports_dict,
+            verbose = True,
+        )
+        seed_cycle_errors.append(cycle_error)
+
+    import pdb; pdb.set_trace()
+
+    min_error_triplet_idx = np.argmin(np.array(seed_cycle_errors))
+    seed_triplet = connected_triplets[min_error_triplet_idx]
     # find one with low cycle_error
 
+    unused_triplets.remove(seed_triplet)
+
+    edges = [(i0,i1), (i1,i2), (i0,i2)]
+
+    i2Si1_dict_consensus = {edge: i2Si1_dict[edge] for edge in edges}
+
     while True:
+        candidate_consensus = copy.deepcopy(i2Si1_dict_consensus)
+
         for triplet in unused_triplets:
             import pdb; pdb.set_trace()
+
+        # can we do this? i3Ui3 = i3Ri2 * i2Ui3 = i2Ri1 * i1Ui3 (cycle is 3->1->2)
 
         # compute all cycle errors with these new edges added
         # if all errors are low, then:
             # unused_triplets.remove(triplet)
 
     
-
 
 def build_filtered_spanning_tree(
     building_id: str,
@@ -361,6 +450,7 @@ def build_filtered_spanning_tree(
     gt_edges,
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
     gt_floor_pose_graph: PoseGraph2d,
+    plot_save_dir: str
 ) -> None:
     """ """
 
@@ -439,7 +529,12 @@ def build_filtered_spanning_tree(
 
     mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
     print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
-    #est_floor_pose_graph.render_estimated_layout()
+    est_floor_pose_graph.render_estimated_layout(
+        show_plot=False,
+        save_plot=True,
+        plot_save_dir=plot_save_dir,
+        gt_floor_pg=gt_floor_pose_graph
+    )
 
     print()
     print()
