@@ -21,6 +21,9 @@ BLUE = [0, 0, 1]
 wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
+COLORMAP = np.random.rand(100,3)
+
+
 @dataclass(frozen=False)
 class WDO:
     """define windows/doors/openings by left and right boundaries"""
@@ -225,7 +228,9 @@ class PanoData(NamedTuple):
 
         #room_vertices = hohopano_Sim2_zindpano.transform_from(room_vertices)
 
-        color = np.random.rand(3)
+        num_colormap_colors = COLORMAP.shape[0]
+        color = COLORMAP[self.id % num_colormap_colors]
+
         plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color)
         plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=0.5)
         # draw edge to close each polygon
