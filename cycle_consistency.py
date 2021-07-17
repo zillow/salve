@@ -179,13 +179,10 @@ def compute_rot_cycle_error(
     return cycle_error, max_rot_error, max_trans_error
 
 
-
-
-
 def compute_SE2_cycle_error(
-    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
+    i2Si1_dict: Dict[Tuple[int, int], np.ndarray],
     cycle_nodes: Tuple[int, int, int],
-    two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
+    two_view_reports_dict,
     verbose: bool = True,
 ) -> Tuple[float, Optional[float], Optional[float]]:
     """Compute the cycle error by the magnitude of the axis-angle rotation after composing 3 rotations.
@@ -211,61 +208,37 @@ def compute_SE2_cycle_error(
 
     i0, i1, i2 = cycle_nodes
 
-    import pdb; pdb.set_trace()
-
-    i1Ri0 = i2Ri1_dict[(i0, i1)]
-    i2Ri1 = i2Ri1_dict[(i1, i2)]
-    i0Ri2 = i2Ri1_dict[(i0, i2)].T
+    i1Si0 = i2Si1_dict[(i0, i1)]
+    i2Si1 = i2Si1_dict[(i1, i2)]
+    i0Si2 = i2Si1_dict[(i0, i2)].inverse()
 
     # should compose to identity, with ideal measurements
-    i0Ri0 = i0Ri2 @ i2Ri1 @ i1Ri0
+    i0Si0 = i0Si2.compose(i2Si1).compose(i1Si0)
 
-    cycle_error = np.abs(rotmat2theta_deg(i0Ri0))
-
-    # form 3 edges between fully connected subgraph (nodes i,j,k)
-    e_i = (i0, i1)
-    e_j = (i1, i2)
-    e_k = (i0, i2)
-
-    rot_errors = [two_view_reports_dict[e].R_error_deg for e in [e_i, e_j, e_k]]
-    trans_errors = [two_view_reports_dict[e].U_error_deg for e in [e_i, e_j, e_k]]
-
-    gt_known = all([err is not None for err in rot_errors])
-    if gt_known:
-        max_rot_error = np.max(rot_errors)
-        max_trans_error = np.max(trans_errors)
-    else:
-        # ground truth unknown, so cannot estimate error w.r.t. GT
-        max_rot_error = None
-        max_trans_error = None
-
-    gt_classes = [two_view_reports_dict[e].gt_class for e in [e_i, e_j, e_k]]
+    rot_cycle_error = np.abs(rotmat2theta_deg(i0Si0.rotation))
+    trans_cycle_error = np.linalg.norm(i0Si0.translation)
 
     if verbose:
-        i1Ri0_theta = rotmat2theta_deg(i1Ri0)
-        i2Ri1_theta = rotmat2theta_deg(i2Ri1)
-        i0Ri2_theta = rotmat2theta_deg(i0Ri2)
+        edges = [(i0, i1), (i1, i2), (i0, i2)]
+        num_outliers = sum([ int(two_view_reports_dict[edge].gt_class != 1) for edge in edges])
 
         logger.info("\n")
-        logger.info(f"{i0},{i1},{i2} --> Cycle error is: {cycle_error:.1f}")
+        logger.info(f"{i0},{i1},{i2} --> Rot cycle error {rot_cycle_error:.2f}, Trans. Cycle error is: {trans_cycle_error:.2f} w/ {num_outliers} outliers")
 
-    return cycle_error
-
-
-
-
-
+    return rot_cycle_error, trans_cycle_error
 
 
 def filter_to_SE2_cycle_consistent_edges(
     i2Si1_dict: Dict[Tuple[int,int], Sim2],
-    SE2_cycle_rot_threshold_deg: float = 5,
-    SE2_cycle_trans_threshold: float = 0.5
+    two_view_reports_dict,
+    SE2_cycle_rot_threshold_deg: float = 0.5,
+    SE2_cycle_trans_threshold: float = 0.01,
+    visualize: bool = True
 ) -> Dict[Tuple[int,int], Sim2]:
     """ """
-    cycle_errors = []
-    max_rot_errors = []
-    max_trans_errors = []
+    rot_cycle_errors = []
+    trans_cycle_errors = []
+    num_outliers_per_cycle = []
 
     n_valid_edges = len([i2Si1 for (i1, i2), i2Si1 in i2Si1_dict.items() if i2Si1 is not None])
 
@@ -273,33 +246,45 @@ def filter_to_SE2_cycle_consistent_edges(
     cycle_consistent_keys = set()
 
     triplets = extract_triplets(i2Si1_dict)
-    import pdb; pdb.set_trace()
-
     for (i0, i1, i2) in triplets:
         
-        cycle_error = compute_SE2_cycle_error(i2Si1_dict, (i0, i1, i2), verbose=True)
+        rot_cycle_error, trans_cycle_error = compute_SE2_cycle_error(
+            i2Si1_dict, cycle_nodes=(i0, i1, i2), two_view_reports_dict=two_view_reports_dict, verbose=False
+        )
 
-        if cycle_error < SE2_cycle_rot_threshold_deg:
+        if rot_cycle_error < SE2_cycle_rot_threshold_deg and trans_cycle_error < SE2_cycle_trans_threshold:
 
             cycle_consistent_keys.add((i0, i1))
             cycle_consistent_keys.add((i1, i2))
             cycle_consistent_keys.add((i0, i2))
 
-        cycle_errors.append(cycle_error)
-        max_rot_errors.append(max_rot_error)
-        max_trans_errors.append(max_trans_error)
+        rot_cycle_errors.append(rot_cycle_error)
+        trans_cycle_errors.append(trans_cycle_error)
+
+        if two_view_reports_dict is not None and visualize:
+            num_outliers = 0
+            edges = [(i0, i1), (i1, i2), (i0, i2)]
+            for edge in edges:
+                if two_view_reports_dict[edge].gt_class != 1:
+                    num_outliers += 1
+            num_outliers_per_cycle.append(num_outliers)
+
+    if two_view_reports_dict is not None and visualize:
+        num_outliers_per_cycle = np.array(num_outliers_per_cycle)
+        rot_cycle_errors = np.array(rot_cycle_errors)
+        render_binned_cycle_errors(num_outliers_per_cycle, rot_cycle_errors, max_err_bin_edge=180)
+
+        num_outliers_per_cycle = np.array(num_outliers_per_cycle)
+        trans_cycle_errors = np.array(trans_cycle_errors)
+        render_binned_cycle_errors(num_outliers_per_cycle, trans_cycle_errors)
 
     i2Si1_dict_consistent = {}
     for (i1, i2) in cycle_consistent_keys:
-        i2Si1_dict_consistent[(i1, i2)] = i2Ri1_dict[(i1, i2)]
+        i2Si1_dict_consistent[(i1, i2)] = i2Si1_dict[(i1, i2)]
 
     num_consistent_rotations = len(i2Si1_dict_consistent)
     logger.info("Found %d consistent rel. rotations from %d original edges.", num_consistent_rotations, n_valid_edges)
     return i2Si1_dict_consistent
-
-
-
-
 
 
 def filter_to_rotation_cycle_consistent_edges(
@@ -463,8 +448,11 @@ def filter_to_translation_cycle_consistent_edges(
     return i2Si1_dict_consistent
 
 
-def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors: np.ndarray) -> None:
+def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors: np.ndarray, max_err_bin_edge: float = 2) -> None:
     """Consider how many edges of the 3 triplet edges are corrupted.
+
+    For translations, show [0,2]
+    For rotations, show [0,180]
 
     Args:
         num_outliers_per_cycle:
@@ -476,7 +464,6 @@ def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors:
     bins = np.unique(num_outliers_per_cycle)
     num_bins = len(bins)
     min_err_bin_edge = 0
-    max_err_bin_edge = 2
     bin_edges = np.linspace(min_err_bin_edge, max_err_bin_edge, 10)
 
     # for ylim setting for shared y axis
