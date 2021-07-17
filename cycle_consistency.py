@@ -101,7 +101,7 @@ def create_adjacency_list(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> Defa
     return adj_list
 
 
-def compute_cycle_error(
+def compute_rot_cycle_error(
     i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
     cycle_nodes: Tuple[int, int, int],
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
@@ -179,6 +179,129 @@ def compute_cycle_error(
     return cycle_error, max_rot_error, max_trans_error
 
 
+
+
+
+def compute_SE2_cycle_error(
+    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
+    cycle_nodes: Tuple[int, int, int],
+    two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
+    verbose: bool = True,
+) -> Tuple[float, Optional[float], Optional[float]]:
+    """Compute the cycle error by the magnitude of the axis-angle rotation after composing 3 rotations.
+
+    Note: i1 < i2 for every valid edge, by construction.
+
+    Args:
+        i2Ri1_dict: mapping from image pair indices to relative rotation.
+        cycle_nodes: 3-tuples of nodes that form a cycle. Nodes of are provided in sorted order.
+        two_view_reports_dict:
+        verbose: whether to dump to logger information about error in each Euler angle
+
+    Returns:
+        cycle_error: deviation from 3x3 identity matrix, in degrees. In other words,
+            it is defined as the magnitude of the axis-angle rotation of the composed transformations.
+        max_rot_error: maximum rotation error w.r.t. GT across triplet edges, in degrees.
+            If ground truth is not known for a scene, None will be returned instead.
+        max_trans_error: maximum translation error w.r.t. GT across triplet edges, in degrees.
+            If ground truth is not known for a scene, None will be returned instead.
+    """
+    cycle_nodes = list(cycle_nodes)
+    cycle_nodes.sort()
+
+    i0, i1, i2 = cycle_nodes
+
+    import pdb; pdb.set_trace()
+
+    i1Ri0 = i2Ri1_dict[(i0, i1)]
+    i2Ri1 = i2Ri1_dict[(i1, i2)]
+    i0Ri2 = i2Ri1_dict[(i0, i2)].T
+
+    # should compose to identity, with ideal measurements
+    i0Ri0 = i0Ri2 @ i2Ri1 @ i1Ri0
+
+    cycle_error = np.abs(rotmat2theta_deg(i0Ri0))
+
+    # form 3 edges between fully connected subgraph (nodes i,j,k)
+    e_i = (i0, i1)
+    e_j = (i1, i2)
+    e_k = (i0, i2)
+
+    rot_errors = [two_view_reports_dict[e].R_error_deg for e in [e_i, e_j, e_k]]
+    trans_errors = [two_view_reports_dict[e].U_error_deg for e in [e_i, e_j, e_k]]
+
+    gt_known = all([err is not None for err in rot_errors])
+    if gt_known:
+        max_rot_error = np.max(rot_errors)
+        max_trans_error = np.max(trans_errors)
+    else:
+        # ground truth unknown, so cannot estimate error w.r.t. GT
+        max_rot_error = None
+        max_trans_error = None
+
+    gt_classes = [two_view_reports_dict[e].gt_class for e in [e_i, e_j, e_k]]
+
+    if verbose:
+        i1Ri0_theta = rotmat2theta_deg(i1Ri0)
+        i2Ri1_theta = rotmat2theta_deg(i2Ri1)
+        i0Ri2_theta = rotmat2theta_deg(i0Ri2)
+
+        logger.info("\n")
+        logger.info(f"{i0},{i1},{i2} --> Cycle error is: {cycle_error:.1f}")
+
+    return cycle_error
+
+
+
+
+
+
+
+def filter_to_SE2_cycle_consistent_edges(
+    i2Si1_dict: Dict[Tuple[int,int], Sim2],
+    SE2_cycle_rot_threshold_deg: float = 5,
+    SE2_cycle_trans_threshold: float = 0.5
+) -> Dict[Tuple[int,int], Sim2]:
+    """ """
+    cycle_errors = []
+    max_rot_errors = []
+    max_trans_errors = []
+
+    n_valid_edges = len([i2Si1 for (i1, i2), i2Si1 in i2Si1_dict.items() if i2Si1 is not None])
+
+    # (i1,i2) pairs
+    cycle_consistent_keys = set()
+
+    triplets = extract_triplets(i2Si1_dict)
+    import pdb; pdb.set_trace()
+
+    for (i0, i1, i2) in triplets:
+        
+        cycle_error = compute_SE2_cycle_error(i2Si1_dict, (i0, i1, i2), verbose=True)
+
+        if cycle_error < SE2_cycle_rot_threshold_deg:
+
+            cycle_consistent_keys.add((i0, i1))
+            cycle_consistent_keys.add((i1, i2))
+            cycle_consistent_keys.add((i0, i2))
+
+        cycle_errors.append(cycle_error)
+        max_rot_errors.append(max_rot_error)
+        max_trans_errors.append(max_trans_error)
+
+    i2Si1_dict_consistent = {}
+    for (i1, i2) in cycle_consistent_keys:
+        i2Si1_dict_consistent[(i1, i2)] = i2Ri1_dict[(i1, i2)]
+
+    num_consistent_rotations = len(i2Si1_dict_consistent)
+    logger.info("Found %d consistent rel. rotations from %d original edges.", num_consistent_rotations, n_valid_edges)
+    return i2Si1_dict_consistent
+
+
+
+
+
+
 def filter_to_rotation_cycle_consistent_edges(
     i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
     i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
@@ -227,7 +350,7 @@ def filter_to_rotation_cycle_consistent_edges(
     triplets = extract_triplets(i2Ri1_dict)
 
     for (i0, i1, i2) in triplets:
-        cycle_error, max_rot_error, max_trans_error = compute_cycle_error(
+        cycle_error, max_rot_error, max_trans_error = compute_rot_cycle_error(
             i2Ri1_dict, [i0, i1, i2], two_view_reports_dict, verbose=False
         )
 
