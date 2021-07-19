@@ -15,7 +15,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
     """
     floor_map_json has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'
     """
-    FLOORPLANS_OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_07_06"
+    FLOORPLANS_OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_07_13"
 
     floor_map_json = read_json_file(json_annot_fpath)
 
@@ -31,7 +31,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
         
         # if floor_id != 'floor_02':
         #     continue
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
 
         fd = FloorData.from_json(floor_data, floor_id)
 
@@ -73,7 +73,7 @@ def export_pano_visualizations(raw_dataset_dir: str) -> None:
 
     for building_id in building_ids:
 
-        if building_id != '000': # '1442':
+        if building_id not in ['1530', '1442', '1482', '1490', '1441', '1427', '1634', '1635', '1626', '1584', '1578', '1583', '1394']: # != '000': # '1442':
             continue
 
         print(f"Render floor maps for {building_id}")
@@ -84,6 +84,6 @@ def export_pano_visualizations(raw_dataset_dir: str) -> None:
 
 if __name__ == "__main__":
     """ """
-    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     export_pano_visualizations(raw_dataset_dir)
