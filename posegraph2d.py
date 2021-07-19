@@ -263,6 +263,7 @@ class PoseGraph2d(NamedTuple):
         Either render (show plot) or save plot to disk.
         """
         if gt_floor_pg is not None:
+            plt.suptitle("left: GT floorplan. Right: estimated floorplan.")
             plt.subplot(1,2,1)
             gt_floor_pg.render_estimated_layout(show_plot=False, save_plot=False, plot_save_dir=None, gt_floor_pg=None)
 
