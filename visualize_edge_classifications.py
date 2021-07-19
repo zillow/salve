@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
+import gtsfm.utils.graph as graph_utils
 
 import cycle_consistency as cycle_utils
 import rotation_averaging
@@ -154,11 +155,10 @@ def run_incremental_reconstruction(
     """ """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
+    method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
+    confidence_threshold = 0.7 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
-    method = "spanning_tree" # "SE2_cycles" #"growing_consensus"
-    confidence_threshold = 0.95 # 1.01 #= 0.95
-
-    plot_save_dir = f"2021_07_17_{method}_floorplans_with_gt_conf_{confidence_threshold}"
+    plot_save_dir = f"2021_07_19_{method}_floorplans_with_gt_conf_{confidence_threshold}"
 
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
@@ -202,6 +202,7 @@ def run_incremental_reconstruction(
 
             plt.show()
 
+        # compute_precision_recall(measurements)
 
         num_gt_positives = 0
         num_gt_negatives = 0
@@ -250,7 +251,6 @@ def run_incremental_reconstruction(
 
             # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
             # use model confidence
-            # CHECK WEIRD IMBALANCE RATE
 
             i2Si1_dict[(m.i1, m.i2)] = i2Si1
 
@@ -266,11 +266,15 @@ def run_incremental_reconstruction(
             if m.y_true == 1:
                 gt_edges.append((m.i1, m.i2))
 
+
         class_imbalance_ratio = num_gt_negatives / num_gt_positives
         print(f"\tClass imbalance ratio {class_imbalance_ratio:.2f}")
 
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
+
+        cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
+        print(f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
 
         if method == "spanning_tree":
             build_filtered_spanning_tree(
@@ -308,9 +312,7 @@ def run_incremental_reconstruction(
                 gt_floor_pose_graph,
             )
         else:
-
             raise RuntimeError("Unknown method.")
-
 
 
 def cycles_SE2_spanning_tree(
@@ -461,6 +463,9 @@ def build_filtered_spanning_tree(
     filtered_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
     print(f"\tFiltered by rot cycles Edge Acc = {filtered_edge_acc:.2f}")
 
+    cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
+    print(f"After triplet rot cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
+
     # # could count how many nodes or edges never appeared in any triplet
     # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
     # dropped_edges = set(i2Ri1_dict.keys()) - set(i2Ri1_dict_consistent.keys())
@@ -479,6 +484,9 @@ def build_filtered_spanning_tree(
         wRi_list, i2Ri1_dict, max_allowed_deviation=5, two_view_reports_dict=two_view_reports_dict
     )
 
+    cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
+    print(f"After filtering by rel. vs. composed abs., the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
+
     consistent_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
     print(f"\tFiltered relative by abs. rotation deviation Edge Acc = {consistent_edge_acc:.2f}")
 
@@ -496,6 +504,10 @@ def build_filtered_spanning_tree(
     i2Si1_dict_consistent = cycle_utils.filter_to_translation_cycle_consistent_edges(
         wRi_list, i2Si1_dict, translation_cycle_thresh=0.25, two_view_reports_dict=two_view_reports_dict
     )
+
+    cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
+    print(f"After triplet trans. cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
+
     filtered_edge_acc = get_edge_accuracy(
         edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
     )
@@ -613,6 +625,42 @@ def filter_measurements_to_absolute_rotations(
     return i2Ri1_dict_consistent
 
 
+def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
+    """ """
+    building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_save_root}/*")]
+    
+    for building_id in building_ids:
+
+        floor_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_save_root}/{building_id}/*")]
+        for floor_id in floor_ids:
+
+            # for each pano-pair
+            for i1 in range(200):
+
+                for i2 in range(200):
+
+                    correct_Sim2_fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx/{i1}_{i2}_*.json")
+                    incorrect_Sim2_fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment/{i1}_{i2}_*.json")
+
+                    if len(incorrect_Sim2_fpaths) == 0 or len(correct_Sim2_fpaths) == 0:
+                        continue
+
+                    correct_Sim2 = Sim2.from_json(correct_Sim2_fpaths[0])
+
+                    # how far is each from GT?
+                    for incorrect_Sim2_fpath in incorrect_Sim2_fpaths:
+                        incorrect_Sim2 = Sim2.from_json(incorrect_Sim2_fpath)
+
+                        if np.isclose(correct_Sim2.theta_deg, incorrect_Sim2.theta_deg, atol=0.1):
+                            print(f"{building_id} {floor_id}: Correct {correct_Sim2.theta_deg:.1f} vs {incorrect_Sim2.theta_deg:.1f}, Correct {np.round(correct_Sim2.translation,2)} vs {np.round(incorrect_Sim2.translation,2)}")
+
+
+                    print()
+                    print()
+
+
+
+
 def get_edge_accuracy(
     edges: List[Tuple[int, int]], two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport]
 ) -> float:
@@ -641,3 +689,10 @@ if __name__ == "__main__":
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
+
+
+    #visualize_deviations_from_ground_truth(hypotheses_save_root)
+
+
+
+
