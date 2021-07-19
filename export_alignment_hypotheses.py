@@ -1152,7 +1152,7 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
-    num_processes = 6
+    num_processes = 12
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
