@@ -25,7 +25,7 @@ import gtsfm.utils.logger as logger_utils
 logger = logger_utils.get_logger()
 
 from vis_depth import rotmat2d
-from posegraph2d import PoseGraph2d, get_gt_pose_graph, rot2x2_to_Rot3
+from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph, rot2x2_to_Rot3
 from rotation_averaging import globalaveraging2d
 from spanning_tree import greedily_construct_st
 
