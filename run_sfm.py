@@ -21,6 +21,7 @@ from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rotmat2theta_deg
 
 from visualize_edge_classifications import get_edge_classifications_from_serialized_preds
 
+
 def run_incremental_reconstruction(
     hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
 ) -> None:
@@ -30,7 +31,7 @@ def run_incremental_reconstruction(
     method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
     confidence_threshold = 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
-    plot_save_dir = f"2021_07_19_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge"
+    plot_save_dir = f"2021_07_20_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge"
 
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
@@ -547,8 +548,6 @@ def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
                     print()
 
 
-
-
 def get_edge_accuracy(
     edges: List[Tuple[int, int]], two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport]
 ) -> float:
@@ -562,3 +561,4 @@ def get_edge_accuracy(
 
     acc = np.mean(preds)
     return acc
+
