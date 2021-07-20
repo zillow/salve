@@ -1,5 +1,9 @@
 
 
+"""
+Early-fusion ResNet architecture.
+"""
+
 from typing import Tuple
 
 import torch

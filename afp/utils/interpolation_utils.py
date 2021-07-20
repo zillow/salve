@@ -1,4 +1,9 @@
 
+"""
+Utilities for interpolating a regular grid of values from sparse points, and for removing
+interpolation artifacts from areas where there was no signal.
+"""
+
 import numpy as np
 import torch
 import torch.nn.functional as F

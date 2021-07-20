@@ -1,4 +1,9 @@
 
+"""
+Utilities for greedily assembling a spanning tree, by shortest paths to an origin node within
+a single connected component.
+"""
+
 import copy
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple

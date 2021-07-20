@@ -1,6 +1,6 @@
 
 """
-Shonan rotation averaging.
+Wrapper around GTSAM's Shonan rotation averaging.
 """
 
 import copy

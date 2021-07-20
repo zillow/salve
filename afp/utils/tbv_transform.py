@@ -1,3 +1,8 @@
+
+"""
+Utilities for data augmentation.
+"""
+
 import collections
 import random
 import math
