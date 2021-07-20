@@ -16,8 +16,8 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Pose2, Rot2, Rot3, Unit3
 from scipy.spatial.transform import Rotation
 
-from pr_utils import compute_precision_recall
-from rotation_utils import rotmat2d, rotmat2theta_deg
+from afp.utils.pr_utils import compute_precision_recall
+from afp.utils.rotation_utils import rotmat2d, rotmat2theta_deg
 
 logger = logger_utils.get_logger()
 

@@ -6,6 +6,7 @@ Utilities for filling a raster canvas from top-to-bottom, or bottom-to-top.
 import numpy as np
 from argoverse.utils.mesh_grid import get_mesh_grid_as_point_cloud
 
+
 def choose_elevated_repeated_vals(
     x: np.ndarray, y: np.ndarray, z: np.ndarray, zmin: float = -2, zmax: float = 2, num_slices: int = 4
 ) -> np.ndarray:

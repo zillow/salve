@@ -6,6 +6,8 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Pose3, Point3Pairs, Rot3, Similarity3, Unit3
 
+from afp.utils.rotation_utils import rotmat2d
+
 
 def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Sim2, np.ndarray]:
     """
@@ -128,35 +130,6 @@ def test_align_points_sim3_horseshoe() -> None:
     assert np.allclose(aSb.rotation, np.eye(2))
     assert np.allclose(aSb.translation, np.array([3,1]))
 
-
-def test_rotmat2d() -> None:
-    """ """
-    for _ in range(1000):
-
-        theta = np.random.rand() * 360
-        R = rotmat2d(theta)
-        computed = R.T @ R
-        #print(np.round(computed, 1))
-        expected = np.eye(2)
-        assert np.allclose(computed, expected)
-
-
-def rotmat2d(theta_deg: float) -> np.ndarray:
-    """Generate 2x2 rotation matrix, given a rotation angle in degrees."""
-    theta_rad = np.deg2rad(theta_deg)
-
-    s = np.sin(theta_rad)
-    c = np.cos(theta_rad)
-
-    # fmt: off
-    R = np.array(
-        [
-            [c, -s],
-            [s, c]
-        ]
-    )
-    # fmt: on
-    return R
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ import copy
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import gtsam
+import gtsfm.utils.logger as logger_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from gtsam import (
@@ -20,11 +21,9 @@ from gtsam import (
     ShonanAveragingParameters3
 )
 
-import gtsfm.utils.logger as logger_utils
+from afp.utils.rotation_utils import rotmat2theta_deg
 
 logger = logger_utils.get_logger()
-
-from rotation_utils import rotmat2theta_deg
 
 
 def globalaveraging2d_consecutive_ordering(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[np.ndarray]:

@@ -8,9 +8,9 @@ from mseg_semantic.utils.avg_meter import AverageMeter
 from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
 from torch import nn, Tensor
 
-import tbv_transform
-from early_fusion import EarlyFusionCEResnet
-from logger_utils import get_logger
+import afp.utils.tbv_transform
+from afp.models.early_fusion import EarlyFusionCEResnet
+from afp.utils.logger_utils import get_logger
 
 from afp.training_config import TrainingConfig
 from zind_data import ZindData

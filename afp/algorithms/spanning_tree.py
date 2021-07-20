@@ -9,19 +9,19 @@ from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import gtsam
+import gtsfm.utils.graph as graph_utils
+import gtsfm.utils.logger as logger_utils
 import networkx as nx
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Rot2, Rot3, Unit3
 
-import gtsfm.utils.graph as graph_utils
-import gtsfm.utils.logger as logger_utils
+from afp.algorithms.rotation_averaging import globalaveraging2d
+from afp.utils.rotation_utils import rotmat2d, rotmat2theta_deg
+
 
 logger = logger_utils.get_logger()
-
-from rotation_utils import rotmat2d, rotmat2theta_deg
-from rotation_averaging import globalaveraging2d
 
 
 def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[np.ndarray]:

@@ -21,6 +21,18 @@ def rotmat2d(theta_deg: float) -> np.ndarray:
     return R
 
 
+def test_rotmat2d() -> None:
+    """ """
+    for _ in range(1000):
+
+        theta = np.random.rand() * 360
+        R = rotmat2d(theta)
+        computed = R.T @ R
+        #print(np.round(computed, 1))
+        expected = np.eye(2)
+        assert np.allclose(computed, expected)
+
+
 def rotmat2theta_deg(R: np.ndarray) -> float:
     """Recover the rotation angle `theta` (in degrees) from the 2d rotation matrix.
     Note: the first column of the rotation matrix R provides sine and cosine of theta,
