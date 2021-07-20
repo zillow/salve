@@ -156,15 +156,18 @@ def run_incremental_reconstruction(
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
-    confidence_threshold = 0.7 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    confidence_threshold = 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
-    plot_save_dir = f"2021_07_19_{method}_floorplans_with_gt_conf_{confidence_threshold}"
+    plot_save_dir = f"2021_07_19_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge"
 
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
     # loop over each building and floor
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
+
+        # for each edge, choose the most confident prediction over all WDO pair alignments
+        most_confident_edge_dict = defaultdict(list)
 
         i2Si1_dict = {}
         i2Ri1_dict = {}
@@ -234,6 +237,16 @@ def run_incremental_reconstruction(
                 m.i1 = i1
                 m.i2 = i2
 
+            most_confident_edge_dict[(m.i1,m.i2)] += [m]
+
+        most_confident_was_correct = []
+        for (i1, i2), measurements in most_confident_edge_dict.items():
+
+            most_confident_idx = np.argmax([m.prob for m in measurements])
+            m = measurements[most_confident_idx]
+            if len(measurements) > 1:
+                most_confident_was_correct.append(m.y_true == 1)
+
             # look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
             label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
             fpaths = glob.glob(
@@ -266,6 +279,9 @@ def run_incremental_reconstruction(
             if m.y_true == 1:
                 gt_edges.append((m.i1, m.i2))
 
+            # print(m)
+
+        print(f"most confident was correct {np.array(most_confident_was_correct).mean():.2f}")
 
         class_imbalance_ratio = num_gt_negatives / num_gt_positives
         print(f"\tClass imbalance ratio {class_imbalance_ratio:.2f}")
