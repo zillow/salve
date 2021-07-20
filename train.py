@@ -28,7 +28,7 @@ from train_utils import (
     print_time_remaining,
     load_model_checkpoint
 )
-from logger_utils import get_logger, setup_file_logger
+from afp.utils.logger_utils import get_logger, setup_file_logger
 
 #logger = get_logger()
 

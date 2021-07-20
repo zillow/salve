@@ -8,7 +8,7 @@ import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 
-from pano_data import PanoData, FloorData
+from afp.common.pano_data import PanoData, FloorData
 
 
 def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
