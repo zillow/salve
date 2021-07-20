@@ -16,8 +16,8 @@ from argoverse.utils.sim2 import Sim2
 
 from gtsam import Point3, Rot3, Pose3
 
-from pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
-from rotation_utils import rotmat2d, wrap_angle_deg
+from afp.common.pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
+from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg
 
 
 REDTEXT = "\033[91m"
