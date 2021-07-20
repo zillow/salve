@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-from afp.utils.rotation import rotmat2d
+from afp.utils.rotation_utils import rotmat2d
 
 
 RED = [1, 0, 0]
