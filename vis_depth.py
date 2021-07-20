@@ -7,17 +7,15 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import open3d as o3d
-from argoverse.utils.mesh_grid import get_mesh_grid_as_point_cloud
 from argoverse.utils.se2 import SE2
 from argoverse.utils.sim2 import Sim2
 from imageio import imread
-from scipy.interpolate import griddata  # not quite the same as `matplotlib.mlab.griddata`
 
 # from vis_zind_annotations import rotmat2d
 
-from zorder_utils import choose_elevated_repeated_vals
-from interp_artifact_removal import remove_hallucinated_content
-from rotation_utils import rotmat2d
+from afp.utils.zorder_utils import choose_elevated_repeated_vals
+from afp.utils.interp_artifact_removal import remove_hallucinated_content
+from afp.utils.rotation_utils import rotmat2d
 
 def get_uni_sphere_xyz(H, W):
     """Make spherical system match the world system"""
@@ -86,25 +84,6 @@ class BEVParams:
         self.xlims = xlims
         self.ylims = ylims
 
-
-def interp_dense_grid_from_sparse(
-    bev_img: np.ndarray, points: np.ndarray, rgb_values: np.ndarray, grid_h: int, grid_w: int, is_semantics: bool
-) -> np.ndarray:
-    """
-    Args:
-       points: (N,2) or (N,3) array of (x,y,z) or (x,y)
-    """
-    grid_coords = get_mesh_grid_as_point_cloud(min_x=0, max_x=grid_w - 1, min_y=0, max_y=grid_h - 1)
-    # Note: `xi` -- Points at which to interpolate data.
-    interp_rgb_vals = griddata(
-        points=points[:, :2], values=rgb_values, xi=grid_coords, method="nearest" if is_semantics else "linear"
-    )  # ) # # or method='linear', method='cubic'
-
-    # can swap axes arbitrarily
-    Y = grid_coords[:, 1].astype(np.int32)
-    X = grid_coords[:, 0].astype(np.int32)
-    bev_img[Y, X, :] = interp_rgb_vals
-    return bev_img
 
 
 def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bool) -> Optional[np.ndarray]:

@@ -5,13 +5,13 @@ from argoverse.utils.mesh_grid import get_mesh_grid_as_point_cloud
 def choose_elevated_repeated_vals(
     x: np.ndarray, y: np.ndarray, z: np.ndarray, zmin: float = -2, zmax: float = 2, num_slices: int = 4
 ) -> np.ndarray:
-    """fill in the image, from top to bottom, after histogramming by z-value
+    """fill in the image, from top to bottom, after histogramming by z-value.
 
     Guarantee: x and y are integers between 0 and some large value
-    Since want to have corresponding indices for semantics, we dont just immediately return new (x,y,z)
+    Since want to have corresponding indices for semantics, we don't just immediately return new (x,y,z)
     although this is easier (save z instead of index into array)
 
-    Note:Use lights, instead of floor, when available for salient features.
+    Note: Use lights, instead of floor, when available for salient features.
 
     Args:
        valid: logicals, for where at this location, we are the highest z value

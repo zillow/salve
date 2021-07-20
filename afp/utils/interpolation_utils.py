@@ -3,6 +3,29 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from argoverse.utils.mesh_grid import get_mesh_grid_as_point_cloud
+from scipy.interpolate import griddata  # not quite the same as `matplotlib.mlab.griddata`
+
+
+def interp_dense_grid_from_sparse(
+    bev_img: np.ndarray, points: np.ndarray, rgb_values: np.ndarray, grid_h: int, grid_w: int, is_semantics: bool
+) -> np.ndarray:
+    """
+    Args:
+       points: (N,2) or (N,3) array of (x,y,z) or (x,y)
+    """
+    grid_coords = get_mesh_grid_as_point_cloud(min_x=0, max_x=grid_w - 1, min_y=0, max_y=grid_h - 1)
+    # Note: `xi` -- Points at which to interpolate data.
+    interp_rgb_vals = griddata(
+        points=points[:, :2], values=rgb_values, xi=grid_coords, method="nearest" if is_semantics else "linear"
+    )  # ) # # or method='linear', method='cubic'
+
+    # can swap axes arbitrarily
+    Y = grid_coords[:, 1].astype(np.int32)
+    X = grid_coords[:, 0].astype(np.int32)
+    bev_img[Y, X, :] = interp_rgb_vals
+    return bev_img
+
 
 def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.ndarray, K: int = 41) -> np.ndarray:
     """
