@@ -343,14 +343,25 @@ def build_filtered_spanning_tree(
     plot_save_dir: str
 ) -> None:
     """ """
-    i2Ri1_dict, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
-        i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
-    )
-    draw_graph(
+    draw_graph_topology(
         edges=list(i2Ri1_dict.keys()),
         gt_floor_pose_graph=gt_floor_pose_graph,
         two_view_reports_dict=two_view_reports_dict,
-        title="topology after Rot Cycle Consistency filtering"
+        title=f"Building {building_id} {floor_id}: topology after CNN prediction of positives",
+        show_plot=False,
+        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_CNN_predicted_positives.jpg"
+    )
+
+    i2Ri1_dict, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
+        i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
+    )
+    draw_graph_topology(
+        edges=list(i2Ri1_dict.keys()),
+        gt_floor_pose_graph=gt_floor_pose_graph,
+        two_view_reports_dict=two_view_reports_dict,
+        title=f"Building {building_id} {floor_id}: topology after rot. cycle consistency filtering",
+        show_plot=False,
+        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_rot_cycle_consistency.jpg"
     )
 
     filtered_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
@@ -376,6 +387,14 @@ def build_filtered_spanning_tree(
     i2Ri1_dict = filter_measurements_to_absolute_rotations(
         wRi_list, i2Ri1_dict, max_allowed_deviation=5, two_view_reports_dict=two_view_reports_dict
     )
+    draw_graph_topology(
+        edges=list(i2Ri1_dict.keys()),
+        gt_floor_pose_graph=gt_floor_pose_graph,
+        two_view_reports_dict=two_view_reports_dict,
+        title=f"Building {building_id} {floor_id}: topology after filtering relative by global",
+        show_plot=False,
+        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_relative_by_global.jpg"
+    )
 
     cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
     print(f"After filtering by rel. vs. composed abs., the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
@@ -396,6 +415,15 @@ def build_filtered_spanning_tree(
 
     i2Si1_dict_consistent = cycle_utils.filter_to_translation_cycle_consistent_edges(
         wRi_list, i2Si1_dict, translation_cycle_thresh=0.25, two_view_reports_dict=two_view_reports_dict
+    )
+
+    draw_graph_topology(
+        edges=list(i2Si1_dict_consistent.keys()),
+        gt_floor_pose_graph=gt_floor_pose_graph,
+        two_view_reports_dict=two_view_reports_dict,
+        title=f"Building {building_id} {floor_id}: topology after filtering by translations",
+        show_plot=False,
+        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_translations.jpg"
     )
 
     cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
@@ -567,7 +595,14 @@ def get_edge_accuracy(
     return acc
 
 
-def draw_graph(edges: List[Tuple[int,int]], gt_floor_pose_graph: PoseGraph2d, two_view_reports_dict, title: str) -> None:
+def draw_graph_topology(
+    edges: List[Tuple[int,int]],
+    gt_floor_pose_graph: PoseGraph2d,
+    two_view_reports_dict: Dict[Tuple[int,int], TwoViewEstimationReport],
+    title: str,
+    show_plot: bool = True,
+    save_fpath: str = None
+) -> None:
     """Draw the topology of an undirected graph, with vertices placed in their ground truth locations.
 
     False positive edges are colored red, and true positive edges are colored green.
@@ -594,7 +629,13 @@ def draw_graph(edges: List[Tuple[int,int]], gt_floor_pose_graph: PoseGraph2d, tw
     )
     plt.axis("equal")
     plt.title(title)
-    plt.show()
+
+    if save_fpath is not None:
+        plt.savefig(save_fpath, dpi=500)
+
+    if show_plot:
+        plt.show()
+    plt.close("all")
 
 
 
