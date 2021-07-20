@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from argoverse.utils.json_utils import read_json_file
 
 from afp.common.posegraph2d import get_gt_pose_graph
 from afp.utils.pr_utils import assign_tp_fp_fn_tn
@@ -148,14 +149,7 @@ if __name__ == "__main__":
 
     raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
-
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-
-    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
-
-
-    #visualize_deviations_from_ground_truth(hypotheses_save_root)
+    vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
 
 
 
