@@ -7,12 +7,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 import gtsfm.utils.graph as graph_utils
 
 import afp.algorithms.cycle_consistency as cycle_utils
-import afp.algorithms.rotation_averaging
+import afp.algorithms.rotation_averaging as rotation_averaging
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
 from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
 from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
@@ -29,7 +28,7 @@ def run_incremental_reconstruction(
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
-    confidence_threshold = 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    confidence_threshold = 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
     plot_save_dir = f"2021_07_20_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge"
 
@@ -47,7 +46,7 @@ def run_incremental_reconstruction(
         i2Ui1_dict = {}
         two_view_reports_dict = {}
 
-        # if not (building_id == "1635" and floor_id == "floor_01"):
+        # if not (building_id == "1635" and floor_id == "floor_02"):
         #     continue
 
         gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
@@ -344,9 +343,14 @@ def build_filtered_spanning_tree(
     plot_save_dir: str
 ) -> None:
     """ """
-
     i2Ri1_dict, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
         i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
+    )
+    draw_graph(
+        edges=list(i2Ri1_dict.keys()),
+        gt_floor_pose_graph=gt_floor_pose_graph,
+        two_view_reports_dict=two_view_reports_dict,
+        title="topology after Rot Cycle Consistency filtering"
     )
 
     filtered_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
@@ -561,4 +565,54 @@ def get_edge_accuracy(
 
     acc = np.mean(preds)
     return acc
+
+
+def draw_graph(edges: List[Tuple[int,int]], gt_floor_pose_graph: PoseGraph2d, two_view_reports_dict, title: str) -> None:
+    """Draw the topology of an undirected graph, with vertices placed in their ground truth locations.
+
+    False positive edges are colored red, and true positive edges are colored green.
+
+    Args:
+        edges: List of (i1,i2) pairs
+    """
+    import networkx as nx
+    plt.figure(figsize=(16,10))
+    G = nx.Graph()
+    G.add_edges_from(edges)
+    nodes = list(G.nodes)
+    GREEN = [0,1,0]
+    RED = [1,0,0]
+    edge_colors = [ GREEN if two_view_reports_dict[edge].gt_class == 1 else RED for edge in edges]
+
+    nx.drawing.nx_pylab.draw_networkx(
+        G,
+        edgelist=edges,
+        edge_color=edge_colors,
+        pos={v:gt_floor_pose_graph.nodes[v].global_Sim2_local.translation for v in nodes},
+        arrows=True,
+        with_labels=True
+    )
+    plt.axis("equal")
+    plt.title(title)
+    plt.show()
+
+
+
+if __name__ == "__main__":
+
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
+    serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
+
+    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    # vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
+
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+
+    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
+
+
+
+
 
