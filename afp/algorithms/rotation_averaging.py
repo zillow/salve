@@ -29,6 +29,8 @@ logger = logger_utils.get_logger()
 def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray], use_huber: bool = False) -> List[np.ndarray]:
     """Requires consecutive ordering.
 
+    Note: Shonan will only converge for certain amounts of noise. 63 degrees is the limit to converge?
+
     Args:
         i2Ri1_dict
         use_huber

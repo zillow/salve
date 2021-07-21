@@ -3,6 +3,8 @@
 Another translation-based filtering step is 1dsfm projection directions:
 https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_relative_translation.cc
 Must happen after rotation averaging.
+
+2d SLAM baseline: https://github.com/borglab/gtsam/blob/develop/examples/Pose2SLAMExample_lago.cpp
 """
 
 import copy
