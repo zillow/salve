@@ -1,4 +1,10 @@
 
+"""
+Another translation-based filtering step is 1dsfm projection directions:
+https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_relative_translation.cc
+Must happen after rotation averaging.
+"""
+
 import copy
 import glob
 from collections import defaultdict
@@ -19,6 +25,7 @@ from afp.utils.pr_utils import assign_tp_fp_fn_tn
 from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rotmat2theta_deg
 
 from visualize_edge_classifications import get_edge_classifications_from_serialized_preds
+
 
 
 def run_incremental_reconstruction(
@@ -478,7 +485,7 @@ def build_filtered_spanning_tree(
 def filter_measurements_to_absolute_rotations(
     wRi_list: List[Optional[np.ndarray]],
     i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
-    max_allowed_deviation: float = 5,
+    max_allowed_deviation: float = 5.0,
     verbose: bool = False,
     two_view_reports_dict=None,
     visualize: bool = False
@@ -486,6 +493,13 @@ def filter_measurements_to_absolute_rotations(
     """
     Simulate the relative pose measurement, given the global rotations:
     wTi0 = (wRi0, wti0). wTi1 = (wRi1, wti1) -> wRi0, wRi1 -> i1Rw * wRi0 -> i1Ri0_ vs. i1Ri0
+
+    Reference: See FilterViewPairsFromOrientation()
+    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_orientation.h
+    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_orientation.cc
+
+    Theia also uses a 5 degree threshold:
+    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/reconstruction_estimator_options.h#L122
     
     Args:
         wRi_list:
