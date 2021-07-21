@@ -1,4 +1,3 @@
-
 """
 Transformation (R,t) followed by a reflection over the x-axis is equivalent to 
 Transformation by (R^T,-t) followed by no reflection.
@@ -21,15 +20,16 @@ BLUE = [0, 0, 1]
 wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
-COLORMAP = np.random.rand(100,3)
+COLORMAP = np.random.rand(100, 3)
 
 
 @dataclass(frozen=False)
 class WDO:
     """define windows/doors/openings by left and right boundaries"""
+
     global_Sim2_local: Sim2
-    pt1: Tuple[float,float] # (x1,y1)
-    pt2: Tuple[float,float] # (x2,y2)
+    pt1: Tuple[float, float]  # (x1,y1)
+    pt2: Tuple[float, float]  # (x2,y2)
     bottom_z: float
     top_z: float
     type: str
@@ -48,9 +48,9 @@ class WDO:
     @property
     def vertices_local_3d(self) -> np.ndarray:
         """ """
-        x1,y1 = self.pt1
-        x2,y2 = self.pt2
-        return np.array([ [x1,y1,bottom_z], [x2,y2,top_z] ])
+        x1, y1 = self.pt1
+        x2, y2 = self.pt2
+        return np.array([[x1, y1, bottom_z], [x2, y2, top_z]])
 
     @property
     def vertices_global_3d(self) -> np.ndarray:
@@ -70,25 +70,27 @@ class WDO:
     @property
     def polygon_vertices_local_3d(self) -> np.ndarray:
         """Note: first vertex is repeated as last vertex"""
-        x1,y1 = self.pt1
-        x2,y2 = self.pt2
-        return np.array([ [x1,y1,self.bottom_z], [x1,y1,self.top_z], [x2,y2,self.top_z], [x2,y2,self.bottom_z], [x1,y1,self.bottom_z] ])
+        x1, y1 = self.pt1
+        x2, y2 = self.pt2
+        return np.array(
+            [
+                [x1, y1, self.bottom_z],
+                [x1, y1, self.top_z],
+                [x2, y2, self.top_z],
+                [x2, y2, self.bottom_z],
+                [x1, y1, self.bottom_z],
+            ]
+        )
 
     @classmethod
     def from_object_array(cls, wdo_data: Any, global_Sim2_local: Sim2, type: str) -> "WDO":
-        """
-        """
+        """ """
         pt1 = wdo_data[0]
         pt2 = wdo_data[1]
         pt1[0] *= -1
         pt2[0] *= -1
         return cls(
-            global_Sim2_local=global_Sim2_local,
-            pt1=pt1,
-            pt2=pt2,
-            bottom_z=wdo_data[2],
-            top_z=wdo_data[3],
-            type=type
+            global_Sim2_local=global_Sim2_local, pt1=pt1, pt2=pt2, bottom_z=wdo_data[2], top_z=wdo_data[3], type=type
         )
 
     def get_rotated_version(self) -> "WDO":
@@ -99,7 +101,7 @@ class WDO:
             pt2=self.pt1,
             bottom_z=self.bottom_z,
             top_z=self.top_z,
-            type=self.type
+            type=self.type,
         )
 
         return self_rotated
@@ -109,37 +111,25 @@ def test_get_wd_normal_2d() -> None:
     """ """
 
     # flat horizontal line for window
-    wd1 = WDO(
-        global_Sim2_local=None,
-        pt1=(-2,0),
-        pt2=(2,0),
-        bottom_z=-1,
-        top_z=1,
-        type="window"
-    )
+    wd1 = WDO(global_Sim2_local=None, pt1=(-2, 0), pt2=(2, 0), bottom_z=-1, top_z=1, type="window")
     n1 = wd1.get_wd_normal_2d()
-    gt_n1 = np.array([0,1])
+    gt_n1 = np.array([0, 1])
     assert np.allclose(n1, gt_n1)
-    
 
     # upwards diagonal for window, y=x
-    wd2 = WDO(
-        global_Sim2_local=None,
-        pt1=(0,0),
-        pt2=(3,3),
-        bottom_z=-1,
-        top_z=1,
-        type="window"
-    )
-    import pdb; pdb.set_trace()
+    wd2 = WDO(global_Sim2_local=None, pt1=(0, 0), pt2=(3, 3), bottom_z=-1, top_z=1, type="window")
+    import pdb
+
+    pdb.set_trace()
     n2 = wd2.get_wd_normal_2d()
-    gt_n2 = np.array([-1,1]) / np.sqrt(2)
-    
+    gt_n2 = np.array([-1, 1]) / np.sqrt(2)
+
     assert np.allclose(n2, gt_n2)
 
 
 class PanoData(NamedTuple):
     """ """
+
     id: int
     global_Sim2_local: Sim2
     room_vertices_local_2d: np.ndarray
@@ -159,23 +149,23 @@ class PanoData(NamedTuple):
         """
         From JSON ("pano_data")
         """
-        #print('Camera height: ', pano_data['camera_height'])
-        assert pano_data['camera_height'] == 1.0
+        # print('Camera height: ', pano_data['camera_height'])
+        assert pano_data["camera_height"] == 1.0
 
         doors = []
         windows = []
         openings = []
         image_path = pano_data["image_path"]
-        label = pano_data['label']
+        label = pano_data["label"]
 
-        pano_id = int(Path(image_path).stem.split('_')[-1])
+        pano_id = int(Path(image_path).stem.split("_")[-1])
 
         global_Sim2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
         room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
-        room_vertices_local_2d[:,0] *= -1
+        room_vertices_local_2d[:, 0] *= -1
 
         # DWO objects
-        geometry_type = "layout_raw" #, "layout_complete", "layout_visible"]
+        geometry_type = "layout_raw"  # , "layout_complete", "layout_visible"]
         for wdo_type in ["windows", "doors", "openings"]:
             wdos = []
             wdo_data = np.asarray(pano_data[geometry_type][wdo_type], dtype=object)
@@ -190,7 +180,7 @@ class PanoData(NamedTuple):
 
             num_wdo = len(wdo_data) // 4
             for wdo_idx in range(num_wdo):
-                wdo = WDO.from_object_array(wdo_data[ wdo_idx * 4 : (wdo_idx+1) * 4], global_Sim2_local, wdo_type)
+                wdo = WDO.from_object_array(wdo_data[wdo_idx * 4 : (wdo_idx + 1) * 4], global_Sim2_local, wdo_type)
                 wdos.append(wdo)
 
             if wdo_type == "windows":
@@ -202,8 +192,6 @@ class PanoData(NamedTuple):
 
         return cls(pano_id, global_Sim2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
 
-
-
     def plot_room_layout(
         self, coord_frame: str, wdo_objs_seen_on_floor: Optional[Set] = None, show_plot: bool = True
     ) -> None:
@@ -213,11 +201,11 @@ class PanoData(NamedTuple):
             coord_frame: either 'local' or 'global'
             wdo_objs_seen_on_floor
             show_plot
-        
+
         Returns:
 
         """
-        #hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
+        # hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
 
         assert coord_frame in ["global", "local"]
 
@@ -226,7 +214,7 @@ class PanoData(NamedTuple):
         else:
             room_vertices = self.room_vertices_local_2d
 
-        #room_vertices = hohopano_Sim2_zindpano.transform_from(room_vertices)
+        # room_vertices = hohopano_Sim2_zindpano.transform_from(room_vertices)
 
         num_colormap_colors = COLORMAP.shape[0]
         color = COLORMAP[self.id % num_colormap_colors]
@@ -270,7 +258,7 @@ class PanoData(NamedTuple):
             else:
                 wdo_points = wdo.vertices_local_2d
 
-            #wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
+            # wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
             wdo_type = wdo.type
             wdo_color = wdo_color_dict[wdo_type]
 
@@ -280,7 +268,7 @@ class PanoData(NamedTuple):
                 label = None
             plt.scatter(wdo_points[:, 0], wdo_points[:, 1], 10, color=wdo_color, marker="o", label=label)
             plt.plot(wdo_points[:, 0], wdo_points[:, 1], color=wdo_color, linestyle="dotted")
-            #plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
+            # plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
 
             if wdo_objs_seen_on_floor is not None:
                 wdo_objs_seen_on_floor.add(wdo_type)
@@ -293,9 +281,9 @@ class PanoData(NamedTuple):
         return wdo_objs_seen_on_floor
 
 
-
 class FloorData(NamedTuple):
     """ """
+
     floor_id: str
     panos: List[PanoData]
 
@@ -309,7 +297,7 @@ class FloorData(NamedTuple):
         for complete_room_data in floor_data.values():
             for partial_room_data in complete_room_data.values():
                 for pano_data in partial_room_data.values():
-                    #if pano_data["is_primary"]:
+                    # if pano_data["is_primary"]:
 
                     pano_obj = PanoData.from_json(pano_data)
                     pano_objs.append(pano_obj)
@@ -317,8 +305,7 @@ class FloorData(NamedTuple):
         return cls(floor_id, pano_objs)
 
 
-
-def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim2:
+def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Sim2:
     """Generate a Similarity(2) object from a dictionary storing transformation parameters.
 
     Note: ZinD stores (sRp + t), instead of s(Rp + t), so we have to divide by s to create Sim2.
@@ -329,7 +316,7 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim
     """
     scale = transform_data["scale"]
     t = np.array(transform_data["translation"]) / scale
-    t *= np.array([-1., 1.])
+    t *= np.array([-1.0, 1.0])
     theta_deg = transform_data["rotation"]
 
     R = rotmat2d(-theta_deg)
@@ -338,4 +325,3 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str,Any]) -> Sim
 
     global_Sim2_local = Sim2(R=R, t=t, s=scale)
     return global_Sim2_local
-
