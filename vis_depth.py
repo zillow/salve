@@ -17,6 +17,7 @@ from afp.utils.zorder_utils import choose_elevated_repeated_vals
 from afp.utils.interpolation_utils import remove_hallucinated_content, interp_dense_grid_from_sparse
 from afp.utils.rotation_utils import rotmat2d
 
+
 def get_uni_sphere_xyz(H, W):
     """Make spherical system match the world system"""
     j, i = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
@@ -85,7 +86,6 @@ class BEVParams:
         self.ylims = ylims
 
 
-
 def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bool) -> Optional[np.ndarray]:
     """
     Args:
@@ -119,7 +119,7 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
     # img_h = ymax + 1
     # img_w = xmax + 1
 
-    #import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     img_h = bev_params.img_h + 1
     img_w = bev_params.img_w + 1
 
@@ -271,10 +271,12 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
     xyzrgb = xyzrgb.reshape(-1, 6)
 
     # Crop in 3d
+    # fmt: off
     within_crop_range = np.logical_and(
         xyzrgb[:, 2] > args.crop_z_range[0],
         xyzrgb[:, 2] <= args.crop_z_range[1]
     )
+    # fmt: on
     xyzrgb = xyzrgb[within_crop_range]
 
     return xyzrgb
@@ -345,7 +347,9 @@ def vis_depth(args):
     )
 
 
-def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool) -> Tuple[Optional[np.ndarray],Optional[np.ndarray]]:
+def render_bev_pair(
+    args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool
+) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
     """ """
 
     xyzrgb1 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i1, rgb_fpath=args.img_i1, is_semantics=is_semantics)
@@ -362,7 +366,6 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
     xyzrgb2[:, :2] = xyzrgb2[:, :2] @ R.T
 
     HOHO_S_ZIND_SCALE_FACTOR = 1.5
-
 
     xyzrgb1[:, :2] = (xyzrgb1[:, :2] @ i2Ti1.rotation.T) + (
         i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR
@@ -399,7 +402,9 @@ def render_bev_pair(args, building_id: str, floor_id: str, i1: int, i2: int, i2T
     return img1, img2
 
 
-def get_bev_pair_xyzrgb(args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool) -> Tuple[Optional[np.ndarray],Optional[np.ndarray]]:
+def get_bev_pair_xyzrgb(
+    args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool
+) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
     """ """
 
     xyzrgb1 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i1, rgb_fpath=args.img_i1, is_semantics=is_semantics)
@@ -417,15 +422,12 @@ def get_bev_pair_xyzrgb(args, building_id: str, floor_id: str, i1: int, i2: int,
 
     HOHO_S_ZIND_SCALE_FACTOR = 1.5
 
-
     xyzrgb1[:, :2] = (xyzrgb1[:, :2] @ i2Ti1.rotation.T) + (
         i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR
     )  # * scale_meters_per_coordinate # * np.array([-1,1]))
     # xyzrgb1[:,:2] = i2Ti1.transform_from(xyzrgb1[:,:2]) #
 
     return xyzrgb1, xyzrgb2
-
-
 
 
 if __name__ == "__main__":
