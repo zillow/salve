@@ -24,7 +24,9 @@ from visualize_edge_classifications import get_edge_classifications_from_seriali
 def run_incremental_reconstruction(
     hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
 ) -> None:
-    """ """
+    """
+    Can get multi-graph out of classification model.
+    """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
@@ -481,8 +483,21 @@ def filter_measurements_to_absolute_rotations(
     two_view_reports_dict=None,
     visualize: bool = False
 ) -> Dict[Tuple[int, int], np.ndarray]:
-    """ """
+    """
+    Simulate the relative pose measurement, given the global rotations:
+    wTi0 = (wRi0, wti0). wTi1 = (wRi1, wti1) -> wRi0, wRi1 -> i1Rw * wRi0 -> i1Ri0_ vs. i1Ri0
+    
+    Args:
+        wRi_list:
+        i2Ri1_dict:
+        max_allowed_deviation:
+        verbose:
+        two_view_reports_dict:
+        visualize:
 
+    Returns:
+        i2Ri1_dict_consistent:
+    """
     deviations = []
     is_gt_edge = []
 
