@@ -26,44 +26,16 @@ from afp.utils.rotation_utils import rotmat2theta_deg
 logger = logger_utils.get_logger()
 
 
-def globalaveraging2d_consecutive_ordering(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[np.ndarray]:
-    """ """
-    input_file = "shonan_input.g2o"
-    #print(i2Ri1_dict)
-    with open(input_file, "w") as f:
-        x = 0
-        y = 0
-        for (i1, i2), i2Ri1 in i2Ri1_dict.items():
-            theta_deg = rotmat2theta_deg(i2Ri1)
-            theta_rad = np.deg2rad(theta_deg)
-            f.write(f"EDGE_SE2 {i2} {i1} {x} {y} {theta_rad} 1.000000 0.000000 0.000000 1.000000 0.000000 1.000000\n")
-
-    shonan = gtsam.ShonanAveraging2(input_file)
-    if shonan.nrUnknowns() == 0:
-        raise ValueError("No 2D pose constraints found, try -d 3.")
-    initial = shonan.initializeRandomly()
-
-    pmin = 2
-    pmax = 100
-    rotations, _ = shonan.run(initial, pmin, pmax)
-
-    wRi_list = [rotations.atRot2(j).matrix() for j in range(rotations.size())]
-    return wRi_list
-
-
 def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray], use_huber: bool = False) -> List[np.ndarray]:
-    """
+    """Requires consecutive ordering.
+
     Args:
+        i2Ri1_dict
+        use_huber
 
     Returns:
+        wRi_list
     """
-    # adj_matrix = form_adjacency_matrix(list(i2Ri1_dict.keys()))
-    # plt.imshow(adj_matrix)
-    # plt.title(f"Building {building_id}, {floor_id}")
-    # plt.savefig(f"graph_adjacency_matrices/building_{building_id}_{floor_id}.jpg", dpi=500)
-    # #plt.show()
-    # return None
-
     lm_params = LevenbergMarquardtParams.CeresDefaults()
     shonan_params = ShonanAveragingParameters2(lm_params)
     shonan_params.setUseHuber(use_huber)
@@ -137,7 +109,6 @@ def globalaveraging2d(i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -
         i2_ = reordered_idx_map[i2]
         i2Ri1_dict_reordered[(i1_, i2_)] = i2Ri1
 
-    #wRi_list_subset = globalaveraging2d_consecutive_ordering(i2Ri1_dict=i2Ri1_dict_reordered)
     wRi_list_subset = ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict=i2Ri1_dict_reordered)
 
     wRi_list = [None] * num_images
