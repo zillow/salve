@@ -1,4 +1,3 @@
-
 """
 Wrapper around GTSAM's Shonan rotation averaging.
 """
@@ -18,7 +17,7 @@ from gtsam import (
     ShonanAveraging2,
     ShonanAveragingParameters2,
     ShonanAveraging3,
-    ShonanAveragingParameters3
+    ShonanAveragingParameters3,
 )
 
 from afp.utils.rotation_utils import rotmat2theta_deg
@@ -26,7 +25,9 @@ from afp.utils.rotation_utils import rotmat2theta_deg
 logger = logger_utils.get_logger()
 
 
-def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray], use_huber: bool = False) -> List[np.ndarray]:
+def ShonanAveraging2_BetweenFactorPose2s_wrapper(
+    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray], use_huber: bool = False
+) -> List[np.ndarray]:
     """Requires consecutive ordering.
 
     Note: Shonan will only converge for certain amounts of noise. 63 degrees is the limit to converge?
@@ -45,12 +46,12 @@ def ShonanAveraging2_BetweenFactorPose2s_wrapper(i2Ri1_dict: Dict[Tuple[int, int
 
     noise_model = gtsam.noiseModel.Unit.Create(3)
     between_factors = gtsam.BetweenFactorPose2s()
-    
+
     for (i1, i2), i2Ri1 in i2Ri1_dict.items():
 
         theta_deg = rotmat2theta_deg(i2Ri1)
-        #print("Bad edges:")
-        #print(f"({i1},{i2}): {theta_deg:.6f}")
+        # print("Bad edges:")
+        # print(f"({i1},{i2}): {theta_deg:.6f}")
         i2Ri1 = Rot2.fromDegrees(theta_deg)
         i2Ti1 = Pose2(i2Ri1, np.zeros(2))
         between_factors.append(BetweenFactorPose2(i2, i1, i2Ti1, noise_model))
@@ -75,7 +76,7 @@ def globalaveraging2d(i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -
     Note: run() functions as a wrapper that re-orders keys to prepare a graph w/ N keys ordered [0,...,N-1].
     All input nodes must belong to a single connected component, in order to obtain an absolute pose for each
     camera in a single, global coordinate frame.
-    
+
     Args:
         num_images: number of images. Since we have one pose per image, it is also the number of poses.
         i2Ri1_dict: relative rotations for each image pair-edge as dictionary (i1, i2): i2Ri1.
@@ -118,4 +119,3 @@ def globalaveraging2d(i2Ri1_dict: Dict[Tuple[int, int], Optional[np.ndarray]]) -
         wRi_list[original_i] = wRi_list_subset[remapped_i]
 
     return wRi_list
-
