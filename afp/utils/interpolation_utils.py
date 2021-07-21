@@ -33,9 +33,15 @@ def interp_dense_grid_from_sparse(
 
 
 def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.ndarray, K: int = 41) -> np.ndarray:
-    """
+    """Zero-out portions of an interpolated image where the signal is unreliable due to no measurements.
+
     Args:
-        K: kernel size, e.g. 3 for 3x3, 5 for 5x5
+        sparse_bev_img: array of shape (H,W,C) representing a sparse bird's-eye-view image
+        interp_bev_img: array of shape (H,W,C) representing an interpolated bird's-eye-view image
+        K: integer representing kernel size, e.g. 3 for 3x3, 5 for 5x5
+
+    Returns:
+        unhalluc_img: array of shape (H,W,C)
     """
     H, W, _ = interp_bev_img.shape
 
@@ -48,6 +54,7 @@ def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.n
     # box filter to sum neighbors
     weight = torch.ones(1,1,K,K).type(torch.float32)
 
+    # Use GPU whenever is possible, as convolution with a large kernel on the CPU is extremely slow
     if torch.cuda.is_available():
     	weight = weight.cuda()
     	nonempty = nonempty.cuda()
@@ -57,14 +64,13 @@ def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.n
     if torch.cuda.is_available():
     	counts = counts.cpu()
 
-    #in_channels=1, out_channels=1, kernel_size=K, stride=1, padding = K//2)
-    #counts = conv(nonempty)
     mask = counts > 0
     mask = mask.numpy().reshape(H,W).astype(np.float32)
 
     # CHW -> HWC
     mask = np.tile(mask, (3,1,1) ).transpose(1,2,0)
 
+    # multiply interpolated image with binary unreliability mask to zero-out unreliable values
     unhalluc_img = (mask * interp_bev_img).astype(np.uint8)
     return unhalluc_img
 
