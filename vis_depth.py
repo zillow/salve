@@ -14,7 +14,7 @@ from imageio import imread
 # from vis_zind_annotations import rotmat2d
 
 from afp.utils.zorder_utils import choose_elevated_repeated_vals
-from afp.utils.interpolation_utils import remove_hallucinated_content
+from afp.utils.interpolation_utils import remove_hallucinated_content, interp_dense_grid_from_sparse
 from afp.utils.rotation_utils import rotmat2d
 
 def get_uni_sphere_xyz(H, W):
