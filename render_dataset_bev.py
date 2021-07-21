@@ -327,7 +327,7 @@ def render_pairs(
 
     args = []
 
-    for building_id in building_ids:
+    for building_id in building_ids[::-1]:
 
         # already rendered
         if building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
@@ -356,7 +356,7 @@ def render_pairs(
 if __name__ == "__main__":
     # render_isolated_examples()
 
-    num_processes = 20
+    num_processes = 12
 
     #depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
