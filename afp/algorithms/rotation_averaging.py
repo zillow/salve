@@ -28,16 +28,16 @@ logger = logger_utils.get_logger()
 def ShonanAveraging2_BetweenFactorPose2s_wrapper(
     i2Ri1_dict: Dict[Tuple[int, int], np.ndarray], use_huber: bool = False
 ) -> List[np.ndarray]:
-    """Requires consecutive ordering.
+    """Requires consecutive ordering [0,...,N-1]
 
     Note: Shonan will only converge for certain amounts of noise. 63 degrees is the limit to converge?
 
     Args:
-        i2Ri1_dict
-        use_huber
+        i2Ri1_dict: 2d relative rotations
+        use_huber: whether to use a robust cost in averaging, e.g. Huber norm.
 
     Returns:
-        wRi_list
+        wRi_list: global rotations
     """
     lm_params = LevenbergMarquardtParams.CeresDefaults()
     shonan_params = ShonanAveragingParameters2(lm_params)
