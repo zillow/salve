@@ -31,6 +31,7 @@ class TwoViewEstimationReport:
     gt_class: int
     R_error_deg: Optional[float] = None
     U_error_deg: Optional[float] = None
+    confidence: Optional[float] = None
 
 
 def extract_triplets(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tuple[int, int, int]]:
