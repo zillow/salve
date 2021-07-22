@@ -82,124 +82,6 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
-def export_single_building_wdo_alignment_hypotheses(hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
-    """Save candidate alignment Sim(2) transformations to disk as JSON files.
-
-    For every pano, try to align it to another pano.
-
-    These pairwise costs can be used in a meta-algorithm:
-        while there are any unmatched rooms?
-        try all possible matches at every step. compute costs, and choose the best greedily.
-        or, growing consensus
-
-    Args:
-        hypotheses_save_root: base directory where alignment hypotheses will be saved
-        building_id:
-        pano_dir:
-        json_annot_fpath:
-    """
-    floor_map_json = read_json_file(json_annot_fpath)
-
-    if "merger" not in floor_map_json:
-        logger.error(f"Building {building_id} does not have `merger` data, skipping...")
-        return
-
-    merger_data = floor_map_json["merger"]
-
-    floor_dominant_rotation = {}
-    for floor_id, floor_data in merger_data.items():
-
-        logger.info("--------------------------------")
-        logger.info("--------------------------------")
-        logger.info("--------------------------------")
-        logger.info(f"On building {building_id}, floor {floor_id}...")
-        logger.info("--------------------------------")
-        logger.info("--------------------------------")
-        logger.info("--------------------------------")
-
-        fd = FloorData.from_json(floor_data, floor_id)
-
-        floor_n_valid_configurations = 0
-        floor_n_invalid_configurations = 0
-
-        pano_dict = {pano_obj.id: pano_obj for pano_obj in fd.panos}
-
-        pano_ids = sorted(list(pano_dict.keys()))
-        for i1 in pano_ids:
-
-            for i2 in pano_ids:
-
-                # compute only upper diagonal, since symmetric
-                if i1 >= i2:
-                    continue
-
-                logger.info(f"\tOn pano pair ({i1},{i2})")
-                # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
-                # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
-
-                visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
-
-                try:
-                    possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
-                        pano_dict[i1], pano_dict[i2]
-                    )
-                except Exception:
-                    logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
-                    continue
-
-                floor_n_valid_configurations += len(possible_alignment_info)
-                floor_n_invalid_configurations += num_invalid_configurations
-
-                # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
-                i2Ti1_gt = pano_dict[i2].global_Sim2_local.inverse().compose(pano_dict[i1].global_Sim2_local)
-                gt_fname = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
-                if visibly_adjacent:
-                    save_Sim2(gt_fname, i2Ti1_gt)
-                    expected = i2Ti1_gt.rotation.T @ i2Ti1_gt.rotation
-                    # print("Identity? ", np.round(expected, 1))
-                    if not np.allclose(expected, np.eye(2), atol=1e-6):
-                        import pdb
-
-                        pdb.set_trace()
-
-                # remove redundant transformations
-                pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
-
-                labels = []
-                # loop over the alignment hypotheses
-                for k, ah in enumerate(pruned_possible_alignment_info):
-
-                    if obj_almost_equal(ah.i2Ti1, i2Ti1_gt):
-                        label = "aligned"
-                        save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx"
-                    else:
-                        label = "misaligned"
-                        save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment"
-                    labels.append(label)
-
-                    fname = f"{i1}_{i2}__{ah.wdo_alignment_object}_{ah.i1_wdo_idx}_{ah.i2_wdo_idx}_{ah.configuration}.json"
-                    proposed_fpath = f"{save_dir}/{fname}"
-                    save_Sim2(proposed_fpath, ah.i2Ti1)
-
-                    # print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
-                    # print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)
-
-                    # print()
-                    # print()
-
-                if visibly_adjacent:
-                    GT_valid = "aligned" in labels
-                else:
-                    GT_valid = "aligned" not in labels
-
-                # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
-                if not GT_valid:
-                    logger.warning(f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2})")
-
-        logger.info(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
-        logger.info(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
-
-
 def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     """ """
     angle1 = i2Ti1.theta_deg
@@ -407,6 +289,72 @@ def test_align_rooms_by_wd() -> None:
     assert len(possible_alignment_info) == 3
 
 
+def plot_room_walls(
+    pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, linewidth: float = 2.0, alpha: float = 0.5
+) -> None:
+    """ """
+
+    room_vertices = pano_obj.room_vertices_local_2d
+    if i2Ti1:
+        room_vertices = i2Ti1.transform_from(room_vertices)
+
+    color = np.random.rand(3)
+    plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color, alpha=alpha)
+    plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=alpha, linewidth=linewidth)
+    # draw edge to close each polygon
+    last_vert = room_vertices[-1]
+    first_vert = room_vertices[0]
+    plt.plot(
+        [last_vert[0], first_vert[0]], [last_vert[1], first_vert[1]], color=color, alpha=alpha, linewidth=linewidth
+    )
+
+
+def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
+    """
+
+    Returns:
+        pts: array of shape (N,3)
+    """
+    pts = np.zeros((0, 3))
+
+    for wd in pano_obj.windows + pano_obj.doors + pano_obj.openings:
+        wd_pts = wd.polygon_vertices_local_3d
+
+        pts = np.vstack([pts, wd_pts])
+
+    return pts
+
+
+# def sample_points_along_bbox_boundary(wdo: WDO) -> np.ndarray:
+#     """ """
+
+#     from argoverse.utils.interpolate import interp_arc
+#     from argoverse.utils.polyline_density import get_polyline_length
+
+#     x1,y1 = wdo.local_vertices_3d
+
+#     num_interp_pts = int(query_l2 * NUM_PTS_PER_TRAJ / ref_l2)
+#     dense_interp_polyline = interp_arc(num_interp_pts, polyline_to_interp[:, 0], polyline_to_interp[:, 1])
+
+#     return pts
+
+
+# def test_sample_points_along_bbox_boundary() -> None:
+#     """ """
+#     global_SIM2_local = Sim2(R=np.eye(2), t=np.zeros(2), s=1.0)
+
+#     wdo = WDO(
+#         global_SIM2_local= global_SIM2_local,
+#         pt1= (x1,y1),
+#         pt2= (x2,y2),
+#         bottom_z=0,
+#         top_z=10,
+#         type="door"
+#     )
+
+#     pts = sample_points_along_bbox_boundary(wdo)
+
+
 def align_rooms_by_wd(
     pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool = False
 ) -> Tuple[List[AlignmentHypothesis], int]:
@@ -585,70 +533,122 @@ def align_rooms_by_wd(
     return possible_alignment_info, num_invalid_configurations
 
 
-def plot_room_walls(
-    pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, linewidth: float = 2.0, alpha: float = 0.5
-) -> None:
-    """ """
+def export_single_building_wdo_alignment_hypotheses(hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
+    """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
-    room_vertices = pano_obj.room_vertices_local_2d
-    if i2Ti1:
-        room_vertices = i2Ti1.transform_from(room_vertices)
+    For every pano, try to align it to another pano.
 
-    color = np.random.rand(3)
-    plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color, alpha=alpha)
-    plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=alpha, linewidth=linewidth)
-    # draw edge to close each polygon
-    last_vert = room_vertices[-1]
-    first_vert = room_vertices[0]
-    plt.plot(
-        [last_vert[0], first_vert[0]], [last_vert[1], first_vert[1]], color=color, alpha=alpha, linewidth=linewidth
-    )
+    These pairwise costs can be used in a meta-algorithm:
+        while there are any unmatched rooms?
+        try all possible matches at every step. compute costs, and choose the best greedily.
+        or, growing consensus
 
-
-def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
+    Args:
+        hypotheses_save_root: base directory where alignment hypotheses will be saved
+        building_id:
+        pano_dir:
+        json_annot_fpath:
     """
+    floor_map_json = read_json_file(json_annot_fpath)
 
-    Returns:
-        pts: array of shape (N,3)
-    """
-    pts = np.zeros((0, 3))
+    if "merger" not in floor_map_json:
+        logger.error(f"Building {building_id} does not have `merger` data, skipping...")
+        return
 
-    for wd in pano_obj.windows + pano_obj.doors + pano_obj.openings:
-        wd_pts = wd.polygon_vertices_local_3d
+    merger_data = floor_map_json["merger"]
 
-        pts = np.vstack([pts, wd_pts])
+    floor_dominant_rotation = {}
+    for floor_id, floor_data in merger_data.items():
 
-    return pts
+        logger.info("--------------------------------")
+        logger.info("--------------------------------")
+        logger.info("--------------------------------")
+        logger.info(f"On building {building_id}, floor {floor_id}...")
+        logger.info("--------------------------------")
+        logger.info("--------------------------------")
+        logger.info("--------------------------------")
 
+        fd = FloorData.from_json(floor_data, floor_id)
 
-# def sample_points_along_bbox_boundary(wdo: WDO) -> np.ndarray:
-#     """ """
+        floor_n_valid_configurations = 0
+        floor_n_invalid_configurations = 0
 
-#     from argoverse.utils.interpolate import interp_arc
-#     from argoverse.utils.polyline_density import get_polyline_length
+        pano_dict = {pano_obj.id: pano_obj for pano_obj in fd.panos}
 
-#     x1,y1 = wdo.local_vertices_3d
+        pano_ids = sorted(list(pano_dict.keys()))
+        for i1 in pano_ids:
 
-#     num_interp_pts = int(query_l2 * NUM_PTS_PER_TRAJ / ref_l2)
-#     dense_interp_polyline = interp_arc(num_interp_pts, polyline_to_interp[:, 0], polyline_to_interp[:, 1])
+            for i2 in pano_ids:
 
-#     return pts
+                # compute only upper diagonal, since symmetric
+                if i1 >= i2:
+                    continue
 
+                logger.info(f"\tOn pano pair ({i1},{i2})")
+                # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
+                # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
-# def test_sample_points_along_bbox_boundary() -> None:
-#     """ """
-#     global_SIM2_local = Sim2(R=np.eye(2), t=np.zeros(2), s=1.0)
+                visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
 
-#     wdo = WDO(
-#         global_SIM2_local= global_SIM2_local,
-#         pt1= (x1,y1),
-#         pt2= (x2,y2),
-#         bottom_z=0,
-#         top_z=10,
-#         type="door"
-#     )
+                try:
+                    possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
+                        pano_dict[i1], pano_dict[i2]
+                    )
+                except Exception:
+                    logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
+                    continue
 
-#     pts = sample_points_along_bbox_boundary(wdo)
+                floor_n_valid_configurations += len(possible_alignment_info)
+                floor_n_invalid_configurations += num_invalid_configurations
+
+                # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
+                i2Ti1_gt = pano_dict[i2].global_Sim2_local.inverse().compose(pano_dict[i1].global_Sim2_local)
+                gt_fname = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
+                if visibly_adjacent:
+                    save_Sim2(gt_fname, i2Ti1_gt)
+                    expected = i2Ti1_gt.rotation.T @ i2Ti1_gt.rotation
+                    # print("Identity? ", np.round(expected, 1))
+                    if not np.allclose(expected, np.eye(2), atol=1e-6):
+                        import pdb
+
+                        pdb.set_trace()
+
+                # remove redundant transformations
+                pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
+
+                labels = []
+                # loop over the alignment hypotheses
+                for k, ah in enumerate(pruned_possible_alignment_info):
+
+                    if obj_almost_equal(ah.i2Ti1, i2Ti1_gt):
+                        label = "aligned"
+                        save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx"
+                    else:
+                        label = "misaligned"
+                        save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment"
+                    labels.append(label)
+
+                    fname = f"{i1}_{i2}__{ah.wdo_alignment_object}_{ah.i1_wdo_idx}_{ah.i2_wdo_idx}_{ah.configuration}.json"
+                    proposed_fpath = f"{save_dir}/{fname}"
+                    save_Sim2(proposed_fpath, ah.i2Ti1)
+
+                    # print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
+                    # print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)
+
+                    # print()
+                    # print()
+
+                if visibly_adjacent:
+                    GT_valid = "aligned" in labels
+                else:
+                    GT_valid = "aligned" not in labels
+
+                # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
+                if not GT_valid:
+                    logger.warning(f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2})")
+
+        logger.info(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
+        logger.info(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
 
 
 def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str) -> None:
