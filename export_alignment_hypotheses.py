@@ -22,10 +22,10 @@ import numpy as np
 from argoverse.utils.json_utils import read_json_file, save_json_dict
 from argoverse.utils.sim2 import Sim2
 
-from afp.utils.sim3_align_dw import align_points_sim3, rotmat2d
 from afp.common.pano_data import FloorData, PanoData, WDO
-from logger_utils import get_logger
+from afp.utils.logger_utils import get_logger
 from afp.utils.overlap_utils import determine_invalid_wall_overlap
+from afp.utils.sim3_align_dw import align_points_sim3, rotmat2d
 
 
 logger = get_logger()
@@ -82,7 +82,7 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
-def align_by_wdo(hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
+def export_single_building_wdo_alignment_hypotheses(hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
     """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
     For every pano, try to align it to another pano.
@@ -651,87 +651,6 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 #     pts = sample_points_along_bbox_boundary(wdo)
 
 
-def test_reflections_1() -> None:
-    """
-    Compose does not work properly for chained reflection and rotation.
-    """
-
-    pts_local = np.array([[2, 1], [1, 1], [1, 2], [1, 3], [2, 3], [2, 2], [1, 2]])
-
-    plt.scatter(pts_local[:, 0], pts_local[:, 1], 10, color="r", marker=".")
-    plt.plot(pts_local[:, 0], pts_local[:, 1], color="r")
-
-    R = rotmat2d(45)  # 45 degree rotation
-    t = np.array([1, 1])
-    s = 2.0
-    world_Sim2_local = Sim2(R, t, s)
-
-    pts_world = world_Sim2_local.transform_from(pts_local)
-
-    plt.scatter(pts_world[:, 0], pts_world[:, 1], 10, color="b", marker=".")
-    plt.plot(pts_world[:, 0], pts_world[:, 1], color="b")
-
-    plt.scatter(pts_world[:, 0], pts_world[:, 1], 10, color="b", marker=".")
-    plt.plot(pts_world[:, 0], pts_world[:, 1], color="b")
-
-    R_refl = np.array([[-1.0, 0], [0, 1]])
-    reflectedworld_Sim2_world = Sim2(R_refl, t=np.zeros(2), s=1.0)
-
-    # import pdb; pdb.set_trace()
-    pts_reflworld = reflectedworld_Sim2_world.transform_from(pts_world)
-
-    plt.scatter(pts_reflworld[:, 0], pts_reflworld[:, 1], 100, color="g", marker=".")
-    plt.plot(pts_reflworld[:, 0], pts_reflworld[:, 1], color="g", alpha=0.3)
-
-    plt.scatter(-pts_world[:, 0], pts_world[:, 1], 10, color="m", marker=".")
-    plt.plot(-pts_world[:, 0], pts_world[:, 1], color="m", alpha=0.3)
-
-    plt.axis("equal")
-    plt.show()
-
-
-def test_reflections_2() -> None:
-    """
-    Try reflection -> rotation -> compare relative poses
-
-    rotation -> reflection -> compare relative poses
-
-    Relative pose is identical, but configuration will be different in the absolute world frame
-    """
-    pts_local = np.array([[2, 1], [1, 1], [1, 2], [1, 3], [2, 3], [2, 2], [1, 2]])
-
-    R_refl = np.array([[-1.0, 0], [0, 1]])
-    identity_Sim2_reflected = Sim2(R_refl, t=np.zeros(2), s=1.0)
-
-    # pts_refl = identity_Sim2_reflected.transform_from(pts_local)
-    pts_refl = pts_local
-
-    R = rotmat2d(45)  # 45 degree rotation
-    t = np.array([1, 1])
-    s = 1.0
-    world_Sim2_i1 = Sim2(R, t, s)
-
-    R = rotmat2d(45)  # 45 degree rotation
-    t = np.array([1, 2])
-    s = 1.0
-    world_Sim2_i2 = Sim2(R, t, s)
-
-    pts_i1 = world_Sim2_i1.transform_from(pts_refl)
-    pts_i2 = world_Sim2_i2.transform_from(pts_refl)
-
-    pts_i1 = identity_Sim2_reflected.transform_from(pts_i1)
-    pts_i2 = identity_Sim2_reflected.transform_from(pts_i2)
-
-    plt.scatter(pts_i1[:, 0], pts_i1[:, 1], 10, color="b", marker=".")
-    plt.plot(pts_i1[:, 0], pts_i1[:, 1], color="b")
-
-    plt.scatter(pts_i2[:, 0], pts_i2[:, 1], 10, color="g", marker=".")
-    plt.plot(pts_i2[:, 0], pts_i2[:, 1], color="g")
-
-    plt.axis("equal")
-    plt.show()
-
-
 def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str) -> None:
     """
     Questions: what is tour_data_mapping.json? -> for internal people, GUIDs to production people
@@ -757,7 +676,7 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 
     for building_id in building_ids:
 
-        if building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+        if building_id not in ['1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
             continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
@@ -768,26 +687,27 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 
     if num_processes > 1:
         with Pool(num_processes) as p:
-            p.starmap(align_by_wdo, args)
+            p.starmap(export_single_building_wdo_alignment_hypotheses, args)
     else:
         for single_call_args in args:
-            align_by_wdo(*single_call_args)
+            export_single_building_wdo_alignment_hypotheses(*single_call_args)
 
 
 if __name__ == "__main__":
     """ """
     # teaser file
     #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
 
-    num_processes = 12
+    num_processes = 1
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
