@@ -9,6 +9,7 @@ Must happen after rotation averaging.
 
 import copy
 import glob
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -22,11 +23,126 @@ import afp.algorithms.cycle_consistency as cycle_utils
 import afp.algorithms.rotation_averaging as rotation_averaging
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
 from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
+from afp.algorithms.cluster_merging import EdgeWDOPair
 from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
 from afp.utils.pr_utils import assign_tp_fp_fn_tn
 from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rotmat2theta_deg
 
-from visualize_edge_classifications import get_edge_classifications_from_serialized_preds
+from visualize_edge_classifications import get_edge_classifications_from_serialized_preds, EdgeClassification
+
+from typing import NamedTuple
+
+
+
+def get_conf_thresholded_edges(
+    measurements: List[EdgeClassification],
+    hypotheses_save_root: str,
+    confidence_threshold: float,
+    building_id: str,
+    floor_id: str
+):
+    """
+    Args:
+        measurements
+        hypotheses_save_root
+
+    Returns:
+
+    """
+    # for each edge, choose the most confident prediction over all WDO pair alignments
+    most_confident_edge_dict = defaultdict(list)
+
+    i2Si1_dict = {}
+    i2Ri1_dict = {}
+    i2Ui1_dict = {}
+    two_view_reports_dict = {}
+
+    # compute_precision_recall(measurements)
+
+    num_gt_positives = 0
+    num_gt_negatives = 0
+
+    gt_edges = []
+    for m in measurements:
+
+        if m.y_true == 1:
+            num_gt_positives += 1
+        else:
+            num_gt_negatives += 1
+
+        # TODO: remove this debugging condition
+        # if m.y_true != 1:
+        #     continue
+
+        # find all of the predictions where pred class is 1
+        if m.y_hat != 1:
+            continue
+
+        if m.prob < confidence_threshold:
+            continue
+
+        # TODO: this should never happen bc sorted, figure out why it occurs
+        if m.i1 >= m.i2:
+            i2 = m.i1
+            i1 = m.i2
+
+            m.i1 = i1
+            m.i2 = i2
+
+        most_confident_edge_dict[(m.i1,m.i2)] += [m]
+
+    per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair] = {}
+
+    most_confident_was_correct = []
+    for (i1, i2), measurements in most_confident_edge_dict.items():
+
+        most_confident_idx = np.argmax([m.prob for m in measurements])
+        m = measurements[most_confident_idx]
+        if len(measurements) > 1:
+            most_confident_was_correct.append(m.y_true == 1)
+
+        # look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
+        label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
+        fpaths = glob.glob(
+            f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
+        )
+
+        per_edge_wdo_dict[(i1,i2)] = EdgeWDOPair(i1=i1, i2=i2, wdo_pair_uuid=m.wdo_pair_uuid)
+
+        # label_dirname = "gt_alignment_exact"
+        # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
+
+        if not len(fpaths) == 1:
+            import pdb
+
+            pdb.set_trace()
+        i2Si1 = Sim2.from_json(fpaths[0])
+
+        # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
+        # use model confidence
+
+        i2Si1_dict[(m.i1, m.i2)] = i2Si1
+
+        i2Ri1_dict[(m.i1, m.i2)] = i2Si1.rotation
+        i2Ui1_dict[(m.i1, m.i2)] = i2Si1.translation
+
+        R_error_deg = 0
+        U_error_deg = 0
+        two_view_reports_dict[(m.i1, m.i2)] = cycle_utils.TwoViewEstimationReport(
+            gt_class=m.y_true, R_error_deg=R_error_deg, U_error_deg=U_error_deg, confidence=m.prob
+        )
+
+        if m.y_true == 1:
+            gt_edges.append((m.i1, m.i2))
+
+        # print(m)
+
+    print(f"most confident was correct {np.array(most_confident_was_correct).mean():.2f}")
+
+    class_imbalance_ratio = num_gt_negatives / num_gt_positives
+    print(f"\tClass imbalance ratio {class_imbalance_ratio:.2f}")
+
+    return i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, per_edge_wdo_dict
 
 
 
@@ -41,7 +157,8 @@ def run_incremental_reconstruction(
     method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
     confidence_threshold = 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
-    plot_save_dir = f"2021_07_20_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge"
+    plot_save_dir = f"2021_07_22_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge"
+    os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
@@ -49,16 +166,8 @@ def run_incremental_reconstruction(
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-        # for each edge, choose the most confident prediction over all WDO pair alignments
-        most_confident_edge_dict = defaultdict(list)
-
-        i2Si1_dict = {}
-        i2Ri1_dict = {}
-        i2Ui1_dict = {}
-        two_view_reports_dict = {}
-
-        # if not (building_id == "1635" and floor_id == "floor_02"):
-        #     continue
+        if not (building_id == "1635" and floor_id == "floor_02"):
+            continue
 
         gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
@@ -88,86 +197,15 @@ def run_incremental_reconstruction(
 
             plt.show()
 
-        # compute_precision_recall(measurements)
+        plot_multigraph(measurements, gt_floor_pose_graph)
 
-        num_gt_positives = 0
-        num_gt_negatives = 0
-
-        gt_edges = []
-        for m in measurements:
-
-            if m.y_true == 1:
-                num_gt_positives += 1
-            else:
-                num_gt_negatives += 1
-
-            # TODO: remove this debugging condition
-            # if m.y_true != 1:
-            #     continue
-
-            # find all of the predictions where pred class is 1
-            if m.y_hat != 1:
-                continue
-
-            if m.prob < confidence_threshold:
-                continue
-
-            # TODO: this should never happen bc sorted, figure out why it occurs
-            if m.i1 >= m.i2:
-                i2 = m.i1
-                i1 = m.i2
-
-                m.i1 = i1
-                m.i2 = i2
-
-            most_confident_edge_dict[(m.i1,m.i2)] += [m]
-
-        most_confident_was_correct = []
-        for (i1, i2), measurements in most_confident_edge_dict.items():
-
-            most_confident_idx = np.argmax([m.prob for m in measurements])
-            m = measurements[most_confident_idx]
-            if len(measurements) > 1:
-                most_confident_was_correct.append(m.y_true == 1)
-
-            # look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
-            label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
-            fpaths = glob.glob(
-                f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
-            )
-
-            # label_dirname = "gt_alignment_exact"
-            # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
-
-            if not len(fpaths) == 1:
-                import pdb
-
-                pdb.set_trace()
-            i2Si1 = Sim2.from_json(fpaths[0])
-
-            # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
-            # use model confidence
-
-            i2Si1_dict[(m.i1, m.i2)] = i2Si1
-
-            i2Ri1_dict[(m.i1, m.i2)] = i2Si1.rotation
-            i2Ui1_dict[(m.i1, m.i2)] = i2Si1.translation
-
-            R_error_deg = 0
-            U_error_deg = 0
-            two_view_reports_dict[(m.i1, m.i2)] = cycle_utils.TwoViewEstimationReport(
-                gt_class=m.y_true, R_error_deg=R_error_deg, U_error_deg=U_error_deg
-            )
-
-            if m.y_true == 1:
-                gt_edges.append((m.i1, m.i2))
-
-            # print(m)
-
-        print(f"most confident was correct {np.array(most_confident_was_correct).mean():.2f}")
-
-        class_imbalance_ratio = num_gt_negatives / num_gt_positives
-        print(f"\tClass imbalance ratio {class_imbalance_ratio:.2f}")
+        i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _ = get_conf_thresholded_edges(
+            measurements,
+            hypotheses_save_root,
+            confidence_threshold,
+            building_id,
+            floor_id
+        )
 
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
@@ -176,7 +214,7 @@ def run_incremental_reconstruction(
         print(f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
 
         if method == "spanning_tree":
-            build_filtered_spanning_tree(
+            est_floor_pose_graph, i2Si1_dict_consistent = build_filtered_spanning_tree(
                 building_id,
                 floor_id,
                 i2Si1_dict,
@@ -187,6 +225,18 @@ def run_incremental_reconstruction(
                 gt_floor_pose_graph,
                 plot_save_dir
             )
+            import pdb; pdb.set_trace()
+
+            i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, _, per_edge_wdo_dict = get_conf_thresholded_edges(
+                measurements,
+                hypotheses_save_root,
+                confidence_threshold=0.5,
+                building_id=building_id,
+                floor_id=floor_id
+            )
+            from afp.algorithms.cluster_merging import merge_clusters
+            est_pose_graph = merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floor_pose_graph, two_view_reports_dict)
+
 
         elif method == "growing_consensus":
             growing_consensus(
@@ -483,6 +533,8 @@ def build_filtered_spanning_tree(
     print()
     print()
 
+    return est_floor_pose_graph, i2Si1_dict_consistent
+
 
 def filter_measurements_to_absolute_rotations(
     wRi_list: List[Optional[np.ndarray]],
@@ -667,6 +719,59 @@ def draw_graph_topology(
     if show_plot:
         plt.show()
     plt.close("all")
+
+
+def plot_multigraph(measurements, gt_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5):
+    """ """
+    import networkx as nx
+
+    edges = []
+    edge_colors = []
+
+    G = nx.MultiGraph()
+
+    for m in measurements:
+        # find all of the predictions where pred class is 1
+        if m.y_hat != 1:
+            continue
+
+        if m.prob < confidence_threshold:
+            continue
+
+        # TODO: this should never happen bc sorted, figure out why it occurs
+        if m.i1 >= m.i2:
+            i2 = m.i1
+            i1 = m.i2
+
+            m.i1 = i1
+            m.i2 = i2
+
+        edge_color = 'g' if m.y_true == 1 else 'r'
+        weight = m.prob
+        weight = 10 if m.y_true == 1 else 1
+        G.add_edge(m.i1,m.i2, color=edge_color, weight=weight)
+        
+    edges = G.edges()
+
+    colors = []
+    weight = []
+
+    for (u,v,attrib_dict) in list(G.edges.data()):
+        colors.append(attrib_dict['color'])
+        weight.append(attrib_dict['weight'])
+
+
+    nodes = list(G.nodes)
+    nx.drawing.nx_pylab.draw_networkx(
+        G=G,
+        pos={v:gt_floor_pose_graph.nodes[v].global_Sim2_local.translation for v in nodes},
+        edgelist=edges,
+        edge_color=colors,
+        width=weight
+    )
+
+    plt.axis("equal")
+    plt.show()
 
 
 
