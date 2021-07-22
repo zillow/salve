@@ -721,7 +721,7 @@ def draw_graph_topology(
     plt.close("all")
 
 
-def plot_multigraph(measurements, gt_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5):
+def plot_multigraph(measurements: List[EdgeClassification], gt_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5):
     """ """
     import networkx as nx
 
