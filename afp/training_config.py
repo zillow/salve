@@ -17,6 +17,7 @@ class TrainingConfig:
     resize_w: int
     train_h: int
     train_w: int
+    apply_photometric_augmentation: bool
 
     cfg_stem: str
     num_epochs: int

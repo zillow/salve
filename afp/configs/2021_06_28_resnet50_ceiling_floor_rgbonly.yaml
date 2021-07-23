@@ -16,6 +16,7 @@ TrainingConfig:
     resize_w: 234
     train_h: 224
     train_w: 224
+    apply_photometric_augmention: False
 
     cfg_stem: 
     num_epochs: 50
