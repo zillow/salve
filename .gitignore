@@ -5,3 +5,6 @@ __pycache__/
 
 afp.egg-info/
 
+# data files
+2021_*
+
