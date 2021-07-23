@@ -83,7 +83,7 @@ def get_train_transform_list(args) -> List[Callable]:
         transform.ToTensorQuadruplet(),
         transform.NormalizeQuadruplet(mean=mean, std=std)
     ])
-    logger.info("Train transform_list: " + str(transform_list))
+    logging.info("Train transform_list: " + str(transform_list))
     return transform_list
 
 
