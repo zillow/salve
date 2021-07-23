@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 
 from afp.common.posegraph2d import PoseGraph2d
+from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
 
 
 class EdgeWDOPair(NamedTuple):
@@ -85,28 +86,124 @@ def merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floo
 			edge_conf = two_view_reports_dict[(i1,i2)].confidence
 			cut_crossing_confs.append(edge_conf)
 
-	import pdb; pdb.set_trace()
-	# rank the cut crossings by highest score in the model
-	most_confident_crossing_idx = np.argmax(cut_crossing_confs)
-	cut_crossing = cut_crossings[most_confident_crossing_idx]
+	cut_crossing_confs = np.array(cut_crossing_confs)
 
-	find_unused_WDOs(gt_floor_pose_graph, per_edge_wdo_dict, i2Si1_dict_consistent)
 
-	# check if there is any unused door or window or opening
-	# if not, then repeat.
+	find_unused_WDOs(cut_crossings, gt_floor_pose_graph, per_edge_wdo_dict, i2Si1_dict_consistent)
 
-	# can we add in another cycle by doing this?
+
+	for i in range(len(cut_crossing_confs)):
+
+		print(f"\tTrying {i}th most confident crossing of cut...")
+
+		# rank the cut crossings by highest score in the model
+		next_most_confident_crossing_idx = np.argsort(-cut_crossing_confs)[i]
+		cut_crossing = cut_crossings[next_most_confident_crossing_idx]
+
+		import copy
+		i2Si1_dict_consistent_temp = copy.deepcopy(i2Si1_dict_consistent)
+
+		i2Si1_dict_consistent_temp[cut_crossing] = i2Si1_dict[cut_crossing]
+
+
+		# check if there is any unused door or window or opening
+		# if not, then repeat.
+
+		# can we add in another cycle by doing this?
 	
-	
-	# check if there is any self-intersection/penetration of walls/free space, which should not occur
+		# everything is copy pasted below
+
+		wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent_temp, verbose=False)
+
+		if wSi_list is None:
+			print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent_temp)} edges in i2Si1 dictionary.")
+			print()
+			print()
+			return
+
+		num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
+		num_floor_panos = len(gt_floor_pose_graph.nodes)
+		print(
+			f"Localized {num_localized_panos/num_floor_panos*100:.2f}% of panos: {num_localized_panos} / {num_floor_panos}"
+		)
+
+		# TODO: try spanning tree version, vs. Shonan version
+		wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
+		wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
+
+		est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
+			wRi_list, wti_list, gt_floor_pose_graph, gt_floor_pose_graph.building_id, gt_floor_pose_graph.floor_id
+		)
+
+		mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+		print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
+		est_floor_pose_graph.render_estimated_layout(
+			show_plot=False,
+			save_plot=True,
+			plot_save_dir="merged_clusters",
+			gt_floor_pg=gt_floor_pose_graph
+		)
+
+		from afp.utils.overlap_utils import determine_invalid_wall_overlap
+
+		# import pdb; pdb.set_trace()
+		self_intersecting = False
+		for pano1_id in cc0:
+			for pano2_id in cc1:
+
+				i_wdo = -1
+				j_wdo = -1 #dummy values
+
+				pano1_room_vertices = est_floor_pose_graph.nodes[pano1_id].room_vertices_global_2d
+				pano2_room_vertices = est_floor_pose_graph.nodes[pano2_id].room_vertices_global_2d
+
+				is_valid = determine_invalid_wall_overlap(
+					pano1_id, pano2_id, i_wdo, j_wdo, pano1_room_vertices, pano2_room_vertices, shrink_factor=0.40
+				)
+				#print(f"({pano1_id},{pano2_id}) is valid? {is_valid}")
+
+				self_intersecting = self_intersecting or not is_valid
+		
+		if i == 7 or i == 18:
+			import pdb; pdb.set_trace()
+
+		# check if there is any self-intersection/penetration of walls/free space, which should not occur
+		if not self_intersecting:
+			print("Accepted and greedy merge completed.")
+			break
 
 
-	return est_pose_graph
+	return est_floor_pose_graph
 
 
 
-def find_unused_WDOs(gt_floor_pose_graph, per_edge_wdo_dict, i2Si1_dict_consistent):
+def find_unused_WDOs(cut_crossings, gt_floor_pose_graph, per_edge_wdo_dict, i2Si1_dict_consistent):
 	""" """
+	used_wdo_dict = defaultdict(dict)
+
+	# figure out all used WDOs
+
+	# then delete cut crossing if it acesses a used WDO
+
+
+
+
+
+
+
+
+	# for alignment_object in ["windows", "doors", "openings"]:
+
+	# 	for i, pano_data in gt_floor_pose_graph.nodes.items():
+	# 		for wdo in getattr(pano_data, alignment_object):
+
+	# 			import pdb; pdb.set_trace()
+
+	# 			# for i, pano_data in gt_floor_pose_graph.nodes.items():
+	# 			# 	for wdo in getattr(pano_data, alignment_object):
+					
+			
+
 
 
 
