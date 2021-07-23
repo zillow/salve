@@ -235,7 +235,7 @@ def determine_invalid_wall_overlap(
     j: int,
     pano1_room_vertices: np.ndarray,
     pano2_room_vertices: np.ndarray,
-    wall_buffer_m: float = 0.3,
+    shrink_factor: float = 0.1,
     visualize: bool = False,
 ) -> bool:
     """
@@ -262,10 +262,10 @@ def determine_invalid_wall_overlap(
 
     # inter_poly_verts = np.array(list(inter_poly.exterior.coords))
 
-    shrunk_poly1 = shrink_polygon(polygon1)
+    shrunk_poly1 = shrink_polygon(polygon1, shrink_factor=shrink_factor)
     shrunk_poly1_verts = np.array(list(shrunk_poly1.exterior.coords))
 
-    shrunk_poly2 = shrink_polygon(polygon2)
+    shrunk_poly2 = shrink_polygon(polygon2, shrink_factor=shrink_factor)
     shrunk_poly2_verts = np.array(list(shrunk_poly2.exterior.coords))
 
     # TODO: interpolate evenly spaced points along edges, if this gives any benefit?
