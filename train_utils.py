@@ -70,7 +70,7 @@ def get_train_transform_list(args) -> List[Callable]:
 
     transform_list = []
 
-    if args.apply_photometric_augmention:
+    if args.apply_photometric_augmentation:
         transform_list += [
             tbv_transform.PhotometricShift(jitter_types = ["brightness","contrast","saturation","hue"])
         ]
