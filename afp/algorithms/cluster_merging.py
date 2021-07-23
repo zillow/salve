@@ -178,15 +178,42 @@ def merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floo
 
 
 def find_unused_WDOs(cut_crossings, gt_floor_pose_graph, per_edge_wdo_dict, i2Si1_dict_consistent):
-	""" """
+	"""
+
+	WDOs are re-used multiple times.
+
+	For pano 7, for door type, we have a list of used ones [0,1,2]
+	"""
+	#import pdb; pdb.set_trace()
+	from collections import defaultdict
 	used_wdo_dict = defaultdict(dict)
 
 	# figure out all used WDOs
+	for (i1,i2) in i2Si1_dict_consistent:
+
+		wdo_pair_uuid = per_edge_wdo_dict[(i1,i2)].wdo_pair_uuid
+		alignment_object, i1_wdo_idx, i2_wdo_idx  =  wdo_pair_uuid.split('_')
+
+		if alignment_object == "window":
+			# this is for same-room registration, not for inter-room registration
+			continue
+
+		# can be used more than once, so a set is appropriate
+		if alignment_object in used_wdo_dict[i1]:
+			used_wdo_dict[i1][alignment_object].add(i1_wdo_idx)
+		else:
+			used_wdo_dict[i1][alignment_object] = {i1_wdo_idx}
+
+
+		if alignment_object in used_wdo_dict[i2]:
+			used_wdo_dict[i2][alignment_object].add(i2_wdo_idx)
+		else:
+			used_wdo_dict[i2][alignment_object] = {i2_wdo_idx}
+
+	import pdb; pdb.set_trace()
+	
 
 	# then delete cut crossing if it acesses a used WDO
-
-
-
 
 
 
@@ -203,7 +230,6 @@ def find_unused_WDOs(cut_crossings, gt_floor_pose_graph, per_edge_wdo_dict, i2Si
 	# 			# 	for wdo in getattr(pano_data, alignment_object):
 					
 			
-
 
 
 
