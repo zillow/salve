@@ -8,7 +8,7 @@ from mseg_semantic.utils.avg_meter import AverageMeter
 from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
 from torch import nn, Tensor
 
-import afp.utils.tbv_transform
+import afp.utils.transform as transform
 from afp.models.early_fusion import EarlyFusionCEResnet
 from afp.utils.logger_utils import get_logger
 
@@ -72,16 +72,16 @@ def get_train_transform_list(args) -> List[Callable]:
 
     if args.apply_photometric_augmentation:
         transform_list += [
-            tbv_transform.PhotometricShift(jitter_types = ["brightness","contrast","saturation","hue"])
+            transform.PhotometricShift(jitter_types = ["brightness","contrast","saturation","hue"])
         ]
 
     transform_list.extend([
-        tbv_transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
-        tbv_transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
-        tbv_transform.RandomHorizontalFlipQuadruplet(),
-        tbv_transform.RandomVerticalFlipQuadruplet(),
-        tbv_transform.ToTensorQuadruplet(),
-        tbv_transform.NormalizeQuadruplet(mean=mean, std=std)
+        transform.ResizeQuadruplet(size=(args.resize_h, args.resize_w)),
+        transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
+        transform.RandomHorizontalFlipQuadruplet(),
+        transform.RandomVerticalFlipQuadruplet(),
+        transform.ToTensorQuadruplet(),
+        transform.NormalizeQuadruplet(mean=mean, std=std)
     ])
     logger.info("Train transform_list: " + str(transform_list))
     return transform_list
@@ -93,10 +93,10 @@ def get_val_test_transform_list(args) -> List[Callable]:
     mean, std = get_imagenet_mean_std()
 
     transform_list = [
-        tbv_transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
-        tbv_transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="center", padding=mean),
-        tbv_transform.ToTensorQuadruplet(),
-        tbv_transform.NormalizeQuadruplet(mean=mean, std=std)
+        transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
+        transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="center", padding=mean),
+        transform.ToTensorQuadruplet(),
+        transform.NormalizeQuadruplet(mean=mean, std=std)
     ]
 
     return transform_list
@@ -110,7 +110,7 @@ def get_img_transform_list(args, split: str):
     elif split in ["val", "test"]:
         transform_list = get_val_test_transform_list(args)
 
-    return tbv_transform.ComposeQuadruplet(transform_list)
+    return transform.ComposeQuadruplet(transform_list)
 
 
 def get_optimizer(args, model: nn.Module) -> torch.optim.Optimizer:
