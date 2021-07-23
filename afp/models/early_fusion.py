@@ -9,7 +9,7 @@ from typing import Tuple
 import torch
 from torch import nn, Tensor
 
-from resnet_factory import get_vanilla_resnet_model, get_resnet_feature_dim
+from afp.models.resnet_factory import get_vanilla_resnet_model, get_resnet_feature_dim
 
 class EarlyFusionCEResnet(nn.Module):
     """ """
