@@ -132,13 +132,20 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
     # split into train and val now --> keep 85% of building_id's in train
     #split_idx = int(len(available_building_ids) * TRAIN_SPLIT_FRACTION)
 
+    val_building_ids = ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']
+    train_building_ids = set(available_building_ids) - set(val_building_ids)
+    train_building_ids = list(train_building_ids)
+
     # TODO: remove hard-coding
     split_idx = 0
 
     if split == "train":
-        split_building_ids = available_building_ids[:split_idx]
-    elif split in ["val", "test"]:
-        split_building_ids = available_building_ids[split_idx:]
+        split_building_ids = train_building_ids #[:split_idx]
+    elif split in "val":
+        split_building_ids = val_building_ids # trainval_building_ids[split_idx:]
+    elif split == "test":
+        raise RuntimeError
+        #split_building_ids == 
 
     label_dict = {"gt_alignment_approx": 1, "incorrect_alignment": 0}  # is_match = True
 

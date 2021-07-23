@@ -369,9 +369,10 @@ class PhotometricShift(object):
         imgs = [image1, image2, image3, image4]
         jittered_imgs = []
         for img in imgs:
+            # HWC -> CHW
             img_pytorch = torch.from_numpy(img).permute(2,0,1)
-            # import pdb; pdb.set_trace()
             img_pytorch = jitter(img_pytorch)
+            # CHW -> HWC
             jittered_imgs.append(img_pytorch.numpy().transpose(1,2,0))
 
         image1, image2, image3, image4 = jittered_imgs

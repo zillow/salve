@@ -13,7 +13,7 @@ from afp.models.early_fusion import EarlyFusionCEResnet
 from afp.utils.logger_utils import get_logger
 
 from afp.training_config import TrainingConfig
-from zind_data import ZindData
+from afp.data.zind_data import ZindData
 
 
 #logger = get_logger()
@@ -68,14 +68,22 @@ def get_train_transform_list(args) -> List[Callable]:
     # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
     # random crops to prevent memorization
 
-    transform_list = [
+    transform_list = []
+
+    if args.apply_photometric_augmention:
+        transform_list += [
+            tbv_transform.PhotometricShift(jitter_types = ["brightness","contrast","saturation","hue"])
+        ]
+
+    transform_list.extend([
         tbv_transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
         tbv_transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
         tbv_transform.RandomHorizontalFlipQuadruplet(),
         tbv_transform.RandomVerticalFlipQuadruplet(),
         tbv_transform.ToTensorQuadruplet(),
         tbv_transform.NormalizeQuadruplet(mean=mean, std=std)
-    ]
+    ])
+    logger.info("Train transform_list: " + str(transform_list))
     return transform_list
 
 
