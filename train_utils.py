@@ -68,7 +68,9 @@ def get_train_transform_list(args) -> List[Callable]:
     # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
     # random crops to prevent memorization
 
-    transform_list = []
+    transform_list = [
+        transform.ResizeQuadruplet(size=(args.resize_h, args.resize_w))
+    ]
 
     if args.apply_photometric_augmentation:
         transform_list += [
@@ -76,7 +78,6 @@ def get_train_transform_list(args) -> List[Callable]:
         ]
 
     transform_list.extend([
-        transform.ResizeQuadruplet(size=(args.resize_h, args.resize_w)),
         transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
         transform.RandomHorizontalFlipQuadruplet(),
         transform.RandomVerticalFlipQuadruplet(),
