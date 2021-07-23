@@ -13,7 +13,7 @@ from afp.models.early_fusion import EarlyFusionCEResnet
 from afp.utils.logger_utils import get_logger
 
 from afp.training_config import TrainingConfig
-from afp.data.zind_data import ZindData
+from afp.dataset.zind_data import ZindData
 
 
 #logger = get_logger()
