@@ -80,7 +80,7 @@ def run_test_epoch(
                 fp3=fp3,
             )
 
-        serialize_predictions = True
+        serialize_predictions = False
         if serialize_predictions:
             save_edge_classifications_to_disk(
                 serialization_save_dir,
@@ -164,7 +164,7 @@ def visualize_examples(
     **kwargs,
 ) -> None:
     """ """
-    vis_save_dir = f"{Path(ckpt_fpath).parent}/{split}_examples_2021_07_13"
+    vis_save_dir = f"{Path(ckpt_fpath).parent}/{split}_examples_2021_07_28"
 
     y_hat = kwargs["y_hat"]
     y_true = kwargs["y_true"]
@@ -203,6 +203,13 @@ def visualize_examples(
 
         pred_label_idx = y_hat[j].cpu().numpy().item()
         true_label_idx = y_true[j].cpu().numpy().item()
+
+        save_fps_only = True
+        if save_fps_only:
+            is_fp = pred_label_idx == 1 and true_label_idx == 0
+            if not is_fp:
+                continue
+
         title = f"Pred class {pred_label_idx}, GT Class (is_match?): {true_label_idx}"
         title += f"w/ prob {probs[j, pred_label_idx].cpu().numpy():.2f}"
 
@@ -309,7 +316,7 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 16
+    args.batch_size = 128
     args.workers = 6
 
     split = "val"
