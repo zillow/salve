@@ -12,7 +12,7 @@ from argoverse.utils.json_utils import read_json_file
 from infer_depth import infer_depth
 
 from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
-from afp.utils.bev_rending_utils import vis_depth, vis_depth_and_render, render_bev_pair, get_bev_pair_xyzrgb
+from afp.utils.bev_rendering_utils import vis_depth, vis_depth_and_render, render_bev_pair, get_bev_pair_xyzrgb
 
 
 HOHONET_CONFIG_FPATH = "config/mp3d_depth/HOHO_depth_dct_efficienthc_TransEn1_hardnet.yaml"
