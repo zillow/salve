@@ -282,14 +282,20 @@ if __name__ == "__main__":
     # model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
 
     # ResNet-50, floor and ceiling, RGB-only
-    model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26"
+    #model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26"
+    # config_fpath = "afp/configs/2021_07_15_resnet50_ceiling_floor_rgbonly_test_set_inference.yaml"
+    #serialization_save_dir = "2021_07_15_serialized_edge_classifications_v2"
+
+    # ResNet-50, floor and ceiling, RGB-only, more tours
+    model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_07_24/2021_07_26_14_42_49"
+    config_fpath = "afp/configs/2021_07_24_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    serialization_save_dir = "2021_07_28_serialized_edge_classifications"
+
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
     ckpt_fpath = glob.glob(f"{model_results_dir}/*.pth")[0]
     train_results_fpath = glob.glob(f"{model_results_dir}/*.json")[0]
-
-    config_fpath = "afp/configs/2021_07_15_resnet50_ceiling_floor_rgbonly_test_set_inference.yaml"
 
     # plot_metrics(json_fpath=train_results_fpath)
 
@@ -305,8 +311,6 @@ if __name__ == "__main__":
 
     args.batch_size = 16
     args.workers = 6
-
-    serialization_save_dir = "2021_07_15_serialized_edge_classifications_v2"
 
     split = "val"
     save_viz = False
