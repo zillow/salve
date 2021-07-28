@@ -16,20 +16,8 @@ from imageio import imread
 from afp.utils.zorder_utils import choose_elevated_repeated_vals
 from afp.utils.interpolation_utils import remove_hallucinated_content, interp_dense_grid_from_sparse
 from afp.utils.rotation_utils import rotmat2d
-
-
-def get_uni_sphere_xyz(H, W):
-    """Make spherical system match the world system"""
-    j, i = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
-    u = -(i + 0.5) / W * 2 * np.pi
-    v = ((j + 0.5) / H - 0.5) * np.pi
-    z = -np.sin(v)
-    c = np.cos(v)
-    y = c * np.sin(u)
-    x = c * np.cos(u)
-    sphere_xyz = np.stack([x, y, z], -1)
-    return sphere_xyz
-
+from afp.utils.pano_utils import get_uni_sphere_xyz
+from afp.utils.colormap import colormap
 
 def prune_to_2d_bbox(
     pts: np.ndarray, rgb: np.ndarray, xmin: float, ymin: float, xmax: float, ymax: float
@@ -158,53 +146,6 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
         plt.show()
 
     return bev_img
-
-
-def colormap(rgb: bool = True) -> np.ndarray:
-    """
-    Create an array of visually distinctive RGB values.
-    Args:
-    -     rgb: boolean, whether to return in RGB or BGR order. BGR corresponds to OpenCV default.
-    Returns:
-    -     color_list: Numpy array of dtype uin8 representing RGB color palette.
-    """
-    color_list = np.array(
-        [
-            [252, 233, 79],
-            # [237, 212, 0],
-            [196, 160, 0],
-            [252, 175, 62],
-            # [245, 121, 0],
-            [206, 92, 0],
-            [233, 185, 110],
-            [193, 125, 17],
-            [143, 89, 2],
-            [138, 226, 52],
-            # [115, 210, 22],
-            [78, 154, 6],
-            [114, 159, 207],
-            # [52, 101, 164],
-            [32, 74, 135],
-            [173, 127, 168],
-            # [117, 80, 123],
-            [92, 53, 102],
-            [239, 41, 41],
-            # [204, 0, 0],
-            [164, 0, 0],
-            [238, 238, 236],
-            # [211, 215, 207],
-            # [186, 189, 182],
-            [136, 138, 133],
-            # [85, 87, 83],
-            [46, 52, 54],
-        ]
-    ).astype(np.uint8)
-    assert color_list.shape[1] == 3
-    assert color_list.ndim == 2
-
-    if not rgb:
-        color_list = color_list[:, ::-1]
-    return color_list
 
 
 def grayscale_to_color(gray_img: np.ndarray) -> np.ndarray:
