@@ -208,6 +208,7 @@ def visualize_examples(
         if save_fps_only:
             is_fp = pred_label_idx == 1 and true_label_idx == 0
             if not is_fp:
+                plt.close("all")
                 continue
 
         title = f"Pred class {pred_label_idx}, GT Class (is_match?): {true_label_idx}"
@@ -298,7 +299,6 @@ if __name__ == "__main__":
     config_fpath = "afp/configs/2021_07_24_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
     serialization_save_dir = "2021_07_28_serialized_edge_classifications"
 
-
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
     ckpt_fpath = glob.glob(f"{model_results_dir}/*.pth")[0]
@@ -320,7 +320,7 @@ if __name__ == "__main__":
     args.workers = 6
 
     split = "val"
-    save_viz = False
+    save_viz = True
     evaluate_model(serialization_save_dir, ckpt_fpath, args, split, save_viz)
 
     train_results_json = read_json_file(train_results_fpath)
