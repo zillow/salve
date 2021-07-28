@@ -17,9 +17,9 @@ from mseg_semantic.utils.avg_meter import SegmentationAverageMeter
 from pathlib import Path
 from torch import nn
 
-from logger_utils import get_logger
 from train_utils import get_dataloader, get_model, cross_entropy_forward, unnormalize_img, load_model_checkpoint
-from pr_utils import compute_precision_recall
+from afp.utils.logger_utils import get_logger
+from afp.utils.pr_utils import compute_precision_recall
 
 logger = get_logger()
 
