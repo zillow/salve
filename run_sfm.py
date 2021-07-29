@@ -37,8 +37,8 @@ from typing import NamedTuple
 
 @dataclass(frozen=True)
 class FloorReconstructionReport:
-    avg_abs_trans_err: float
     avg_abs_rot_err: float
+    avg_abs_trans_err: float
     percent_panos_localized: float
 
 
@@ -163,9 +163,9 @@ def run_incremental_reconstruction(
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
-    confidence_threshold = 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    confidence_threshold = 0.98 # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
-    plot_save_dir = f"2021_07_29_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv2"
+    plot_save_dir = f"2021_07_29_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
@@ -211,9 +211,9 @@ def run_incremental_reconstruction(
 
             plt.show()
 
-        draw_multigraph = False
-        if draw_multigraph:
-            plot_multigraph(measurements, gt_floor_pose_graph)
+        render_multigraph = False
+        if render_multigraph:
+            draw_multigraph(measurements, gt_floor_pose_graph)
 
         i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _ = get_conf_thresholded_edges(
             measurements,
@@ -287,6 +287,8 @@ def run_incremental_reconstruction(
         avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Averaged over all tours, {error_metric} = {avg_val:.2f}")
 
+        median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
+        print(f"Median over all tours, {error_metric} = {median_val:.2f}")
 
 def cycles_SE2_spanning_tree(
     building_id: str,
@@ -725,10 +727,10 @@ if __name__ == "__main__":
 
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
-    #serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
+    serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
 
     # training, v2
-    serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_28_serialized_edge_classifications"
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_28_serialized_edge_classifications"
 
     raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
