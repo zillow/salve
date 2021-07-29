@@ -1,10 +1,13 @@
-from afp.common.posegraph2d import PoseGraph2d
-from afp.algorithms.cycle_consistency import TwoViewEstimationReport
+
 
 from typing import Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
+
+from afp.common.posegraph2d import PoseGraph2d
+from afp.algorithms.cycle_consistency import TwoViewEstimationReport
+from visualize_edge_classifications import EdgeClassification
 
 
 def draw_graph_topology(
@@ -54,7 +57,7 @@ def draw_graph_topology(
     plt.close("all")
 
 
-def plot_multigraph(
+def draw_multigraph(
     measurements: List[EdgeClassification], gt_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5
 ):
     """
