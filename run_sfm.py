@@ -11,6 +11,7 @@ import copy
 import glob
 import os
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -25,6 +26,7 @@ from afp.algorithms.cycle_consistency import TwoViewEstimationReport
 from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
 from afp.algorithms.cluster_merging import EdgeWDOPair
 from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
+from afp.utils.graph_rendering_utils import draw_multigraph, draw_graph_topology
 from afp.utils.pr_utils import assign_tp_fp_fn_tn
 from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rotmat2theta_deg
 
@@ -32,6 +34,12 @@ from visualize_edge_classifications import get_edge_classifications_from_seriali
 
 from typing import NamedTuple
 
+
+@dataclass(frozen=True)
+class FloorReconstructionReport:
+    avg_abs_trans_err: float
+    avg_abs_rot_err: float
+    percent_panos_localized: float
 
 
 def get_conf_thresholded_edges(
@@ -157,20 +165,26 @@ def run_incremental_reconstruction(
     method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
     confidence_threshold = 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
-    plot_save_dir = f"2021_07_22_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge"
+    plot_save_dir = f"2021_07_29_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv2"
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
+
+    # import pdb; pdb.set_trace()
+
+    reconstruction_reports = []
 
     # loop over each building and floor
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-        if not (building_id == "1635" and floor_id == "floor_02"):
-            continue
+        # if not (building_id == "1635" and floor_id == "floor_02"):
+        #     continue
 
         gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
+
+        # continue
 
         visualize_confidence_histograms = False
         if visualize_confidence_histograms:
@@ -197,7 +211,9 @@ def run_incremental_reconstruction(
 
             plt.show()
 
-        plot_multigraph(measurements, gt_floor_pose_graph)
+        draw_multigraph = False
+        if draw_multigraph:
+            plot_multigraph(measurements, gt_floor_pose_graph)
 
         i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _ = get_conf_thresholded_edges(
             measurements,
@@ -214,7 +230,7 @@ def run_incremental_reconstruction(
         print(f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
 
         if method == "spanning_tree":
-            est_floor_pose_graph, i2Si1_dict_consistent = build_filtered_spanning_tree(
+            est_floor_pose_graph, i2Si1_dict_consistent, report = build_filtered_spanning_tree(
                 building_id,
                 floor_id,
                 i2Si1_dict,
@@ -225,17 +241,17 @@ def run_incremental_reconstruction(
                 gt_floor_pose_graph,
                 plot_save_dir
             )
-            import pdb; pdb.set_trace()
+            reconstruction_reports.append(report)
 
-            i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, _, per_edge_wdo_dict = get_conf_thresholded_edges(
-                measurements,
-                hypotheses_save_root,
-                confidence_threshold=0.5,
-                building_id=building_id,
-                floor_id=floor_id
-            )
-            from afp.algorithms.cluster_merging import merge_clusters
-            est_pose_graph = merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floor_pose_graph, two_view_reports_dict)
+            # i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, _, per_edge_wdo_dict = get_conf_thresholded_edges(
+            #     measurements,
+            #     hypotheses_save_root,
+            #     confidence_threshold=0.5,
+            #     building_id=building_id,
+            #     floor_id=floor_id
+            # )
+            # from afp.algorithms.cluster_merging import merge_clusters
+            # est_pose_graph = merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floor_pose_graph, two_view_reports_dict)
 
 
         elif method == "growing_consensus":
@@ -262,6 +278,14 @@ def run_incremental_reconstruction(
             )
         else:
             raise RuntimeError("Unknown method.")
+
+    print()
+    print()
+    print(f"Test set contained {len(reconstruction_reports)} total floors.")
+    error_metrics = reconstruction_reports[0].__dict__.keys()
+    for error_metric in error_metrics:
+        avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
+        print(f"Averaged over all tours, {error_metric} = {avg_val:.2f}")
 
 
 def cycles_SE2_spanning_tree(
@@ -441,7 +465,13 @@ def build_filtered_spanning_tree(
         print(f"Rotation averaging failed, because {len(i2Ri1_dict)} measurements provided.")
         print()
         print()
-        return
+
+        report = FloorReconstructionReport(
+            avg_abs_rot_err = np.nan,
+            avg_abs_trans_err = np.nan,
+            percent_panos_localized = 0.0
+        )
+        return None, None, report
     # TODO: measure the error in rotations
 
     # filter to rotations that are consistent with global
@@ -505,12 +535,19 @@ def build_filtered_spanning_tree(
         print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
         print()
         print()
-        return
+
+        report = FloorReconstructionReport(
+            avg_abs_rot_err = np.nan,
+            avg_abs_trans_err = np.nan,
+            percent_panos_localized = 0.0
+        )
+        return None, None, report
 
     num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
     num_floor_panos = len(gt_floor_pose_graph.nodes)
+    percent_panos_localized = num_localized_panos / num_floor_panos*100
     print(
-        f"Localized {num_localized_panos/num_floor_panos*100:.2f}% of panos: {num_localized_panos} / {num_floor_panos}"
+        f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}"
     )
 
     # TODO: try spanning tree version, vs. Shonan version
@@ -533,7 +570,12 @@ def build_filtered_spanning_tree(
     print()
     print()
 
-    return est_floor_pose_graph, i2Si1_dict_consistent
+    report = FloorReconstructionReport(
+        avg_abs_rot_err = mean_abs_rot_err,
+        avg_abs_trans_err = mean_abs_trans_err,
+        percent_panos_localized = percent_panos_localized
+    )
+    return est_floor_pose_graph, i2Si1_dict_consistent, report
 
 
 def filter_measurements_to_absolute_rotations(
@@ -678,108 +720,15 @@ def get_edge_accuracy(
     return acc
 
 
-def draw_graph_topology(
-    edges: List[Tuple[int,int]],
-    gt_floor_pose_graph: PoseGraph2d,
-    two_view_reports_dict: Dict[Tuple[int,int], TwoViewEstimationReport],
-    title: str,
-    show_plot: bool = True,
-    save_fpath: str = None
-) -> None:
-    """Draw the topology of an undirected graph, with vertices placed in their ground truth locations.
-
-    False positive edges are colored red, and true positive edges are colored green.
-
-    Args:
-        edges: List of (i1,i2) pairs
-    """
-    import networkx as nx
-    plt.figure(figsize=(16,10))
-    G = nx.Graph()
-    G.add_edges_from(edges)
-    nodes = list(G.nodes)
-    GREEN = [0,1,0]
-    RED = [1,0,0]
-    edge_colors = [ GREEN if two_view_reports_dict[edge].gt_class == 1 else RED for edge in edges]
-
-    nx.drawing.nx_pylab.draw_networkx(
-        G,
-        edgelist=edges,
-        edge_color=edge_colors,
-        pos={v:gt_floor_pose_graph.nodes[v].global_Sim2_local.translation for v in nodes},
-        arrows=True,
-        with_labels=True
-    )
-    plt.axis("equal")
-    plt.title(title)
-
-    if save_fpath is not None:
-        plt.savefig(save_fpath, dpi=500)
-
-    if show_plot:
-        plt.show()
-    plt.close("all")
-
-
-def plot_multigraph(measurements: List[EdgeClassification], gt_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5):
-    """ """
-    import networkx as nx
-
-    edges = []
-    edge_colors = []
-
-    G = nx.MultiGraph()
-
-    for m in measurements:
-        # find all of the predictions where pred class is 1
-        if m.y_hat != 1:
-            continue
-
-        if m.prob < confidence_threshold:
-            continue
-
-        # TODO: this should never happen bc sorted, figure out why it occurs
-        if m.i1 >= m.i2:
-            i2 = m.i1
-            i1 = m.i2
-
-            m.i1 = i1
-            m.i2 = i2
-
-        edge_color = 'g' if m.y_true == 1 else 'r'
-        weight = m.prob
-        weight = 10 if m.y_true == 1 else 1
-        G.add_edge(m.i1,m.i2, color=edge_color, weight=weight)
-        
-    edges = G.edges()
-
-    colors = []
-    weight = []
-
-    for (u,v,attrib_dict) in list(G.edges.data()):
-        colors.append(attrib_dict['color'])
-        weight.append(attrib_dict['weight'])
-
-
-    nodes = list(G.nodes)
-    nx.drawing.nx_pylab.draw_networkx(
-        G=G,
-        pos={v:gt_floor_pose_graph.nodes[v].global_Sim2_local.translation for v in nodes},
-        edgelist=edges,
-        edge_color=colors,
-        width=weight
-    )
-
-    plt.axis("equal")
-    plt.show()
-
-
 
 if __name__ == "__main__":
 
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
-    serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
+    #serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
+
+    # training, v2
+    serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_28_serialized_edge_classifications"
 
     raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
