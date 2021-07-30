@@ -21,3 +21,21 @@ Run:
 ```
 pip install -e .
 ```
+
+# Dependencies
+
+We use Conda to manage dependencies. Please install the environment on Linux using:
+```bash
+conda env create -f environment_linux.yml
+```
+or on Mac
+```bash
+conda env create -f environment_mac.yml
+```
+
+Then, install the Python wheel for GTSAM via `pip install /path/to/wheel/file.whl`. Wheels are available [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1035308319) under "Artifacts".
+
+Next, clone the `HoHoNet` repo.
+
+- We use Facebook's `hydra` library for configuration files.
+- We use GTSAM for back-end SLAM/rotation graph optimization, and pose graph alignment.
