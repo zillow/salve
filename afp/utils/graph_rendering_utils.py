@@ -1,4 +1,7 @@
 
+"""
+Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph.
+"""
 
 from typing import Dict, List, Tuple
 
@@ -59,7 +62,7 @@ def draw_graph_topology(
 
 def draw_multigraph(
     measurements: List[EdgeClassification], gt_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5
-):
+) -> None:
     """
     Args:
         measurements

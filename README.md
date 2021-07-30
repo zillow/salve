@@ -12,7 +12,7 @@ Code is organized under the `afp` directory as follows:
     - `common`: shared classes for room layout data, WDO objects, and 2d pose graphs
     - `configs`: Hydra config files for model training
     - `dataset`: dataloaders
-    - `models`: CNN model architectures
+    - `models`: CNN model architectures, implemented in Pytorch
     - `utils`: utilities for rasterization, rendering graphs, Sim(3) alignment, precision/recall computation, and more.
 
 
