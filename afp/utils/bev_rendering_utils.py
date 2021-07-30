@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import cv2
 import matplotlib.pyplot as plt
@@ -13,11 +13,14 @@ from imageio import imread
 
 # from vis_zind_annotations import rotmat2d
 
+from afp.common.pano_data import WDO
+from afp.common.posegraph2d import PoseGraph2d
 from afp.utils.zorder_utils import choose_elevated_repeated_vals
 from afp.utils.interpolation_utils import remove_hallucinated_content, interp_dense_grid_from_sparse
 from afp.utils.rotation_utils import rotmat2d
 from afp.utils.pano_utils import get_uni_sphere_xyz
 from afp.utils.colormap import colormap
+
 
 def prune_to_2d_bbox(
     pts: np.ndarray, rgb: np.ndarray, xmin: float, ymin: float, xmax: float, ymax: float
@@ -74,11 +77,171 @@ class BEVParams:
         self.ylims = ylims
 
 
+def rasterize_room_layout_pair(i2Ti1: Sim2, gt_floor_pose_graph: PoseGraph2d, building_id: str, floor_id: str, i1: int, i2: int):
+    """
+    Args:
+        i2Ti1:
+        gt_floor_pose_graph:
+        building_id:
+        floor_id:
+        i1:
+        i2:
+
+    Returns:
+        img1
+        img2
+    """
+    bev_params = BEVParams()
+    
+    i1_room_vertices = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
+    i2_room_vertices = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+
+    i1_room_vertices = np.vstack([i1_room_vertices, i1_room_vertices[0].reshape(-1,2)])
+    i2_room_vertices = np.vstack([i2_room_vertices, i2_room_vertices[0].reshape(-1,2)])
+
+    i1_room_vertices = i2Ti1.transform_from(i1_room_vertices)
+
+    # plt.plot(i1_room_vertices[:,0], i1_room_vertices[:,1], 10, color='r')
+    # plt.plot(i2_room_vertices[:,0], i2_room_vertices[:,1], 10, color='b')
+
+    i1_wdos = gt_floor_pose_graph.nodes[i1].doors + gt_floor_pose_graph.nodes[i1].windows + gt_floor_pose_graph.nodes[i1].openings
+    i1_wdos = [i1_wdo.transform_from(i2Ti1) for i1_wdo in i1_wdos]
+    img1 = rasterize_single_layout(
+        bev_params,
+        i1_room_vertices,
+        wdo_objs=i1_wdos
+    )
+
+    i2_wdos = gt_floor_pose_graph.nodes[i2].doors + gt_floor_pose_graph.nodes[i2].windows + gt_floor_pose_graph.nodes[i2].openings
+    # i2_wdos are already in frame i2, so they do not need to be transformed.
+    img2 = rasterize_single_layout(
+        bev_params,
+        i2_room_vertices,
+        wdo_objs=i2_wdos
+    )
+    # plt.axis("equal")
+    # plt.show()
+    # quit()
+
+    return img1, img2
+
+
+def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wdo_objs: List[WDO]):
+    """
+    TODO: render as mask, or as polyline
+
+    Args:
+        bev_params:
+        room_vertices:
+        wdo_objs:
+
+    Returns:
+        bev_img:
+    """
+    grid_xmin, grid_xmax = bev_params.xlims
+    grid_ymin, grid_ymax = bev_params.ylims
+    bevimg_Sim2_world = Sim2(R=np.eye(2), t=np.array([-grid_xmin, -grid_ymin]), s=1 / bev_params.meters_per_px)
+    
+    img_h = bev_params.img_h + 1
+    img_w = bev_params.img_w + 1
+
+    bev_img = np.zeros((img_h, img_w, 3), dtype=np.uint8)
+
+    WHITE = (255,255,255)
+    bev_img = rasterize_polyline(polyline_xy=room_vertices, bev_img=bev_img, bevimg_Sim2_world=bevimg_Sim2_world, color=WHITE, thickness=5)
+
+    RED = [255, 0, 0]
+    GREEN = [0, 255, 0]
+    BLUE = [0, 0, 255]
+    wdo_color_dict_cv2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
+
+    for wdo_idx, wdo in enumerate(wdo_objs):
+
+        wdo_type = wdo.type
+        wdo_color = wdo_color_dict_cv2[wdo_type]
+        bev_img = rasterize_polyline(
+            polyline_xy=wdo.vertices_local_2d,
+            bev_img=bev_img,
+            bevimg_Sim2_world=bevimg_Sim2_world,
+            color=wdo_color,
+            thickness=5
+        )
+    bev_img = np.flipud(bev_img)
+    return bev_img
+
+
+def rasterize_polyline(
+    polyline_xy: np.ndarray, bev_img: np.ndarray, bevimg_Sim2_world: Sim2, color: Tuple[int,int,int], thickness: int
+) -> np.ndarray:
+    """
+    Args:
+        polyline_xy
+        bev_img
+        bevimg_Sim2_world
+        color
+        thickness
+
+    Returns:
+        bev_img
+    """
+    img_h, img_w, _ = bev_img.shape
+
+    img_xy = bevimg_Sim2_world.transform_from(polyline_xy)
+    img_xy = np.round(img_xy).astype(np.int64)
+
+    draw_polyline_cv2(
+        line_segments_arr=img_xy,
+        image=bev_img,
+        color=color,
+        im_h=img_h,
+        im_w=img_w,
+        thickness=thickness
+    )
+    return bev_img
+
+
+def draw_polyline_cv2(
+    line_segments_arr: np.ndarray,
+    image: np.ndarray,
+    color: Tuple[int, int, int],
+    im_h: int,
+    im_w: int,
+    thickness: int = 2
+) -> None:
+    """Draw a polyline onto an image using given line segments.
+
+    Based on https://github.com/argoai/argoverse-api/blob/master/argoverse/utils/cv2_plotting_utils.py#L86
+
+    Args:
+        line_segments_arr: Array of shape (K, 2) representing the coordinates of each line segment
+        image: Array of shape (M, N, 3), representing a 3-channel BGR image
+        color: Tuple of shape (3,) with a BGR format color
+        im_h: Image height in pixels
+        im_w: Image width in pixels
+    """
+    for i in range(line_segments_arr.shape[0] - 1):
+        x1 = line_segments_arr[i][0]
+        y1 = line_segments_arr[i][1]
+        x2 = line_segments_arr[i + 1][0]
+        y2 = line_segments_arr[i + 1][1]
+
+        x_in_range = (x1 >= 0) and (x2 >= 0) and (y1 >= 0) and (y2 >= 0)
+        y_in_range = (x1 < im_w) and (x2 < im_w) and (y1 < im_h) and (y2 < im_h)
+
+        if x_in_range and y_in_range:
+            # Use anti-aliasing (AA) for curves
+            image = cv2.line(image, (x1, y1), (x2, y2), color, thickness=thickness, lineType=cv2.LINE_AA)
+
+
 def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bool) -> Optional[np.ndarray]:
     """
     Args:
-        xyz: should be inside the world coordinate frame
         bev_params: parameters for rendering
+        xyzrgb: should be inside the world coordinate frame
+        is_semantics
+
+    Returns:
+        bev_img
     """
     xyz = xyzrgb[:, :3]
     rgb = xyzrgb[:, 3:] * 255
