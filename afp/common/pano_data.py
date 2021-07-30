@@ -94,7 +94,7 @@ class WDO:
         )
 
     def get_rotated_version(self) -> "WDO":
-        """Rotate WDO by 180 degrees"""
+        """Rotate WDO by 180 degrees, as if seen from other side of doorway."""
         self_rotated = WDO(
             global_Sim2_local=self.global_Sim2_local,
             pt1=self.pt2,
@@ -105,6 +105,22 @@ class WDO:
         )
 
         return self_rotated
+
+    def transform_from(self, i2Ti1: Sim2) -> "WDO":
+        """If this WDO is in i1's frame, this will transfer the WDO into i2's frame."""
+        pt1_ = tuple(i2Ti1.transform_from(np.array(self.pt1).reshape(1,2)).squeeze().tolist())
+        pt2_ = tuple(i2Ti1.transform_from(np.array(self.pt2).reshape(1,2)).squeeze().tolist())
+
+        self_transformed = WDO(
+            global_Sim2_local=self.global_Sim2_local, # TODO: update this as well by multiply with i1Ti2
+            pt1=pt1_,
+            pt2=pt2_,
+            bottom_z=self.bottom_z,
+            top_z=self.top_z,
+            type=self.type
+        )
+        return self_transformed
+
 
 
 def test_get_wd_normal_2d() -> None:
