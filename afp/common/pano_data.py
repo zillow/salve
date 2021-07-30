@@ -111,8 +111,10 @@ class WDO:
         pt1_ = tuple(i2Ti1.transform_from(np.array(self.pt1).reshape(1,2)).squeeze().tolist())
         pt2_ = tuple(i2Ti1.transform_from(np.array(self.pt2).reshape(1,2)).squeeze().tolist())
 
+        # global_Sim2_local represented wTi1, so wTi1 * i1Ti2 = wTi2
+        i1Ti2 = i2Ti1.inverse()
         self_transformed = WDO(
-            global_Sim2_local=self.global_Sim2_local, # TODO: update this as well by multiply with i1Ti2
+            global_Sim2_local=self.global_Sim2_local.compose(i1Ti2), # TODO: update this as well by multiply with i1Ti2
             pt1=pt1_,
             pt2=pt2_,
             bottom_z=self.bottom_z,
