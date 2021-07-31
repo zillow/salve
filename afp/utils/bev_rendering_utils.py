@@ -129,8 +129,8 @@ def rasterize_room_layout_pair(
     return img1, img2
 
 
-def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wdo_objs: List[WDO]):
-    """
+def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wdo_objs: List[WDO]) -> np.ndarray:
+    """Render single room layout, with room boundary in white, and windows, doors, and openings marked in unique colors.
     TODO: render as mask, or as polyline
 
     Args:
