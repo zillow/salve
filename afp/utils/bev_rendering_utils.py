@@ -77,7 +77,9 @@ class BEVParams:
         self.ylims = ylims
 
 
-def rasterize_room_layout_pair(i2Ti1: Sim2, gt_floor_pose_graph: PoseGraph2d, building_id: str, floor_id: str, i1: int, i2: int):
+def rasterize_room_layout_pair(
+    i2Ti1: Sim2, gt_floor_pose_graph: PoseGraph2d, building_id: str, floor_id: str, i1: int, i2: int
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Args:
         i2Ti1:
@@ -92,33 +94,34 @@ def rasterize_room_layout_pair(i2Ti1: Sim2, gt_floor_pose_graph: PoseGraph2d, bu
         img2
     """
     bev_params = BEVParams()
-    
+
     i1_room_vertices = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
     i2_room_vertices = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
 
-    i1_room_vertices = np.vstack([i1_room_vertices, i1_room_vertices[0].reshape(-1,2)])
-    i2_room_vertices = np.vstack([i2_room_vertices, i2_room_vertices[0].reshape(-1,2)])
+    # repeat first vertex as last vertex, so OpenCV polygon rendering will close the boundary.
+    i1_room_vertices = np.vstack([i1_room_vertices, i1_room_vertices[0].reshape(-1, 2)])
+    i2_room_vertices = np.vstack([i2_room_vertices, i2_room_vertices[0].reshape(-1, 2)])
 
     i1_room_vertices = i2Ti1.transform_from(i1_room_vertices)
 
     # plt.plot(i1_room_vertices[:,0], i1_room_vertices[:,1], 10, color='r')
     # plt.plot(i2_room_vertices[:,0], i2_room_vertices[:,1], 10, color='b')
 
-    i1_wdos = gt_floor_pose_graph.nodes[i1].doors + gt_floor_pose_graph.nodes[i1].windows + gt_floor_pose_graph.nodes[i1].openings
+    i1_wdos = (
+        gt_floor_pose_graph.nodes[i1].doors
+        + gt_floor_pose_graph.nodes[i1].windows
+        + gt_floor_pose_graph.nodes[i1].openings
+    )
     i1_wdos = [i1_wdo.transform_from(i2Ti1) for i1_wdo in i1_wdos]
-    img1 = rasterize_single_layout(
-        bev_params,
-        i1_room_vertices,
-        wdo_objs=i1_wdos
-    )
+    img1 = rasterize_single_layout(bev_params, i1_room_vertices, wdo_objs=i1_wdos)
 
-    i2_wdos = gt_floor_pose_graph.nodes[i2].doors + gt_floor_pose_graph.nodes[i2].windows + gt_floor_pose_graph.nodes[i2].openings
-    # i2_wdos are already in frame i2, so they do not need to be transformed.
-    img2 = rasterize_single_layout(
-        bev_params,
-        i2_room_vertices,
-        wdo_objs=i2_wdos
+    i2_wdos = (
+        gt_floor_pose_graph.nodes[i2].doors
+        + gt_floor_pose_graph.nodes[i2].windows
+        + gt_floor_pose_graph.nodes[i2].openings
     )
+    # i2_wdos are already in frame i2, so they do not need to be transformed.
+    img2 = rasterize_single_layout(bev_params, i2_room_vertices, wdo_objs=i2_wdos)
     # plt.axis("equal")
     # plt.show()
     # quit()
@@ -143,14 +146,20 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
     grid_xmin, grid_xmax = bev_params.xlims
     grid_ymin, grid_ymax = bev_params.ylims
     bevimg_Sim2_world = Sim2(R=np.eye(2), t=np.array([-grid_xmin, -grid_ymin]), s=1 / bev_params.meters_per_px)
-    
+
     img_h = bev_params.img_h + 1
     img_w = bev_params.img_w + 1
 
     bev_img = np.zeros((img_h, img_w, 3), dtype=np.uint8)
 
-    WHITE = (255,255,255)
-    bev_img = rasterize_polyline(polyline_xy=room_vertices * HOHO_S_ZIND_SCALE_FACTOR, bev_img=bev_img, bevimg_Sim2_world=bevimg_Sim2_world, color=WHITE, thickness=5)
+    WHITE = (255, 255, 255)
+    bev_img = rasterize_polyline(
+        polyline_xy=room_vertices * HOHO_S_ZIND_SCALE_FACTOR,
+        bev_img=bev_img,
+        bevimg_Sim2_world=bevimg_Sim2_world,
+        color=WHITE,
+        thickness=5,
+    )
 
     RED = [255, 0, 0]
     GREEN = [0, 255, 0]
@@ -166,14 +175,14 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
             bev_img=bev_img,
             bevimg_Sim2_world=bevimg_Sim2_world,
             color=wdo_color,
-            thickness=5
+            thickness=5,
         )
     bev_img = np.flipud(bev_img)
     return bev_img
 
 
 def rasterize_polyline(
-    polyline_xy: np.ndarray, bev_img: np.ndarray, bevimg_Sim2_world: Sim2, color: Tuple[int,int,int], thickness: int
+    polyline_xy: np.ndarray, bev_img: np.ndarray, bevimg_Sim2_world: Sim2, color: Tuple[int, int, int], thickness: int
 ) -> np.ndarray:
     """
     Args:
@@ -191,14 +200,7 @@ def rasterize_polyline(
     img_xy = bevimg_Sim2_world.transform_from(polyline_xy)
     img_xy = np.round(img_xy).astype(np.int64)
 
-    draw_polyline_cv2(
-        line_segments_arr=img_xy,
-        image=bev_img,
-        color=color,
-        im_h=img_h,
-        im_w=img_w,
-        thickness=thickness
-    )
+    draw_polyline_cv2(line_segments_arr=img_xy, image=bev_img, color=color, im_h=img_h, im_w=img_w, thickness=thickness)
     return bev_img
 
 
@@ -208,7 +210,7 @@ def draw_polyline_cv2(
     color: Tuple[int, int, int],
     im_h: int,
     im_w: int,
-    thickness: int = 2
+    thickness: int = 2,
 ) -> None:
     """Draw a polyline onto an image using given line segments.
 
