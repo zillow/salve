@@ -158,7 +158,7 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
         bev_img=bev_img,
         bevimg_Sim2_world=bevimg_Sim2_world,
         color=WHITE,
-        thickness=5,
+        thickness=10,
     )
 
     RED = [255, 0, 0]
@@ -175,7 +175,7 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
             bev_img=bev_img,
             bevimg_Sim2_world=bevimg_Sim2_world,
             color=wdo_color,
-            thickness=5,
+            thickness=10,
         )
     bev_img = np.flipud(bev_img)
     return bev_img
@@ -229,12 +229,12 @@ def draw_polyline_cv2(
         x2 = line_segments_arr[i + 1][0]
         y2 = line_segments_arr[i + 1][1]
 
-        x_in_range = (x1 >= 0) and (x2 >= 0) and (y1 >= 0) and (y2 >= 0)
-        y_in_range = (x1 < im_w) and (x2 < im_w) and (y1 < im_h) and (y2 < im_h)
+        #x_in_range = (x1 >= 0) and (x2 >= 0) and (y1 >= 0) and (y2 >= 0)
+        #y_in_range = (x1 < im_w) and (x2 < im_w) and (y1 < im_h) and (y2 < im_h)
 
-        if x_in_range and y_in_range:
-            # Use anti-aliasing (AA) for curves
-            image = cv2.line(image, (x1, y1), (x2, y2), color, thickness=thickness, lineType=cv2.LINE_AA)
+        #if x_in_range and y_in_range:
+        # Use anti-aliasing (AA) for curves
+        image = cv2.line(image, (x1, y1), (x2, y2), color, thickness=thickness, lineType=cv2.LINE_AA)
 
 
 def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bool) -> Optional[np.ndarray]:
