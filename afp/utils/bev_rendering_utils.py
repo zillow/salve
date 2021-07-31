@@ -138,6 +138,8 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
     Returns:
         bev_img:
     """
+    HOHO_S_ZIND_SCALE_FACTOR = 1.5
+
     grid_xmin, grid_xmax = bev_params.xlims
     grid_ymin, grid_ymax = bev_params.ylims
     bevimg_Sim2_world = Sim2(R=np.eye(2), t=np.array([-grid_xmin, -grid_ymin]), s=1 / bev_params.meters_per_px)
@@ -148,7 +150,7 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
     bev_img = np.zeros((img_h, img_w, 3), dtype=np.uint8)
 
     WHITE = (255,255,255)
-    bev_img = rasterize_polyline(polyline_xy=room_vertices, bev_img=bev_img, bevimg_Sim2_world=bevimg_Sim2_world, color=WHITE, thickness=5)
+    bev_img = rasterize_polyline(polyline_xy=room_vertices * HOHO_S_ZIND_SCALE_FACTOR, bev_img=bev_img, bevimg_Sim2_world=bevimg_Sim2_world, color=WHITE, thickness=5)
 
     RED = [255, 0, 0]
     GREEN = [0, 255, 0]
@@ -160,7 +162,7 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
         wdo_type = wdo.type
         wdo_color = wdo_color_dict_cv2[wdo_type]
         bev_img = rasterize_polyline(
-            polyline_xy=wdo.vertices_local_2d,
+            polyline_xy=wdo.vertices_local_2d * HOHO_S_ZIND_SCALE_FACTOR,
             bev_img=bev_img,
             bevimg_Sim2_world=bevimg_Sim2_world,
             color=wdo_color,
