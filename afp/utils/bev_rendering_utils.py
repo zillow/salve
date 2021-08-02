@@ -129,7 +129,7 @@ def rasterize_room_layout_pair(
     return img1, img2
 
 
-def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wdo_objs: List[WDO]) -> np.ndarray:
+def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wdo_objs: List[WDO], render_mask: bool = True ) -> np.ndarray:
     """Render single room layout, with room boundary in white, and windows, doors, and openings marked in unique colors.
     TODO: render as mask, or as polyline
 
@@ -153,13 +153,22 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
     bev_img = np.zeros((img_h, img_w, 3), dtype=np.uint8)
 
     WHITE = (255, 255, 255)
-    bev_img = rasterize_polyline(
-        polyline_xy=room_vertices * HOHO_S_ZIND_SCALE_FACTOR,
-        bev_img=bev_img,
-        bevimg_Sim2_world=bevimg_Sim2_world,
-        color=WHITE,
-        thickness=10,
-    )
+
+    if render_mask:
+        bev_img = rasterize_polygon(
+            polygon_xy=room_vertices * HOHO_S_ZIND_SCALE_FACTOR,
+            bev_img=bev_img,
+            bevimg_Sim2_world=bevimg_Sim2_world,
+            color=WHITE,
+        )
+    else:
+        bev_img = rasterize_polyline(
+            polyline_xy=room_vertices * HOHO_S_ZIND_SCALE_FACTOR,
+            bev_img=bev_img,
+            bevimg_Sim2_world=bevimg_Sim2_world,
+            color=WHITE,
+            thickness=10,
+        )
 
     RED = [255, 0, 0]
     GREEN = [0, 255, 0]
@@ -175,10 +184,23 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
             bev_img=bev_img,
             bevimg_Sim2_world=bevimg_Sim2_world,
             color=wdo_color,
-            thickness=10,
+            thickness=30,
         )
     bev_img = np.flipud(bev_img)
     return bev_img
+
+
+def rasterize_polygon(polygon_xy: np.ndarray, bev_img: np.ndarray, bevimg_Sim2_world: Sim2, color: Tuple[int, int, int]) -> np.ndarray:
+    """ """
+    img_h, img_w, _ = bev_img.shape
+
+    img_xy = bevimg_Sim2_world.transform_from(polygon_xy)
+    img_xy = np.round(img_xy).astype(np.int64)
+
+    from argoverse.utils.cv2_plotting_utils import draw_polygon_cv2
+    bev_img = draw_polygon_cv2(points=img_xy, image=bev_img, color=color)
+    return bev_img
+
 
 
 def rasterize_polyline(
