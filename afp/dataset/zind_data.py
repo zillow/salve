@@ -90,9 +90,6 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[
 
         assert pano1_id != pano2_id
 
-        import pdb
-
-        pdb.set_trace()
         # make sure each tuple is in sorted order (ceiling,ceiling) amd (floor,floor)
         assert "_ceiling_rgb_" in Path(fp1c).name
         assert "_ceiling_rgb_" in Path(fp2c).name
