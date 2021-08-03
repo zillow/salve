@@ -10,7 +10,7 @@ import numpy as np
 try:
     import open3d as o3d
 except:
-    print("Open3d could not be loaded...")
+    print("Open3d could not be loaded, so skipping import...")
 
 from argoverse.utils.se2 import SE2
 from argoverse.utils.sim2 import Sim2

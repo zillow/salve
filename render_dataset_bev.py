@@ -136,6 +136,7 @@ def render_building_floor_pairs(
     for label_type in ["gt_alignment_approx","incorrect_alignment"]:  # "gt_alignment_exact"
         pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
         pairs.sort()
+        print(f"On Building {building_id}, {floor_id}, {label_type}")
 
         for pair_idx, pair_fpath in enumerate(pairs):
 
@@ -161,7 +162,7 @@ def render_building_floor_pairs(
                 # e.g. 'door_0_0_identity'
                 pair_uuid = Path(pair_fpath).stem.split('__')[-1]
 
-                print(f"On {i1},{i2}")
+                
 
                 img1_fpath = img_fpaths_dict[i1]
                 img2_fpath = img_fpaths_dict[i2]
@@ -186,6 +187,7 @@ def render_building_floor_pairs(
 
                 render_layout_only = True
                 if not render_layout_only:
+                    print(f"On {i1},{i2}")
                     infer_depth_if_nonexistent(
                         depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
                     )
@@ -366,7 +368,7 @@ def render_pairs(
     for building_id in building_ids:
 
         # already rendered
-        if not building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+        if building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
             continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
@@ -392,7 +394,7 @@ def render_pairs(
 if __name__ == "__main__":
     # render_isolated_examples()
 
-    num_processes = 20
+    num_processes = 30
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
