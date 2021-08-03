@@ -1,3 +1,8 @@
+
+"""
+Script to train CNN models.
+"""
+
 import argparse
 import logging
 import os
