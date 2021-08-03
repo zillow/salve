@@ -216,7 +216,7 @@ class ZindData(Dataset):
         """Fetch number of examples within a data split."""
         return len(self.data_list)
 
-    def __getitem__(self, index: int) -> Union[TwoTuplWithPaths, FourTupleWithPaths, SixTupleWithPaths]:
+    def __getitem__(self, index: int) -> Union[TwoTupleWithPaths, FourTupleWithPaths, SixTupleWithPaths]:
         """
         Note: is_match = 1 means True.
         """
