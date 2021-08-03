@@ -36,8 +36,8 @@ from afp.utils.logger_utils import get_logger, setup_file_logger
 
 # logger = get_logger()
 
-# home_dir = "/Users/johnlam/Downloads"
-home_dir = "/mnt/data/johnlam"
+home_dir = "/Users/johnlam/Downloads"
+#home_dir = "/mnt/data/johnlam"
 setup_file_logger(home_dir, program_name="training")
 
 
@@ -142,7 +142,14 @@ def run_epoch(
             logging.info(f"\tOn iter {iter}")
 
         # assume cross entropy loss only currently
-        x1, x2, x3, x4, is_match, fp0, fp1 = example
+        if args.modalities == ["layout"]:
+            x1, x2, is_match, fp0, fp1 = example
+
+        elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
+            x1, x2, x3, x4, is_match, fp0, fp1 = example
+
+        elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
+            x1, x2, x3, x4, x5, x6, is_match, fp0, fp1 = example
 
         n = x1.size(0)
 
@@ -158,8 +165,6 @@ def run_epoch(
 
             unnormalize_img(x1[k].cpu(), mean, std)
             unnormalize_img(x2[k].cpu(), mean, std)
-            unnormalize_img(x3[k].cpu(), mean, std)
-            unnormalize_img(x4[k].cpu(), mean, std)
 
             plt.subplot(2,2,1)
             plt.imshow(x1[k].numpy().transpose(1,2,0).astype(np.uint8))
@@ -167,11 +172,15 @@ def run_epoch(
             plt.subplot(2,2,2)
             plt.imshow(x2[k].numpy().transpose(1,2,0).astype(np.uint8))
 
-            plt.subplot(2,2,3)
-            plt.imshow(x3[k].numpy().transpose(1,2,0).astype(np.uint8))
+            if x3 is not None:
+                unnormalize_img(x3[k].cpu(), mean, std)
+                unnormalize_img(x4[k].cpu(), mean, std)
 
-            plt.subplot(2,2,4)
-            plt.imshow(x4[k].numpy().transpose(1,2,0).astype(np.uint8))
+                plt.subplot(2,2,3)
+                plt.imshow(x3[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+                plt.subplot(2,2,4)
+                plt.imshow(x4[k].numpy().transpose(1,2,0).astype(np.uint8))
 
             plt.title("Is match" + str(is_match[k].numpy().item()))
 
