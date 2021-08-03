@@ -1,4 +1,3 @@
-
 import argparse
 import logging
 import os
@@ -26,13 +25,13 @@ from train_utils import (
     get_model,
     cross_entropy_forward,
     print_time_remaining,
-    load_model_checkpoint
+    load_model_checkpoint,
 )
 from afp.utils.logger_utils import get_logger, setup_file_logger
 
-#logger = get_logger()
+# logger = get_logger()
 
-#home_dir = "/Users/johnlam/Downloads"
+# home_dir = "/Users/johnlam/Downloads"
 home_dir = "/mnt/data/johnlam"
 setup_file_logger(home_dir, program_name="training")
 
@@ -105,7 +104,7 @@ def main(args) -> None:
                     "optimizer": optimizer.state_dict(),
                     "max_epochs": args.num_epochs,
                     f"curr_{crit_acc_stat}": results_dict[crit_acc_stat][-1],
-                    f"best_so_far_{crit_acc_stat}": max(results_dict[crit_acc_stat])
+                    f"best_so_far_{crit_acc_stat}": max(results_dict[crit_acc_stat]),
                 },
                 ckpt_fpath,
             )
@@ -117,12 +116,14 @@ def main(args) -> None:
         logging.info("Results on crit stat: " + str([f"{v:.3f}" for v in results_dict[crit_acc_stat]]))
 
 
-def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Dict[str, float]:
+def run_epoch(
+    args, epoch: int, model, data_loader: torch.utils.data.DataLoader, optimizer: torch.optim.Optimizer, split: str
+) -> Dict[str, float]:
     """Run all data belonging to a particular split through the network."""
     batch_time = AverageMeter()
     loss_meter = AverageMeter()
     sam = SegmentationAverageMeter()
-    
+
     if split == "train":
         model.train()
     else:
@@ -136,7 +137,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
             logging.info(f"\tOn iter {iter}")
 
         # assume cross entropy loss only currently
-        x1, x2, x3, x4, is_match, fp0, fp1, fp2, fp3 = example
+        x1, x2, x3, x4, is_match, fp0, fp1 = example
 
         n = x1.size(0)
 
@@ -171,14 +172,12 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
 
             print(fp0[k])
             print(fp1[k])
-            print(fp2[k])
-            print(fp3[k])
             print()
 
             plt.show()
             plt.close("all")
         """
-        
+
         if torch.cuda.is_available():
             x1 = x1.cuda(non_blocking=True)
             x2 = x2.cuda(non_blocking=True)
@@ -188,7 +187,7 @@ def run_epoch(args, epoch: int, model, data_loader, optimizer, split: str) -> Di
             gt_is_match = is_match.cuda(non_blocking=True)
         else:
             gt_is_match = is_match
-        
+
         is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, gt_is_match)
 
         sam.update_metrics_cpu(
@@ -247,9 +246,9 @@ if __name__ == "__main__":
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
     opts = parser.parse_args()
 
-    #config_name = "2021_06_26_08_38_09__resnet18_floor_ceiling_rgbonly.yaml"
-    #config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly.yaml"
-    #config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly_debug.yaml"
+    # config_name = "2021_06_26_08_38_09__resnet18_floor_ceiling_rgbonly.yaml"
+    # config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly.yaml"
+    # config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly_debug.yaml"
     config_name = "2021_07_23_resnet50_ceiling_floor_rgbonly_photometric_augment.yaml"
 
     with hydra.initialize_config_module(config_module="afp.configs"):
