@@ -1,3 +1,8 @@
+
+"""
+Render aligned texture maps and/or layouts in a bird's eye view, to be used for training a network.
+"""
+
 import glob
 import os
 from multiprocessing import Pool
@@ -12,8 +17,14 @@ from argoverse.utils.json_utils import read_json_file
 from infer_depth import infer_depth
 
 from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
-from afp.utils.bev_rendering_utils import vis_depth, vis_depth_and_render, render_bev_pair, get_bev_pair_xyzrgb
-
+from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
+from afp.utils.bev_rendering_utils import (
+    get_bev_pair_xyzrgb,
+    vis_depth,
+    vis_depth_and_render,
+    render_bev_pair, 
+    rasterize_room_layout_pair
+)
 
 HOHONET_CONFIG_FPATH = "config/mp3d_depth/HOHO_depth_dct_efficienthc_TransEn1_hardnet.yaml"
 HOHONET_CKPT_FPATH = "ckpt/mp3d_depth_HOHO_depth_dct_efficienthc_TransEn1_hardnet/ep60.pth"
@@ -112,6 +123,7 @@ def render_building_floor_pairs(
     raw_dataset_dir: str,
     building_id: str,
     floor_id: str,
+    layout_save_root: str
 ) -> None:
     """ """
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
@@ -119,7 +131,9 @@ def render_building_floor_pairs(
 
     floor_labels_dirpath = f"{hypotheses_save_root}/{building_id}/{floor_id}"
 
-    for label_type in ["gt_alignment_approx", "incorrect_alignment"]:  # "gt_alignment_exact"
+    gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+
+    for label_type in ["gt_alignment_approx","incorrect_alignment"]:  # "gt_alignment_exact"
         pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
         pairs.sort()
 
@@ -152,31 +166,10 @@ def render_building_floor_pairs(
                 img1_fpath = img_fpaths_dict[i1]
                 img2_fpath = img_fpaths_dict[i2]
 
-                infer_depth_if_nonexistent(
-                    depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
-                )
-                infer_depth_if_nonexistent(
-                    depth_save_root=depth_save_root, building_id=building_id, img_fpath=img2_fpath
-                )
-
-                args = SimpleNamespace(
-                    **{
-                        "img_i1": semantic_img1_fpath if is_semantics else img1_fpath,
-                        "img_i2": semantic_img2_fpath if is_semantics else img2_fpath,
-                        "depth_i1": f"{depth_save_root}/{building_id}/{Path(img1_fpath).stem}.depth.png",
-                        "depth_i2": f"{depth_save_root}/{building_id}/{Path(img2_fpath).stem}.depth.png",
-                        "scale": 0.001,
-                        # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-                        "crop_ratio": 80 / 512,
-                        "crop_z_range": crop_z_range,  # 0.3 # -1.0 # -0.5 # 0.3 # 1.2
-                    }
-                )
-                # bev_img = vis_depth_and_render(args, is_semantics=False)
-
                 building_bev_save_dir = f"{bev_save_root}/{label_type}/{building_id}"
                 os.makedirs(building_bev_save_dir, exist_ok=True)
 
-                def bev_fpath_from_img_fpath(pair_idx: int, pair_uuid: str, surface_type: str, img_fpath: str) -> None:
+                def bev_fname_from_img_fpath(pair_idx: int, pair_uuid: str, surface_type: str, img_fpath: str) -> None:
                     """ """
                     fname_stem = Path(img_fpath).stem
                     if is_semantics:
@@ -185,23 +178,64 @@ def render_building_floor_pairs(
                         img_name = f"pair_{pair_idx}___{pair_uuid}_{surface_type}_rgb_{fname_stem}.jpg"
                     return img_name
 
-                bev_fname1 = bev_fpath_from_img_fpath(pair_idx, pair_uuid, surface_type, img1_fpath)
-                bev_fname2 = bev_fpath_from_img_fpath(pair_idx, pair_uuid, surface_type, img2_fpath)
+                bev_fname1 = bev_fname_from_img_fpath(pair_idx, pair_uuid, surface_type, img1_fpath)
+                bev_fname2 = bev_fname_from_img_fpath(pair_idx, pair_uuid, surface_type, img2_fpath)
 
                 bev_fpath1 = f"{building_bev_save_dir}/{bev_fname1}"
                 bev_fpath2 = f"{building_bev_save_dir}/{bev_fname2}"
 
-                if Path(bev_fpath1).exists() and Path(bev_fpath2).exists():
-                    print("Both BEV images already exist, skipping...")
-                    continue
+                render_layout_only = True
+                if not render_layout_only:
+                    infer_depth_if_nonexistent(
+                        depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
+                    )
+                    infer_depth_if_nonexistent(
+                        depth_save_root=depth_save_root, building_id=building_id, img_fpath=img2_fpath
+                    )
+                    args = SimpleNamespace(
+                        **{
+                            "img_i1": semantic_img1_fpath if is_semantics else img1_fpath,
+                            "img_i2": semantic_img2_fpath if is_semantics else img2_fpath,
+                            "depth_i1": f"{depth_save_root}/{building_id}/{Path(img1_fpath).stem}.depth.png",
+                            "depth_i2": f"{depth_save_root}/{building_id}/{Path(img2_fpath).stem}.depth.png",
+                            "scale": 0.001,
+                            # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
+                            "crop_ratio": 80 / 512,
+                            "crop_z_range": crop_z_range,  # 0.3 # -1.0 # -0.5 # 0.3 # 1.2
+                        }
+                    )
+                    # bev_img = vis_depth_and_render(args, is_semantics=False)
 
-                bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
+                    if Path(bev_fpath1).exists() and Path(bev_fpath2).exists():
+                        print("Both BEV images already exist, skipping...")
+                        continue
 
-                if bev_img1 is None or bev_img2 is None:
-                    continue
+                    bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
 
-                imageio.imwrite(bev_fpath1, bev_img1)
-                imageio.imwrite(bev_fpath2, bev_img2)
+                    if bev_img1 is None or bev_img2 is None:
+                        continue
+
+                    imageio.imwrite(bev_fpath1, bev_img1)
+                    imageio.imwrite(bev_fpath2, bev_img2)
+
+                if surface_type == "floor":
+
+                    building_layout_save_dir = f"{layout_save_root}/{label_type}/{building_id}"
+                    os.makedirs(building_layout_save_dir, exist_ok=True)
+
+                    # change to layout dir
+                    layout_fpath1 = f"{building_layout_save_dir}/{bev_fname1}"
+                    layout_fpath2 = f"{building_layout_save_dir}/{bev_fname2}"
+
+                    if Path(layout_fpath1).exists() and Path(layout_fpath2).exists():
+                        print("Both layout images already exist, skipping...")
+                        continue
+
+                    # skip for ceiling, since would be duplicate.
+                    layoutimg1, layoutimg2 = rasterize_room_layout_pair(i2Ti1, gt_floor_pose_graph, building_id, floor_id, i1, i2)
+
+                    imageio.imwrite(layout_fpath1, layoutimg1)
+                    imageio.imwrite(layout_fpath2, layoutimg2)
 
 
 def render_floor_texture(
@@ -211,8 +245,9 @@ def render_floor_texture(
     raw_dataset_dir: str,
     building_id: str,
     floor_id: str,
+    layout_save_root: str
 ) -> None:
-    """
+    """On a single canvas, texture-map all panoramas onto a single space.
 
     Args:
         depth_save_root: 
@@ -312,7 +347,7 @@ def render_floor_texture(
 
 
 def render_pairs(
-    num_processes: int, depth_save_root: str, bev_save_root: str, raw_dataset_dir: str, hypotheses_save_root: str
+    num_processes: int, depth_save_root: str, bev_save_root: str, raw_dataset_dir: str, hypotheses_save_root: str, layout_save_root: str
 ) -> None:
     """ """
 
@@ -331,7 +366,7 @@ def render_pairs(
     for building_id in building_ids:
 
         # already rendered
-        if building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+        if not building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
             continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
@@ -343,7 +378,7 @@ def render_pairs(
 
         merger_data = floor_map_json["merger"]
         for floor_id, floor_data in merger_data.items():
-            args += [(depth_save_root, bev_save_root, hypotheses_save_root, raw_dataset_dir, building_id, floor_id)]
+            args += [(depth_save_root, bev_save_root, hypotheses_save_root, raw_dataset_dir, building_id, floor_id, layout_save_root)]
 
     if num_processes > 1:
         with Pool(num_processes) as p:
@@ -359,7 +394,7 @@ if __name__ == "__main__":
 
     num_processes = 1
 
-    #depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
+    # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
@@ -368,7 +403,7 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v2_w_wdo_idxs"
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
@@ -380,7 +415,11 @@ if __name__ == "__main__":
     #bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
     #bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
     bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v3"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs_filledpoly"
 
+    # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
+    bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
@@ -389,4 +428,5 @@ if __name__ == "__main__":
         bev_save_root=bev_save_root,
         raw_dataset_dir=raw_dataset_dir,
         hypotheses_save_root=hypotheses_save_root,
+        layout_save_root=layout_save_root
     )
