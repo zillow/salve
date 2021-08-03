@@ -419,7 +419,7 @@ if __name__ == "__main__":
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs_filledpoly"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
-    bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
+    layout_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
