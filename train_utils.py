@@ -63,13 +63,37 @@ def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: flo
 
 def get_train_transform_list(args) -> List[Callable]:
     """ """
+    if len(args.modalities) == 1:
+        Resize = transform.ResizePair
+        Crop = transform.CropPair
+        ToTensor = transform.ToTensorPair
+        Normalize = transform.NormalizePair
+        RandomHorizontalFlip = transform.RandomHorizontalFlipPair
+        RandomVerticalFlip = transform.RandomVerticalFlipPair
+
+    elif len(args.modalities) == 2:
+        Resize = transform.ResizeQuadruplet
+        Crop = transform.CropQuadruplet
+        ToTensor = transform.ToTensorQuadruplet
+        Normalize = transform.NormalizeQuadruplet
+        RandomHorizontalFlip = transform.RandomHorizontalFlipQuadruplet
+        RandomVerticalFlip = transform.RandomVerticalFlipQuadruplet
+
+    elif len(args.modalities) == 3:
+        Resize = transform.ResizeSextuplet
+        Crop = transform.CropSextuplet
+        ToTensor = transform.ToTensorSextuplet
+        Normalize = transform.NormalizeSextuplet
+        RandomHorizontalFlip = transform.RandomHorizontalFlipSextuplet
+        RandomVerticalFlip = transform.RandomVerticalFlipSextuplet
+
     mean, std = get_imagenet_mean_std()
 
     # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
     # random crops to prevent memorization
 
     transform_list = [
-        transform.ResizeQuadruplet(size=(args.resize_h, args.resize_w))
+        Resize(size=(args.resize_h, args.resize_w))
     ]
 
     if args.apply_photometric_augmentation:
@@ -78,11 +102,11 @@ def get_train_transform_list(args) -> List[Callable]:
         ]
 
     transform_list.extend([
-        transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
-        transform.RandomHorizontalFlipQuadruplet(),
-        transform.RandomVerticalFlipQuadruplet(),
-        transform.ToTensorQuadruplet(),
-        transform.NormalizeQuadruplet(mean=mean, std=std)
+        Crop(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
+        RandomHorizontalFlip(),
+        RandomVerticalFlip(),
+        ToTensor(),
+        Normalize(mean=mean, std=std)
     ])
     logging.info("Train transform_list: " + str(transform_list))
     return transform_list
@@ -91,13 +115,32 @@ def get_train_transform_list(args) -> List[Callable]:
 
 def get_val_test_transform_list(args) -> List[Callable]:
     """Get data transforms for val or test split"""
+
+    if len(args.modalities) == 1:
+        Resize = transform.ResizePair
+        Crop = transform.CropPair
+        ToTensor = transform.ToTensorPair
+        Normalize = transform.NormalizePair
+
+    elif len(args.modalities) == 2:
+        Resize = transform.ResizeQuadruplet
+        Crop = transform.CropQuadruplet
+        ToTensor = transform.ToTensorQuadruplet
+        Normalize = transform.NormalizeQuadruplet
+
+    elif len(args.modalities) == 3:
+        Resize = transform.ResizeSextuplet
+        Crop = transform.CropSextuplet
+        ToTensor = transform.ToTensorSextuplet
+        Normalize = transform.NormalizeSextuplet
+
     mean, std = get_imagenet_mean_std()
 
     transform_list = [
-        transform.ResizeQuadruplet((args.resize_h, args.resize_w)),
-        transform.CropQuadruplet(size=(args.train_h, args.train_w), crop_type="center", padding=mean),
-        transform.ToTensorQuadruplet(),
-        transform.NormalizeQuadruplet(mean=mean, std=std)
+        Resize((args.resize_h, args.resize_w)),
+        Crop(size=(args.train_h, args.train_w), crop_type="center", padding=mean),
+        ToTensor(),
+        Normalize(mean=mean, std=std)
     ]
 
     return transform_list
