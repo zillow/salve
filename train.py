@@ -250,6 +250,7 @@ if __name__ == "__main__":
     # config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly.yaml"
     # config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly_debug.yaml"
     #config_name = "2021_07_23_resnet50_ceiling_floor_rgbonly_photometric_augment.yaml"
+    # "2021_07_24_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
     config_name = "2021_08_03_resnet50_ceiling_floor_layout.yaml"
 
     with hydra.initialize_config_module(config_module="afp.configs"):

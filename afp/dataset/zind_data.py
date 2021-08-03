@@ -6,7 +6,7 @@ import glob
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import imageio
 from torch.utils.data import Dataset
