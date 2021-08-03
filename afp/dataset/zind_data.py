@@ -1,4 +1,3 @@
-
 """
 Dataset that reads ZinD data, and feeds it to a Pytorch dataloader.
 """
@@ -28,19 +27,18 @@ SixTuple = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int]
 SixTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int, str, str]
 
 
-
 def pair_idx_from_fpath(fpath: str) -> int:
     """ """
     fname_stem = Path(fpath).stem
 
-    parts = fname_stem.split("___")[0].split('_')
+    parts = fname_stem.split("___")[0].split("_")
     return int(parts[1])
 
 
 def test_pair_idx_from_fpath() -> None:
     """ """
-    #fpath = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25/gt_alignment_approx/000/pair_10_floor_rgb_floor_01_partial_room_01_pano_15.jpg"
-    fpath = '/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3/gt_alignment_approx/1394/pair_24___opening_0_0_identity_ceiling_rgb_floor_01_partial_room_01_pano_18.jpg'
+    # fpath = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25/gt_alignment_approx/000/pair_10_floor_rgb_floor_01_partial_room_01_pano_15.jpg"
+    fpath = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3/gt_alignment_approx/1394/pair_24___opening_0_0_identity_ceiling_rgb_floor_01_partial_room_01_pano_18.jpg"
     pair_idx = pair_idx_from_fpath(fpath)
 
     assert pair_idx == 24
@@ -55,14 +53,10 @@ def pano_id_from_fpath(fpath: str) -> int:
 
 def test_pano_id_from_fpath() -> None:
     """ """
-    #fpath = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25/gt_alignment_approx/242/pair_58_floor_rgb_floor_01_partial_room_13_pano_25.jpg"
-    fpath = '/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3/gt_alignment_approx/1394/pair_24___opening_0_0_identity_ceiling_rgb_floor_01_partial_room_01_pano_18.jpg'
+    # fpath = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25/gt_alignment_approx/242/pair_58_floor_rgb_floor_01_partial_room_13_pano_25.jpg"
+    fpath = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3/gt_alignment_approx/1394/pair_24___opening_0_0_identity_ceiling_rgb_floor_01_partial_room_01_pano_18.jpg"
     pano_id = pano_id_from_fpath(fpath)
     assert pano_id == 18
-
-
-
-
 
 
 def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[Union[TwoTuple, FourTuple, SixTuple]]:
@@ -73,7 +67,7 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[
     Args:
         fpaths:
         label_idx: index of ground truth class to associate with 4-tuple
-        modalities: 
+        modalities:
     """
     # put each file path into a dictionary, to group them
     pairidx_to_fpath_dict = defaultdict(list)
@@ -96,7 +90,9 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[
 
         assert pano1_id != pano2_id
 
-        import pdb; pdb.set_trace()
+        import pdb
+
+        pdb.set_trace()
         # make sure each tuple is in sorted order (ceiling,ceiling) amd (floor,floor)
         assert "_ceiling_rgb_" in Path(fp1c).name
         assert "_ceiling_rgb_" in Path(fp2c).name
@@ -165,9 +161,9 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
     available_building_ids = get_available_building_ids(dataset_root=f"{args.data_root}/gt_alignment_approx")
 
     # split into train and val now --> keep 85% of building_id's in train
-    #split_idx = int(len(available_building_ids) * TRAIN_SPLIT_FRACTION)
+    # split_idx = int(len(available_building_ids) * TRAIN_SPLIT_FRACTION)
 
-    val_building_ids = ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']
+    val_building_ids = ["1635", "1584", "1583", "1578", "1530", "1490", "1442", "1626", "1427", "1394"]
     train_building_ids = set(available_building_ids) - set(val_building_ids)
     train_building_ids = list(train_building_ids)
 
@@ -175,12 +171,12 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
     split_idx = 0
 
     if split == "train":
-        split_building_ids = train_building_ids #[:split_idx]
+        split_building_ids = train_building_ids  # [:split_idx]
     elif split in "val":
-        split_building_ids = val_building_ids # trainval_building_ids[split_idx:]
+        split_building_ids = val_building_ids  # trainval_building_ids[split_idx:]
     elif split == "test":
         raise RuntimeError
-        #split_building_ids == 
+        # split_building_ids ==
 
     label_dict = {"gt_alignment_approx": 1, "incorrect_alignment": 0}  # is_match = True
 
@@ -207,6 +203,7 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
 
 class ZindData(Dataset):
     """ """
+
     def __init__(self, split: str, transform, args) -> None:
         """ """
 
@@ -245,7 +242,7 @@ class ZindData(Dataset):
         elif set(modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
 
             x1c_fpath, x2c_fpath, x1f_fpath, x2f_fpath, x1l_fpath, x2l_fpath, is_match = self.data_list[index]
-            
+
             x1c = imageio.imread(x1c_fpath)
             x2c = imageio.imread(x2c_fpath)
             x1f = imageio.imread(x1f_fpath)
@@ -264,17 +261,17 @@ def test_ZindData_constructor() -> None:
     transform = None
 
     from types import SimpleNamespace
-    args = SimpleNamespace(**{
-        "data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3"
-    })
+
+    args = SimpleNamespace(**{"data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3"})
     dataset = ZindData(split="val", transform=transform, args=args)
     assert len(dataset.data_list) > 0
+
 
 def test_ZindData_getitem() -> None:
     """ """
     pass
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     """ """
     test_ZindData_constructor()
-
