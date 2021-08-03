@@ -52,12 +52,8 @@ def get_edge_classifications_from_serialized_preds(
         y_hat_prob_list = json_data["y_hat_probs"]
         fp0_list = json_data["fp0"]
         fp1_list = json_data["fp1"]
-        fp2_list = json_data["fp2"]
-        fp3_list = json_data["fp3"]
 
-        for y_hat, y_true, y_hat_prob, fp0, fp1, fp2, fp3 in zip(
-            y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list, fp2_list, fp3_list
-        ):
+        for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
             i1 = int(Path(fp0).stem.split("_")[-1])
             i2 = int(Path(fp1).stem.split("_")[-1])
             building_id = Path(fp0).parent.stem
