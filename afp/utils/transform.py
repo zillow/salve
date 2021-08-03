@@ -262,7 +262,7 @@ class ResizeSextuplet(object):
 
     def __call__(
         self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray, image5: np.ndarray, image6: np.ndarray
-    ) -> Array6Tuple:
+    ) -> ArraySextuplet:
         """ """
         h, w = self.size
         image1 = cv2.resize(image1, (w,h), interpolation=cv2.INTER_LINEAR)
