@@ -6,7 +6,12 @@ from typing import List, Optional, Tuple
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import open3d as o3d
+
+try:
+    import open3d as o3d
+except:
+    print("Open3d could not be loaded...")
+
 from argoverse.utils.se2 import SE2
 from argoverse.utils.sim2 import Sim2
 from imageio import imread
