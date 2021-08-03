@@ -25,5 +25,6 @@ class TrainingConfig:
     batch_size: int
 
     data_root: str
+    layout_data_root: str
     model_save_dirpath: str
     gpu_ids: str = None

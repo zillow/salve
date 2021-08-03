@@ -15,6 +15,19 @@ from torch import Tensor
 
 TRAIN_SPLIT_FRACTION = 0.85
 
+# pano 1 layout, pano 2 layout
+TwoTuple = Tuple[Tensor, Tensor, int]
+TwoTupleWithPaths = Tuple[Tensor, Tensor, int, str, str]
+
+# pano 1 floor, pano 2 floor, pano 1 ceiling, pano 2 ceiling
+FourTuple = Tuple[Tensor, Tensor, Tensor, Tensor, int]
+FourTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, int, str, str]
+
+# pano 1 ceiling, pano 2 ceiling, pano 1 floor, pano 2 floor, pano 1 layout, pano 2 layout
+SixTuple = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int]
+SixTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int, str, str]
+
+
 
 def pair_idx_from_fpath(fpath: str) -> int:
     """ """
@@ -34,7 +47,7 @@ def test_pair_idx_from_fpath() -> None:
 
 
 def pano_id_from_fpath(fpath: str) -> int:
-    """ """
+    """Retrieve the panorama ID from a specially-formatted file path, where the pano ID is the last part of the file path."""
     fname_stem = Path(fpath).stem
     parts = fname_stem.split("_")
     return int(parts[-1])
@@ -48,7 +61,11 @@ def test_pano_id_from_fpath() -> None:
     assert pano_id == 18
 
 
-def get_4tuples_from_list(fpaths: List[str], label_idx: int) -> List[Tuple[str, str, str, str, int]]:
+
+
+
+
+def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[Union[TwoTuple, FourTuple, SixTuple]]:
     """Given paths for a single floor of single building, extract training/test metadata from the filepaths.
 
     Note: pair_idx is unique for a (building, floor) but not for a building.
@@ -56,8 +73,8 @@ def get_4tuples_from_list(fpaths: List[str], label_idx: int) -> List[Tuple[str, 
     Args:
         fpaths:
         label_idx: index of ground truth class to associate with 4-tuple
+        modalities: 
     """
-
     # put each file path into a dictionary, to group them
     pairidx_to_fpath_dict = defaultdict(list)
 
@@ -72,25 +89,40 @@ def get_4tuples_from_list(fpaths: List[str], label_idx: int) -> List[Tuple[str, 
             continue
 
         pair_fpaths.sort()
-        fp0, fp1, fp2, fp3 = pair_fpaths
+        fp1c, fp2c, fp1f, fp2f = pair_fpaths
 
-        pano1_id = pano_id_from_fpath(fp0)
-        pano2_id = pano_id_from_fpath(fp1)
+        pano1_id = pano_id_from_fpath(fp1c)
+        pano2_id = pano_id_from_fpath(fp2c)
 
         assert pano1_id != pano2_id
 
-        # make sure each tuple is in sorted order (floor,floor) and (ceiling,ceiling)
-        assert "_ceiling_rgb_" in Path(fp0).name
-        assert "_ceiling_rgb_" in Path(fp1).name
+        import pdb; pdb.set_trace()
+        # make sure each tuple is in sorted order (ceiling,ceiling) amd (floor,floor)
+        assert "_ceiling_rgb_" in Path(fp1c).name
+        assert "_ceiling_rgb_" in Path(fp2c).name
 
-        assert "_floor_rgb_" in Path(fp2).name
-        assert "_floor_rgb_" in Path(fp3).name
+        assert "_floor_rgb_" in Path(fp1f).name
+        assert "_floor_rgb_" in Path(fp2f).name
 
-        assert f"_pano_{pano1_id}.jpg" in Path(fp0).name
-        assert f"_pano_{pano2_id}.jpg" in Path(fp1).name
+        assert f"_pano_{pano1_id}.jpg" in Path(fp1c).name
+        assert f"_pano_{pano2_id}.jpg" in Path(fp2c).name
 
-        assert f"_pano_{pano1_id}.jpg" in Path(fp2).name
-        assert f"_pano_{pano2_id}.jpg" in Path(fp3).name
+        assert f"_pano_{pano1_id}.jpg" in Path(fp1f).name
+        assert f"_pano_{pano2_id}.jpg" in Path(fp2f).name
+
+        if "layout" in args.modalities:
+            # look up in other directory
+            fp1l = fp1f.replace(args.data_root, args.layout_data_root)
+            fp2l = fp2f.replace(args.data_root, args.layout_data_root)
+
+        if args.modalities == ["layout"]:
+            tuples += [(fp1l, fp2l, label_idx)]
+
+        elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
+            tuples += [(fp1c, fp2c, fp1f, fp2f, label_idx)]
+
+        elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
+            tuples += [(fp1c, fp2c, fp1f, fp2f, fp1l, fp2l, label_idx)]
 
         """
         # make sure nothing corrupted enters the dataset
@@ -103,14 +135,17 @@ def get_4tuples_from_list(fpaths: List[str], label_idx: int) -> List[Tuple[str, 
             print("Corrupted in ", fp0, fp1, fp2, fp3)
             continue
         """
-
-        tuples += [(fp0, fp1, fp2, fp3, label_idx)]
-
     return tuples
 
 
 def get_available_building_ids(dataset_root: str) -> List[str]:
-    """ """
+    """
+    Args:
+        dataset_root
+
+    Returns:
+        building_ids
+    """
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{dataset_root}/*") if Path(fpath).is_dir()]
     building_ids = sorted(building_ids, key=lambda x: int(x))
     return building_ids
@@ -161,7 +196,7 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
                 fpaths = glob.glob(f"{args.data_root}/{label_name}/{building_id}/pair_*___*_rgb_{floor_id}_*.jpg")
                 # here, pair_id will be unique
 
-                tuples = get_4tuples_from_list(fpaths, label_idx)
+                tuples = get_tuples_from_fpath_list(fpaths, label_idx, args)
                 if len(tuples) == 0:
                     continue
                 data_list.extend(tuples)
@@ -172,30 +207,56 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
 
 class ZindData(Dataset):
     """ """
-
-    def __init__(self, split: str, transform, args):
+    def __init__(self, split: str, transform, args) -> None:
         """ """
+
         self.transform = transform
         self.data_list = make_dataset(split, args)
 
+        self.modalities = args.modalities
+
     def __len__(self) -> int:
-        """ """
+        """Fetch number of examples within a data split."""
         return len(self.data_list)
 
-    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor, Tensor, int, str, str, str, str]:
+    def __getitem__(self, index: int) -> Union[TwoTuplWithPaths, FourTupleWithPaths, SixTupleWithPaths]:
         """
         Note: is_match = 1 means True.
         """
-        x1_fpath, x2_fpath, x3_fpath, x4_fpath, is_match = self.data_list[index]
+        if modalities == ["layout"]:
 
-        x1 = imageio.imread(x1_fpath)
-        x2 = imageio.imread(x2_fpath)
-        x3 = imageio.imread(x3_fpath)
-        x4 = imageio.imread(x4_fpath)
+            x1l_fpath, x2l_fpath, is_match = self.data_list[index]
+            x1l = imageio.imread(x1l_fpath)
+            x2l = imageio.imread(x2l_fpath)
+            x1l, x2l = self.transform(x1l, x2l)
+            return x1l, x2l, is_match, x1l_fpath, x2l_fpath
 
-        x1, x2, x3, x4 = self.transform(x1, x2, x3, x4)
+        elif set(modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
+            # floor, then ceiling
+            x1c_fpath, x2c_fpath, x1f_fpath, x2f_fpath, is_match = self.data_list[index]
 
-        return x1, x2, x3, x4, is_match, x1_fpath, x2_fpath, x3_fpath, x4_fpath
+            x1c = imageio.imread(x1c_fpath)
+            x2c = imageio.imread(x2c_fpath)
+            x1f = imageio.imread(x1f_fpath)
+            x2f = imageio.imread(x2f_fpath)
+            x1c, x2c, x1f, x2f = self.transform(x1c, x2c, x1f, x2f)
+            return x1c, x2c, x1f, x2f, is_match, x1f_fpath, x2f_fpath
+
+        elif set(modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
+
+            x1c_fpath, x2c_fpath, x1f_fpath, x2f_fpath, x1l_fpath, x2l_fpath, is_match = self.data_list[index]
+            
+            x1c = imageio.imread(x1c_fpath)
+            x2c = imageio.imread(x2c_fpath)
+            x1f = imageio.imread(x1f_fpath)
+            x2f = imageio.imread(x2f_fpath)
+            x1l = imageio.imread(x1l_fpath)
+            x2l = imageio.imread(x2l_fpath)
+            x1c, x2c, x1f, x2f, x1l, x2l = self.transform(x1c, x2c, x1f, x2f, x1l, x2l)
+            return x1c, x2c, x1f, x2f, x1l, x2l, is_match, x1f_fpath, x2f_fpath
+
+        else:
+            raise RuntimeError(f"Unsupported modalities. {str(modalities)}")
 
 
 def test_ZindData_constructor() -> None:

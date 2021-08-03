@@ -25,6 +25,7 @@ TrainingConfig:
 
     #data_root: "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
     data_root: /mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3
+    layout_data_root: 
     #model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
     model_save_dirpath: /mnt/data/johnlam/ZinD_trained_models_2021_07_24
     gpu_ids:
