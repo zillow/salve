@@ -34,7 +34,7 @@ def run_test_epoch(
     for i, test_example in enumerate(data_loader):
 
         # assume cross entropy loss only currently
-        x1, x2, x3, x4, is_match, fp0, fp1, fp2, fp3 = test_example
+        x1, x2, x3, x4, is_match, fp0, fp1 = test_example
         n = x1.size(0)
 
         if torch.cuda.is_available():
@@ -76,8 +76,6 @@ def run_test_epoch(
                 probs=is_match_probs,
                 fp0=fp0,
                 fp1=fp1,
-                fp2=fp2,
-                fp3=fp3,
             )
 
         serialize_predictions = False
@@ -90,8 +88,6 @@ def run_test_epoch(
                 probs=is_match_probs,
                 fp0=fp0,
                 fp1=fp1,
-                fp2=fp2,
-                fp3=fp3,
             )
 
         _, accs, _, avg_mAcc, _ = sam.get_metrics()
@@ -134,8 +130,6 @@ def save_edge_classifications_to_disk(
     probs: torch.Tensor,
     fp0: torch.Tensor,
     fp1: torch.Tensor,
-    fp2: torch.Tensor,
-    fp3: torch.Tensor,
 ) -> None:
     """ """
     n = y_hat.shape[0]
@@ -145,8 +139,6 @@ def save_edge_classifications_to_disk(
         "y_hat_probs": probs[torch.arange(n), y_hat].cpu().numpy().tolist(),
         "fp0": fp0,
         "fp1": fp1,
-        "fp2": fp2,
-        "fp3": fp3,
     }
     os.makedirs(serialization_save_dir, exist_ok=True)
     save_json_dict(f"{serialization_save_dir}/batch_{batch_idx}.json", save_dict)
@@ -172,8 +164,6 @@ def visualize_examples(
 
     fp0 = kwargs["fp0"]
     fp1 = kwargs["fp1"]
-    fp2 = kwargs["fp2"]
-    fp3 = kwargs["fp3"]
 
     n, _, h, w = x1.shape
 
@@ -197,8 +187,6 @@ def visualize_examples(
 
         # print(fp0[j])
         # print(fp1[j])
-        # print(fp2[j])
-        # print(fp3[j])
         # print()
 
         pred_label_idx = y_hat[j].cpu().numpy().item()

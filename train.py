@@ -141,7 +141,7 @@ def run_epoch(
 
         n = x1.size(0)
 
-        """
+        """ """
         # debug routines
         for k in range(n):
             import matplotlib.pyplot as plt
@@ -176,7 +176,7 @@ def run_epoch(
 
             plt.show()
             plt.close("all")
-        """
+        """ """
 
         if torch.cuda.is_available():
             x1 = x1.cuda(non_blocking=True)
