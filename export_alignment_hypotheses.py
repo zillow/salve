@@ -94,7 +94,7 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     if not np.allclose(i2Ti1.translation, i2Ti1_.translation, atol=0.2):
         return False
 
-    if not np.isclose(i2Ti1.scale, i2Ti1_.scale, atol=0.2):
+    if not np.isclose(i2Ti1.scale, i2Ti1_.scale, atol=0.35):
         return False
 
     if not np.isclose(angle1, angle2, atol=5):
@@ -491,7 +491,7 @@ def align_rooms_by_wd(
                     pano2_room_vertices = pano2_room_vertices[:, :2]
 
                     is_valid = determine_invalid_wall_overlap(
-                        pano1_id, pano2_id, i, j, pano1_room_vertices, pano2_room_vertices, wall_buffer_m=0.3
+                        pano1_id, pano2_id, i, j, pano1_room_vertices, pano2_room_vertices, shrink_factor=0.1
                     )
                     # logger.error("Pano1 room verts: %s", str(pano1_room_vertices))
                     # logger.error("Pano2 room verts: %s", str(pano2_room_vertices))
@@ -676,8 +676,8 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 
     for building_id in building_ids:
 
-        if building_id not in ['1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
-            continue
+        # if building_id not in ['1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+        #     continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
@@ -697,17 +697,22 @@ if __name__ == "__main__":
     """ """
     # teaser file
     #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
+    raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
+    hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
 
-    num_processes = 1
+
+
+    num_processes = 15
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
