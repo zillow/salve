@@ -679,7 +679,7 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
         # if building_id not in ['1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
         #     continue
 
-        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
+        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
