@@ -144,6 +144,7 @@ def run_epoch(
         # assume cross entropy loss only currently
         if args.modalities == ["layout"]:
             x1, x2, is_match, fp0, fp1 = example
+            x3, x4, x5, x6 = None, None, None, None
 
         elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
             x1, x2, x3, x4, is_match, fp0, fp1 = example
