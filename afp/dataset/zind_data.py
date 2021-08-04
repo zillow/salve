@@ -108,6 +108,10 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[
             fp1l = fp1f.replace(args.data_root, args.layout_data_root)
             fp2l = fp2f.replace(args.data_root, args.layout_data_root)
 
+            # some layout images may be missing
+            if not (Path(fp1l).exists() and Path(fp2l).exists()):
+                continue
+
         if args.modalities == ["layout"]:
             tuples += [(fp1l, fp2l, label_idx)]
 
@@ -217,15 +221,16 @@ class ZindData(Dataset):
         """
         Note: is_match = 1 means True.
         """
-        if modalities == ["layout"]:
+        if self.modalities == ["layout"]:
 
             x1l_fpath, x2l_fpath, is_match = self.data_list[index]
             x1l = imageio.imread(x1l_fpath)
             x2l = imageio.imread(x2l_fpath)
+
             x1l, x2l = self.transform(x1l, x2l)
             return x1l, x2l, is_match, x1l_fpath, x2l_fpath
 
-        elif set(modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
+        elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
             # floor, then ceiling
             x1c_fpath, x2c_fpath, x1f_fpath, x2f_fpath, is_match = self.data_list[index]
 
@@ -236,7 +241,7 @@ class ZindData(Dataset):
             x1c, x2c, x1f, x2f = self.transform(x1c, x2c, x1f, x2f)
             return x1c, x2c, x1f, x2f, is_match, x1f_fpath, x2f_fpath
 
-        elif set(modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
+        elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
 
             x1c_fpath, x2c_fpath, x1f_fpath, x2f_fpath, x1l_fpath, x2l_fpath, is_match = self.data_list[index]
 
@@ -250,7 +255,7 @@ class ZindData(Dataset):
             return x1c, x2c, x1f, x2f, x1l, x2l, is_match, x1f_fpath, x2f_fpath
 
         else:
-            raise RuntimeError(f"Unsupported modalities. {str(modalities)}")
+            raise RuntimeError(f"Unsupported modalities. {str(self.modalities)}")
 
 
 def test_ZindData_constructor() -> None:
