@@ -87,10 +87,11 @@ class WDO:
         """ """
         pt1 = wdo_data[0]
         pt2 = wdo_data[1]
+        bottom_z, top_z = wdo_data[2]
         pt1[0] *= -1
         pt2[0] *= -1
         return cls(
-            global_Sim2_local=global_Sim2_local, pt1=pt1, pt2=pt2, bottom_z=wdo_data[2], top_z=wdo_data[3], type=type
+            global_Sim2_local=global_Sim2_local, pt1=pt1, pt2=pt2, bottom_z=bottom_z, top_z=top_z, type=type
         )
 
     def get_rotated_version(self) -> "WDO":
@@ -192,13 +193,14 @@ class PanoData(NamedTuple):
             if len(wdo_data) == 0:
                 continue
 
-            # as (x1,y1), (x2,y2), bottom_z, top_z
+            # as (x1,y1), (x2,y2), (bottom_z, top_z)
             # Transform the local W/D/O vertices to the global frame of reference
-            assert len(wdo_data) > 2 and isinstance(wdo_data[2], float)  # with cvat bbox annotation
+            import pdb; pdb.set_trace()
+            assert len(wdo_data) == 3 and isinstance(wdo_data[2], float)  # with cvat bbox annotation
 
-            num_wdo = len(wdo_data) // 4
+            num_wdo = len(wdo_data) // 3
             for wdo_idx in range(num_wdo):
-                wdo = WDO.from_object_array(wdo_data[wdo_idx * 4 : (wdo_idx + 1) * 4], global_Sim2_local, wdo_type)
+                wdo = WDO.from_object_array(wdo_data[wdo_idx * 3 : (wdo_idx + 1) * 3], global_Sim2_local, wdo_type)
                 wdos.append(wdo)
 
             if wdo_type == "windows":
