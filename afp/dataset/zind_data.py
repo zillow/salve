@@ -189,7 +189,7 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
             )
 
             for floor_id in ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04"]:
-
+                import pdb; pdb.set_trace()
                 fpaths = glob.glob(f"{args.data_root}/{label_name}/{building_id}/pair_*___*_rgb_{floor_id}_*.jpg")
                 # here, pair_id will be unique
 
