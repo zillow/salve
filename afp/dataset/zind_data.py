@@ -174,7 +174,7 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
     if split == "train":
         split_building_ids = ["1626"] # sorted(train_building_ids)  # [:split_idx]
     elif split in "val":
-        split_building_ids = ["1626"] sorted(val_building_ids)  # trainval_building_ids[split_idx:]
+        split_building_ids = ["1626"] # sorted(val_building_ids)  # trainval_building_ids[split_idx:]
     elif split == "test":
         raise RuntimeError
         # split_building_ids ==
