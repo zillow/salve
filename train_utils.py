@@ -28,17 +28,19 @@ def cross_entropy_forward(
     x2: Tensor,
     x3: Tensor,
     x4: Tensor,
+    x5: Tensor,
+    x6: Tensor,
     is_match: Tensor
-    ) -> Tuple[Tensor, Tensor]:
+) -> Tuple[Tensor, Tensor]:
     """ """
     if split == "train":
-        logits = model(x1, x2, x3, x4)
+        logits = model(x1, x2, x3, x4, x5, x6)
         probs = torch.nn.functional.softmax(logits.clone(), dim=1)
         loss = torch.nn.functional.cross_entropy(logits, is_match.squeeze())
 
     else:
         with torch.no_grad():
-            logits = model(x1, x2, x3, x4)
+            logits = model(x1, x2, x3, x4, x5, x6)
             probs = torch.nn.functional.softmax(logits.clone(), dim=1)
             loss = torch.nn.functional.cross_entropy(logits, is_match.squeeze())
 

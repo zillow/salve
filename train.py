@@ -148,6 +148,7 @@ def run_epoch(
 
         elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
             x1, x2, x3, x4, is_match, fp0, fp1 = example
+            x5, x6 = None, None
 
         elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
             x1, x2, x3, x4, x5, x6, is_match, fp0, fp1 = example
@@ -196,14 +197,16 @@ def run_epoch(
         if torch.cuda.is_available():
             x1 = x1.cuda(non_blocking=True)
             x2 = x2.cuda(non_blocking=True)
-            x3 = x3.cuda(non_blocking=True)
-            x4 = x4.cuda(non_blocking=True)
+            x3 = x3.cuda(non_blocking=True) if x3 is not None else None
+            x4 = x4.cuda(non_blocking=True) if x4 is not None else None
+            x5 = x5.cuda(non_blocking=True) if x5 is not None else None
+            x6 = x6.cuda(non_blocking=True) if x6 is not None else None
 
             gt_is_match = is_match.cuda(non_blocking=True)
         else:
             gt_is_match = is_match
 
-        is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, gt_is_match)
+        is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match)
 
         sam.update_metrics_cpu(
             pred=torch.argmax(is_match_probs, dim=1).cpu().numpy(),
