@@ -61,7 +61,7 @@ def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: flo
     return lr
 
 
-def get_train_transform_list(args) -> List[Callable]:
+def get_train_transform(args) -> Callable:
     """ """
     if len(args.modalities) == 1:
         Resize = transform.ResizePair
@@ -70,6 +70,7 @@ def get_train_transform_list(args) -> List[Callable]:
         Normalize = transform.NormalizePair
         RandomHorizontalFlip = transform.RandomHorizontalFlipPair
         RandomVerticalFlip = transform.RandomVerticalFlipPair
+        Compose = transform.ComposePair
 
     elif len(args.modalities) == 2:
         Resize = transform.ResizeQuadruplet
@@ -78,6 +79,7 @@ def get_train_transform_list(args) -> List[Callable]:
         Normalize = transform.NormalizeQuadruplet
         RandomHorizontalFlip = transform.RandomHorizontalFlipQuadruplet
         RandomVerticalFlip = transform.RandomVerticalFlipQuadruplet
+        Compose = transform.ComposeQuadruplet
 
     elif len(args.modalities) == 3:
         Resize = transform.ResizeSextuplet
@@ -86,6 +88,7 @@ def get_train_transform_list(args) -> List[Callable]:
         Normalize = transform.NormalizeSextuplet
         RandomHorizontalFlip = transform.RandomHorizontalFlipSextuplet
         RandomVerticalFlip = transform.RandomVerticalFlipSextuplet
+        Compose = transform.ComposeSextuplet
 
     mean, std = get_imagenet_mean_std()
 
@@ -109,30 +112,32 @@ def get_train_transform_list(args) -> List[Callable]:
         Normalize(mean=mean, std=std)
     ])
     logging.info("Train transform_list: " + str(transform_list))
-    return transform_list
+    return Compose(transform_list)
 
 
 
-def get_val_test_transform_list(args) -> List[Callable]:
+def get_val_test_transform(args) -> Callable:
     """Get data transforms for val or test split"""
-
     if len(args.modalities) == 1:
         Resize = transform.ResizePair
         Crop = transform.CropPair
         ToTensor = transform.ToTensorPair
         Normalize = transform.NormalizePair
+        Compose = transform.ComposePair
 
     elif len(args.modalities) == 2:
         Resize = transform.ResizeQuadruplet
         Crop = transform.CropQuadruplet
         ToTensor = transform.ToTensorQuadruplet
         Normalize = transform.NormalizeQuadruplet
+        Compose = transform.ComposeQuadruplet
 
     elif len(args.modalities) == 3:
         Resize = transform.ResizeSextuplet
         Crop = transform.CropSextuplet
         ToTensor = transform.ToTensorSextuplet
         Normalize = transform.NormalizeSextuplet
+        Compose = transform.ComposeSextuplet
 
     mean, std = get_imagenet_mean_std()
 
@@ -143,19 +148,18 @@ def get_val_test_transform_list(args) -> List[Callable]:
         Normalize(mean=mean, std=std)
     ]
 
-    return transform_list
+    return Compose(transform_list)
 
 
 def get_img_transform_list(args, split: str):
     """ """
     if split == "train":
-        transform_list = get_train_transform_list(args)
+        split_transform = get_train_transform(args)
 
     elif split in ["val", "test"]:
-        transform_list = get_val_test_transform_list(args)
+        split_transform = get_val_test_transform(args)
 
-    return transform.ComposeQuadruplet(transform_list)
-
+    return split_transform
 
 def get_optimizer(args, model: nn.Module) -> torch.optim.Optimizer:
     """ """
