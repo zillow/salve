@@ -84,9 +84,15 @@ class WDO:
 
     @classmethod
     def from_object_array(cls, wdo_data: Any, global_Sim2_local: Sim2, type: str) -> "WDO":
-        """ """
-        pt1 = wdo_data[0]
-        pt2 = wdo_data[1]
+        """
+
+        Args:
+            wdo_data: array of shape (3,2)
+            global_Sim2_local
+            type: type of WDO, e.g. 
+        """
+        pt1 = wdo_data[0].tolist()
+        pt2 = wdo_data[1].tolist()
         bottom_z, top_z = wdo_data[2]
         pt1[0] *= -1
         pt2[0] *= -1
@@ -195,8 +201,7 @@ class PanoData(NamedTuple):
 
             # as (x1,y1), (x2,y2), (bottom_z, top_z)
             # Transform the local W/D/O vertices to the global frame of reference
-            import pdb; pdb.set_trace()
-            assert len(wdo_data) == 3 and isinstance(wdo_data[2], float)  # with cvat bbox annotation
+            assert len(wdo_data) % 3 == 0 # should be a multiple of 3
 
             num_wdo = len(wdo_data) // 3
             for wdo_idx in range(num_wdo):
@@ -339,6 +344,7 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Si
     t *= np.array([-1.0, 1.0])
     theta_deg = transform_data["rotation"]
 
+    # note: to account for reflection, we swap the sign here to use R^T
     R = rotmat2d(-theta_deg)
 
     assert np.allclose(R.T @ R, np.eye(2))
