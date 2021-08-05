@@ -37,7 +37,7 @@ class EarlyFusionCEResnet(nn.Module):
         x5: Optional[Tensor],
         x6: Optional[Tensor],
     ) -> torch.Tensor:
-        """ """
+        """Concatenate inputs only channel dimension."""
         if self.modalities == ["layout"]:
             x = torch.cat([x1, x2], dim=1)
         elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
