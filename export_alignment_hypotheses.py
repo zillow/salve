@@ -584,7 +584,7 @@ def export_single_building_wdo_alignment_hypotheses(hypotheses_save_root: str, b
                 if i1 >= i2:
                     continue
 
-                if i1 % 5 == 0:
+                if i1 % 20 == 0:
                     logger.info(f"\tOn pano pair ({i1},{i2})")
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
