@@ -162,8 +162,6 @@ def render_building_floor_pairs(
                 # e.g. 'door_0_0_identity'
                 pair_uuid = Path(pair_fpath).stem.split('__')[-1]
 
-                
-
                 img1_fpath = img_fpaths_dict[i1]
                 img2_fpath = img_fpaths_dict[i2]
 
@@ -367,11 +365,14 @@ def render_pairs(
 
     for building_id in building_ids:
 
-        # already rendered
-        if building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
-            continue
+        # # already rendered
+        # if building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+        #     continue
 
-        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
+        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
+        if not Path(json_annot_fpath).exists():
+            print(f"zind_data.json file missing for {building_id}")
+
         floor_map_json = read_json_file(json_annot_fpath)
 
         if "merger" not in floor_map_json:
@@ -394,7 +395,7 @@ def render_pairs(
 if __name__ == "__main__":
     # render_isolated_examples()
 
-    num_processes = 30
+    num_processes = 20
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
@@ -406,22 +407,29 @@ if __name__ == "__main__":
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v2_w_wdo_idxs"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
+    hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = DO NOT USE "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
+    raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
     #bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
     #bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
-    bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v3"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs_filledpoly"
+    bev_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
-    layout_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
+    layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
+    # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
