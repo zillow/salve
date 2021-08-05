@@ -488,7 +488,7 @@ def export_dataset_pose_graphs(raw_dataset_dir: str) -> None:
 
         print(f"Render floor maps for {building_id}")
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
+        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         floor_pg_dict = get_single_building_pose_graphs(
             building_id=building_id, pano_dir=pano_dir, json_annot_fpath=json_annot_fpath
         )
@@ -497,7 +497,7 @@ def export_dataset_pose_graphs(raw_dataset_dir: str) -> None:
 def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> PoseGraph2d:
     """ """
     pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-    json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
+    json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
     floor_pg_dict = get_single_building_pose_graphs(building_id, pano_dir, json_annot_fpath)
     return floor_pg_dict[floor_id]
 
