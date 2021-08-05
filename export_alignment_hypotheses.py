@@ -645,7 +645,7 @@ def export_single_building_wdo_alignment_hypotheses(hypotheses_save_root: str, b
 
                 # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
                 if not GT_valid:
-                    logger.warning(f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2})")
+                    logger.warning(f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2}): {i2Ti1_gt} vs. {[i1Ti1 for i1Ti1 in pruned_possible_alignment_info]}")
 
         logger.info(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
         logger.info(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
@@ -701,6 +701,7 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     #raw_dataset_dir = "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
     raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -709,10 +710,9 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
     hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
 
-
-
-    num_processes = 15
+    num_processes = 20
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
