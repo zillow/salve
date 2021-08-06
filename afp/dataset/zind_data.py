@@ -200,6 +200,7 @@ def make_dataset(split: str, data_root: str, args) -> List[Union[PathTwoTuple, P
     else:
         # split into train and val now --> keep 85% of building_id's in train
         split_idx = int(len(available_building_ids) * TRAIN_SPLIT_FRACTION)
+        trainval_building_ids = available_building_ids
 
         if split == "train":
             split_building_ids = trainval_building_ids[:split_idx]
