@@ -183,8 +183,8 @@ def render_building_floor_pairs(
                 bev_fpath1 = f"{building_bev_save_dir}/{bev_fname1}"
                 bev_fpath2 = f"{building_bev_save_dir}/{bev_fname2}"
 
-                render_layout_only = True
-                if not render_layout_only:
+                render_modalities = ["rgb_texture"]#, "layout"]
+                if "rgb_texture" in render_modalities:
                     print(f"On {i1},{i2}")
                     infer_depth_if_nonexistent(
                         depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
@@ -218,6 +218,8 @@ def render_building_floor_pairs(
                     imageio.imwrite(bev_fpath1, bev_img1)
                     imageio.imwrite(bev_fpath2, bev_img2)
 
+                if "layout" not in render_modalities:
+                    continue
                 if surface_type == "floor":
 
                     building_layout_save_dir = f"{layout_save_root}/{label_type}/{building_id}"
@@ -395,7 +397,7 @@ def render_pairs(
 if __name__ == "__main__":
     # render_isolated_examples()
 
-    num_processes = 20
+    num_processes = 6
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
