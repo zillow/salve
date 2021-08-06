@@ -126,7 +126,7 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[
             assert f"_pano_{pano1_id}.jpg" in Path(fp1f).name
             assert f"_pano_{pano2_id}.jpg" in Path(fp2f).name
             
-            if "layout" in set(args.modalities):
+            if "layout" in args.modalities:
                 # look up in other directory
                 fp1l = fp1f.replace(args.data_root, args.layout_data_root)
                 fp2l = fp2f.replace(args.data_root, args.layout_data_root)
@@ -240,7 +240,7 @@ class ZindData(Dataset):
         """ """
 
         self.transform = transform
-        if modalities == "layout":
+        if args.modalities == "layout":
             data_root = args.layout_data_root
         else:
             # some RGB
