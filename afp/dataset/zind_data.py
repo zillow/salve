@@ -209,8 +209,7 @@ def make_dataset(split: str, data_root: str, args) -> List[Union[PathTwoTuple, P
         elif split == "test":
             raise RuntimeError
 
-    logging.info("Train split building ids:", train_building_ids)
-    logging.info("Val split building ids:", val_building_ids)
+    logging.info(f"{split} split building ids: {split_building_ids}")
 
     label_dict = {"gt_alignment_approx": 1, "incorrect_alignment": 0}  # is_match = True
 
