@@ -20,11 +20,11 @@ from imageio import imread
 
 from afp.common.pano_data import WDO
 from afp.common.posegraph2d import PoseGraph2d
-from afp.utils.zorder_utils import choose_elevated_repeated_vals
-from afp.utils.interpolation_utils import remove_hallucinated_content, interp_dense_grid_from_sparse
-from afp.utils.rotation_utils import rotmat2d
-from afp.utils.pano_utils import get_uni_sphere_xyz
 from afp.utils.colormap import colormap
+from afp.utils.interpolation_utils import remove_hallucinated_content, interp_dense_grid_from_sparse
+from afp.utils.pano_utils import get_uni_sphere_xyz
+from afp.utils.rotation_utils import rotmat2d
+from afp.utils.zorder_utils import choose_elevated_repeated_vals
 
 
 def prune_to_2d_bbox(
