@@ -97,8 +97,6 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[
             pano2_id = pano_id_from_fpath(fp2l)
 
             assert pano1_id != pano2_id
-            if not "_floor_rgb_" in Path(fp1l).name:
-                import pdb; pdb.set_trace()
 
             assert "_floor_rgb_" in Path(fp1l).name
             assert "_floor_rgb_" in Path(fp2l).name
@@ -242,11 +240,13 @@ class ZindData(Dataset):
         """ """
 
         self.transform = transform
-        if args.modalities == "layout":
+        if args.modalities == ["layout"]:
             data_root = args.layout_data_root
         else:
             # some RGB
             data_root = args.data_root
+
+        logging.info(f"Base data root is {data_root} for {args.modalities}")
 
         self.data_list = make_dataset(split, data_root=data_root, args=args)
 
