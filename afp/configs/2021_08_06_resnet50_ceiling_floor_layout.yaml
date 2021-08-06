@@ -1,0 +1,33 @@
+
+# on se1-rmx-gpu-001
+
+TrainingConfig:
+    _target_: afp.training_config.TrainingConfig
+    lr_annealing_strategy: poly
+    base_lr: 0.001
+    weight_decay: 0.0001
+    num_ce_classes: 2
+    print_every: 10
+    poly_lr_power: 0.9
+    optimizer_algo: adam
+    num_layers: 50
+    pretrained: True
+    dataparallel: True
+    resize_h: 234
+    resize_w: 234
+    train_h: 224
+    train_w: 224
+    apply_photometric_augmentation: False
+    modalities: ["layout"]
+
+    cfg_stem: 
+    num_epochs: 50
+    workers: 16
+    batch_size: 128 # 2, #256,
+
+    #data_root: "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
+    data_root: /mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD
+    layout_data_root: /mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs
+    #model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
+    model_save_dirpath: /mnt/data/johnlam/ZinD_trained_models_2021_08_06
+    gpu_ids:

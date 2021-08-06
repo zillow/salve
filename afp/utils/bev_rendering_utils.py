@@ -310,7 +310,6 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     prioritize_elevated = True
     if prioritize_elevated:
-        # import pdb; pdb.set_trace()
         valid = choose_elevated_repeated_vals(x, y, z)
         img_xy = img_xy[valid]
         rgb = rgb[valid]
