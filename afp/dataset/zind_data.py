@@ -97,6 +97,8 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[
             pano2_id = pano_id_from_fpath(fp2l)
 
             assert pano1_id != pano2_id
+            if not "_floor_rgb_" in Path(fp1l).name:
+                import pdb; pdb.set_trace()
 
             assert "_floor_rgb_" in Path(fp1l).name
             assert "_floor_rgb_" in Path(fp2l).name
