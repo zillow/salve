@@ -22,7 +22,15 @@ class EarlyFusionCEResnet(nn.Module):
         self.resnet = get_vanilla_resnet_model(num_layers, pretrained)
         self.inplanes = 64
 
-        num_inchannels = 3 * 4  # four RGB images
+        if self.modalities == ["layout"]:
+            num_inchannels = 3 * 2  # two RGB images
+        elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
+            num_inchannels = 3 * 4  # four RGB images
+        elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
+            num_inchannels = 3 * 6  # six RGB images
+        else:
+            raise RuntimeError(f"Unsupported modalities. {str(self.modalities)}")
+        
         # resnet with more channels in first layer
         self.conv1 = nn.Conv2d(num_inchannels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         feature_dim = get_resnet_feature_dim(num_layers)
