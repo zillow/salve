@@ -172,9 +172,9 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
     split_idx = 0
 
     if split == "train":
-        split_building_ids = ["1626"] # sorted(train_building_ids)  # [:split_idx]
+        split_building_ids = sorted(train_building_ids)  # [:split_idx]
     elif split in "val":
-        split_building_ids = ["1626"] # sorted(val_building_ids)  # trainval_building_ids[split_idx:]
+        split_building_ids = sorted(val_building_ids)  # trainval_building_ids[split_idx:]
     elif split == "test":
         raise RuntimeError
         # split_building_ids ==
@@ -189,7 +189,6 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
             )
 
             for floor_id in ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04"]:
-                import pdb; pdb.set_trace()
                 fpaths = glob.glob(f"{args.data_root}/{label_name}/{building_id}/pair_*___*_rgb_{floor_id}_*.jpg")
                 # here, pair_id will be unique
 
