@@ -246,7 +246,7 @@ class ZindData(Dataset):
             # some RGB
             data_root = args.data_root
 
-        self.data_list = make_dataset(split, dataroot=dataroot, args=args)
+        self.data_list = make_dataset(split, data_root=data_root, args=args)
 
         self.modalities = args.modalities
 
