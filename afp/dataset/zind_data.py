@@ -15,16 +15,16 @@ from torch import Tensor
 TRAIN_SPLIT_FRACTION = 0.85
 
 # pano 1 layout, pano 2 layout
-TwoTuple = Tuple[Tensor, Tensor, int]
-TwoTupleWithPaths = Tuple[Tensor, Tensor, int, str, str]
+PathTwoTuple = Tuple[str, str, int]
+TensorTwoTupleWithPaths = Tuple[Tensor, Tensor, int, str, str]
 
 # pano 1 floor, pano 2 floor, pano 1 ceiling, pano 2 ceiling
-FourTuple = Tuple[Tensor, Tensor, Tensor, Tensor, int]
-FourTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, int, str, str]
+PathFourTuple = Tuple[str, str, str, str, int]
+TensorFourTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, int, str, str]
 
 # pano 1 ceiling, pano 2 ceiling, pano 1 floor, pano 2 floor, pano 1 layout, pano 2 layout
-SixTuple = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int]
-SixTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int, str, str]
+PathSixTuple = Tuple[str, str, str, str, str, str, int]
+TensorSixTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int, str, str]
 
 
 def pair_idx_from_fpath(fpath: str) -> int:
@@ -59,7 +59,7 @@ def test_pano_id_from_fpath() -> None:
     assert pano_id == 18
 
 
-def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[Union[TwoTuple, FourTuple, SixTuple]]:
+def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
     """Given paths for a single floor of single building, extract training/test metadata from the filepaths.
 
     Note: pair_idx is unique for a (building, floor) but not for a building.
@@ -79,38 +79,61 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[
     tuples = []
     # extract the valid values -- must be a 4-tuple
     for pair_idx, pair_fpaths in pairidx_to_fpath_dict.items():
-        if len(pair_fpaths) != 4:
+
+        if args.modalities == ["layout"]:
+            expected_n_files = 2
+        else:
+            expected_n_files = 4
+
+        if len(pair_fpaths) != expected_n_files:
             continue
 
         pair_fpaths.sort()
-        fp1c, fp2c, fp1f, fp2f = pair_fpaths
+        if args.modalities == ["layout"]:
 
-        pano1_id = pano_id_from_fpath(fp1c)
-        pano2_id = pano_id_from_fpath(fp2c)
+            fp1l, fp2l = pair_fpaths
 
-        assert pano1_id != pano2_id
+            pano1_id = pano_id_from_fpath(fp1l)
+            pano2_id = pano_id_from_fpath(fp2l)
 
-        # make sure each tuple is in sorted order (ceiling,ceiling) amd (floor,floor)
-        assert "_ceiling_rgb_" in Path(fp1c).name
-        assert "_ceiling_rgb_" in Path(fp2c).name
+            assert pano1_id != pano2_id
 
-        assert "_floor_rgb_" in Path(fp1f).name
-        assert "_floor_rgb_" in Path(fp2f).name
+            assert "_floor_rgb_" in Path(fp1l).name
+            assert "_floor_rgb_" in Path(fp2l).name
 
-        assert f"_pano_{pano1_id}.jpg" in Path(fp1c).name
-        assert f"_pano_{pano2_id}.jpg" in Path(fp2c).name
+            assert f"_pano_{pano1_id}.jpg" in Path(fp1l).name
+            assert f"_pano_{pano2_id}.jpg" in Path(fp2l).name
 
-        assert f"_pano_{pano1_id}.jpg" in Path(fp1f).name
-        assert f"_pano_{pano2_id}.jpg" in Path(fp2f).name
+        elif set(["ceiling_rgb_texture", "floor_rgb_texture"]).issubset(set(args.modalities)):
 
-        if "layout" in args.modalities:
-            # look up in other directory
-            fp1l = fp1f.replace(args.data_root, args.layout_data_root)
-            fp2l = fp2f.replace(args.data_root, args.layout_data_root)
+            fp1c, fp2c, fp1f, fp2f = pair_fpaths
 
-            # some layout images may be missing
-            if not (Path(fp1l).exists() and Path(fp2l).exists()):
-                continue
+            pano1_id = pano_id_from_fpath(fp1c)
+            pano2_id = pano_id_from_fpath(fp2c)
+
+            assert pano1_id != pano2_id
+
+            # make sure each tuple is in sorted order (ceiling,ceiling) amd (floor,floor)
+            assert "_ceiling_rgb_" in Path(fp1c).name
+            assert "_ceiling_rgb_" in Path(fp2c).name
+
+            assert "_floor_rgb_" in Path(fp1f).name
+            assert "_floor_rgb_" in Path(fp2f).name
+
+            assert f"_pano_{pano1_id}.jpg" in Path(fp1c).name
+            assert f"_pano_{pano2_id}.jpg" in Path(fp2c).name
+
+            assert f"_pano_{pano1_id}.jpg" in Path(fp1f).name
+            assert f"_pano_{pano2_id}.jpg" in Path(fp2f).name
+            
+            if "layout" in set(args.modalities):
+                # look up in other directory
+                fp1l = fp1f.replace(args.data_root, args.layout_data_root)
+                fp2l = fp2f.replace(args.data_root, args.layout_data_root)
+
+                # some layout images may be missing
+                if not (Path(fp1l).exists() and Path(fp2l).exists()):
+                    continue
 
         if args.modalities == ["layout"]:
             tuples += [(fp1l, fp2l, label_idx)]
@@ -148,36 +171,45 @@ def get_available_building_ids(dataset_root: str) -> List[str]:
     return building_ids
 
 
-def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
+def make_dataset(split: str, data_root: str, args) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
     """
     Note: is_match = 1 means True.
     """
-    if not Path(args.data_root).exists():
+    if not Path(data_root).exists():
         raise RuntimeError("Dataset root directory does not exist on this machine. Exitting...")
 
     data_list = []
     logging.info(f"Populating data list for split {split}...")
 
     # TODO: search from both folders instead
-    available_building_ids = get_available_building_ids(dataset_root=f"{args.data_root}/gt_alignment_approx")
+    available_building_ids = get_available_building_ids(dataset_root=f"{data_root}/gt_alignment_approx")
 
-    # split into train and val now --> keep 85% of building_id's in train
-    # split_idx = int(len(available_building_ids) * TRAIN_SPLIT_FRACTION)
+    custom_splits = False
+    if custom_splits:
+        val_building_ids = ["1635", "1584", "1583", "1578", "1530", "1490", "1442", "1626", "1427", "1394"]
+        train_building_ids = set(available_building_ids) - set(val_building_ids)
+        train_building_ids = list(train_building_ids)
 
-    val_building_ids = ["1635", "1584", "1583", "1578", "1530", "1490", "1442", "1626", "1427", "1394"]
-    train_building_ids = set(available_building_ids) - set(val_building_ids)
-    train_building_ids = list(train_building_ids)
+        if split == "train":
+            split_building_ids = sorted(train_building_ids)
+        elif split in "val":
+            split_building_ids = sorted(val_building_ids)
+        elif split == "test":
+            raise RuntimeError
 
-    # TODO: remove hard-coding
-    split_idx = 0
+    else:
+        # split into train and val now --> keep 85% of building_id's in train
+        split_idx = int(len(available_building_ids) * TRAIN_SPLIT_FRACTION)
 
-    if split == "train":
-        split_building_ids = sorted(train_building_ids)  # [:split_idx]
-    elif split in "val":
-        split_building_ids = sorted(val_building_ids)  # trainval_building_ids[split_idx:]
-    elif split == "test":
-        raise RuntimeError
-        # split_building_ids ==
+        if split == "train":
+            split_building_ids = trainval_building_ids[:split_idx]
+        elif split in "val":
+            split_building_ids = trainval_building_ids[split_idx:]
+        elif split == "test":
+            raise RuntimeError
+
+    logging.info("Train split building ids:", train_building_ids)
+    logging.info("Val split building ids:", val_building_ids)
 
     label_dict = {"gt_alignment_approx": 1, "incorrect_alignment": 0}  # is_match = True
 
@@ -189,7 +221,7 @@ def make_dataset(split: str, args) -> List[Tuple[str, str, str, str, int]]:
             )
 
             for floor_id in ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04"]:
-                fpaths = glob.glob(f"{args.data_root}/{label_name}/{building_id}/pair_*___*_rgb_{floor_id}_*.jpg")
+                fpaths = glob.glob(f"{data_root}/{label_name}/{building_id}/pair_*___*_rgb_{floor_id}_*.jpg")
                 # here, pair_id will be unique
 
                 tuples = get_tuples_from_fpath_list(fpaths, label_idx, args)
@@ -208,7 +240,13 @@ class ZindData(Dataset):
         """ """
 
         self.transform = transform
-        self.data_list = make_dataset(split, args)
+        if modalities == "layout":
+            data_root = args.layout_data_root
+        else:
+            # some RGB
+            data_root = args.data_root
+
+        self.data_list = make_dataset(split, dataroot=dataroot, args=args)
 
         self.modalities = args.modalities
 
@@ -216,7 +254,7 @@ class ZindData(Dataset):
         """Fetch number of examples within a data split."""
         return len(self.data_list)
 
-    def __getitem__(self, index: int) -> Union[TwoTupleWithPaths, FourTupleWithPaths, SixTupleWithPaths]:
+    def __getitem__(self, index: int) -> Union[TensorTwoTupleWithPaths, TensorFourTupleWithPaths, TensorSixTupleWithPaths]:
         """
         Note: is_match = 1 means True.
         """
