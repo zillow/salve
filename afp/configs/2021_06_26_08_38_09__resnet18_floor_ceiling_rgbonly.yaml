@@ -17,6 +17,7 @@ TrainingConfig:
     train_h: 224
     train_w: 224
     apply_photometric_augmentation: False
+    modalities: ["ceiling_rgb_texture", "floor_rgb_texture"]
 
     cfg_stem: rgb_only_4tuple
     num_epochs: 50
