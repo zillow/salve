@@ -18,6 +18,7 @@ from pathlib import Path
 from torch import nn
 
 from train_utils import get_dataloader, get_model, cross_entropy_forward, unnormalize_img, load_model_checkpoint
+from afp.training_config import TrainingConfig
 from afp.utils.logger_utils import get_logger
 from afp.utils.pr_utils import compute_precision_recall
 
@@ -218,7 +219,7 @@ def check_mkdir(dirpath: str) -> None:
     os.makedirs(dirpath, exist_ok=True)
 
 
-def evaluate_model(serialization_save_dir: str, ckpt_fpath: str, args, split: str, save_viz: bool) -> None:
+def evaluate_model(serialization_save_dir: str, ckpt_fpath: str, args: TrainingConfig, split: str, save_viz: bool) -> None:
     """ """
     cudnn.benchmark = True
 
