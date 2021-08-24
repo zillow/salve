@@ -33,7 +33,7 @@ or on Mac
 conda env create -f environment_mac.yml
 ```
 
-Then, install the Python wheel for GTSAM via `pip install /path/to/wheel/file.whl`. Wheels are available [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1035308319) under "Artifacts".
+Then, install the Python wheel for GTSAM via `pip install /path/to/wheel/file.whl`. Wheels are available [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1035308319) under "Artifacts". You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
 
 Next, clone the `HoHoNet` repo.
 
