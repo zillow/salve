@@ -12,6 +12,8 @@ def pose2slam_lago():
 	
 	L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
 	for graph-based simultaneous localization and mapping, RSS, 2011.
+
+	TODO: add intuition behind LAGO algorithm.
 	"""
 	g2oFile = findExampleDataFile("noisyToyGraph.txt")
 
