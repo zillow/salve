@@ -35,6 +35,11 @@ def interp_dense_grid_from_sparse(
 def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.ndarray, K: int = 41) -> np.ndarray:
     """Zero-out portions of an interpolated image where the signal is unreliable due to no measurements.
 
+	If a KxK subgrid of an image has no sparse signals within it, and is initialized to a default value of zero,
+	then convolution of the subgrid with a box filter of all 1's will yield zero back. These are the `counts`
+	variable. In short, if the convolved output is zero in any ij cell, then we know that there was no true
+	support for interpolation in this region, and we should mask out this interpolated value to zero.
+
     Args:
         sparse_bev_img: array of shape (H,W,C) representing a sparse bird's-eye-view image
         interp_bev_img: array of shape (H,W,C) representing an interpolated bird's-eye-view image
@@ -59,6 +64,7 @@ def remove_hallucinated_content(sparse_bev_img: np.ndarray, interp_bev_img: np.n
     	weight = weight.cuda()
     	nonempty = nonempty.cuda()
     
+    # check counts of valid sparse pixel signals in each cell's KxK neighborhood
     counts = F.conv2d(input=nonempty, weight=weight, bias=None, stride=1, padding = K//2)
 
     if torch.cuda.is_available():

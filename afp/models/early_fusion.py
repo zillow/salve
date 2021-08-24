@@ -11,7 +11,7 @@ from afp.models.resnet_factory import get_vanilla_resnet_model, get_resnet_featu
 
 
 class EarlyFusionCEResnet(nn.Module):
-    """ """
+    """Early-fusion model designed for a cross-entropy (CE) loss."""
 
     def __init__(self, num_layers: int, pretrained: bool, num_classes: int, args) -> None:
         super(EarlyFusionCEResnet, self).__init__()

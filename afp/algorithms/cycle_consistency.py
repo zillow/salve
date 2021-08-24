@@ -186,23 +186,24 @@ def compute_SE2_cycle_error(
     two_view_reports_dict,
     verbose: bool = True,
 ) -> Tuple[float, Optional[float], Optional[float]]:
-    """Compute the cycle error by the magnitude of the axis-angle rotation after composing 3 rotations.
+    """Compute the cycle error over chained Similarity(2) transformations.
+
+    Cycle error here is defined by the magnitude of the deviation from identity (as axis-angle magnitude
+    of rotation and separately as L2 norm of translation) after composing the three Similirity(2) objects.
 
     Note: i1 < i2 for every valid edge, by construction.
 
     Args:
-        i2Ri1_dict: mapping from image pair indices to relative rotation.
+        i2Si1_dict: mapping from image pair indices to relative Similarity(2) transformation.
         cycle_nodes: 3-tuples of nodes that form a cycle. Nodes of are provided in sorted order.
         two_view_reports_dict:
         verbose: whether to dump to logger information about error in each Euler angle
 
     Returns:
-        cycle_error: deviation from 3x3 identity matrix, in degrees. In other words,
+        rot_cycle_error: deviation from 3x3 identity matrix, in degrees. In other words,
             it is defined as the magnitude of the axis-angle rotation of the composed transformations.
-        max_rot_error: maximum rotation error w.r.t. GT across triplet edges, in degrees.
-            If ground truth is not known for a scene, None will be returned instead.
-        max_trans_error: maximum translation error w.r.t. GT across triplet edges, in degrees.
-            If ground truth is not known for a scene, None will be returned instead.
+        trans_cycle_error: deviation from zero translation via L2 norm of translation, of composed transformations
+            in cycle.
     """
     cycle_nodes = list(cycle_nodes)
     cycle_nodes.sort()
