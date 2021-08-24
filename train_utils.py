@@ -63,7 +63,7 @@ def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: flo
     return lr
 
 
-def get_train_transform(args) -> Callable:
+def get_train_transform(args: TrainingConfig) -> Callable:
     """ """
     if len(args.modalities) == 1:
         Resize = transform.ResizePair
@@ -118,7 +118,7 @@ def get_train_transform(args) -> Callable:
 
 
 
-def get_val_test_transform(args) -> Callable:
+def get_val_test_transform(args: TrainingConfig) -> Callable:
     """Get data transforms for val or test split"""
     if len(args.modalities) == 1:
         Resize = transform.ResizePair
@@ -153,7 +153,7 @@ def get_val_test_transform(args) -> Callable:
     return Compose(transform_list)
 
 
-def get_img_transform_list(args, split: str):
+def get_img_transform_list(args: TrainingConfig, split: str):
     """ """
     if split == "train":
         split_transform = get_train_transform(args)
@@ -163,7 +163,7 @@ def get_img_transform_list(args, split: str):
 
     return split_transform
 
-def get_optimizer(args, model: nn.Module) -> torch.optim.Optimizer:
+def get_optimizer(args: TrainingConfig, model: nn.Module) -> torch.optim.Optimizer:
     """ """
     if args.optimizer_algo == "adam":
         optimizer = torch.optim.Adam(
@@ -178,7 +178,7 @@ def get_optimizer(args, model: nn.Module) -> torch.optim.Optimizer:
     return optimizer
 
 
-def get_dataloader(args, split: str) -> torch.utils.data.DataLoader:
+def get_dataloader(args: TrainingConfig, split: str) -> torch.utils.data.DataLoader:
     """ """
     data_transform = get_img_transform_list(args, split=split)
 
@@ -204,7 +204,7 @@ def get_dataloader(args, split: str) -> torch.utils.data.DataLoader:
     return split_loader
 
 
-def get_model(args) -> nn.Module:
+def get_model(args: TrainingConfig) -> nn.Module:
     """ """
     model = EarlyFusionCEResnet(args.num_layers, args.pretrained, args.num_ce_classes, args)
 
