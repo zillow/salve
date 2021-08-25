@@ -21,9 +21,9 @@ TrainingConfig:
     modalities: ["layout"]
 
     cfg_stem: 
-    num_epochs: 50
-    workers: 16
-    batch_size: 128 # 2, #256,
+    num_epochs: 20
+    workers: 20
+    batch_size: 256 # 2, #256,
 
     #data_root: "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
     data_root: /mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD
