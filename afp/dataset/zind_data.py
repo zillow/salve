@@ -12,6 +12,8 @@ import imageio
 from torch.utils.data import Dataset
 from torch import Tensor
 
+from afp.training_config import TrainingConfig
+
 TRAIN_SPLIT_FRACTION = 0.85
 
 # pano 1 layout, pano 2 layout
@@ -59,7 +61,7 @@ def test_pano_id_from_fpath() -> None:
     assert pano_id == 18
 
 
-def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
+def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args: TrainingConfig) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
     """Given paths for a single floor of single building, extract training/test metadata from the filepaths.
 
     Note: pair_idx is unique for a (building, floor) but not for a building.
@@ -171,7 +173,7 @@ def get_available_building_ids(dataset_root: str) -> List[str]:
     return building_ids
 
 
-def make_dataset(split: str, data_root: str, args) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
+def make_dataset(split: str, data_root: str, args: TrainingConfig) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
     """
     Note: is_match = 1 means True.
     """
@@ -236,7 +238,7 @@ def make_dataset(split: str, data_root: str, args) -> List[Union[PathTwoTuple, P
 class ZindData(Dataset):
     """ """
 
-    def __init__(self, split: str, transform, args) -> None:
+    def __init__(self, split: str, transform: Callable, args: TrainingConfig) -> None:
         """ """
 
         self.transform = transform
