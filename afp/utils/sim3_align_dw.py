@@ -1,4 +1,3 @@
-
 from typing import Optional, Tuple
 
 import gtsam
@@ -19,7 +18,7 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Sim2, np.nd
 
     aSb = Similarity3.Align(ab_pairs)
     # TODO: in latest wheel
-    #pts_a_ = aSb.transformFrom(pts_b)
+    # pts_a_ = aSb.transformFrom(pts_b)
 
     aRb = aSb.rotation().matrix()
     atb = aSb.translation()
@@ -27,7 +26,7 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Sim2, np.nd
     pts_a_ = asb * (pts_b @ aRb.T + atb)
 
     # Convert Similarity3 to Similarity2
-    aSb = Sim2(R=aRb[:2,:2], t=atb[:2], s=asb)
+    aSb = Sim2(R=aRb[:2, :2], t=atb[:2], s=asb)
 
     computed = aSb.rotation.T @ aSb.rotation
     expected = np.eye(2)
@@ -36,23 +35,22 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Sim2, np.nd
     if not np.allclose(computed, expected, atol=0.05):
         print("Renormalizing Sim2:", aSb)
         aSb = reorthonormalize_sim2(aSb)
-        
+
     # assert np.allclose(computed, expected, atol=0.05)
 
     return aSb, pts_a_
-
 
 
 def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
     """ """
     R = i2Ti1.rotation
 
-    #import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
-    print("(0,0) entry said: ", np.rad2deg(np.arccos(R[0,0])))
-    print("(1,0) entry said: ", np.rad2deg(np.arcsin(R[1,0])))
+    print("(0,0) entry said: ", np.rad2deg(np.arccos(R[0, 0])))
+    print("(1,0) entry said: ", np.rad2deg(np.arcsin(R[1, 0])))
 
-    theta_rad = np.arctan2(R[1,0], R[0,0])
+    theta_rad = np.arctan2(R[1, 0], R[0, 0])
     theta_deg = np.rad2deg(theta_rad)
 
     print("Combination said: ", theta_deg)
@@ -70,43 +68,50 @@ def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
 
 def test_reorthonormalize():
     """ """
-    #from afp.common.pano_data import generate_Sim2_from_floorplan_transform
-    pano3_data = {'translation': [0.01553549307166846, -0.002272521859178478], 'rotation': -352.5305535406924, 'scale': 0.4042260417272217}
-    pano4_data = {'translation': [0.0, 0.0], 'rotation': 0.0, 'scale': 0.4042260417272217}
+    # from afp.common.pano_data import generate_Sim2_from_floorplan_transform
+    pano3_data = {
+        "translation": [0.01553549307166846, -0.002272521859178478],
+        "rotation": -352.5305535406924,
+        "scale": 0.4042260417272217,
+    }
+    pano4_data = {"translation": [0.0, 0.0], "rotation": 0.0, "scale": 0.4042260417272217}
 
     global_SIM2_i3 = generate_Sim2_from_floorplan_transform(pano3_data)
     global_SIM2_i4 = generate_Sim2_from_floorplan_transform(pano4_data)
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
 
     i2Ti1_gt = global_SIM2_i4.inverse().compose(global_SIM2_i3)
 
     reorthonormalize_sim2(i2Ti1_gt)
 
 
-
 def test_align_points_sim3_horseshoe() -> None:
-    """Ensure align_points_sim3() works properly.
-
-    """
+    """Ensure align_points_sim3() works properly."""
+    # fmt: off
     # small horseshoe
     pts_a = np.array(
         [
-            [3,1,0],
-            [1,1,0],
-            [1,3,0],
-            [3,3,0]
-        ]).tolist()
+            [3, 1, 0],
+            [1, 1, 0],
+            [1, 3, 0],
+            [3, 3, 0]
+        ]
+    ).tolist()
 
     # large horseshoe
     pts_b = np.array(
         [
-            [ 3,1,10],
-            [-1,1,10],
-            [-1,5,10],
-            [ 3,5,10]
-        ]).tolist()
+            [3, 1, 10],
+            [-1, 1, 10],
+            [-1, 5, 10],
+            [3, 5, 10]
+        ]
+    ).tolist()
 
+    # fmt: on
     # a is the reference, and b will be transformed to a_
     aSb, pts_a_ = align_points_sim3(pts_a, pts_b)
 
@@ -129,8 +134,7 @@ def test_align_points_sim3_horseshoe() -> None:
     assert np.allclose(expected_pts_a_, pts_a)
     assert aSb.scale == 0.5
     assert np.allclose(aSb.rotation, np.eye(2))
-    assert np.allclose(aSb.translation, np.array([3,1]))
-
+    assert np.allclose(aSb.translation, np.array([3, 1]))
 
 
 def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Optional[Pose2]:
@@ -168,7 +172,7 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Optional[Pose2]:
 
     # we need at least 2 pairs
     if n < 2:
-        return None 
+        return None
 
     # calculate centroids
     cp = np.zeros(2)
@@ -178,7 +182,7 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Optional[Pose2]:
         cp += pt_a
         cq += pt_b
 
-    f = 1.0/n
+    f = 1.0 / n
     cp *= f
     cq *= f
 
@@ -192,7 +196,7 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Optional[Pose2]:
         s += -dp[1] * dq[0] + dp[0] * dq[1]
 
     # calculate angle and translation
-    theta = np.arctan2(s,c)
+    theta = np.arctan2(s, c)
     R = Rot2.fromAngle(theta)
     t = cq - R.matrix() @ cp
 
@@ -204,21 +208,23 @@ def test_align_points_SE2() -> None:
     """
     TODO: fix bug in GTSAM where the inverse() object bTa is inappropriately returned for ab pairs.
     """
+    # fmt: off
     pts_a = np.array(
         [
-            [3,1],
-            [1,1],
-            [1,3],
-            [3,3]
+            [3, 1],
+            [1, 1],
+            [1, 3],
+            [3, 3]
         ])
     pts_b = np.array(
         [
-            [1,-3],
-            [1,-5],
-            [-1,-5],
-            [-1,-3]
+            [1, -3],
+            [1, -5],
+            [-1, -5],
+            [-1, -3]
         ])
 
+    # fmt: on
     bTa = align_points_SE2(pts_a, pts_b)
     assert bTa is not None
 
@@ -229,11 +235,10 @@ def test_align_points_SE2() -> None:
         print("match")
 
 
-if __name__ == '__main__':
-    #test_align_points_sim3_horseshoe()
+if __name__ == "__main__":
+    # test_align_points_sim3_horseshoe()
 
-    #test_rotmat2d()
-    #test_reorthonormalize()
+    # test_rotmat2d()
+    # test_reorthonormalize()
 
     test_align_points_SE2()
-
