@@ -1,10 +1,10 @@
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import gtsam
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-from gtsam import Point3, Pose3, Point3Pairs, Rot3, Similarity3, Unit3
+from gtsam import Point3, Pose2, Pose3, Point3Pairs, Rot2, Rot3, Similarity3, Unit3
 
 from afp.utils.rotation_utils import rotmat2d
 
@@ -70,6 +70,7 @@ def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
 
 def test_reorthonormalize():
     """ """
+    #from afp.common.pano_data import generate_Sim2_from_floorplan_transform
     pano3_data = {'translation': [0.01553549307166846, -0.002272521859178478], 'rotation': -352.5305535406924, 'scale': 0.4042260417272217}
     pano4_data = {'translation': [0.0, 0.0], 'rotation': 0.0, 'scale': 0.4042260417272217}
 
@@ -132,9 +133,107 @@ def test_align_points_sim3_horseshoe() -> None:
 
 
 
+def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Optional[Pose2]:
+    """
+    TODO: move this into GTSAM outright.
+
+        It finds the angle using a linear method:
+        q = Pose2::transformFrom(p) = t + R*p
+        We need to remove the centroids from the data to find the rotation
+        using dp=[dpx;dpy] and q=[dqx;dqy] we have
+         |dqx|   |c  -s|     |dpx|     |dpx -dpy|     |c|
+         |   | = |     |  *  |   |  =  |        |  *  | | = H_i*cs
+         |dqy|   |s   c|     |dpy|     |dpy  dpx|     |s|
+        where the Hi are the 2*2 matrices. Then we will minimize the criterion
+        J = \sum_i norm(q_i - H_i * cs)
+        Taking the derivative with respect to cs and setting to zero we have
+        cs = (\sum_i H_i' * q_i)/(\sum H_i'*H_i)
+        The hessian is diagonal and just divides by a constant, but this
+        normalization constant is irrelevant, since we take atan2.
+        i.e., cos ~ sum(dpx*dqx + dpy*dqy) and sin ~ sum(-dpy*dqx + dpx*dqy)
+        The translation is then found from the centroids
+        as they also satisfy cq = t + R*cp, hence t = cq - R*cp
+
+    Args:
+        pts_a
+        pts_b
+
+    Returns:
+    """
+    # Point2Pair ab_pt_pairs
+    # aTb = gtsam.Pose2.align(ab_pts_pairs)
+
+    n = pts_a.shape[0]
+    assert n == pts_b.shape[0]
+
+    # we need at least 2 pairs
+    if n < 2:
+        return None 
+
+    # calculate centroids
+    cp = np.zeros(2)
+    cq = np.zeros(2)
+
+    for pt_a, pt_b in zip(pts_a, pts_b):
+        cp += pt_a
+        cq += pt_b
+
+    f = 1.0/n
+    cp *= f
+    cq *= f
+
+    # calculate cos and sin
+    c, s = 0, 0
+
+    for pt_a, pt_b in zip(pts_a, pts_b):
+        dp = pt_a - cp
+        dq = pt_b - cq
+        c += dp[0] * dq[0] + dp[1] * dq[1]
+        s += -dp[1] * dq[0] + dp[0] * dq[1]
+
+    # calculate angle and translation
+    theta = np.arctan2(s,c)
+    R = Rot2.fromAngle(theta)
+    t = cq - R.matrix() @ cp
+
+    aTb = Pose2(R, t)
+    return aTb
+
+
+def test_align_points_SE2() -> None:
+    """
+    TODO: fix bug in GTSAM where the inverse() object bTa is inappropriately returned for ab pairs.
+    """
+    pts_a = np.array(
+        [
+            [3,1],
+            [1,1],
+            [1,3],
+            [3,3]
+        ])
+    pts_b = np.array(
+        [
+            [1,-3],
+            [1,-5],
+            [-1,-5],
+            [-1,-3]
+        ])
+
+    bTa = align_points_SE2(pts_a, pts_b)
+    assert bTa is not None
+
+    for pt_a, pt_b in zip(pts_a, pts_b):
+
+        pt_b_ = bTa.transformFrom(pt_a)
+        assert np.allclose(pt_b, pt_b_)
+        print("match")
+
+
 if __name__ == '__main__':
-    test_align_points_sim3_horseshoe()
+    #test_align_points_sim3_horseshoe()
 
     #test_rotmat2d()
     #test_reorthonormalize()
+
+    test_align_points_SE2()
 
