@@ -206,6 +206,8 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Optional[Pose2]:
 
 def test_align_points_SE2() -> None:
     """
+    Two horseshoes of the same size, just rotated and translated.
+
     TODO: fix bug in GTSAM where the inverse() object bTa is inappropriately returned for ab pairs.
     """
     # fmt: off
@@ -235,10 +237,70 @@ def test_align_points_SE2() -> None:
         print("match")
 
 
+def test_align_points_SE2_doorway() -> None:
+    """
+    Check least-squares fit, for endpoints of a large doorway and small doorway, in presence of noise.
+
+    X o -- o X
+
+    """
+    # fmt: off
+    pts_a = np.array(
+        [
+            [-4, 2],
+            [-2, 2]
+        ])
+    pts_b = np.array(
+        [
+            [-5, 2],
+            [-1, 2]
+        ])
+
+    # fmt: on
+    bTa = align_points_SE2(pts_a, pts_b)
+
+    assert bTa.theta() == 0.0
+    assert np.allclose(bTa.translation(), np.zeros(2))
+
+
+def test_align_points_SE2_doorway_rotated() -> None:
+    """
+    Check least-squares fit, for endpoints of a large doorway and small doorway, in presence of noise.
+    
+    X
+    |
+    | o -- o
+    X
+
+    """
+    # fmt: off
+    pts_a = np.array(
+        [
+            [7, 3],
+            [9, 3]
+        ])
+    pts_b = np.array(
+        [
+            [5, 2],
+            [5, 6]
+        ])
+
+    # fmt: on
+    bTa = align_points_SE2(pts_a, pts_b)
+    
+    expected_pta1 = np.array([5., 3., 1.])
+    assert np.allclose(expected_pta1, bTa.matrix() @ np.array([7,3,1]))
+
+    expected_pta2 = np.array([5., 5., 1.])
+    assert np.allclose(expected_pta2, bTa.matrix() @ np.array([9,3,1]))
+
+
 if __name__ == "__main__":
     # test_align_points_sim3_horseshoe()
 
     # test_rotmat2d()
     # test_reorthonormalize()
 
-    test_align_points_SE2()
+    #test_align_points_SE2()
+    #test_align_points_SE2_doorway()
+    test_align_points_SE2_doorway_rotated()
