@@ -46,11 +46,13 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 
 class AlignmentHypothesis(NamedTuple):
     """ """
+
     i2Ti1: Sim2
-    wdo_alignment_object: str # either 'door', 'window', or 'opening'
-    i1_wdo_idx: int # this is the WDO index for Pano i1 (known as i)
-    i2_wdo_idx: int # this is the WDO index for Pano i2 (known as j)
-    configuration: str # either identity or rotated
+    wdo_alignment_object: str  # either 'door', 'window', or 'opening'
+    i1_wdo_idx: int  # this is the WDO index for Pano i1 (known as i)
+    i2_wdo_idx: int  # this is the WDO index for Pano i2 (known as j)
+    configuration: str  # either identity or rotated
+
 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
 # (Reflection about either axis, would need additional rotation if reflect over x-axis)
@@ -108,7 +110,12 @@ def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]
     pruned_possible_alignment_info = []
 
     for j, alignment_hypothesis in enumerate(possible_alignment_info):
-        is_dup = any([alignment_hypothesis.i2Ti1 == inserted_alignment_hypothesis.i2Ti1 for inserted_alignment_hypothesis in pruned_possible_alignment_info])
+        is_dup = any(
+            [
+                alignment_hypothesis.i2Ti1 == inserted_alignment_hypothesis.i2Ti1
+                for inserted_alignment_hypothesis in pruned_possible_alignment_info
+            ]
+        )
         # has not been used yet
         if not is_dup:
             pruned_possible_alignment_info.append(alignment_hypothesis)
@@ -133,10 +140,34 @@ def test_prune_to_unique_sim2_objs() -> None:
     ws2 = 3.0
 
     possible_alignment_info = [
-        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=1, i2_wdo_idx=5, configuration="identity"),
-        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=2, i2_wdo_idx=6, configuration="identity"),
-        AlignmentHypothesis(i2Ti1=Sim2(wR2, wt2, ws2), wdo_alignment_object="window", i1_wdo_idx=3, i2_wdo_idx=7, configuration="identity"),
-        AlignmentHypothesis(i2Ti1=Sim2(wR1, wt1, ws1), wdo_alignment_object="window", i1_wdo_idx=4, i2_wdo_idx=8, configuration="identity"),
+        AlignmentHypothesis(
+            i2Ti1=Sim2(wR1, wt1, ws1),
+            wdo_alignment_object="window",
+            i1_wdo_idx=1,
+            i2_wdo_idx=5,
+            configuration="identity",
+        ),
+        AlignmentHypothesis(
+            i2Ti1=Sim2(wR1, wt1, ws1),
+            wdo_alignment_object="window",
+            i1_wdo_idx=2,
+            i2_wdo_idx=6,
+            configuration="identity",
+        ),
+        AlignmentHypothesis(
+            i2Ti1=Sim2(wR2, wt2, ws2),
+            wdo_alignment_object="window",
+            i1_wdo_idx=3,
+            i2_wdo_idx=7,
+            configuration="identity",
+        ),
+        AlignmentHypothesis(
+            i2Ti1=Sim2(wR1, wt1, ws1),
+            wdo_alignment_object="window",
+            i1_wdo_idx=4,
+            i2_wdo_idx=8,
+            configuration="identity",
+        ),
     ]
     pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
     assert len(pruned_possible_alignment_info) == 2
@@ -387,7 +418,7 @@ def align_rooms_by_wd(
 
     Returns:
         possible_alignment_info: list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
-        num_invalid_configurations: 
+        num_invalid_configurations:
     """
     verbose = False
 
@@ -459,9 +490,8 @@ def align_rooms_by_wd(
                     #     plt.show()
                     #     plt.close("all")
 
-
                     if transform_type == "SE2":
-                        i2Ti1, aligned_pts1 = align_points_SE2(pano2_wd_pts[:,:2], pano1_wd_pts[:,:2])
+                        i2Ti1, aligned_pts1 = align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
                     elif transform_type == "Sim2":
                         i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
                     else:
@@ -504,7 +534,13 @@ def align_rooms_by_wd(
 
                     if is_valid:
                         possible_alignment_info.append(
-                            AlignmentHypothesis(i2Ti1=i2Ti1, wdo_alignment_object=alignment_object, i1_wdo_idx=i, i2_wdo_idx=j, configuration=configuration)
+                            AlignmentHypothesis(
+                                i2Ti1=i2Ti1,
+                                wdo_alignment_object=alignment_object,
+                                i1_wdo_idx=i,
+                                i2_wdo_idx=j,
+                                configuration=configuration,
+                            )
                         )
                         classification = "valid"
                     else:
@@ -539,7 +575,9 @@ def align_rooms_by_wd(
     return possible_alignment_info, num_invalid_configurations
 
 
-def export_single_building_wdo_alignment_hypotheses(hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str) -> None:
+def export_single_building_wdo_alignment_hypotheses(
+    hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str
+) -> None:
     """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
     For every pano, try to align it to another pano.
@@ -635,7 +673,9 @@ def export_single_building_wdo_alignment_hypotheses(hypotheses_save_root: str, b
                         save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment"
                     labels.append(label)
 
-                    fname = f"{i1}_{i2}__{ah.wdo_alignment_object}_{ah.i1_wdo_idx}_{ah.i2_wdo_idx}_{ah.configuration}.json"
+                    fname = (
+                        f"{i1}_{i2}__{ah.wdo_alignment_object}_{ah.i1_wdo_idx}_{ah.i2_wdo_idx}_{ah.configuration}.json"
+                    )
                     proposed_fpath = f"{save_dir}/{fname}"
                     save_Sim2(proposed_fpath, ah.i2Ti1)
 
@@ -652,7 +692,9 @@ def export_single_building_wdo_alignment_hypotheses(hypotheses_save_root: str, b
 
                 # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
                 if not GT_valid:
-                    logger.warning(f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2}): {i2Ti1_gt} vs. {[i1Ti1 for i1Ti1 in pruned_possible_alignment_info]}")
+                    logger.warning(
+                        f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2}): {i2Ti1_gt} vs. {[i1Ti1 for i1Ti1 in pruned_possible_alignment_info]}"
+                    )
 
         logger.info(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
         logger.info(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
@@ -703,20 +745,20 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 if __name__ == "__main__":
     """ """
     # teaser file
-    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    #raw_dataset_dir = "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
-    #raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
+    # raw_dataset_dir = "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
+    # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
-    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
-    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
