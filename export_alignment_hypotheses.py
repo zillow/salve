@@ -25,7 +25,7 @@ from argoverse.utils.sim2 import Sim2
 from afp.common.pano_data import FloorData, PanoData, WDO
 from afp.utils.logger_utils import get_logger
 from afp.utils.overlap_utils import determine_invalid_wall_overlap
-from afp.utils.sim3_align_dw import align_points_sim3, rotmat2d
+from afp.utils.sim3_align_dw import align_points_sim3, align_points_SE2, rotmat2d
 
 
 logger = get_logger()
@@ -356,7 +356,7 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 
 
 def align_rooms_by_wd(
-    pano1_obj: PanoData, pano2_obj: PanoData, visualize: bool = False
+    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", visualize: bool = False
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
@@ -459,7 +459,13 @@ def align_rooms_by_wd(
                     #     plt.show()
                     #     plt.close("all")
 
-                    i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
+
+                    if transform_type == "SE2":
+                        i2Ti1, aligned_pts1 = align_points_SE2(pano2_wd_pts[:,:2], pano1_wd_pts[:,:2])
+                    elif transform_type == "Sim2":
+                        i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
+                    else:
+                        raise RuntimeError
 
                     # TODO: score hypotheses by reprojection error, or registration nearest neighbor-distances
                     # evaluation = o3d.pipelines.registration.evaluate_registration(source, target, threshold, trans_init)
@@ -701,8 +707,8 @@ if __name__ == "__main__":
     #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     #raw_dataset_dir = "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
-    raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+    #raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
+    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -710,10 +716,11 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
+    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
-    num_processes = 20
+    num_processes = 1
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
