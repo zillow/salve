@@ -17,6 +17,7 @@ from colour import Color
 from gtsam import Pose3, Rot3, Similarity3
 
 import open3d
+
 # import below is from gtsfm
 import visualization.open3d_vis_utils as open3d_vis_utils
 
@@ -242,10 +243,9 @@ def camera_from_json(key: str, obj: Dict[str, Any]):  # -> pygeometry.Camera:
 
         # atio between the focal length and the sensor size
         f = obj["focal"] * max(obj["width"], obj["height"])
-        camera = SimpleNamespace(**{"projection_type": pt, "width": obj["width"], "height": obj["height"], "focal": f })
+        camera = SimpleNamespace(**{"projection_type": pt, "width": obj["width"], "height": obj["height"], "focal": f})
     else:
         raise NotImplementedError
-
 
     camera.id = key
     camera.width = int(obj.get("width", 0))
@@ -286,7 +286,7 @@ def load_opensfm_reconstruction_from_json(obj: Dict[str, Any]):
 
         # for perspective camera
         # pano_id = int(Path(key).stem[1:])
-        #pano_id = key
+        # pano_id = key
         pose_dict[pano_id] = pose
 
     # # Extract rig instances from shots
@@ -347,37 +347,35 @@ def get_colormap(N: int) -> np.ndarray:
     Returns:
         colormap: uint8 array of shape (N,3)
     """
-    colormap = np.array(
-        [[color_obj.rgb] for color_obj in Color("red").range_to(Color("green"), N)]
-    ).squeeze()
+    colormap = np.array([[color_obj.rgb] for color_obj in Color("red").range_to(Color("green"), N)]).squeeze()
     colormap = (colormap * 255).astype(np.uint8)
     return colormap
 
 
 def draw_coordinate_frame(wTc: Pose3, axis_length: float = 1.0) -> List[open3d.geometry.LineSet]:
     """Draw 3 orthogonal axes representing a camera coordinate frame.
-    
+
     Args:
         wTc: Pose of any camera in the world frame.
-        axis_length: 
+        axis_length:
 
     Returns:
         line_sets: list of Open3D LineSet objects
     """
-    RED = np.array([1,0,0])
-    GREEN = np.array([0,1,0])
-    BLUE = np.array([0,0,1])
+    RED = np.array([1, 0, 0])
+    GREEN = np.array([0, 1, 0])
+    BLUE = np.array([0, 0, 1])
     colors = (RED, GREEN, BLUE)
 
     line_sets = []
-    for axis, color in zip([0,1,2], colors):
+    for axis, color in zip([0, 1, 2], colors):
 
         lines = [[0, 1]]
-        verts_worldfr = np.zeros((2,3))
-        
-        verts_camfr = np.zeros((2,3))
-        verts_camfr[0,axis] = axis_length
-       
+        verts_worldfr = np.zeros((2, 3))
+
+        verts_camfr = np.zeros((2, 3))
+        verts_camfr[0, axis] = axis_length
+
         for i in range(2):
             verts_worldfr[i] = wTc.transformFrom(verts_camfr[i])
 
@@ -385,7 +383,7 @@ def draw_coordinate_frame(wTc: Pose3, axis_length: float = 1.0) -> List[open3d.g
             points=open3d.utility.Vector3dVector(verts_worldfr),
             lines=open3d.utility.Vector2iVector(lines),
         )
-        line_set.colors = open3d.utility.Vector3dVector(color.reshape(1,3))
+        line_set.colors = open3d.utility.Vector3dVector(color.reshape(1, 3))
         line_sets.append(line_set)
 
     return line_sets
@@ -393,7 +391,7 @@ def draw_coordinate_frame(wTc: Pose3, axis_length: float = 1.0) -> List[open3d.g
 
 def plot_3d_poses(aTi_list_gt: List[Optional[Pose3]], bTi_list_est: List[Optional[Pose3]]) -> None:
     """ """
-    
+
     def get_colormapped_spheres(wTi_list: List[Optional[Pose3]]) -> np.ndarray:
         """ """
         num_valid_poses = sum([1 if wTi is not None else 0 for wTi in wTi_list])
@@ -408,17 +406,16 @@ def plot_3d_poses(aTi_list_gt: List[Optional[Pose3]], bTi_list_est: List[Optiona
             point_cloud += [wTi.translation()]
             rgb += [colormap[curr_color_idx]]
             curr_color_idx += 1
-        
+
         point_cloud = np.array(point_cloud)
         rgb = np.array(rgb)
         return point_cloud, rgb
-
 
     point_cloud_est, rgb_est = get_colormapped_spheres(bTi_list_est)
     point_cloud_gt, rgb_gt = get_colormapped_spheres(aTi_list_gt)
     geo1 = open3d_vis_utils.create_colored_spheres_open3d(point_cloud_est, rgb_est, sphere_radius=0.2)
     geo2 = open3d_vis_utils.create_colored_spheres_open3d(point_cloud_gt, rgb_gt, sphere_radius=0.5)
-    
+
     def get_coordinate_frames(wTi_list: List[Optional[Pose3]]) -> List[open3d.geometry.LineSet]:
         frames = []
         for i, wTi in enumerate(wTi_list):
@@ -433,8 +430,21 @@ def plot_3d_poses(aTi_list_gt: List[Optional[Pose3]], bTi_list_est: List[Optiona
     open3d.visualization.draw_geometries(geo1 + geo2 + frames1 + frames2)
 
 
+def get_zillow_T_opensfm() -> Pose3:
+    """
+    Transform OpenSfM camera to ZinD camera.
+    """
+    Rx = np.pi / 2
+    Ry = 0.0
+    Rz = 0.0
+    zillow_R_opensfm = Rot3.RzRyRx(Rx, Ry, Rz)
+    zillow_T_opensfm = Pose3(zillow_R_opensfm, np.zeros(3))
+    return zillow_T_opensfm
 
-def measure_opensfm_localization_accuracy(reconstruction_json_fpath: str, building_id: str, floor_id: str, raw_dataset_dir: str) -> None:
+
+def measure_opensfm_localization_accuracy(
+    reconstruction_json_fpath: str, building_id: str, floor_id: str, raw_dataset_dir: str
+) -> None:
     """
 
     Args:
@@ -443,7 +453,6 @@ def measure_opensfm_localization_accuracy(reconstruction_json_fpath: str, buildi
         floor_id:
         raw_dataset_dir:
     """
-
     cmd = "bin/opensfm_run_all data/ZinD_1442_floor_01"
 
     gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
@@ -458,26 +467,26 @@ def measure_opensfm_localization_accuracy(reconstruction_json_fpath: str, buildi
 
         aTi_list_gt = [aTi if bTi_list_est[i] is not None else None for i, aTi in enumerate(aTi_list_gt)]
 
-        Rx = np.pi / 2
-        Ry = 0.0
-        Rz = 0.0
-        zillow_R_opensfm = Rot3.RzRyRx(Rx, Ry, Rz)
-        zillow_T_opensfm = Pose3(zillow_R_opensfm, np.zeros(3))
-        
+        zillow_T_opensfm = get_zillow_T_opensfm()
+
         # world frame <-> opensfm camera <-> zillow camera
-        bTi_list_est = [ bTi.compose(zillow_T_opensfm) if bTi is not None else None for bTi in bTi_list_est]
-        #plot_3d_poses(aTi_list_gt, bTi_list_est)
+        bTi_list_est = [bTi.compose(zillow_T_opensfm) if bTi is not None else None for bTi in bTi_list_est]
+        # plot_3d_poses(aTi_list_gt, bTi_list_est)
 
         # align it to the 2d pose graph using Sim(3)
         aligned_bTi_list_est, _ = geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
-        #plot_3d_poses(aTi_list_gt, aligned_bTi_list_est) # visualize after alignment
+        # plot_3d_poses(aTi_list_gt, aligned_bTi_list_est) # visualize after alignment
 
         # project to 2d
         est_floor_pose_graph = PoseGraph3d.from_wTi_list(aligned_bTi_list_est, building_id, floor_id)
         est_floor_pose_graph = est_floor_pose_graph.project_to_2d(gt_floor_pose_graph)
 
-        logger.info("Reconstruction found with %d cameras and %d points", len(reconstruction.pose_dict), reconstruction.points.shape[0])
+        logger.info(
+            "Reconstruction found with %d cameras and %d points",
+            len(reconstruction.pose_dict),
+            reconstruction.points.shape[0],
+        )
 
         # then measure the aligned error
         mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_aligned_abs_pose_error(
@@ -489,8 +498,6 @@ def measure_opensfm_localization_accuracy(reconstruction_json_fpath: str, buildi
         est_floor_pose_graph.render_estimated_layout(
             show_plot=False, save_plot=True, plot_save_dir=plot_save_dir, gt_floor_pg=gt_floor_pose_graph
         )
-
-
 
 
 @dataclass
@@ -507,7 +514,7 @@ class PoseGraph3d:
         Returns:
             est_floor_pose_graph
         """
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
 
         n = len(gt_floor_pose_graph.as_3d_pose_graph())
 
@@ -516,7 +523,7 @@ class PoseGraph3d:
         for i in range(n):
             wTi = self.pose_dict.get(i, None)
             if wTi is not None:
-                wRi = wTi.rotation().matrix()[:2,:2]
+                wRi = wTi.rotation().matrix()[:2, :2]
                 wti = wTi.translation()[:2]
             else:
                 wRi, wti = None, None
@@ -537,7 +544,7 @@ class PoseGraph3d:
             building_id
             floor_id
         """
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
 
         pose_dict = {}
         for i, wTi in enumerate(wTi_list):
@@ -555,12 +562,12 @@ def test_measure_opensfm_localization_accuracy():
 
     reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/skydio-32/reconstruction.json"
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     reconstructions = load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
 
     for r, reconstruction in enumerate(reconstructions):
-
-        
 
         from visualization.open3d_vis_utils import draw_scene_open3d
 
@@ -596,7 +603,7 @@ def test_measure_opensfm_localization_accuracy():
             "S1014726.JPG",
             "S1014734.JPG",
             "S1014735.JPG",
-            "S1014736.JPG"
+            "S1014736.JPG",
         ]
 
         # point_cloud = np.zeros((0,3))
@@ -605,23 +612,22 @@ def test_measure_opensfm_localization_accuracy():
         point_cloud = reconstruction.points
         rgb = reconstruction.rgb
 
-        wTi_list = [ reconstruction.pose_dict[fname] if fname in reconstruction.pose_dict else None for fname in fnames]
+        wTi_list = [reconstruction.pose_dict[fname] if fname in reconstruction.pose_dict else None for fname in fnames]
         N = len(wTi_list)
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         fx = reconstruction.camera.focal * 1000
         px = reconstruction.camera.width / 2
         py = reconstruction.camera.height / 2
         from gtsam import Cal3Bundler
+
         calibrations = [Cal3Bundler(fx=fx, k1=0, k2=0, u0=px, v0=py)] * N
         args = SimpleNamespace(**{"point_rendering_mode": "point"})
         draw_scene_open3d(point_cloud, rgb, wTi_list, calibrations, args)
 
 
-
 if __name__ == "__main__":
     """ """
     reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
-
 
     building_id = "1442"
     floor_id = "floor_01"
@@ -630,6 +636,4 @@ if __name__ == "__main__":
     # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
     measure_opensfm_localization_accuracy(reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir)
 
-    #test_measure_opensfm_localization_accuracy()
-
-
+    # test_measure_opensfm_localization_accuracy()
