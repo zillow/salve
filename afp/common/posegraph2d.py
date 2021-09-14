@@ -258,7 +258,7 @@ class PoseGraph2d(NamedTuple):
         return mean_err
 
     def render_estimated_layout(
-        self, show_plot: bool = True, save_plot: bool = False, plot_save_dir: str = "floorplan_renderings", gt_floor_pg: "PoseGraph2d" = None
+        self, show_plot: bool = True, save_plot: bool = False, plot_save_dir: str = "floorplan_renderings", gt_floor_pg: "PoseGraph2d" = None, plot_save_fpath: Optional[str] = None
     ) -> None:
         """
         Either render (show plot) or save plot to disk.
@@ -269,15 +269,18 @@ class PoseGraph2d(NamedTuple):
             gt_floor_pg.render_estimated_layout(show_plot=False, save_plot=False, plot_save_dir=None, gt_floor_pg=None)
             plt.axis("equal")
             plt.subplot(1,2,2)
-        
+
         for i, pano_obj in self.nodes.items():
             pano_obj.plot_room_layout(coord_frame="global", show_plot=False)
 
         plt.title(f"Building {self.building_id}, {self.floor_id}")
         plt.axis("equal")
         if save_plot:
-            os.makedirs(plot_save_dir, exist_ok=True)
-            save_fpath = f"{plot_save_dir}/{self.building_id}_{self.floor_id}.jpg"
+            if plot_save_dir is not None and plot_save_fpath is None:
+                os.makedirs(plot_save_dir, exist_ok=True)
+                save_fpath = f"{plot_save_dir}/{self.building_id}_{self.floor_id}.jpg"
+            elif plot_save_dir is None and plot_save_fpath is not None:
+                save_fpath = plot_save_fpath
             plt.savefig(save_fpath, dpi=500)
             plt.close("all")
             
