@@ -8,12 +8,18 @@ from gtsam import Point3, Pose2, Pose3, Point3Pairs, Rot2, Rot3, Similarity3, Un
 from afp.utils.rotation_utils import rotmat2d
 
 
-def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Sim2, np.ndarray]:
+def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], np.ndarray]:
     """
     Args:
         pts_a: target/reference
         pts_b: source/query
     """
+    if pts_a.shape != pts_b.shape:
+        return None, np.zeros_like(pts_a)
+
+    if pts_a.shape[1] != 3 or pts_b.shape[1] != 3:
+        raise RuntimeError(f"Input point clouds were of shape {pts_a.shape}, but should have been (N,3)")
+
     ab_pairs = Point3Pairs(list(zip(pts_a, pts_b)))
 
     aSb = Similarity3.Align(ab_pairs)
@@ -39,6 +45,84 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Sim2, np.nd
     # assert np.allclose(computed, expected, atol=0.05)
 
     return aSb, pts_a_
+
+
+
+
+def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], np.ndarray]:
+    """
+    TODO: move this into GTSAM outright.
+
+        It finds the angle using a linear method:
+        q = Pose2::transformFrom(p) = t + R*p
+        We need to remove the centroids from the data to find the rotation
+        using dp=[dpx;dpy] and q=[dqx;dqy] we have
+         |dqx|   |c  -s|     |dpx|     |dpx -dpy|     |c|
+         |   | = |     |  *  |   |  =  |        |  *  | | = H_i*cs
+         |dqy|   |s   c|     |dpy|     |dpy  dpx|     |s|
+        where the Hi are the 2*2 matrices. Then we will minimize the criterion
+        J = \sum_i norm(q_i - H_i * cs)
+        Taking the derivative with respect to cs and setting to zero we have
+        cs = (\sum_i H_i' * q_i)/(\sum H_i'*H_i)
+        The hessian is diagonal and just divides by a constant, but this
+        normalization constant is irrelevant, since we take atan2.
+        i.e., cos ~ sum(dpx*dqx + dpy*dqy) and sin ~ sum(-dpy*dqx + dpx*dqy)
+        The translation is then found from the centroids
+        as they also satisfy cq = t + R*cp, hence t = cq - R*cp
+
+    Args:
+        pts_a: target/reference
+        pts_b: source/query
+
+    Returns:
+    """
+    # Point2Pair ab_pt_pairs
+    # aTb = gtsam.Pose2.align(ab_pts_pairs)
+
+    n = pts_a.shape[0]
+    assert n == pts_b.shape[0]
+
+    # we need at least 2 pairs
+    if n < 2:
+        return None
+
+    if pts_a.shape[1] != 2 or pts_b.shape[1] != 2:
+        raise RuntimeError(f"Input point clouds were of shape {pts_a.shape}, but should have been (N,2)")
+
+    # calculate centroids
+    cp = np.zeros(2)
+    cq = np.zeros(2)
+
+    for pt_a, pt_b in zip(pts_a, pts_b):
+        cp += pt_a
+        cq += pt_b
+
+    f = 1.0 / n
+    cp *= f
+    cq *= f
+
+    # calculate cos and sin
+    c, s = 0, 0
+
+    for pt_a, pt_b in zip(pts_a, pts_b):
+        dp = pt_a - cp
+        dq = pt_b - cq
+        c += dp[0] * dq[0] + dp[1] * dq[1]
+        s += -dp[1] * dq[0] + dp[0] * dq[1]
+
+    # calculate angle and translation
+    theta = np.arctan2(s, c)
+    R = Rot2.fromAngle(theta)
+    t = cq - R.matrix() @ cp
+
+    bTa = Pose2(R, t)
+    aTb = bTa.inverse()
+
+    aSb = Sim2(R=aTb.rotation().matrix(), t=aTb.translation(), s=1.0)
+
+    pts_a_ = (pts_b @ aTb.rotation().matrix().T + aTb.translation())
+    return aSb, pts_a_
+
 
 
 def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
@@ -137,71 +221,6 @@ def test_align_points_sim3_horseshoe() -> None:
     assert np.allclose(aSb.translation, np.array([3, 1]))
 
 
-def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Optional[Pose2]:
-    """
-    TODO: move this into GTSAM outright.
-
-        It finds the angle using a linear method:
-        q = Pose2::transformFrom(p) = t + R*p
-        We need to remove the centroids from the data to find the rotation
-        using dp=[dpx;dpy] and q=[dqx;dqy] we have
-         |dqx|   |c  -s|     |dpx|     |dpx -dpy|     |c|
-         |   | = |     |  *  |   |  =  |        |  *  | | = H_i*cs
-         |dqy|   |s   c|     |dpy|     |dpy  dpx|     |s|
-        where the Hi are the 2*2 matrices. Then we will minimize the criterion
-        J = \sum_i norm(q_i - H_i * cs)
-        Taking the derivative with respect to cs and setting to zero we have
-        cs = (\sum_i H_i' * q_i)/(\sum H_i'*H_i)
-        The hessian is diagonal and just divides by a constant, but this
-        normalization constant is irrelevant, since we take atan2.
-        i.e., cos ~ sum(dpx*dqx + dpy*dqy) and sin ~ sum(-dpy*dqx + dpx*dqy)
-        The translation is then found from the centroids
-        as they also satisfy cq = t + R*cp, hence t = cq - R*cp
-
-    Args:
-        pts_a
-        pts_b
-
-    Returns:
-    """
-    # Point2Pair ab_pt_pairs
-    # aTb = gtsam.Pose2.align(ab_pts_pairs)
-
-    n = pts_a.shape[0]
-    assert n == pts_b.shape[0]
-
-    # we need at least 2 pairs
-    if n < 2:
-        return None
-
-    # calculate centroids
-    cp = np.zeros(2)
-    cq = np.zeros(2)
-
-    for pt_a, pt_b in zip(pts_a, pts_b):
-        cp += pt_a
-        cq += pt_b
-
-    f = 1.0 / n
-    cp *= f
-    cq *= f
-
-    # calculate cos and sin
-    c, s = 0, 0
-
-    for pt_a, pt_b in zip(pts_a, pts_b):
-        dp = pt_a - cp
-        dq = pt_b - cq
-        c += dp[0] * dq[0] + dp[1] * dq[1]
-        s += -dp[1] * dq[0] + dp[0] * dq[1]
-
-    # calculate angle and translation
-    theta = np.arctan2(s, c)
-    R = Rot2.fromAngle(theta)
-    t = cq - R.matrix() @ cp
-
-    aTb = Pose2(R, t)
-    return aTb
 
 
 def test_align_points_SE2() -> None:
@@ -227,14 +246,16 @@ def test_align_points_SE2() -> None:
         ])
 
     # fmt: on
-    bTa = align_points_SE2(pts_a, pts_b)
-    assert bTa is not None
+    aTb, pts_a_ = align_points_SE2(pts_a, pts_b)
+    assert aTb is not None
 
     for pt_a, pt_b in zip(pts_a, pts_b):
 
-        pt_b_ = bTa.transformFrom(pt_a)
-        assert np.allclose(pt_b, pt_b_)
+        pt_a_ = aTb.transform_from(pt_b.reshape(1,2) ).squeeze()
+        assert np.allclose(pt_a, pt_a_)
         print("match")
+
+    assert np.allclose(pts_a, pts_a_)
 
 
 def test_align_points_SE2_doorway() -> None:
@@ -257,10 +278,10 @@ def test_align_points_SE2_doorway() -> None:
         ])
 
     # fmt: on
-    bTa = align_points_SE2(pts_a, pts_b)
+    aTb, _ = align_points_SE2(pts_a, pts_b)
 
-    assert bTa.theta() == 0.0
-    assert np.allclose(bTa.translation(), np.zeros(2))
+    assert aTb.theta_deg == 0.0
+    assert np.allclose(aTb.translation, np.zeros(2))
 
 
 def test_align_points_SE2_doorway_rotated() -> None:
@@ -286,13 +307,14 @@ def test_align_points_SE2_doorway_rotated() -> None:
         ])
 
     # fmt: on
-    bTa = align_points_SE2(pts_a, pts_b)
-    
-    expected_pta1 = np.array([5., 3., 1.])
-    assert np.allclose(expected_pta1, bTa.matrix() @ np.array([7,3,1]))
+    aTb, _ = align_points_SE2(pts_a, pts_b)
+    bTa = aTb.inverse()
 
-    expected_pta2 = np.array([5., 5., 1.])
-    assert np.allclose(expected_pta2, bTa.matrix() @ np.array([9,3,1]))
+    expected_ptb1 = np.array([5., 3.])
+    assert np.allclose(expected_ptb1, bTa.transform_from(np.array([7,3]).reshape(1,2) ) )
+
+    expected_ptb2 = np.array([5., 5.])
+    assert np.allclose(expected_ptb2, bTa.transform_from(np.array([9,3]).reshape(1,2) ) )
 
 
 if __name__ == "__main__":
@@ -301,6 +323,6 @@ if __name__ == "__main__":
     # test_rotmat2d()
     # test_reorthonormalize()
 
-    #test_align_points_SE2()
-    #test_align_points_SE2_doorway()
+    test_align_points_SE2()
+    test_align_points_SE2_doorway()
     test_align_points_SE2_doorway_rotated()
