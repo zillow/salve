@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import gtsam
 import gtsfm.utils.geometry_comparisons as geometry_comparisons
+import matplotlib.pyplot as plt
 import numpy as np
 import open3d
 import argoverse.utils.json_utils as json_utils
@@ -695,8 +696,99 @@ def run_opensfm_over_all_zind() -> None:
                 continue
 
 
-if __name__ == "__main__":
+
+def analyze_opensfm_results():
     """ """
-    run_opensfm_over_all_zind()
+    json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
+
+    num_ccs_per_floor = []
+    cc_idx_arr = []
+    num_cameras_in_cc = []
+    avg_rot_err_per_cc = []
+    avg_trans_err_per_cc = []
+
+    json_fpaths = glob.glob(f"{json_results_dir}/*.json")
+    for json_fpath in json_fpaths:
+        data = json_utils.read_json_file(json_fpath)
+
+        num_ccs_per_floor.append(len(data))
+
+        # loop through the connected components
+        # CC's are sorted by cardinality
+        for cc_idx, cc_info in enumerate(data):
+
+            if cc_idx >= 10:
+                continue
+
+            num_cameras = cc_info["num_cameras"]
+            num_points = cc_info["num_points"]
+            mean_abs_rot_err = cc_info["mean_abs_rot_err"]
+            mean_abs_trans_err = cc_info["mean_abs_trans_err"]
+
+            print(f"CC {cc_idx}", num_cameras)
+
+            cc_idx_arr.append(cc_idx)
+            num_cameras_in_cc.append(num_cameras)
+            avg_rot_err_per_cc.append(mean_abs_rot_err)
+            avg_trans_err_per_cc.append(mean_abs_trans_err)
+
+    
+    # average number of cameras in first 10 components
+    camera_counts_per_cc_idx = np.zeros(10)
+    for (cc_idx, num_cameras) in zip(cc_idx_arr, num_cameras_in_cc):
+        camera_counts_per_cc_idx[cc_idx] += num_cameras
+    
+    plt.bar(x=range(10), height=camera_counts_per_cc_idx)
+    plt.xticks(range(10))
+    plt.xlabel("Cameras in i'th CC")
+    plt.ylabel("")
+    plt.show()
+    #import pdb; pdb.set_trace()
+    quit()
+
+    # Histogram of number of CCs per floor
+    plt.hist(num_ccs_per_floor, bins=np.arange(0,20)-0.5) # center the bins
+    plt.xticks(range(20))
+    plt.xlabel("Number of CCs per Floor")
+    plt.ylabel("Counts")
+    plt.title("Histogram of Number of CCs per Floor")
+    plt.show()
+
+    # average rot error vs. number of cameras in component
+    plt.scatter(num_cameras_in_cc, avg_rot_err_per_cc, 10, color='r', marker='.')
+    plt.title("Avg Rot Error per CC vs. Num Cameras in CC")
+    plt.xlabel("Num Cameras in CC")
+    plt.ylabel("Avg Rot Error per CC (degrees)")
+    plt.show()
+
+    # average trans error vs. number of cameras in component
+    plt.scatter(num_cameras_in_cc, avg_trans_err_per_cc, 10, color='r', marker='.')
+    plt.title("Avg Translation Error per CC vs. Num Cameras in CC")
+    plt.xlabel("Num Cameras in CC")
+    plt.ylabel("Avg Translation Error per CC")
+    plt.show()
+
+    # histogram of CC size
+    plt.hist(num_cameras_in_cc, bins=np.arange(0,20)-0.5) # center the bins
+    plt.xticks(range(20))
+    plt.xlabel("Number of Cameras in CC")
+    plt.ylabel("Counts")
+    plt.title("Histogram of Number of Cameras per CC")
+    plt.show()
+
+
+   
+
+if __name__ == "__main__":
+    """
+    cd ~/Downloads/OpenSfM
+    python ~/Downloads/jlambert-auto-floorplan/afp/baselines/opensfm.py
+
+    """
+    #run_opensfm_over_all_zind()
     # test_measure_opensfm_localization_accuracy()
+
+    analyze_opensfm_results()
+
+
 
