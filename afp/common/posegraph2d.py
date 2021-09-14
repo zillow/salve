@@ -9,16 +9,16 @@ import os
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
+import gtsfm.utils.geometry_comparisons as geometry_comparisons
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
-
 from gtsam import Point3, Rot3, Pose3
+from gtsfm.utils.geometry_comparisons import align_poses_sim3_ignore_missing
 
 from afp.common.pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
 from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg
-
 
 REDTEXT = "\033[91m"
 ENDCOLOR = "\033[0m"
@@ -79,7 +79,12 @@ class PoseGraph2d(NamedTuple):
         return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
 
     def as_3d_pose_graph(self) -> List[Optional[Pose3]]:
-        """ """
+        """
+
+        Returns:
+            wTi_list: list of length N, where N is the one greater than the largest index
+                in the dictionary.
+        """
         num_images = max(self.nodes.keys()) + 1
         wTi_list = [None] * num_images
         for i, pano_obj in self.nodes.items():
@@ -94,6 +99,7 @@ class PoseGraph2d(NamedTuple):
             wTi_list[i] = wTi
 
         return wTi_list
+
 
     @classmethod
     def from_wRi_wti_lists(
@@ -147,7 +153,16 @@ class PoseGraph2d(NamedTuple):
         """ """
         pass
 
-    def measure_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> float:
+    def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float,float]:
+        """ """
+        aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
+        bTi_list_est = self.as_3d_pose_graph()
+
+        mean_rot_err, mean_trans_err = compute_pose_errors(aTi_list_gt, bTi_list_est)
+        return mean_rot_err, mean_trans_err
+
+
+    def measure_unaligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float,float]:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
 
         Args:
@@ -157,8 +172,6 @@ class PoseGraph2d(NamedTuple):
             mean_rot_err
             mean_trans_err
         """
-        from gtsfm.utils.geometry_comparisons import compute_relative_rotation_angle, align_poses_sim3_ignore_missing
-
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
         bTi_list_est = self.as_3d_pose_graph()
 
@@ -169,21 +182,9 @@ class PoseGraph2d(NamedTuple):
         # align the pose graphs
         aligned_bTi_list_est = align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
-        rotation_errors = []
-        translation_errors = []
-        for (aTi, aTi_) in zip(aTi_list_gt, aligned_bTi_list_est):
-            if aTi is None or aTi_ is None:
-                continue
-            rot_err = compute_relative_rotation_angle(aTi.rotation(), aTi_.rotation())
-            trans_err = np.linalg.norm(aTi.translation() - aTi_.translation())
-
-            rotation_errors.append(rot_err)
-            translation_errors.append(trans_err)
-
-        mean_rot_err = np.mean(rotation_errors)
-        mean_trans_err = np.mean(translation_errors)
-        print(f"Mean translation error: {mean_trans_err:.1f}, Mean rotation error: {mean_rot_err:.1f}")
+        mean_rot_err, mean_trans_err = compute_pose_errors(aTi_list_gt, aligned_bTi_list_est)
         return mean_rot_err, mean_trans_err
+
 
     def measure_avg_abs_rotation_err(self, gt_floor_pg: "PoseGraph2d") -> float:
         """Measure how the absolute poses satisfy the individual binary measurement constraints.
@@ -266,11 +267,10 @@ class PoseGraph2d(NamedTuple):
             plt.suptitle("left: GT floorplan. Right: estimated floorplan.")
             plt.subplot(1,2,1)
             gt_floor_pg.render_estimated_layout(show_plot=False, save_plot=False, plot_save_dir=None, gt_floor_pg=None)
-
+            plt.axis("equal")
             plt.subplot(1,2,2)
-
+        
         for i, pano_obj in self.nodes.items():
-
             pano_obj.plot_room_layout(coord_frame="global", show_plot=False)
 
         plt.title(f"Building {self.building_id}, {self.floor_id}")
@@ -282,6 +282,7 @@ class PoseGraph2d(NamedTuple):
             plt.close("all")
             
         if show_plot:
+            plt.axis("equal")
             plt.show()
 
 
@@ -509,6 +510,34 @@ def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
     R_Rot3 = np.eye(3)
     R_Rot3[:2, :2] = R
     return Rot3(R_Rot3)
+
+
+def compute_pose_errors(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]) -> Tuple[float,float]:
+    """
+
+    Args:
+        aTi_list_gt
+        aligned_bTi_list_est:
+
+    Returns:
+        mean_rot_err
+        mean_trans_err
+    """
+    rotation_errors = []
+    translation_errors = []
+    for (aTi, aTi_) in zip(aTi_list_gt, aligned_bTi_list_est):
+        if aTi is None or aTi_ is None:
+            continue
+        rot_err = geometry_comparisons.compute_relative_rotation_angle(aTi.rotation(), aTi_.rotation())
+        trans_err = np.linalg.norm(aTi.translation() - aTi_.translation())
+
+        rotation_errors.append(rot_err)
+        translation_errors.append(trans_err)
+
+    mean_rot_err = np.mean(rotation_errors)
+    mean_trans_err = np.mean(translation_errors)
+    print(f"Mean translation error: {mean_trans_err:.1f}, Mean rotation error: {mean_rot_err:.1f}")
+    return mean_rot_err, mean_trans_err
 
 
 if __name__ == "__main__":
