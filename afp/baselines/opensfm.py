@@ -4,6 +4,9 @@ https://github.com/mapillary/OpenSfM/blob/master/opensfm/io.py#L214
 
 """
 
+import glob
+import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,11 +15,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import gtsam
 import gtsfm.utils.geometry_comparisons as geometry_comparisons
 import numpy as np
-from argoverse.utils.json_utils import read_json_file
+import open3d
+import argoverse.utils.json_utils as json_utils
+from argoverse.utils.subprocess_utils import run_command
 from colour import Color
 from gtsam import Pose3, Rot3, Similarity3
-
-import open3d
 
 # import below is from gtsfm
 import visualization.open3d_vis_utils as open3d_vis_utils
@@ -333,7 +336,7 @@ def load_opensfm_reconstructions_from_json(
     """
     # reconstruction = types.Reconstruction()
 
-    objs = read_json_file(reconstruction_json_fpath)
+    objs = json_utils.read_json_file(reconstruction_json_fpath)
     reconstructions = [load_opensfm_reconstruction_from_json(obj) for obj in objs]
     return reconstructions
 
@@ -453,12 +456,11 @@ def measure_opensfm_localization_accuracy(
         floor_id:
         raw_dataset_dir:
     """
-    cmd = "bin/opensfm_run_all data/ZinD_1442_floor_01"
-
     gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
     reconstructions = load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
 
+    floor_results_dicts = []
     for r, reconstruction in enumerate(reconstructions):
 
         # create a 3d pose graph
@@ -493,11 +495,25 @@ def measure_opensfm_localization_accuracy(
             gt_floor_pg=gt_floor_pose_graph
         )
 
-        plot_save_dir = f"opensfm_1442_reconstruction_{r}"
+        os.makedirs(f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_viz/{building_id}_{floor_id}", exist_ok=True)
+        plot_save_fpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_viz/{building_id}_{floor_id}/opensfm_reconstruction_{r}.jpg"
         # render estimated layout
         est_floor_pose_graph.render_estimated_layout(
-            show_plot=False, save_plot=True, plot_save_dir=plot_save_dir, gt_floor_pg=gt_floor_pose_graph
+            show_plot=False, save_plot=True, plot_save_dir=None, gt_floor_pg=gt_floor_pose_graph, plot_save_fpath=plot_save_fpath
         )
+
+        floor_results_dict = {
+            "id": f"Reconstruction {r}",
+            "num_cameras": len(reconstruction.pose_dict),
+            "num_points": reconstruction.points.shape[0],
+            "mean_abs_rot_err": mean_abs_rot_err,
+            "mean_abs_trans_err": mean_abs_trans_err
+        }
+        floor_results_dicts.append(floor_results_dict)
+    
+    json_save_fpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results/{building_id}_{floor_id}.json"
+    json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
+
 
 
 @dataclass
@@ -625,15 +641,62 @@ def test_measure_opensfm_localization_accuracy():
         draw_scene_open3d(point_cloud, rgb, wTi_list, calibrations, args)
 
 
-if __name__ == "__main__":
-    """ """
-    reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
 
-    building_id = "1442"
-    floor_id = "floor_01"
+def run_opensfm_over_all_zind() -> None:
+    """ """
+    OVERRIDES_FPATH = "/Users/johnlam/Downloads/OpenSfM/data/camera_models_overrides.json"
+
+    OPENSFM_REPO_ROOT = "/Users/johnlam/Downloads/OpenSfM"
+    # reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
+
+    # building_id = "1442"
+    # floor_id = "floor_01"
     raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
-    # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
-    measure_opensfm_localization_accuracy(reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir)
+    building_ids = [ Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*") ]
+    building_ids.sort()
+    
+    for building_id in building_ids[3:]:
+        floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
+        for floor_id in floor_ids:
+            try:
+                src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
+                pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
+
+                if len(pano_fpaths) == 0:
+                    continue
+
+                FLOOR_OPENSFM_DATADIR = f"{OPENSFM_REPO_ROOT}/data/ZinD_{building_id}_{floor_id}__2021_09_13"
+                os.makedirs(f"{FLOOR_OPENSFM_DATADIR}/images", exist_ok=True)
+                reconstruction_json_fpath = f"{FLOOR_OPENSFM_DATADIR}/reconstruction.json"
+                
+                dst_dir = f"{FLOOR_OPENSFM_DATADIR}/images"
+                for pano_fpath in pano_fpaths:
+                    fname = Path(pano_fpath).name
+                    dst_fpath = f"{dst_dir}/{fname}"
+                    shutil.copyfile(src=pano_fpath, dst=dst_fpath)
+
+                # See https://opensfm.readthedocs.io/en/latest/using.html#providing-your-own-camera-parameters
+                shutil.copyfile(OVERRIDES_FPATH, f"{FLOOR_OPENSFM_DATADIR}/camera_models_overrides.json")
+
+                #import pdb; pdb.set_trace()
+                cmd = f"bin/opensfm_run_all data/ZinD_{building_id}_{floor_id}__2021_09_13 2>&1 | tee {FLOOR_OPENSFM_DATADIR}/opensfm.log"
+                run_command(cmd)
+
+                # shutil.rmtree()
+
+                # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
+                measure_opensfm_localization_accuracy(reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir)
+
+            except Exception as e:
+                logger.exception(f"OpenSfM failed for {building_id} {floor_id}")
+                print(f"failed on Building {building_id} {floor_id}")
+                continue
+
+
+if __name__ == "__main__":
+    """ """
+    run_opensfm_over_all_zind()
     # test_measure_opensfm_localization_accuracy()
+
