@@ -321,15 +321,17 @@ def test_align_rooms_by_wd() -> None:
 
 
 def plot_room_walls(
-    pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, linewidth: float = 2.0, alpha: float = 0.5
+    pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, color = None, linewidth: float = 2.0, alpha: float = 0.5
 ) -> None:
-    """ """
+    """
 
+    """
     room_vertices = pano_obj.room_vertices_local_2d
     if i2Ti1:
         room_vertices = i2Ti1.transform_from(room_vertices)
 
-    color = np.random.rand(3)
+    if color is None:
+        color = np.random.rand(3)
     plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color, alpha=alpha)
     plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=alpha, linewidth=linewidth)
     # draw edge to close each polygon
@@ -387,7 +389,7 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 
 
 def align_rooms_by_wd(
-    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", visualize: bool = False
+    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "Sim3", visualize: bool = False
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
@@ -418,7 +420,7 @@ def align_rooms_by_wd(
 
     Returns:
         possible_alignment_info: list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
-        num_invalid_configurations:
+        num_invalid_configurations: number of alignment configurations that were rejected, because of freespace penetration by aligned walls.
     """
     verbose = False
 
@@ -492,7 +494,7 @@ def align_rooms_by_wd(
 
                     if transform_type == "SE2":
                         i2Ti1, aligned_pts1 = align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
-                    elif transform_type == "Sim2":
+                    elif transform_type == "Sim3":
                         i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
                     else:
                         raise RuntimeError
@@ -548,13 +550,13 @@ def align_rooms_by_wd(
                         classification = "invalid"
 
                     if visualize:
-                        plot_room_walls(pano1_obj, i2Ti1, linewidth=10)
-                        plot_room_walls(pano2_obj, linewidth=1)
+                        plot_room_walls(pano1_obj, i2Ti1, color="tab:pink", linewidth=10)
+                        plot_room_walls(pano2_obj, color="tab:orange", linewidth=1)
 
                         plt.scatter(aligned_pts1[:, 0], aligned_pts1[:, 1], 10, color="r", marker="+")
-                        plt.plot(aligned_pts1[:, 0], aligned_pts1[:, 1], color="r", linewidth=10, alpha=0.2)
+                        plt.plot(aligned_pts1[:, 0], aligned_pts1[:, 1], color="r", linewidth=10, alpha=0.5)
 
-                        plt.scatter(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], 10, color="g", marker="+")
+                        plt.scatter(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], 10, color="b", marker="+")
                         plt.plot(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], color="g", linewidth=5, alpha=0.1)
 
                         # plt.plot(inter_poly_verts[:,0],inter_poly_verts[:,1], color='m')
@@ -628,7 +630,7 @@ def export_single_building_wdo_alignment_hypotheses(
                 if i1 >= i2:
                     continue
 
-                if i1 % 20 == 0:
+                if i1 % 1000 == 0:
                     logger.info(f"\tOn pano pair ({i1},{i2})")
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
@@ -725,8 +727,8 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 
     for building_id in building_ids:
 
-        # if building_id not in ['1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
-        #     continue
+        if building_id not in ["000", "001", "002"]: #'1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+            continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"

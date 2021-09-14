@@ -328,7 +328,7 @@ def cycles_SE2_spanning_tree(
         wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
     )
 
-    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
     print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
     est_floor_pose_graph.render_estimated_layout()
 
@@ -560,7 +560,7 @@ def build_filtered_spanning_tree(
         wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
     )
 
-    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
     print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
     est_floor_pose_graph.render_estimated_layout(
         show_plot=False,
