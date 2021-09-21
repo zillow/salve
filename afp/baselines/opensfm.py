@@ -25,8 +25,8 @@ from gtsam import Pose3, Rot3, Similarity3
 # import below is from gtsfm
 import visualization.open3d_vis_utils as open3d_vis_utils
 
-
 from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
+from afp.common.posegraph3d import PoseGraph3d
 from afp.utils.logger_utils import get_logger
 
 
@@ -517,61 +517,6 @@ def measure_opensfm_localization_accuracy(
 
 
 
-@dataclass
-class PoseGraph3d:
-    building_id: str
-    floor_id: str
-    pose_dict: Dict[int, Pose3]
-
-    def project_to_2d(self, gt_floor_pose_graph: PoseGraph2d) -> PoseGraph2d:
-        """
-        Args:
-            gt_floor_pose_graph
-
-        Returns:
-            est_floor_pose_graph
-        """
-        # import pdb; pdb.set_trace()
-
-        n = len(gt_floor_pose_graph.as_3d_pose_graph())
-
-        wRi_list = []
-        wti_list = []
-        for i in range(n):
-            wTi = self.pose_dict.get(i, None)
-            if wTi is not None:
-                wRi = wTi.rotation().matrix()[:2, :2]
-                wti = wTi.translation()[:2]
-            else:
-                wRi, wti = None, None
-
-            wRi_list.append(wRi)
-            wti_list.append(wti)
-
-        est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
-            wRi_list, wti_list, gt_floor_pose_graph, self.building_id, self.floor_id
-        )
-        return est_floor_pose_graph
-
-    @classmethod
-    def from_wTi_list(cls, wTi_list: List[Optional[Pose3]], building_id: str, floor_id: str) -> "PoseGraph3d":
-        """
-        Args:
-            wTi_list
-            building_id
-            floor_id
-        """
-        # import pdb; pdb.set_trace()
-
-        pose_dict = {}
-        for i, wTi in enumerate(wTi_list):
-            if wTi is None:
-                continue
-            pose_dict[i] = wTi
-
-        return cls(building_id, floor_id, pose_dict)
-
-
 def test_measure_opensfm_localization_accuracy():
     pass
 
@@ -657,7 +602,7 @@ def run_opensfm_over_all_zind() -> None:
     building_ids = [ Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*") ]
     building_ids.sort()
     
-    for building_id in building_ids[3:]:
+    for building_id in building_ids[90:]:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         for floor_id in floor_ids:
@@ -696,6 +641,17 @@ def run_opensfm_over_all_zind() -> None:
                 continue
 
 
+def get_buildingid_floorid_from_json_fpath(fpath: str) -> Tuple[str,str]:
+    """
+    From a JSON results fpath, get tour metadata.
+    """
+    json_fname_stem = Path(fpath).stem
+    k = json_fname_stem.find('_f')
+    building_id = json_fname_stem[:k]
+    floor_id = json_fname_stem[k+1:]
+    return building_id, floor_id
+
+
 
 def analyze_opensfm_results():
     """ """
@@ -707,9 +663,20 @@ def analyze_opensfm_results():
     avg_rot_err_per_cc = []
     avg_trans_err_per_cc = []
 
+    num_dropped_cameras_per_floor = []
+    percent_reconstructed_cameras_per_floor = []
+    percent_in_largest_cc_per_floor = []
+
     json_fpaths = glob.glob(f"{json_results_dir}/*.json")
     for json_fpath in json_fpaths:
         data = json_utils.read_json_file(json_fpath)
+
+        num_cameras = 0
+        num_points = 0
+        mean_abs_rot_err = 0
+        mean_abs_trans_err = 0
+        num_reconst_cameras_on_floor = 0
+        num_reconst_cameras_largest_cc = 0
 
         num_ccs_per_floor.append(len(data))
 
@@ -725,23 +692,88 @@ def analyze_opensfm_results():
             mean_abs_rot_err = cc_info["mean_abs_rot_err"]
             mean_abs_trans_err = cc_info["mean_abs_trans_err"]
 
-            print(f"CC {cc_idx}", num_cameras)
+            num_reconst_cameras_on_floor += num_cameras
+            if cc_idx == 0:
+                num_reconst_cameras_largest_cc = num_cameras
+
+            print(f"CC {cc_idx} has {num_cameras} cameras.")
 
             cc_idx_arr.append(cc_idx)
             num_cameras_in_cc.append(num_cameras)
             avg_rot_err_per_cc.append(mean_abs_rot_err)
             avg_trans_err_per_cc.append(mean_abs_trans_err)
 
+        # how many cameras get left out?
+        #import pdb; pdb.set_trace()
+        building_id, floor_id = get_buildingid_floorid_from_json_fpath(json_fpath)
+        panos_dirpath = f"/Users/johnlam/Downloads/OpenSfM/data/ZinD_{building_id}_{floor_id}__2021_09_13/images"
+        num_panos = len(glob.glob(f"{panos_dirpath}/*.jpg"))
+        num_dropped_cameras = num_panos - num_reconst_cameras_on_floor
+        if num_panos == 0:
+            import pdb; pdb.set_trace()
+        percent_reconstructed = num_reconst_cameras_on_floor / num_panos * 100
+        num_dropped_cameras_per_floor.append(num_dropped_cameras)
+        percent_reconstructed_cameras_per_floor.append(percent_reconstructed)
+
+        percent_in_largest_cc = num_reconst_cameras_largest_cc / num_panos * 100
+        percent_in_largest_cc_per_floor.append(percent_in_largest_cc)
+
+        if percent_in_largest_cc > 100:
+            import pdb; pdb.set_trace()
+
+    print("Mean percent_in_largest_cc_per_floor: ", np.mean(percent_in_largest_cc_per_floor))
+    print("Median percent_in_largest_cc_per_floor: ", np.median(percent_in_largest_cc_per_floor))
+
+    plt.hist(percent_in_largest_cc_per_floor, bins=20)
+    plt.title("Histogram % of All Panos Localized in Largest CC")
+    plt.ylabel("Counts")
+    plt.xlabel("% of All Panos Localized in Largest CC")
+    plt.show()
+
+    plt.hist(num_dropped_cameras_per_floor)
+    plt.title("num_dropped_cameras_per_floor)")
+    plt.ylabel("Counts")
+    plt.show()
+
+    plt.hist(percent_reconstructed_cameras_per_floor, bins=20)
+    plt.ylabel("Counts")
+    plt.xlabel("Camera Localization Percent as Union of all CCs")
+    plt.title("percent_reconstructed_cameras_per_floor")
+    plt.show()
+
+    print("Mean num_dropped_cameras_per_floor: ", np.mean(num_dropped_cameras_per_floor))
+    print("Median num_dropped_cameras_per_floor: ", np.median(num_dropped_cameras_per_floor))
+
+    print("Mean percent_reconstructed_cameras_per_floor: ", np.mean(percent_reconstructed_cameras_per_floor))
+    print("Median percent_reconstructed_cameras_per_floor: ", np.median(percent_reconstructed_cameras_per_floor))
+
+    print("Mean of Avg. Rot. Error within CC: ", np.mean(avg_rot_err_per_cc))
+    print("Median of Avg. Rot. Error within CC: ", np.median(avg_rot_err_per_cc))
     
+    print("Mean of Avg. Trans. Error within CC: ", np.mean(avg_trans_err_per_cc))
+    print("Median of Avg. Trans. Error within CC: ", np.median(avg_trans_err_per_cc))
+
+    plt.hist(avg_trans_err_per_cc, bins=np.linspace(0,5,20))
+    plt.ylabel("Counts")
+    plt.xlabel("Avg. Trans. Error per CC")
+    plt.show()
+
+    plt.hist(avg_rot_err_per_cc, bins=np.linspace(0,5,20))
+    plt.ylabel("Counts")
+    plt.xlabel("Avg. Rot. Error per CC")
+    plt.show()
+
     # average number of cameras in first 10 components
     camera_counts_per_cc_idx = np.zeros(10)
     for (cc_idx, num_cameras) in zip(cc_idx_arr, num_cameras_in_cc):
         camera_counts_per_cc_idx[cc_idx] += num_cameras
+    camera_counts_per_cc_idx /= len(json_fpaths)
     
     plt.bar(x=range(10), height=camera_counts_per_cc_idx)
     plt.xticks(range(10))
-    plt.xlabel("Cameras in i'th CC")
-    plt.ylabel("")
+    plt.title("Avg. # Cameras in i'th CC")
+    plt.xlabel("i'th CC")
+    plt.ylabel("Avg. # Cameras")
     plt.show()
     #import pdb; pdb.set_trace()
     quit()
