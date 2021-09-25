@@ -1,9 +1,8 @@
 # try just ICP between two point clouds
 
 """
-See J. Park, Q.-Y. Zhou, and V. Koltun, Colored Point Cloud Registration Revisited, ICCV, 2017.
-https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_Colored_Point_Cloud_ICCV_2017_paper.pdf
 
+Code adapted from:
 http://www.open3d.org/docs/release/tutorial/pipelines/colored_pointcloud_registration.html#id1
 """
 
@@ -11,9 +10,20 @@ import numpy as np
 import open3d as o3d
 
 
-def register_colored_point_clouds(source, target):
-    """
-    3 layers of multi-resolution point clouds
+def register_colored_point_clouds(source, target) -> np.ndarray:
+    """Register source point cloud to the target point cloud, using Colored Point Cloud Registration.
+    
+    Note: 3 layers of multi-resolution point clouds are used.
+    
+    See J. Park, Q.-Y. Zhou, and V. Koltun, Colored Point Cloud Registration Revisited, ICCV, 2017.
+    https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_Colored_Point_Cloud_ICCV_2017_paper.pdf
+
+    Args:
+        source: point cloud
+        target: point
+
+    Returns:
+        tTs: transforms points from the souce frame to the target frame.
     """
     # Colored Point Cloud Registration Revisited, ICCV 2017
     voxel_radius = [0.04, 0.02, 0.01]
@@ -29,7 +39,7 @@ def register_colored_point_clouds(source, target):
         source_down = source.voxel_down_sample(radius)
         target_down = target.voxel_down_sample(radius)
 
-        # Estimate normal.")
+        # Estimate normal.
         source_down.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=radius * 2, max_nn=30))
         target_down.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=radius * 2, max_nn=30))
 
@@ -49,9 +59,15 @@ def register_colored_point_clouds(source, target):
     return result_icp.transformation
 
 
-def register_point_clouds(source, target):
-    """
-    point to plane ICP (color is not used).
+def register_point_clouds(source, target) -> np.ndarray:
+    """Register source point cloud to the target point cloud, using point to plane ICP (color is not used).
+
+    Args:
+        source: point cloud
+        target: point
+
+    Returns:
+        tTs: transforms points from the souce frame to the target frame.
     """
     current_transformation = np.identity(4)
     print("2. Point-to-plane ICP registration is applied on original point")
