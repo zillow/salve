@@ -12,9 +12,9 @@ import open3d as o3d
 
 def register_colored_point_clouds(source, target) -> np.ndarray:
     """Register source point cloud to the target point cloud, using Colored Point Cloud Registration.
-    
+
     Note: 3 layers of multi-resolution point clouds are used.
-    
+
     See J. Park, Q.-Y. Zhou, and V. Koltun, Colored Point Cloud Registration Revisited, ICCV, 2017.
     https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_Colored_Point_Cloud_ICCV_2017_paper.pdf
 
@@ -81,5 +81,3 @@ def register_point_clouds(source, target) -> np.ndarray:
     )
     print(result_icp)
     return result_icp.transformation
-
-
