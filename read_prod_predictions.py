@@ -5,6 +5,7 @@
 import copy
 import csv
 import glob
+import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -255,16 +256,26 @@ class PanoStructurePredictionRmxMadoriV1:
 
     def render_bev(self) -> None:
         """ """
-        floor_height = 0.001
+        floor_height = 0.5
 
         plt.close("All")
         import afp.utils.pano_utils as pano_utils
 
+
         #import pdb; pdb.set_trace()
         u, v = np.arange(1024), np.round(self.floor_boundary).astype(np.int32)
-        # get unit-norm rays
-        ray_dirs_all = pano_utils.get_uni_sphere_xyz(H=512, W=1024)
-        ray_dirs = ray_dirs_all[v, u]
+        pred_floor_wall_pixel_corners = np.hstack([u.reshape(-1,1), v.reshape(-1,1)])
+        inference_floor = -58
+        image_width = 1024
+
+        pred_floor_wall_sphere_corners = pixel_to_sphere(pred_floor_wall_pixel_corners, width=image_width)
+        pred_floor_wall_cartesian_corners = sphere_to_cartesian(pred_floor_wall_sphere_corners)
+        ray_dirs = intersect_cartesian_with_floor_plane(pred_floor_wall_cartesian_corners, inference_floor)
+
+
+        # # get unit-norm rays
+        # ray_dirs_all = pano_utils.get_uni_sphere_xyz(H=512, W=1024)
+        # ray_dirs = ray_dirs_all[v, u]
 
         import pdb; pdb.set_trace()
         # ray_dirs /= ray_dirs[:, 1].reshape(-1, 1) # scale so that y has unit norm
@@ -318,6 +329,7 @@ class PanoStructurePredictionRmxMadoriV1:
         )
 
 
+EPS_RAD = 1e-10
 
 # from
 # https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
