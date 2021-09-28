@@ -16,6 +16,7 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 
+import afp.common.posegraph2d as posegraph2d
 
 MODEL_NAMES = [
     "rmx-madori-v1_predictions", # Ethan’s new shape DWO joint model
@@ -91,6 +92,9 @@ def main() -> None:
             # import pdb; pdb.set_trace()
             panoid_to_panoguid = {i: pano_guid for pano_guid, i in panoguid_to_panoid.items()}
 
+            #import pdb; pdb.set_trace()
+            # get floor height.
+            #gt_pose_graph = posegraph2d.get_gt_pose_graph(building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir)
 
             for i in sorted(panoid_to_panoguid.keys()):
                 pano_guid = panoid_to_panoguid[i]
@@ -111,7 +115,7 @@ def main() -> None:
                 
                 img_resized = cv2.resize(img, (1024,512))
                 img_h, img_w, _ = img_resized.shape
-                plt.imshow(img_resized)
+                # plt.imshow(img_resized)
 
                 model_names = ["rmx-madori-v1_predictions"] # MODEL_NAMES
                 # plot the image in question
@@ -136,12 +140,12 @@ def main() -> None:
                     else:
                         continue
 
-                plt.title(f"Pano {i} from Building {zind_building_id}")
-                os.makedirs(f"prod_pred_model_visualizations/{model_name}", exist_ok=True)
-                plt.savefig(f"prod_pred_model_visualizations/{model_name}/{zind_building_id}_{i}.jpg", dpi=400)
-                #plt.show()
-                plt.close("all")
-                plt.figure(figsize=(20,10))
+                # plt.title(f"Pano {i} from Building {zind_building_id}")
+                # os.makedirs(f"prod_pred_model_visualizations/{model_name}", exist_ok=True)
+                # plt.savefig(f"prod_pred_model_visualizations/{model_name}/{zind_building_id}_{i}.jpg", dpi=400)
+                # #plt.show()
+                # plt.close("all")
+                # plt.figure(figsize=(20,10))
 
 @dataclass
 class RcnnDwoPred:
@@ -221,31 +225,69 @@ class PanoStructurePredictionRmxMadoriV1:
 
     def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
         """ """
-        uv = copy.deepcopy(self.corners_in_uv)
-        uv[:,0] *= img_w
-        uv[:,1] *= img_h
+        # uv = copy.deepcopy(self.corners_in_uv)
+        # uv[:,0] *= img_w
+        # uv[:,1] *= img_h
 
-        floor_uv = uv[::2]
-        ceiling_uv = uv[1::2]
+        # floor_uv = uv[::2]
+        # ceiling_uv = uv[1::2]
 
-        plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='o')
-        plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='o')
+        # plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='o')
+        # plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='o')
 
-        # import pdb; pdb.set_trace()
+        # # import pdb; pdb.set_trace()
 
-        # yellow -> window
-        # black -> door
-        # magenta -> opening
+        # # yellow -> window
+        # # black -> door
+        # # magenta -> opening
 
-        for wdo_instances, color in zip([self.windows, self.doors, self.openings], ["y", "k", "m"]):
-            for wdo in wdo_instances:
-                plt.plot([wdo.s * img_w, wdo.s * img_w], [0,img_h-1], color)
-                plt.plot([wdo.e * img_w, wdo.e * img_w], [0,img_h-1], color)
+        # for wdo_instances, color in zip([self.windows, self.doors, self.openings], ["y", "k", "m"]):
+        #     for wdo in wdo_instances:
+        #         plt.plot([wdo.s * img_w, wdo.s * img_w], [0,img_h-1], color)
+        #         plt.plot([wdo.e * img_w, wdo.e * img_w], [0,img_h-1], color)
 
-        if len(self.floor_boundary) != 1024:
-            print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
-            return
-        plt.scatter(np.arange(1024), self.floor_boundary, 10, color='y', marker='.')
+        # if len(self.floor_boundary) != 1024:
+        #     print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
+        #     return
+        # plt.scatter(np.arange(1024), self.floor_boundary, 10, color='y', marker='.')
+
+        self.render_bev()
+
+    def render_bev(self) -> None:
+        """ """
+        floor_height = 0.001
+
+        plt.close("All")
+        import afp.utils.pano_utils as pano_utils
+
+        #import pdb; pdb.set_trace()
+        u, v = np.arange(1024), np.round(self.floor_boundary).astype(np.int32)
+        # get unit-norm rays
+        ray_dirs_all = pano_utils.get_uni_sphere_xyz(H=512, W=1024)
+        ray_dirs = ray_dirs_all[v, u]
+
+        import pdb; pdb.set_trace()
+        # ray_dirs /= ray_dirs[:, 1].reshape(-1, 1) # scale so that y has unit norm
+        # ray_dirs *= floor_height
+
+        n = ray_dirs.shape[0]
+        rgb = np.zeros((n,3)).astype(np.uint8)
+        rgb[:, 0] = 255
+        import visualization.open3d_vis_utils as open3d_vis_utils
+        import pdb; pdb.set_trace()
+        # pcd = open3d_vis_utils.create_colored_spheres_open3d(
+        #     point_cloud=ray_dirs, rgb=rgb, sphere_radius=0.1
+        # )
+        pcd = open3d_vis_utils.create_colored_point_cloud_open3d(point_cloud=ray_dirs, rgb=rgb)
+        import open3d
+        
+        open3d.visualization.draw_geometries([pcd])
+
+
+        import pdb; pdb.set_trace()
+        plt.scatter(ray_dirs[:,0], ray_dirs[:,2], 10, color='m', marker='.')
+        plt.show()
+        plt.close('all')
 
     @classmethod
     def from_json(cls, json_data: Any) -> "PanoStructurePredictionRmxMadoriV1":
@@ -274,6 +316,146 @@ class PanoStructurePredictionRmxMadoriV1:
             openings=openings,
             windows=windows
         )
+
+
+
+# from
+# https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
+def intersect_cartesian_with_floor_plane(cartesian_coordinates: np.ndarray, floor_height: float) -> np.ndarray:
+    """
+    In order to get the floor coordinates, intersect with the floor plane
+    """
+    return (
+        cartesian_coordinates
+        * floor_height
+        / cartesian_coordinates[:, 1].reshape(-1, 1)
+    )
+
+# from
+# https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
+def sphere_to_cartesian(points_sph: np.ndarray) -> np.ndarray:
+    """Convert spherical coordinates to cartesian.
+
+    Args:
+        points_sph: List of points given in spherical coordinates. We support
+            two formats, both in a row major-order: [theta, phi, rho] or
+            [theta, phi], where in the second form we assume all points lie
+            on the unit sphere, i.e. rho = 1.0 for all points.
+
+        theta is the azimuthal angle in [-pi, pi],
+        phi is the elevation angle in [-pi/2, pi/2]
+        rho is the radial distance in (0, inf)
+
+    Note:
+        If rho is omitted, we will assume the radial distances is 1 for all.
+        thus points_sph.shape can be (num_points, 2) or (num_points, 3).
+
+    Return:
+        List of points in cartesian coordinates [x, y, z], where the shape
+        is (num_points, 3)
+    """
+    if not isinstance(points_sph, np.ndarray) or points_sph.ndim == 1:
+        points_sph = np.reshape(points_sph, (1, -1))
+        output_shape = (3,)
+    else:
+        output_shape = (points_sph.shape[0], 3)  # type: ignore
+
+    num_points = points_sph.shape[0]
+    assert num_points > 0
+
+    num_coords = points_sph.shape[1]
+    assert num_coords == 2 or num_coords == 3
+
+    theta = points_sph[:, 0]
+
+    # Validate the azimuthal angles.
+    assert np.all(np.greater_equal(theta, -math.pi - EPS_RAD))
+    assert np.all(np.less_equal(theta, math.pi + EPS_RAD))
+
+    phi = points_sph[:, 1]
+
+    # Validate the elevation angles.
+    assert np.all(np.greater_equal(phi, -math.pi / 2.0 - EPS_RAD))
+    assert np.all(np.less_equal(phi, math.pi / 2.0 + EPS_RAD))
+
+    if num_coords == 2:
+        rho = np.ones_like(theta)
+    else:
+        rho = points_sph[:, 2]
+
+    # Validate the radial distances.
+    assert np.all(np.greater(rho, 0.0))
+
+    rho_cos_phi = rho * np.cos(phi)
+
+    x_arr = rho_cos_phi * np.sin(theta)
+    y_arr = rho * np.sin(phi)
+    z_arr = -rho_cos_phi * np.cos(theta)
+
+    return np.column_stack((x_arr, y_arr, z_arr)).reshape(output_shape)
+
+
+# from
+# https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
+def pixel_to_sphere(points_pix: np.ndarray, width: int) -> np.ndarray:
+    """Convert pixel coordinates into spherical coordinates from a 360 pano
+    with a given width.
+
+    Note:
+        We assume the width covers the full 360 degrees horizontally, and the
+        height is derived as width/2 and covers the full 180 degrees
+        vertical, i.e. we support mapping only on full FoV panos.
+
+    Args:
+        points_pix: List of points given in pano image coordinates [x, y],
+            thus points_sph.shape is (num_points, 2)
+
+        width: The width of the pano image (defines the azimuth scale).
+
+    Return:
+        List of points in spherical coordinates [theta, phi], where the
+        spherical point [theta=0, phi=0] maps to the image center.
+        Shape of the result is (num_points, 2).
+    """
+    if not isinstance(points_pix, np.ndarray) or points_pix.ndim == 1:
+        points_pix = np.reshape(points_pix, (1, -1))
+        output_shape = (2,)
+    else:
+        output_shape = (points_pix.shape[0], 2)  # type: ignore
+
+    num_points = points_pix.shape[0]
+    assert num_points > 0
+
+    num_coords = points_pix.shape[1]
+    assert num_coords == 2
+
+    height = width / 2
+    assert width > 1 and height > 1
+
+    # We only consider the azimuth and elevation angles.
+    x_arr = points_pix[:, 0]
+    assert np.all(np.greater_equal(x_arr, 0.0))
+    assert np.all(np.less(x_arr, width))
+
+    y_arr = points_pix[:, 1]
+    assert np.all(np.greater_equal(y_arr, 0.0))
+    assert np.all(np.less(y_arr, height))
+
+    # Convert the x-coordinates to azimuth spherical coordinates, where
+    # theta=0 maps to the horizontal center.
+    theta = x_arr / (width - 1)  # Map to [0, 1]
+    theta *= 2.0 * math.pi  # Map to [0, 2*pi]
+    theta -= math.pi  # Map to [-pi, pi]
+
+    # Convert the y-coordinates to elevation spherical coordinates, where
+    # phi=0 maps to the vertical center.
+    phi = y_arr / (height - 1)  # Map to [0, 1]
+    phi = 1.0 - phi  # Flip so that y=0 corresponds to pi/2
+    phi *= math.pi  # Map to [0, pi]
+    phi -= math.pi / 2.0  # Map to [-pi/2, pi/2]
+
+    return np.column_stack((theta, phi)).reshape(output_shape)
+
 
 
 	# batch_transform_input_manifest_rmx-tg-manh-v1.json
