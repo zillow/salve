@@ -5,17 +5,19 @@
 import copy
 import csv
 import glob
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List
 
 import argoverse.utils.json_utils as json_utils
+import cv2
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-model_names = [
+MODEL_NAMES = [
     "rmx-madori-v1_predictions", # Ethan’s new shape DWO joint model
     "rmx-dwo-rcnn_predictions", #  RCNN DWO predictions
     "rmx-joint-v1_predictions", # Older version joint model prediction
@@ -25,7 +27,15 @@ model_names = [
 ]
 
 
+
+
 # Yuguang: what is "Old home ID" vs. "New home ID"
+# zind building 002 --totally off, building 016, 14, 17, 24
+
+# 013 looks good, 23 looks good.
+
+
+
 def main() -> None:
     """
     Read in mapping from Excel, mapping from their ZInD index to these guid
@@ -60,10 +70,12 @@ def main() -> None:
                 print("Invalid building_guid, skipping...")
                 continue
 
-            if zind_building_id in ["000", "001", "002"]:
-                continue
+            # if zind_building_id in ["000", "001", "002"]:
+            #     continue
 
             print(f"On ZinD Building {zind_building_id}")
+            if int(zind_building_id) < 1400:
+                continue
             pano_guids = [Path(dirpath).stem for dirpath in glob.glob(f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/*")]
 
             floor_map_json_fpath = f"{data_root}/{building_guid}/floor_map.json"
@@ -76,7 +88,7 @@ def main() -> None:
                 i = pano_metadata["order"]
                 panoguid_to_panoid[pano_guid] = i
             
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             panoid_to_panoguid = {i: pano_guid for pano_guid, i in panoguid_to_panoid.items()}
 
 
@@ -96,9 +108,12 @@ def main() -> None:
                 img_fpath = img_fpaths[0]
                 img = imageio.imread(img_fpath)
 
-                img_h, img_w, _ = img.shape
-                plt.imshow(img)
+                
+                img_resized = cv2.resize(img, (1024,512))
+                img_h, img_w, _ = img_resized.shape
+                plt.imshow(img_resized)
 
+                model_names = ["rmx-madori-v1_predictions"] # MODEL_NAMES
                 # plot the image in question
                 for model_name in model_names:
                     print(f"\tLoaded {model_name} prediction for Pano {i}")
@@ -111,7 +126,7 @@ def main() -> None:
                         pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
                         pred_obj.render_layout_on_pano(img_h, img_w)
 
-                        import pdb; pdb.set_trace()
+                        # import pdb; pdb.set_trace()
 
                     elif model_name == "rmx-dwo-rcnn_predictions":
                         pred_obj = PanoStructurePredictionRmxDwoRCNN.from_json(prediction_data["predictions"])
@@ -122,7 +137,9 @@ def main() -> None:
                         continue
 
                 plt.title(f"Pano {i} from Building {zind_building_id}")
-                plt.show()
+                os.makedirs(f"prod_pred_model_visualizations/{model_name}", exist_ok=True)
+                plt.savefig(f"prod_pred_model_visualizations/{model_name}/{zind_building_id}_{i}.jpg", dpi=400)
+                #plt.show()
                 plt.close("all")
                 plt.figure(figsize=(20,10))
 
@@ -171,9 +188,24 @@ class PanoStructurePredictionRmxDwoRCNN:
 
 
 @dataclass
+class RmxMadoriV1DWO:
+    """start and end"""
+    s: float
+    e: float
+
+    @classmethod
+    def from_json(cls, json_data: Any) -> "RmxMadoriV1DWO":
+        """ """
+        if len(json_data) != 2:
+            raise RuntimeError("Schema error...")
+
+        s, e = json_data
+        return cls(s=s, e=e)
+
+
+@dataclass
 class PanoStructurePredictionRmxMadoriV1:
     """ """
-
     ceiling_height: float
     floor_height: float
     corners_in_uv: np.ndarray # (N,2)
@@ -183,6 +215,9 @@ class PanoStructurePredictionRmxMadoriV1:
     floor_boundary: np.ndarray
     wall_wall_boundary: np.ndarray
     floor_boundary_uncertainty: np.ndarray
+    doors: List[RmxMadoriV1DWO]
+    openings: List[RmxMadoriV1DWO]
+    windows: List[RmxMadoriV1DWO]
 
     def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
         """ """
@@ -193,9 +228,24 @@ class PanoStructurePredictionRmxMadoriV1:
         floor_uv = uv[::2]
         ceiling_uv = uv[1::2]
 
-        plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='+')
-        plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='+')
+        plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='o')
+        plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='o')
 
+        # import pdb; pdb.set_trace()
+
+        # yellow -> window
+        # black -> door
+        # magenta -> opening
+
+        for wdo_instances, color in zip([self.windows, self.doors, self.openings], ["y", "k", "m"]):
+            for wdo in wdo_instances:
+                plt.plot([wdo.s * img_w, wdo.s * img_w], [0,img_h-1], color)
+                plt.plot([wdo.e * img_w, wdo.e * img_w], [0,img_h-1], color)
+
+        if len(self.floor_boundary) != 1024:
+            print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
+            return
+        plt.scatter(np.arange(1024), self.floor_boundary, 10, color='y', marker='.')
 
     @classmethod
     def from_json(cls, json_data: Any) -> "PanoStructurePredictionRmxMadoriV1":
@@ -207,6 +257,10 @@ class PanoStructurePredictionRmxMadoriV1:
                 "wall_features":
                   keys: 'window', 'door', 'opening'
         """
+        doors = [ RmxMadoriV1DWO.from_json(d) for d in json_data["wall_features"]["door"]]
+        windows = [RmxMadoriV1DWO.from_json(w) for w in json_data["wall_features"]["window"]]
+        openings = [RmxMadoriV1DWO.from_json(o) for o in json_data["wall_features"]["opening"]]
+
         return cls(
             ceiling_height=json_data["room_shape"]['ceiling_height'],
             floor_height=json_data["room_shape"]['floor_height'],
@@ -215,7 +269,10 @@ class PanoStructurePredictionRmxMadoriV1:
             wall_uncertainty_score=np.array(json_data["room_shape"]['wall_uncertainty_score']),
             floor_boundary=np.array(json_data["room_shape"]['raw_predictions']["floor_boundary"]),
             wall_wall_boundary=np.array(json_data["room_shape"]['raw_predictions']["wall_wall_boundary"]),
-            floor_boundary_uncertainty=np.array(json_data["room_shape"]['raw_predictions']["floor_boundary_uncertainty"])
+            floor_boundary_uncertainty=np.array(json_data["room_shape"]['raw_predictions']["floor_boundary_uncertainty"]),
+            doors=doors,
+            openings=openings,
+            windows=windows
         )
 
 
