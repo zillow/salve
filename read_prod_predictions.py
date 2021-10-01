@@ -25,14 +25,14 @@ MODEL_NAMES = [
     "rmx-joint-v1_predictions", # Older version joint model prediction
     "rmx-manh-joint-v2_predictions", # Older version joint model prediction + Manhattanization shape post processing
     "rmx-rse-v1_predictions", # Basic HNet trained with production shapes
-    "rmx-tg-manh-v1_predictions" # Total geometry with Manhattanization shape post processing
+    "rmx-tg-manh-v1_predictions" # Total (visible) geometry with Manhattanization shape post processing
 ]
-
+# could also try partial manhattanization (separate model) -- get link from Yuguang
 
 
 
 # Yuguang: what is "Old home ID" vs. "New home ID"
-# zind building 002 --totally off, building 016, 14, 17, 24
+# zind building 002 --totally off, building 007, 016, 14, 17, 24
 
 # 013 looks good, 23 looks good.
 
@@ -116,9 +116,9 @@ def main() -> None:
                 
                 img_resized = cv2.resize(img, (1024,512))
                 img_h, img_w, _ = img_resized.shape
-                # plt.imshow(img_resized)
+                plt.imshow(img_resized)
 
-                model_names = ["rmx-madori-v1_predictions"] # MODEL_NAMES
+                model_names = ["rmx-tg-manh-v1_predictions"] # "rmx-madori-v1_predictions"] # MODEL_NAMES
                 # plot the image in question
                 for model_name in model_names:
                     print(f"\tLoaded {model_name} prediction for Pano {i}")
@@ -129,7 +129,7 @@ def main() -> None:
 
                     if model_name == "rmx-madori-v1_predictions":
                         pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
-                        pred_obj.render_layout_on_pano(img_h, img_w)
+                        #pred_obj.render_layout_on_pano(img_h, img_w)
 
                         # import pdb; pdb.set_trace()
 
@@ -138,15 +138,18 @@ def main() -> None:
                         # if not prediction_data["predictions"] == prediction_data["raw_predictions"]:
                         #     import pdb; pdb.set_trace()
                         #print("\tDWO RCNN: ", pred_obj)
+                    elif model_name == "rmx-tg-manh-v1_predictions":
+                        pred_obj = PanoStructurePredictionRmxTgManhV1.from_json(prediction_data[0]["predictions"])
+                        pred_obj.render_layout_on_pano(img_h, img_w)
                     else:
                         continue
 
-                # plt.title(f"Pano {i} from Building {zind_building_id}")
-                # os.makedirs(f"prod_pred_model_visualizations/{model_name}", exist_ok=True)
-                # plt.savefig(f"prod_pred_model_visualizations/{model_name}/{zind_building_id}_{i}.jpg", dpi=400)
-                # #plt.show()
-                # plt.close("all")
-                # plt.figure(figsize=(20,10))
+                plt.title(f"Pano {i} from Building {zind_building_id}")
+                os.makedirs(f"prod_pred_model_visualizations/{model_name}", exist_ok=True)
+                plt.savefig(f"prod_pred_model_visualizations/{model_name}/{zind_building_id}_{i}.jpg", dpi=400)
+                #plt.show()
+                plt.close("all")
+                plt.figure(figsize=(20,10))
 
 @dataclass
 class RcnnDwoPred:
@@ -191,6 +194,46 @@ class PanoStructurePredictionRmxDwoRCNN:
 
         return cls(dwo_preds=dwo_preds)
 
+
+@dataclass
+class PanoStructurePredictionRmxTgManhV1:
+    """
+    from `rmx-tg-manh-v1_predictions` results.
+
+    Note: Total geometry with Manhattan world assumptions is not very useful, as Manhattanization is
+    too strong of an assumption for real homes.
+    """
+    ceiling_height: float
+    floor_height: float
+    corners_in_uv: np.ndarray # (N,2)
+    wall_wall_probabilities: np.ndarray # (N,1)
+
+
+    def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
+        """ """
+        uv = copy.deepcopy(self.corners_in_uv)
+        uv[:,0] *= img_w
+        uv[:,1] *= img_h
+
+        floor_uv = uv[::2]
+        ceiling_uv = uv[1::2]
+
+        plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='o')
+        plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='o')
+
+
+    @classmethod
+    def from_json(cls, json_data: Any) -> "PanoStructurePredictionRmxTgManhV1":
+        """
+        Dictionary with keys:
+            'ceiling_height', 'floor_height', 'corners_in_uv', 'wall_wall_probabilities'
+        """
+        return cls(
+            ceiling_height=json_data["room_shape"]["ceiling_height"],
+            floor_height=json_data["room_shape"]["floor_height"],
+            corners_in_uv=np.array(json_data["room_shape"]["corners_in_uv"]),
+            wall_wall_probabilities=np.array(json_data["room_shape"]["wall_wall_probabilities"])
+        )
 
 @dataclass
 class RmxMadoriV1DWO:
