@@ -155,6 +155,10 @@ def plot_3d_poses(aTi_list_gt: List[Optional[Pose3]], bTi_list_est: List[Optiona
 
     Ground truth poses are rendered large (sphere of radius 0.5)
     Estimated poses are rendered small (spehere of radius 0.2)
+
+    Args:
+        aTi_list_gt: list of ground truth camera poses.
+        bTi_list_est: list of estimated camera poses.
     """
 
     def get_colormapped_spheres(wTi_list: List[Optional[Pose3]]) -> np.ndarray:
@@ -195,11 +199,8 @@ def plot_3d_poses(aTi_list_gt: List[Optional[Pose3]], bTi_list_est: List[Optiona
     open3d.visualization.draw_geometries(geo1 + geo2 + frames1 + frames2)
 
 
-
-
-
 def get_colormap(N: int) -> np.ndarray:
-    """
+    """Obtain an RGB colormap from red to green, with N unique colors.
 
     Args:
         N: number of unique colors to generate.
@@ -252,8 +253,11 @@ def draw_coordinate_frame(wTc: Pose3, axis_length: float = 1.0) -> List[open3d.g
 
 
 def analyze_algorithm_results(json_results_dict: str) -> None:
-    """ """
+    """
 
+    Args:
+        json_results_dict:
+    """
     num_ccs_per_floor = []
     cc_idx_arr = []
     num_cameras_in_cc = []
@@ -417,9 +421,12 @@ def main():
     # For OpenMVG
     #run_openmvg_all_tours()
 
-    reconstruction_json_fpath = "/Users/johnlam/Downloads/openmvg_demo/ZinD_1183_floor_01__2021_09_21/reconstruction/sfm_data.json"
-    building_id = "1183"
-    floor_id = "floor_01"
+    # reconstruction_json_fpath = "/Users/johnlam/Downloads/openmvg_demo/ZinD_1183_floor_01__2021_09_21/reconstruction/sfm_data.json"
+    # building_id = "1183"
+    # floor_id = "floor_01"
+
+    reconstruction_json_fpath
+
     raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
     measure_algorithm_localization_accuracy(reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir, algorithm_name="openmvg")
 
