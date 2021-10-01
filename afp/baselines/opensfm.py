@@ -35,19 +35,6 @@ def panoid_from_key(key: str) -> int:
     return int(Path(key).stem.split("_")[-1])
 
 
-def assign_shot_attributes(obj: Dict[str, Any], shot) -> None:  # pymap.Shot
-    shot.metadata = json_to_pymap_metadata(obj)
-    if "scale" in obj:
-        shot.scale = obj["scale"]
-    if "covariance" in obj:
-        shot.covariance = np.array(obj["covariance"])
-    if "merge_cc" in obj:
-        shot.merge_cc = obj["merge_cc"]
-    if "vertices" in obj and "faces" in obj:
-        shot.mesh.vertices = obj["vertices"]
-        shot.mesh.faces = obj["faces"]
-
-
 def json_to_pymap_metadata(obj: Dict[str, Any]):  # -> pymap.ShotMeasurements:
     metadata = pymap.ShotMeasurements()
     if obj.get("orientation") is not None:
@@ -104,14 +91,13 @@ def shot_in_reconstruction_from_json(
     #     # equivalent to self.map.create_shot(shot_id, camera_id, pose)
     #     # https://github.com/mapillary/OpenSfM/blob/master/opensfm/types.py#L162
     #     shot = reconstruction.create_shot(key, obj["camera"], pose)
-    # assign_shot_attributes(obj, shot)
     return pose  # shot
 
 
 def pose_from_json(obj: Dict[str, Any]) -> Pose3:
-    """
-    The OpenSfM Pose class contains a rotation field, representing the local coordinate system as an axis-angle vector.
+    """Convert the stored extrinsics on disk to a camera pose.
 
+    Note: The OpenSfM Pose class contains a rotation field, representing the local coordinate system as an axis-angle vector.
     The direction of this 3D vector represents the axis around which to rotate.
     The length of this vector is the angle to rotate around said axis. It is in radians.
 
@@ -123,20 +109,23 @@ def pose_from_json(obj: Dict[str, Any]) -> Pose3:
             "translation": [X, Y, Z],   # Estimated translation
 
     Returns:
-        TODO: confirm if cTw or wTc
+        wTc: pose of camera in the world frame.
     """
     R = VectorToRotationMatrix(np.array(obj["rotation"]))
     if "translation" in obj:
         t = obj["translation"]
 
-    # Equivalent to Pybind
+    # Equivalent to Pybind functions below
     # .def_property("rotation", &geometry::Pose::RotationWorldToCameraMin,
     #               &geometry::Pose::SetWorldToCamRotation)
     # .def_property("translation", &geometry::Pose::TranslationWorldToCamera,
     #               &geometry::Pose::SetWorldToCamTranslation)
 
-    # OpenSfM stores extrinsics, not poses in a world frame.
-    return Pose3(R, t).inverse()
+    # OpenSfM stores extrinsics cTw, not poses wTc in a world frame.
+    # https://github.com/mapillary/OpenSfM/issues/793
+    cTw = Pose3(R, t)
+    wTc = cTw.inverse()
+    return wTc
 
 
 def VectorToRotationMatrix(r: np.ndarray) -> Rot3:
@@ -445,17 +434,6 @@ def run_opensfm_over_all_zind() -> None:
                 logger.exception(f"OpenSfM failed for {building_id} {floor_id}")
                 print(f"failed on Building {building_id} {floor_id}")
                 continue
-
-
-def get_buildingid_floorid_from_json_fpath(fpath: str) -> Tuple[str, str]:
-    """
-    From a JSON results fpath, get tour metadata.
-    """
-    json_fname_stem = Path(fpath).stem
-    k = json_fname_stem.find("_f")
-    building_id = json_fname_stem[:k]
-    floor_id = json_fname_stem[k + 1 :]
-    return building_id, floor_id
 
 
 if __name__ == "__main__":
