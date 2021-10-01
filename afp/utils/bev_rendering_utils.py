@@ -1,3 +1,7 @@
+
+"""
+"""
+
 import json
 import os
 from pathlib import Path
@@ -25,6 +29,11 @@ from afp.utils.interpolation_utils import remove_hallucinated_content, interp_de
 from afp.utils.pano_utils import get_uni_sphere_xyz
 from afp.utils.rotation_utils import rotmat2d
 from afp.utils.zorder_utils import choose_elevated_repeated_vals
+
+RED = [255, 0, 0]
+GREEN = [0, 255, 0]
+BLUE = [0, 0, 255]
+WDO_COLOR_DICT_CV2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
 def prune_to_2d_bbox(
@@ -175,15 +184,10 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
             thickness=10,
         )
 
-    RED = [255, 0, 0]
-    GREEN = [0, 255, 0]
-    BLUE = [0, 0, 255]
-    wdo_color_dict_cv2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
-
     for wdo_idx, wdo in enumerate(wdo_objs):
 
         wdo_type = wdo.type
-        wdo_color = wdo_color_dict_cv2[wdo_type]
+        wdo_color = WDO_COLOR_DICT_CV2[wdo_type]
         bev_img = rasterize_polyline(
             polyline_xy=wdo.vertices_local_2d * HOHO_S_ZIND_SCALE_FACTOR,
             bev_img=bev_img,
@@ -249,6 +253,7 @@ def draw_polyline_cv2(
         color: Tuple of shape (3,) with a BGR format color
         im_h: Image height in pixels
         im_w: Image width in pixels
+        thickness: 
     """
     for i in range(line_segments_arr.shape[0] - 1):
         x1 = line_segments_arr[i][0]
@@ -301,7 +306,6 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
     # img_h = ymax + 1
     # img_w = xmax + 1
 
-    # import pdb; pdb.set_trace()
     img_h = bev_params.img_h + 1
     img_w = bev_params.img_w + 1
 
@@ -484,7 +488,17 @@ def vis_depth(args):
 def render_bev_pair(
     args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
-    """ """
+    """
+
+    Args:
+        args:
+        building_id
+        floor_id
+        i1: id of panorama 1
+        i2: id of panorama 2
+        i2Ti1
+        is_semantics:
+    """
 
     xyzrgb1 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i1, rgb_fpath=args.img_i1, is_semantics=is_semantics)
     xyzrgb2 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i2, rgb_fpath=args.img_i2, is_semantics=is_semantics)
