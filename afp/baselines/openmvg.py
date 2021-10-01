@@ -18,6 +18,8 @@ from gtsam import Rot3, Pose3
 from afp.baselines.sfm_reconstruction import SfmReconstruction
 
 
+OPENMVG_SFM_BIN = "/Users/johnlam/Downloads/openMVG_Build/Darwin-x86_64-RELEASE"
+
 def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, reconstruction_dirpath: str) -> None:
     """
 
@@ -33,9 +35,7 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
     image_fpaths.sort(key=lambda x: int(Path(x).stem.split("_")[-1]))
     # find an adjacent pair
 
-    import pdb
-
-    pdb.set_trace()
+    import pdb; pdb.set_trace()
 
     frame_idxs = np.array([int(Path(x).stem.split("_")[-1]) for x in image_fpaths])
     temporal_dist = np.diff(frame_idxs)
@@ -52,7 +52,7 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
     # Configure the scene to use the Spherical camera model and a unit focal length
     # "-c" is "camera_model" and "-f" is "focal_pixels"
     # defined here: https://github.com/openMVG/openMVG/blob/develop/src/openMVG/cameras/Camera_Common.hpp#L48
-    cmd = f"./openMVG_main_SfMInit_ImageListing -i {image_dirpath} -o {matches_dirpath} -c 7 -f 1"
+    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_SfMInit_ImageListing -i {image_dirpath} -o {matches_dirpath} -c 7 -f 1"
     stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
     print("STDOUT: ", stdout)
     print("STDERR: ", stderr)
@@ -60,20 +60,20 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
     # Extract the features (using the HIGH preset is advised, since the spherical image introduced distortions)
     # Can also pass "-u" for upright, per:
     #     https://github.com/openMVG/openMVG/blob/develop/docs/sphinx/rst/software/SfM/ComputeFeatures.rst
-    cmd = f"./openMVG_main_ComputeFeatures -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -m SIFT -p HIGH"
+    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ComputeFeatures -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -m SIFT -p HIGH"
     stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
     print("STDOUT: ", stdout)
     print("STDERR: ", stderr)
 
     # Computes the matches (using the Essential matrix with an angular constraint)
     # can also pass the "-u" for upright, per https://github.com/openMVG/openMVG/issues/1731
-    cmd = f"./openMVG_main_ComputeMatches -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -g a"
+    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ComputeMatches -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -g a"
     stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
     print("STDOUT: ", stdout)
     print("STDERR: ", stderr)
 
     # Compute the reconstruction
-    cmd = f"./openMVG_main_IncrementalSfM -i {matches_dirpath}/sfm_data.json"
+    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_IncrementalSfM -i {matches_dirpath}/sfm_data.json"
     cmd += f" -m {matches_dirpath} -o {reconstruction_dirpath} -a {seed_fname1} -b {seed_fname2}"
     # Since the spherical geometry is different than classic pinhole images, the best is to provide the initial pair by hand with the -a -b image basenames (i.e. R0010762.JPG).
     stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
@@ -83,7 +83,7 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
     input_fpath = f"{reconstruction_dirpath}/sfm_data.bin"
     output_fpath = f"{reconstruction_dirpath}/sfm_data.json"
     # convert the "VIEWS", "INTRINSICS", "EXTRINSICS"
-    cmd = f"./openMVG_main_ConvertSfM_DataFormat -i {input_fpath} -o {output_fpath} -V -I -E"
+    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ConvertSfM_DataFormat -i {input_fpath} -o {output_fpath} -V -I -E"
     subprocess_utils.run_command(cmd)
 
 
@@ -163,6 +163,7 @@ def load_openmvg_reconstructions_from_json(building_id: str, floor_id: str) -> L
         floor_id
 
     Returns:
+        reconstructions
     """
     OPEMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo"
 
