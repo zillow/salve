@@ -31,10 +31,10 @@ def xyzrgb_to_open3d_point_cloud(xyzrgb: np.ndarray) -> open3d.geometry.PointClo
     Returns:
         pcd
     """
-    colors = xyzrgb[:,3:].astype(np.float64) #/ 255
+    colors = xyzrgb[:, 3:].astype(np.float64)  # / 255
 
     pcd = open3d.geometry.PointCloud()
-    pcd.points = open3d.utility.Vector3dVector(xyzrgb[:,:3])
+    pcd.points = open3d.utility.Vector3dVector(xyzrgb[:, :3])
     pcd.colors = open3d.utility.Vector3dVector(colors)
     return pcd
 
@@ -116,16 +116,18 @@ def register_all_scenes() -> None:
     """
 
     Look for pairs, e.g.
-        floor_01_partial_room_01_pano_3.depth.png 
+        floor_01_partial_room_01_pano_3.depth.png
         floor_01_partial_room_01_pano_3.jpg
     """
 
-    args = SimpleNamespace(**{
-        "scale": 0.001,
-        "crop_ratio": 80 / 512,  # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-        "crop_z_range": [-10,10], # crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
-        #"crop_z_above": 2
-    })
+    args = SimpleNamespace(
+        **{
+            "scale": 0.001,
+            "crop_ratio": 80 / 512,  # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
+            "crop_z_range": [-10, 10],  # crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
+            # "crop_z_above": 2
+        }
+    )
 
     # depthmap_dirpath = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps/000"
     # pano_dirpath = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw/000/panos"
@@ -133,7 +135,7 @@ def register_all_scenes() -> None:
     depthmap_dirpath = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps/267"
     pano_dirpath = "/Users/johnlam/Downloads/complete_07_10_new/267/panos"
 
-    for floor_id in ["floor_00"]: #, "floor_01", "floor_02", "floor_03"]:
+    for floor_id in ["floor_00"]:  # , "floor_01", "floor_02", "floor_03"]:
 
         depthmap_fpaths = glob.glob(f"{depthmap_dirpath}/*{floor_id}*.png")
         depthmap_fpaths.sort()
@@ -151,19 +153,14 @@ def register_all_scenes() -> None:
 
             pano_img1 = imageio.imread(pano_fpath1)
             xyzrgb1 = bev_rendering_utils.get_xyzrgb_from_depth(
-                args=args,
-                depth_fpath=depthmap_fpath1,
-                rgb_fpath=pano_fpath1,
-                is_semantics=False
+                args=args, depth_fpath=depthmap_fpath1, rgb_fpath=pano_fpath1, is_semantics=False
             )
 
             pcd1 = xyzrgb_to_open3d_point_cloud(xyzrgb1)
             # pcd1.estimate_normals(
             #     search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
             # )
-            open3d.visualization.draw_geometries(
-                [pcd1]
-            )
+            open3d.visualization.draw_geometries([pcd1])
 
             for i2, depthmap_fpath2 in enumerate(depthmap_fpaths):
 
@@ -182,41 +179,36 @@ def register_all_scenes() -> None:
 
                 pano_img2 = imageio.imread(pano_fpath2)
 
-                plt.subplot(2,2,1)
+                plt.subplot(2, 2, 1)
                 plt.imshow(pano_img1)
-                plt.subplot(2,2,2)
+                plt.subplot(2, 2, 2)
                 plt.imshow(depthmap_img1)
 
-                plt.subplot(2,2,3)
+                plt.subplot(2, 2, 3)
                 plt.imshow(pano_img2)
-                plt.subplot(2,2,4)
+                plt.subplot(2, 2, 4)
                 plt.imshow(depthmap_img2)
 
                 plt.show()
 
                 xyzrgb2 = bev_rendering_utils.get_xyzrgb_from_depth(
-                    args=args,
-                    depth_fpath=depthmap_fpath2,
-                    rgb_fpath=pano_fpath2,
-                    is_semantics=False
+                    args=args, depth_fpath=depthmap_fpath2, rgb_fpath=pano_fpath2, is_semantics=False
                 )
 
                 pcd2 = xyzrgb_to_open3d_point_cloud(xyzrgb2)
                 # pcd2.estimate_normals(
                 #     search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
                 # )
-                open3d.visualization.draw_geometries(
-                    [pcd2]
-                )
+                open3d.visualization.draw_geometries([pcd2])
 
                 print(f"Register {i1} {i2}")
-                import pdb; pdb.set_trace()
+                import pdb
+
+                pdb.set_trace()
                 i2Ti1 = register_colored_point_clouds(source=pcd1, target=pcd2)
                 # i2Ti1 = register_point_clouds(source=pcd1, target=pcd2)
 
-                open3d.visualization.draw_geometries(
-                    [pcd2, pcd1.transform(i2Ti1)]
-                )
+                open3d.visualization.draw_geometries([pcd2, pcd1.transform(i2Ti1)])
 
 
 def test_transform() -> None:
@@ -229,15 +221,15 @@ def test_transform() -> None:
         ]
     )
     # fmt: on
-    R = Rot3.RzRyRx(x=np.pi/2, y=0, z=0)
-    t = np.array([1,2,3])
+    R = Rot3.RzRyRx(x=np.pi / 2, y=0, z=0)
+    t = np.array([1, 2, 3])
     tTs = Pose3(R, t)
 
     point_t0 = tTs.transformFrom(points_src[0])
     point_t1 = tTs.transformFrom(points_src[1])
 
     pcd_s = open3d.geometry.PointCloud()
-    pcd_s.points =  open3d.utility.Vector3dVector(points_src)
+    pcd_s.points = open3d.utility.Vector3dVector(points_src)
 
     # identical to tTs.transformFrom(pcd_s)
     pcd_t = pcd_s.transform(tTs.matrix())
@@ -246,7 +238,6 @@ def test_transform() -> None:
     # [1,2,6]
     assert np.allclose(np.asarray(pcd_t.points)[0], point_t0)
     assert np.allclose(np.asarray(pcd_t.points)[1], point_t1)
-
 
 
 if __name__ == "__main__":
