@@ -260,44 +260,75 @@ def draw_coordinate_frame(wTc: Pose3, axis_length: float = 1.0) -> List[open3d.g
     return line_sets
 
 
-def analyze_algorithm_results(json_results_dict: str) -> None:
+def count_panos_on_floor(raw_dataset_dir: str, building_id: str, floor_id: str) -> int:
+    """Count the number of panoramas on a specified floor of a specified building."""
+    src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
+    pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
+    return len(pano_fpaths)
+
+
+def test_count_panos_on_floor() -> None:
+    """Ensure that the number of panoramas on a floor is counted correctly."""
+
+    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+    building_id = "379"
+
+    import pdb; pdb.set_trace()
+
+    num_floor0_panos = count_panos_on_floor(raw_dataset_dir, building_id, floor_id="floor_00")
+    assert num_floor0_panos == 8
+
+    num_floor1_panos = count_panos_on_floor(raw_dataset_dir, building_id, floor_id="floor_01")
+    assert num_floor1_panos == 13
+
+
+
+def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> None:
     """Analyze the accuracy of global pose estimation (camera localization) from a third-party SfM algorithm.
 
     Args:
-        json_results_dict:
+        json_results_dir:
     """
     num_ccs_per_floor = []
+    # stats below are aggregated over all CCs, independent of which floor or building they came from.
     cc_idx_arr = []
     num_cameras_in_cc = []
     avg_rot_err_per_cc = []
     avg_trans_err_per_cc = []
 
+    # stats over all floors, independent of which building they came from.
     num_dropped_cameras_per_floor = []
     percent_reconstructed_cameras_per_floor = []
     percent_in_largest_cc_per_floor = []
 
     json_fpaths = glob.glob(f"{json_results_dir}/*.json")
-    for json_fpath in json_fpaths:
-        data = json_utils.read_json_file(json_fpath)
+    num_reconstructed_floors = len(json_fpaths)
 
+    for json_fpath in json_fpaths:
+        # each entry in the list contains info about a single CC
+        all_cc_data = json_utils.read_json_file(json_fpath)
+
+        # set to zero, in case the floor has no CCs, to avoid defaulting to previous variable value
         num_cameras = 0
-        num_points = 0
         mean_abs_rot_err = 0
         mean_abs_trans_err = 0
-        num_reconst_cameras_on_floor = 0
+        num_reconst_cameras_on_floor = 0 # represents the cardinality of union of all CCs
         num_reconst_cameras_largest_cc = 0
 
-        num_ccs_per_floor.append(len(data))
+        num_ccs_per_floor.append(len(all_cc_data))
+
+        if num_ccs_per_floor == 0:
+            import pdb; pdb.set_trace()
 
         # loop through the connected components
         # CC's are sorted by cardinality
-        for cc_idx, cc_info in enumerate(data):
+        for cc_idx, cc_info in enumerate(all_cc_data):
 
             if cc_idx >= 10:
                 continue
 
+            # Note: we ignore the number of 3d reconstructed points, accessible via cc_info["num_points"]
             num_cameras = cc_info["num_cameras"]
-            num_points = cc_info["num_points"]
             mean_abs_rot_err = cc_info["mean_abs_rot_err"]
             mean_abs_trans_err = cc_info["mean_abs_trans_err"]
 
@@ -305,25 +336,27 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
             if cc_idx == 0:
                 num_reconst_cameras_largest_cc = num_cameras
 
-            print(f"CC {cc_idx} has {num_cameras} cameras.")
+            #print(f"CC {cc_idx} has {num_cameras} cameras.")
 
             cc_idx_arr.append(cc_idx)
             num_cameras_in_cc.append(num_cameras)
             avg_rot_err_per_cc.append(mean_abs_rot_err)
             avg_trans_err_per_cc.append(mean_abs_trans_err)
 
-        # how many cameras get left out?
-        # import pdb; pdb.set_trace()
+        # how many cameras get left out of any CC, on this floor?
         building_id, floor_id = get_buildingid_floorid_from_json_fpath(json_fpath)
-        panos_dirpath = f"/Users/johnlam/Downloads/OpenSfM/data/ZinD_{building_id}_{floor_id}__2021_09_13/images"
-        num_panos = len(glob.glob(f"{panos_dirpath}/*.jpg"))
+        print(f"\tAnalyzing Building {building_id}, {floor_id}")
+
+        num_panos = count_panos_on_floor(raw_dataset_dir, building_id, floor_id)
+        # find # of cameras that didn't appear anywhere in the union of all CCs
         num_dropped_cameras = num_panos - num_reconst_cameras_on_floor
+        num_dropped_cameras_per_floor.append(num_dropped_cameras)
         if num_panos == 0:
             import pdb
-
             pdb.set_trace()
+
+        # what % is found in the union?
         percent_reconstructed = num_reconst_cameras_on_floor / num_panos * 100
-        num_dropped_cameras_per_floor.append(num_dropped_cameras)
         percent_reconstructed_cameras_per_floor.append(percent_reconstructed)
 
         percent_in_largest_cc = num_reconst_cameras_largest_cc / num_panos * 100
@@ -334,6 +367,8 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
 
             pdb.set_trace()
 
+    print(f"Computed numbers over {num_reconstructed_floors} reconstructed floors.")
+
     print("Mean percent_in_largest_cc_per_floor: ", np.mean(percent_in_largest_cc_per_floor))
     print("Median percent_in_largest_cc_per_floor: ", np.median(percent_in_largest_cc_per_floor))
 
@@ -343,7 +378,7 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
     plt.xlabel("% of All Panos Localized in Largest CC")
     plt.show()
 
-    plt.hist(num_dropped_cameras_per_floor)
+    plt.hist(num_dropped_cameras_per_floor, bins=20)
     plt.title("num_dropped_cameras_per_floor)")
     plt.ylabel("Counts")
     plt.show()
@@ -380,7 +415,7 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
     camera_counts_per_cc_idx = np.zeros(10)
     for (cc_idx, num_cameras) in zip(cc_idx_arr, num_cameras_in_cc):
         camera_counts_per_cc_idx[cc_idx] += num_cameras
-    camera_counts_per_cc_idx /= len(json_fpaths)
+    camera_counts_per_cc_idx /= num_reconstructed_floors
 
     plt.bar(x=range(10), height=camera_counts_per_cc_idx)
     plt.xticks(range(10))
@@ -388,8 +423,6 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
     plt.xlabel("i'th CC")
     plt.ylabel("Avg. # Cameras")
     plt.show()
-    # import pdb; pdb.set_trace()
-    quit()
 
     # Histogram of number of CCs per floor
     plt.hist(num_ccs_per_floor, bins=np.arange(0, 20) - 0.5)  # center the bins
@@ -422,12 +455,26 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
     plt.show()
 
 
+def get_buildingid_floorid_from_json_fpath(fpath: str) -> Tuple[str, str]:
+    """From a JSON results fpath, get tour metadata.
+
+    Args:
+        fpath: file path to JSON file, of the form `1167_floor_02.json`
+    """
+    json_fname_stem = Path(fpath).stem
+    k = json_fname_stem.find("_f")
+    building_id = json_fname_stem[:k]
+    floor_id = json_fname_stem[k + 1 :]
+    return building_id, floor_id
+
+
 def main():
     """ """
+    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
-    # for OpenSFM
-    # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
-    # analyze_algorithm_results(json_results_dir)
+    # for OpenSFM -- analyze error results dumped to JSON files.
+    json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
+    analyze_algorithm_results(json_results_dir, raw_dataset_dir)
 
     # For OpenMVG
     # run_openmvg_all_tours()
@@ -436,12 +483,19 @@ def main():
     # building_id = "1183"
     # floor_id = "floor_01"
 
-    reconstruction_json_fpath
+    # reconstruction_json_fpath
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
-    measure_algorithm_localization_accuracy(
-        reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir, algorithm_name="openmvg"
-    )
+    
+    # measure_algorithm_localization_accuracy(
+    #     reconstruction_json_fpath=reconstruction_json_fpath,
+    #     building_id=building_id,
+    #     floor_id=floor_id,
+    #     raw_dataset_dir=raw_dataset_dir,
+    #     algorithm_name="openmvg"
+    # )
+
+
+
 
     # then analyze the mean statistics
 
