@@ -1,4 +1,3 @@
-
 """
 Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
 """
@@ -49,16 +48,16 @@ def get_zillow_T_opensfm() -> Pose3:
 
 
 def get_zillow_T_openmvg() -> Pose3:
-    """ 
+    """
     Transform OpenMVG camera to ZinD camera.
 
     Note: x,y,z axes correspond to red, green, blue colors.
 
     """
     # in radians
-    Rx = 0.0 #-np.pi/2 # -90 deg.
-    Ry = -np.pi/2 # 0.0
-    Rz = 0.0 #- np.pi/2 # 90 deg.
+    Rx = 0.0  # -np.pi/2 # -90 deg.
+    Ry = -np.pi / 2  # 0.0
+    Rz = 0.0  # - np.pi/2 # 90 deg.
     zillow_R_openmvg = Rot3.RzRyRx(Rx, Ry, Rz)
     zillow_T_openmvg = Pose3(zillow_R_openmvg, np.zeros(3))
     return zillow_T_openmvg
@@ -78,10 +77,10 @@ def measure_algorithm_localization_accuracy(
         raw_dataset_dir:
     """
     if algorithm_name == "opensfm":
-    	reconstructions = opensfm_utils.load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
+        reconstructions = opensfm_utils.load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
 
     elif algorithm_name == "openmvg":
-    	reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(building_id, floor_id)
+        reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(building_id, floor_id)
 
     gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
@@ -102,17 +101,19 @@ def measure_algorithm_localization_accuracy(
 
             zillowcam_T_openmvg = get_zillow_T_openmvg()
             zillowcam_T_algocam = zillowcam_T_openmvg
-            #zillowcam_T_algocam = Pose3()
+            # zillowcam_T_algocam = Pose3()
 
         bTi_list_est = [bTi.compose(zillowcam_T_algocam) if bTi is not None else None for bTi in bTi_list_est]
-        
-        import pdb; pdb.set_trace()
+
+        import pdb
+
+        pdb.set_trace()
         plot_3d_poses(aTi_list_gt, bTi_list_est)
 
         # align it to the 2d pose graph using Sim(3)
         aligned_bTi_list_est, _ = geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
-        plot_3d_poses(aTi_list_gt, aligned_bTi_list_est) # visualize after alignment
+        plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
 
         # project to 2d
         est_floor_pose_graph = PoseGraph3d.from_wTi_list(aligned_bTi_list_est, building_id, floor_id)
@@ -129,11 +130,17 @@ def measure_algorithm_localization_accuracy(
             gt_floor_pg=gt_floor_pose_graph
         )
 
-        os.makedirs(f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_viz/{building_id}_{floor_id}", exist_ok=True)
+        os.makedirs(
+            f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_viz/{building_id}_{floor_id}", exist_ok=True
+        )
         plot_save_fpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_viz/{building_id}_{floor_id}/opensfm_reconstruction_{r}.jpg"
         # render estimated layout
         est_floor_pose_graph.render_estimated_layout(
-            show_plot=False, save_plot=True, plot_save_dir=None, gt_floor_pg=gt_floor_pose_graph, plot_save_fpath=plot_save_fpath
+            show_plot=False,
+            save_plot=True,
+            plot_save_dir=None,
+            gt_floor_pg=gt_floor_pose_graph,
+            plot_save_fpath=plot_save_fpath,
         )
 
         floor_results_dict = {
@@ -141,13 +148,14 @@ def measure_algorithm_localization_accuracy(
             "num_cameras": len(reconstruction.pose_dict),
             "num_points": reconstruction.points.shape[0],
             "mean_abs_rot_err": mean_abs_rot_err,
-            "mean_abs_trans_err": mean_abs_trans_err
+            "mean_abs_trans_err": mean_abs_trans_err,
         }
         floor_results_dicts.append(floor_results_dict)
-    
-    json_save_fpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results/{building_id}_{floor_id}.json"
-    json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
 
+    json_save_fpath = (
+        f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results/{building_id}_{floor_id}.json"
+    )
+    json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
 
 
 def plot_3d_poses(aTi_list_gt: List[Optional[Pose3]], bTi_list_est: List[Optional[Pose3]]) -> None:
@@ -253,7 +261,7 @@ def draw_coordinate_frame(wTc: Pose3, axis_length: float = 1.0) -> List[open3d.g
 
 
 def analyze_algorithm_results(json_results_dict: str) -> None:
-    """
+    """Analyze the accuracy of global pose estimation (camera localization) from a third-party SfM algorithm.
 
     Args:
         json_results_dict:
@@ -305,13 +313,15 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
             avg_trans_err_per_cc.append(mean_abs_trans_err)
 
         # how many cameras get left out?
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         building_id, floor_id = get_buildingid_floorid_from_json_fpath(json_fpath)
         panos_dirpath = f"/Users/johnlam/Downloads/OpenSfM/data/ZinD_{building_id}_{floor_id}__2021_09_13/images"
         num_panos = len(glob.glob(f"{panos_dirpath}/*.jpg"))
         num_dropped_cameras = num_panos - num_reconst_cameras_on_floor
         if num_panos == 0:
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
         percent_reconstructed = num_reconst_cameras_on_floor / num_panos * 100
         num_dropped_cameras_per_floor.append(num_dropped_cameras)
         percent_reconstructed_cameras_per_floor.append(percent_reconstructed)
@@ -320,7 +330,9 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
         percent_in_largest_cc_per_floor.append(percent_in_largest_cc)
 
         if percent_in_largest_cc > 100:
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
 
     print("Mean percent_in_largest_cc_per_floor: ", np.mean(percent_in_largest_cc_per_floor))
     print("Median percent_in_largest_cc_per_floor: ", np.median(percent_in_largest_cc_per_floor))
@@ -350,16 +362,16 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
 
     print("Mean of Avg. Rot. Error within CC: ", np.mean(avg_rot_err_per_cc))
     print("Median of Avg. Rot. Error within CC: ", np.median(avg_rot_err_per_cc))
-    
+
     print("Mean of Avg. Trans. Error within CC: ", np.mean(avg_trans_err_per_cc))
     print("Median of Avg. Trans. Error within CC: ", np.median(avg_trans_err_per_cc))
 
-    plt.hist(avg_trans_err_per_cc, bins=np.linspace(0,5,20))
+    plt.hist(avg_trans_err_per_cc, bins=np.linspace(0, 5, 20))
     plt.ylabel("Counts")
     plt.xlabel("Avg. Trans. Error per CC")
     plt.show()
 
-    plt.hist(avg_rot_err_per_cc, bins=np.linspace(0,5,20))
+    plt.hist(avg_rot_err_per_cc, bins=np.linspace(0, 5, 20))
     plt.ylabel("Counts")
     plt.xlabel("Avg. Rot. Error per CC")
     plt.show()
@@ -369,18 +381,18 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
     for (cc_idx, num_cameras) in zip(cc_idx_arr, num_cameras_in_cc):
         camera_counts_per_cc_idx[cc_idx] += num_cameras
     camera_counts_per_cc_idx /= len(json_fpaths)
-    
+
     plt.bar(x=range(10), height=camera_counts_per_cc_idx)
     plt.xticks(range(10))
     plt.title("Avg. # Cameras in i'th CC")
     plt.xlabel("i'th CC")
     plt.ylabel("Avg. # Cameras")
     plt.show()
-    #import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     quit()
 
     # Histogram of number of CCs per floor
-    plt.hist(num_ccs_per_floor, bins=np.arange(0,20)-0.5) # center the bins
+    plt.hist(num_ccs_per_floor, bins=np.arange(0, 20) - 0.5)  # center the bins
     plt.xticks(range(20))
     plt.xlabel("Number of CCs per Floor")
     plt.ylabel("Counts")
@@ -388,21 +400,21 @@ def analyze_algorithm_results(json_results_dict: str) -> None:
     plt.show()
 
     # average rot error vs. number of cameras in component
-    plt.scatter(num_cameras_in_cc, avg_rot_err_per_cc, 10, color='r', marker='.')
+    plt.scatter(num_cameras_in_cc, avg_rot_err_per_cc, 10, color="r", marker=".")
     plt.title("Avg Rot Error per CC vs. Num Cameras in CC")
     plt.xlabel("Num Cameras in CC")
     plt.ylabel("Avg Rot Error per CC (degrees)")
     plt.show()
 
     # average trans error vs. number of cameras in component
-    plt.scatter(num_cameras_in_cc, avg_trans_err_per_cc, 10, color='r', marker='.')
+    plt.scatter(num_cameras_in_cc, avg_trans_err_per_cc, 10, color="r", marker=".")
     plt.title("Avg Translation Error per CC vs. Num Cameras in CC")
     plt.xlabel("Num Cameras in CC")
     plt.ylabel("Avg Translation Error per CC")
     plt.show()
 
     # histogram of CC size
-    plt.hist(num_cameras_in_cc, bins=np.arange(0,20)-0.5) # center the bins
+    plt.hist(num_cameras_in_cc, bins=np.arange(0, 20) - 0.5)  # center the bins
     plt.xticks(range(20))
     plt.xlabel("Number of Cameras in CC")
     plt.ylabel("Counts")
@@ -417,9 +429,8 @@ def main():
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
     # analyze_algorithm_results(json_results_dir)
 
-
     # For OpenMVG
-    #run_openmvg_all_tours()
+    # run_openmvg_all_tours()
 
     # reconstruction_json_fpath = "/Users/johnlam/Downloads/openmvg_demo/ZinD_1183_floor_01__2021_09_21/reconstruction/sfm_data.json"
     # building_id = "1183"
@@ -428,17 +439,12 @@ def main():
     reconstruction_json_fpath
 
     raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
-    measure_algorithm_localization_accuracy(reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir, algorithm_name="openmvg")
+    measure_algorithm_localization_accuracy(
+        reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir, algorithm_name="openmvg"
+    )
 
     # then analyze the mean statistics
 
 
-
-
 if __name__ == "__main__":
-	main()
-
-
-
-
-
+    main()
