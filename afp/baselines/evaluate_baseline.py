@@ -74,6 +74,24 @@ def get_openmvg_T_zillow() -> Pose3:
     return openmvg_T_zillow
 
 
+def save_empty_json_results_file(building_id: str, floor_id: str, algorithm_name: str) -> None:
+    """ """
+    floor_results_dicts = [
+        {
+            "id": f"Reconstruction 0",
+            "num_cameras": 0,
+            "num_points": 0,
+            "mean_abs_rot_err": np.nan,
+            "mean_abs_trans_err": np.nan
+        }
+    ]
+    os.makedirs(f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results", exist_ok=True)
+    json_save_fpath = (
+        f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results/{building_id}_{floor_id}.json"
+    )
+    json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
+
+
 def measure_algorithm_localization_accuracy(
     building_id: str, floor_id: str, raw_dataset_dir: str, algorithm_name: str, reconstruction_json_fpath: Optional[str] = None
 ) -> None:
@@ -94,6 +112,9 @@ def measure_algorithm_localization_accuracy(
 
     elif algorithm_name == "openmvg":
         reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(building_id, floor_id)
+        if len(reconstructions[0].pose_dict) == 0:
+            save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
+            return
 
     gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
@@ -284,8 +305,6 @@ def test_count_panos_on_floor() -> None:
     raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
     building_id = "379"
 
-    import pdb; pdb.set_trace()
-
     num_floor0_panos = count_panos_on_floor(raw_dataset_dir, building_id, floor_id="floor_00")
     assert num_floor0_panos == 8
 
@@ -376,9 +395,7 @@ def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> No
         percent_in_largest_cc_per_floor.append(percent_in_largest_cc)
 
         if percent_in_largest_cc > 100:
-            import pdb
-
-            pdb.set_trace()
+            raise RuntimeError("% in largest CC must be <100%.")
 
     print(f"Computed numbers over {num_reconstructed_floors} reconstructed floors.")
 
@@ -408,11 +425,11 @@ def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> No
     print("Mean percent_reconstructed_cameras_per_floor: ", np.mean(percent_reconstructed_cameras_per_floor))
     print("Median percent_reconstructed_cameras_per_floor: ", np.median(percent_reconstructed_cameras_per_floor))
 
-    print("Mean of Avg. Rot. Error within CC: ", np.mean(avg_rot_err_per_cc))
-    print("Median of Avg. Rot. Error within CC: ", np.median(avg_rot_err_per_cc))
+    print("Mean of Avg. Rot. Error within CC: ", np.nanmean(avg_rot_err_per_cc))
+    print("Median of Avg. Rot. Error within CC: ", np.nanmedian(avg_rot_err_per_cc))
 
-    print("Mean of Avg. Trans. Error within CC: ", np.mean(avg_trans_err_per_cc))
-    print("Median of Avg. Trans. Error within CC: ", np.median(avg_trans_err_per_cc))
+    print("Mean of Avg. Trans. Error within CC: ", np.nanmean(avg_trans_err_per_cc))
+    print("Median of Avg. Trans. Error within CC: ", np.nanmedian(avg_trans_err_per_cc))
 
     plt.hist(avg_trans_err_per_cc, bins=np.linspace(0, 5, 20))
     plt.ylabel("Counts")
@@ -495,7 +512,17 @@ def eval_openmvg_errors_all_tours():
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         for floor_id in floor_ids:
+
+            matches_dirpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
+            if not Path(matches_dirpath).exists():
+                continue
+
             reconstruction_json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
+            
+            # whether we want consider failed reconstructions
+            # if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
+            #     save_empty_json_results_file(building_id, floor_id, algorithm_name="openmvg")
+
             if not Path(reconstruction_json_fpath).exists():
                 continue
 
