@@ -8,7 +8,7 @@ import glob
 import os
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import argoverse.utils.json_utils as json_utils
 import argoverse.utils.subprocess_utils as subprocess_utils
@@ -39,9 +39,9 @@ def load_openmvg_reconstructions_from_json(building_id: str, floor_id: str) -> L
     Returns:
         reconstructions
     """
-    OPEMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo"
+    OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo"
 
-    json_fpath = f"{OPEMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
+    json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
     data = json_utils.read_json_file(json_fpath)
 
     assert data["sfm_data_version"] == "0.3"
@@ -87,23 +87,19 @@ def load_openmvg_reconstructions_from_json(building_id: str, floor_id: str) -> L
     return [reconstruction]
 
 
-def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, reconstruction_dirpath: str) -> None:
-    """
+def find_seed_pair(image_dirpath: str) -> Tuple[str, str]:
+    """Choose a seed pair for incremental SfM by finding any two images that are next to
+    each other in trajectory/capture order.
 
-    Args:
-        image_dirpath:
-        matches_dirpath:
-        reconstruction_dirpath:
+    TODO: try with 3 different seed pairs, and choose the best among all.
     """
     image_fpaths = glob.glob(f"{image_dirpath}/*.jpg")
 
     # choose a seed pair
     # sort by temporal order (last key)
     image_fpaths.sort(key=lambda x: int(Path(x).stem.split("_")[-1]))
+
     # find an adjacent pair
-
-    import pdb; pdb.set_trace()
-
     frame_idxs = np.array([int(Path(x).stem.split("_")[-1]) for x in image_fpaths])
     temporal_dist = np.diff(frame_idxs)
 
@@ -115,6 +111,26 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
 
     seed_fname1 = Path(image_fpaths[seed_idx_1]).name
     seed_fname2 = Path(image_fpaths[seed_idx_2]).name
+    return seed_fname1, seed_fname2
+
+
+def test_find_seed_pair() -> None:
+    """ """
+    image_dirpath = "/Users/johnlam/Downloads/openmvg_demo/ZinD_000_floor_01__2021_09_21/images"
+    seed_fname1, seed_fname2 = find_seed_pair(image_dirpath)
+    assert seed_fname1 == "floor_01_partial_room_09_pano_2.jpg"
+    assert seed_fname2 == "floor_01_partial_room_12_pano_3.jpg"
+
+
+def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, reconstruction_dirpath: str) -> None:
+    """Run OpenMVG over a single floor of a single building, by sequentially executing binaries for each SfM stage.
+
+    Args:
+        image_dirpath: path to temp. directory containing all images to use for reconstruction of a single floor.
+        matches_dirpath: path to directory where matches info will be stored.
+        reconstruction_dirpath: path to directory where reconstruction info will be stored.
+    """
+    seed_fname1, seed_fname2 = find_seed_pair(image_dirpath)
 
     # Configure the scene to use the Spherical camera model and a unit focal length
     # "-c" is "camera_model" and "-f" is "focal_pixels"
@@ -155,8 +171,8 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
 
 
 def run_openmvg_all_tours() -> None:
-    """ """
-    OPEMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo"
+    """Run OpenMVG in spherical geometry mode, over all tours inside ZinD."""
+    OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo"
 
     # should have a CC with 45 cameras in "1183_floor_01.json"
 
@@ -171,26 +187,27 @@ def run_openmvg_all_tours() -> None:
         try:
             building_id_cast = int(building_id)
         except:
+            print(f"Invalid building id {building_id}, skipping...")
             continue
 
         for floor_id in floor_ids:
+            print(f"Running OpenMVG on {building_id}, {floor_id}")
 
             # building_id = "1183"
             # floor_id = "floor_01"
 
-            building_id = "1363"
-            floor_id = "floor_01"
+            # building_id = "1363"
+            # floor_id = "floor_01"
 
             src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
             pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
 
             if len(pano_fpaths) == 0:
+                print(f"\tFloor {floor_id} does not exist for building {building_id}, skipping")
                 continue
 
-            FLOOR_OPENMVG_DATADIR = f"{OPEMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21"
-            import pdb
-
-            pdb.set_trace()
+            FLOOR_OPENMVG_DATADIR = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21"
+            
             os.makedirs(f"{FLOOR_OPENMVG_DATADIR}/images", exist_ok=True)
 
             # make a copy of all of the panos
@@ -200,6 +217,7 @@ def run_openmvg_all_tours() -> None:
                 dst_fpath = f"{dst_dir}/{fname}"
                 shutil.copyfile(src=pano_fpath, dst=dst_fpath)
 
+            import pdb; pdb.set_trace()
             matches_dirpath = f"{FLOOR_OPENMVG_DATADIR}/matches"
             reconstruction_dirpath = f"{FLOOR_OPENMVG_DATADIR}/reconstruction"
 
@@ -210,8 +228,8 @@ def run_openmvg_all_tours() -> None:
             )
             quit()
 
-            # delete copy of all of the panos
-            # shutil.rmtree(dst_dir)
+            # delete copy of all of the copies of the panos
+            shutil.rmtree(dst_dir)
 
 
 
