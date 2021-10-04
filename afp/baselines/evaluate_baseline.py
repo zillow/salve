@@ -1,5 +1,9 @@
 """
 Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
+
+# TODO: only measure localization precision for connected components with 3+ cameras.
+# 2-camera connected components should alawys achieve perfect translation alignment under Sim(3)? (TODO: write unit tests).
+(not true -- close -- but rotation also plays a role in it.)
 """
 
 
@@ -26,6 +30,7 @@ import visualization.open3d_vis_utils as open3d_vis_utils
 
 import afp.baselines.opensfm as opensfm_utils
 import afp.baselines.openmvg as openmvg_utils
+from afp.baselines.openmvg import OPENMVG_DEMO_ROOT
 from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
 from afp.common.posegraph3d import PoseGraph3d
 from afp.utils.logger_utils import get_logger
@@ -34,47 +39,56 @@ from afp.utils.logger_utils import get_logger
 logger = get_logger()
 
 
-def get_zillow_T_opensfm() -> Pose3:
-    """
-    Transform OpenSfM camera to ZinD camera.
+def get_opensfm_T_zillow() -> Pose3:
+    """Transform OpenSfM spherical camera to ZinD spherical camera.
+
+    See https://github.com/mapillary/OpenSfM/issues/794
     """
     # in radians
     Rx = np.pi / 2
     Ry = 0.0
     Rz = 0.0
-    zillow_R_opensfm = Rot3.RzRyRx(Rx, Ry, Rz)
-    zillow_T_opensfm = Pose3(zillow_R_opensfm, np.zeros(3))
-    return zillow_T_opensfm
+    opensfm_R_zillow = Rot3.RzRyRx(Rx, Ry, Rz)
+    opensfm_T_zillow = Pose3(opensfm_R_zillow, np.zeros(3))
+    return opensfm_T_zillow
 
 
-def get_zillow_T_openmvg() -> Pose3:
-    """
-    Transform OpenMVG camera to ZinD camera.
+def get_openmvg_T_zillow() -> Pose3:
+    """Transform OpenMVG spherical camera to ZinD spherical camera.
+
+    See: https://github.com/openMVG/openMVG/issues/1938
 
     Note: x,y,z axes correspond to red, green, blue colors.
 
     """
     # in radians
-    Rx = 0.0  # -np.pi/2 # -90 deg.
-    Ry = -np.pi / 2  # 0.0
-    Rz = 0.0  # - np.pi/2 # 90 deg.
-    zillow_R_openmvg = Rot3.RzRyRx(Rx, Ry, Rz)
-    zillow_T_openmvg = Pose3(zillow_R_openmvg, np.zeros(3))
-    return zillow_T_openmvg
+    # Rx = 0.0  # -np.pi/2 # -90 deg.
+    # Ry = -np.pi / 2  # 0.0
+    # Rz = 0.0  # - np.pi/2 # 90 deg.
+
+    Rx = np.pi / 2
+    Ry = 0.0
+    Rz = 0.0
+
+    openmvg_R_zillow = Rot3.RzRyRx(Rx, Ry, Rz)
+    openmvg_T_zillow = Pose3(openmvg_R_zillow, np.zeros(3))
+    return openmvg_T_zillow
 
 
 def measure_algorithm_localization_accuracy(
-    reconstruction_json_fpath: str, building_id: str, floor_id: str, raw_dataset_dir: str, algorithm_name: str
+    building_id: str, floor_id: str, raw_dataset_dir: str, algorithm_name: str, reconstruction_json_fpath: Optional[str] = None
 ) -> None:
-    """
+    """Evaluate reconstruction from a single floor against GT poses, via Sim(3) alignment.
 
-    Note: we do not refer to these as "baselines", as "baseline" means something quite different for SfM.
+    Note: we do not refer to 3rd part SfM implementations as "baselines", but rather as "algorithms", as "baseline" means
+    something quite different in the context of SfM.
 
     Args:
-        reconstruction_json_fpath:
         building_id:
         floor_id:
         raw_dataset_dir:
+        algorithm_name
+        reconstruction_json_fpath:
     """
     if algorithm_name == "opensfm":
         reconstructions = opensfm_utils.load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
@@ -94,26 +108,23 @@ def measure_algorithm_localization_accuracy(
         aTi_list_gt = [aTi if bTi_list_est[i] is not None else None for i, aTi in enumerate(aTi_list_gt)]
 
         if algorithm_name == "opensfm":
-            zillow_T_opensfm = get_zillow_T_opensfm()
-            zillowcam_T_algocam = zillow_T_opensfm
+            opensfm_T_zillow = get_opensfm_T_zillow()
+            algocam_T_zillowcam = opensfm_T_zillow
             # world frame <-> opensfm camera <-> zillow camera
         elif algorithm_name == "openmvg":
 
-            zillowcam_T_openmvg = get_zillow_T_openmvg()
-            zillowcam_T_algocam = zillowcam_T_openmvg
-            # zillowcam_T_algocam = Pose3()
+            openmvg_T_zillowcam = get_openmvg_T_zillow()
+            algocam_T_zillowcam = openmvg_T_zillowcam
+            #algocam_T_zillowcam = Pose3()
 
-        bTi_list_est = [bTi.compose(zillowcam_T_algocam) if bTi is not None else None for bTi in bTi_list_est]
+        bTi_list_est = [bTi.compose(algocam_T_zillowcam) if bTi is not None else None for bTi in bTi_list_est]
 
-        import pdb
-
-        pdb.set_trace()
-        plot_3d_poses(aTi_list_gt, bTi_list_est)
+        #plot_3d_poses(aTi_list_gt, bTi_list_est)
 
         # align it to the 2d pose graph using Sim(3)
         aligned_bTi_list_est, _ = geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
-        plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
+        #plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
 
         # project to 2d
         est_floor_pose_graph = PoseGraph3d.from_wTi_list(aligned_bTi_list_est, building_id, floor_id)
@@ -131,9 +142,9 @@ def measure_algorithm_localization_accuracy(
         )
 
         os.makedirs(
-            f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_viz/{building_id}_{floor_id}", exist_ok=True
+            f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz/{building_id}_{floor_id}", exist_ok=True
         )
-        plot_save_fpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_viz/{building_id}_{floor_id}/opensfm_reconstruction_{r}.jpg"
+        plot_save_fpath = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz/{building_id}_{floor_id}/{algorithm_name}_reconstruction_{r}.jpg"
         # render estimated layout
         est_floor_pose_graph.render_estimated_layout(
             show_plot=False,
@@ -152,8 +163,9 @@ def measure_algorithm_localization_accuracy(
         }
         floor_results_dicts.append(floor_results_dict)
 
+    os.makedirs(f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results", exist_ok=True)
     json_save_fpath = (
-        f"/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results/{building_id}_{floor_id}.json"
+        f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results/{building_id}_{floor_id}.json"
     )
     json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
 
@@ -286,8 +298,11 @@ def test_count_panos_on_floor() -> None:
 def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> None:
     """Analyze the accuracy of global pose estimation (camera localization) from a third-party SfM algorithm.
 
+    Analzes the average completeness of the recovered poses, and global pose estimation precision.
+
     Args:
         json_results_dir:
+        raw_dataset_dir
     """
     num_ccs_per_floor = []
     # stats below are aggregated over all CCs, independent of which floor or building they came from.
@@ -468,13 +483,45 @@ def get_buildingid_floorid_from_json_fpath(fpath: str) -> Tuple[str, str]:
     return building_id, floor_id
 
 
+
+def eval_openmvg_errors_all_tours():
+    """
+    Evaluate dumped sfm_data.json from every tour against ground truth.
+    """
+    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+
+    building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
+    building_ids.sort()
+
+    for building_id in building_ids:
+        floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
+
+        for floor_id in floor_ids:
+            reconstruction_json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
+            if not Path(reconstruction_json_fpath).exists():
+                continue
+
+            print(f"Running OpenMVG on {building_id}, {floor_id}")
+
+            measure_algorithm_localization_accuracy(
+                building_id=building_id,
+                floor_id=floor_id,
+                raw_dataset_dir=raw_dataset_dir,
+                algorithm_name="openmvg",
+                reconstruction_json_fpath=None #reconstruction_json_fpath,
+            )
+
+
 def main():
     """ """
     raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
+    """
     # for OpenSFM -- analyze error results dumped to JSON files.
     json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
     analyze_algorithm_results(json_results_dir, raw_dataset_dir)
+    """
+
 
     # For OpenMVG
     # run_openmvg_all_tours()
@@ -485,19 +532,9 @@ def main():
 
     # reconstruction_json_fpath
 
-    
-    # measure_algorithm_localization_accuracy(
-    #     reconstruction_json_fpath=reconstruction_json_fpath,
-    #     building_id=building_id,
-    #     floor_id=floor_id,
-    #     raw_dataset_dir=raw_dataset_dir,
-    #     algorithm_name="openmvg"
-    # )
-
-
-
-
+    eval_openmvg_errors_all_tours()
     # then analyze the mean statistics
+    # analyze_algorithm_results(json_results_dir, raw_dataset_dir)
 
 
 if __name__ == "__main__":
