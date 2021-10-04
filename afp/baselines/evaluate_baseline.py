@@ -1,11 +1,10 @@
 """
 Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
 
-# TODO: only measure localization precision for connected components with 3+ cameras.
+# TODO: only measure localization precision for connected components with 3+ cameras. (or measure separately)
 # 2-camera connected components should alawys achieve perfect translation alignment under Sim(3)? (TODO: write unit tests).
 (not true -- close -- but rotation also plays a role in it.)
 """
-
 
 import glob
 import os
@@ -294,7 +293,6 @@ def test_count_panos_on_floor() -> None:
     assert num_floor1_panos == 13
 
 
-
 def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> None:
     """Analyze the accuracy of global pose estimation (camera localization) from a third-party SfM algorithm.
 
@@ -534,7 +532,8 @@ def main():
 
     eval_openmvg_errors_all_tours()
     # then analyze the mean statistics
-    # analyze_algorithm_results(json_results_dir, raw_dataset_dir)
+    json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
+    analyze_algorithm_results(json_results_dir, raw_dataset_dir)
 
 
 if __name__ == "__main__":

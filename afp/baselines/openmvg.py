@@ -23,8 +23,6 @@ OPENMVG_SFM_BIN = "/Users/johnlam/Downloads/openMVG_Build/Darwin-x86_64-RELEASE"
 OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING"
 
 
-
-
 def panoid_from_key(key: str) -> int:
     """Extract panorama id from panorama image file name.
 
