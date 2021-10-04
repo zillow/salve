@@ -16,9 +16,13 @@ import numpy as np
 from gtsam import Rot3, Pose3
 
 from afp.baselines.sfm_reconstruction import SfmReconstruction
-
+from afp.utils.function_timeout import timeout
 
 OPENMVG_SFM_BIN = "/Users/johnlam/Downloads/openMVG_Build/Darwin-x86_64-RELEASE"
+
+OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING"
+
+
 
 
 def panoid_from_key(key: str) -> int:
@@ -39,17 +43,15 @@ def load_openmvg_reconstructions_from_json(building_id: str, floor_id: str) -> L
     Returns:
         reconstructions
     """
-    OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo"
-
     json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
     data = json_utils.read_json_file(json_fpath)
 
     assert data["sfm_data_version"] == "0.3"
 
-    intrinsics = data["intrinsics"]
-    print("OpenMVG Estimated Instrinsics: ", intrinsics)
-    view_metadata = data["views"]
-    print("OpenMVG Estimated View Metadata: ", view_metadata)
+    intrinsics = data["intrinsics"] # noqa
+    #print("OpenMVG Estimated Instrinsics: ", intrinsics)
+    view_metadata = data["views"] # noqa
+    #print("OpenMVG Estimated View Metadata: ", view_metadata)
     extrinsics = data["extrinsics"]
 
     key_to_fname_dict = {}
@@ -130,7 +132,7 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
         matches_dirpath: path to directory where matches info will be stored.
         reconstruction_dirpath: path to directory where reconstruction info will be stored.
     """
-    seed_fname1, seed_fname2 = find_seed_pair(image_dirpath)
+    #seed_fname1, seed_fname2 = find_seed_pair(image_dirpath)
 
     # Configure the scene to use the Spherical camera model and a unit focal length
     # "-c" is "camera_model" and "-f" is "focal_pixels"
@@ -141,9 +143,9 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
     print("STDERR: ", stderr)
 
     # Extract the features (using the HIGH preset is advised, since the spherical image introduced distortions)
-    # Can also pass "-u" for upright, per:
+    # Can also pass "-u 1" for upright, per:
     #     https://github.com/openMVG/openMVG/blob/develop/docs/sphinx/rst/software/SfM/ComputeFeatures.rst
-    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ComputeFeatures -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -m SIFT -p HIGH"
+    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ComputeFeatures -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -m SIFT -p HIGH -u 1"
     stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
     print("STDOUT: ", stdout)
     print("STDERR: ", stderr)
@@ -157,22 +159,29 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
 
     # Compute the reconstruction
     cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_IncrementalSfM -i {matches_dirpath}/sfm_data.json"
-    cmd += f" -m {matches_dirpath} -o {reconstruction_dirpath} -a {seed_fname1} -b {seed_fname2}"
-    # Since the spherical geometry is different than classic pinhole images, the best is to provide the initial pair by hand with the -a -b image basenames (i.e. R0010762.JPG).
-    stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
-    print("STDOUT: ", stdout)
-    print("STDERR: ", stderr)
+    cmd += f" -m {matches_dirpath} -o {reconstruction_dirpath}" #" -a {seed_fname1} -b {seed_fname2}"
+    # Since the spherical geometry is different than classic pinhole images, the best is to provide the initial pair
+    # by hand with the -a -b image basenames (i.e. R0010762.JPG).
 
+    try:
+        with timeout(seconds=60*5):
+            stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
+            print("STDOUT: ", stdout)
+            print("STDERR: ", stderr)
+    except TimeoutError:
+        print("Execution timed out, OpenMVG is stuck")
+        return
+
+    # if execution successful, convert result from binary file to JSON
     input_fpath = f"{reconstruction_dirpath}/sfm_data.bin"
     output_fpath = f"{reconstruction_dirpath}/sfm_data.json"
-    # convert the "VIEWS", "INTRINSICS", "EXTRINSICS"
+    # convert the "VIEWS", "INTRINSICS", "EXTRINSICS" with -V -I -E
     cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ConvertSfM_DataFormat -i {input_fpath} -o {output_fpath} -V -I -E"
     subprocess_utils.run_command(cmd)
 
 
 def run_openmvg_all_tours() -> None:
     """Run OpenMVG in spherical geometry mode, over all tours inside ZinD."""
-    OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo"
 
     # should have a CC with 45 cameras in "1183_floor_01.json"
 
@@ -181,7 +190,7 @@ def run_openmvg_all_tours() -> None:
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
-    for building_id in building_ids:
+    for building_id in building_ids[::-1]:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         try:
@@ -192,6 +201,11 @@ def run_openmvg_all_tours() -> None:
 
         for floor_id in floor_ids:
             print(f"Running OpenMVG on {building_id}, {floor_id}")
+
+            reconstruction_json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
+            if Path(reconstruction_json_fpath).exists():
+                print(f"Results already exsit for Building {building_id}, {floor_id}, skipping...")
+                continue
 
             # building_id = "1183"
             # floor_id = "floor_01"
@@ -217,7 +231,6 @@ def run_openmvg_all_tours() -> None:
                 dst_fpath = f"{dst_dir}/{fname}"
                 shutil.copyfile(src=pano_fpath, dst=dst_fpath)
 
-            import pdb; pdb.set_trace()
             matches_dirpath = f"{FLOOR_OPENMVG_DATADIR}/matches"
             reconstruction_dirpath = f"{FLOOR_OPENMVG_DATADIR}/reconstruction"
 
@@ -226,8 +239,6 @@ def run_openmvg_all_tours() -> None:
                 matches_dirpath=matches_dirpath,  # [matches directory]
                 reconstruction_dirpath=reconstruction_dirpath,  # [reconstruction directory]
             )
-            quit()
-
             # delete copy of all of the copies of the panos
             shutil.rmtree(dst_dir)
 
