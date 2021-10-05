@@ -20,8 +20,8 @@ from afp.utils.function_timeout import timeout
 
 OPENMVG_SFM_BIN = "/Users/johnlam/Downloads/openMVG_Build/Darwin-x86_64-RELEASE"
 
-OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING"
-
+# OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING"
+OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR"
 
 def panoid_from_key(key: str) -> int:
     """Extract panorama id from panorama image file name.
@@ -132,6 +132,9 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
     """
     #seed_fname1, seed_fname2 = find_seed_pair(image_dirpath)
 
+    use_spherical_angular = False
+    use_spherical_angular_upright = True
+
     # Configure the scene to use the Spherical camera model and a unit focal length
     # "-c" is "camera_model" and "-f" is "focal_pixels"
     # defined here: https://github.com/openMVG/openMVG/blob/develop/src/openMVG/cameras/Camera_Common.hpp#L48
@@ -150,7 +153,20 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
 
     # Computes the matches (using the Essential matrix with an angular constraint)
     # can also pass the "-u" for upright, per https://github.com/openMVG/openMVG/issues/1731
-    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ComputeMatches -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -g a"
+    # "a: essential matrix with an angular parametrization,\n"
+    # See https://github.com/openMVG/openMVG/blob/develop/src/software/SfM/main_ComputeMatches.cpp#L118
+    # "u: upright essential matrix.\n"
+    # GeometricFilter_ESphericalMatrix_AC_Angular
+    # https://github.com/openMVG/openMVG/blob/develop/src/software/SfM/main_ComputeMatches.cpp#L496
+    # ESSENTIAL_MATRIX_ANGULAR -> GeometricFilter_ESphericalMatrix_AC_Angular<false>
+    # ESSENTIAL_MATRIX_UPRIGHT -> GeometricFilter_ESphericalMatrix_AC_Angular<true>
+    # https://github.com/openMVG/openMVG/blob/develop/src/openMVG/matching_image_collection/E_ACRobust_Angular.hpp
+    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ComputeMatches -i {matches_dirpath}/sfm_data.json -o {matches_dirpath}"
+    if use_spherical_angular:
+        cmd += " -g a"
+    elif use_spherical_angular_upright:
+        cmd += " -g u"
+
     stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
     print("STDOUT: ", stdout)
     print("STDERR: ", stderr)
