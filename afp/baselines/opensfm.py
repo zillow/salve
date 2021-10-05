@@ -1,7 +1,8 @@
-"""
 
+"""Utilities for running OpenSfM via system calls, and reading it the result from disk.
+
+Note: I/O is based off of the original OpenSfM code here:
 https://github.com/mapillary/OpenSfM/blob/master/opensfm/io.py#L214
-
 """
 
 import glob
@@ -33,29 +34,6 @@ def panoid_from_key(key: str) -> int:
     Given 'floor_01_partial_room_01_pano_11.jpg', return 11
     """
     return int(Path(key).stem.split("_")[-1])
-
-
-def json_to_pymap_metadata(obj: Dict[str, Any]):  # -> pymap.ShotMeasurements:
-    metadata = pymap.ShotMeasurements()
-    if obj.get("orientation") is not None:
-        metadata.orientation.value = obj.get("orientation")
-    if obj.get("capture_time") is not None:
-        metadata.capture_time.value = obj.get("capture_time")
-    if obj.get("gps_dop") is not None:
-        metadata.gps_accuracy.value = obj.get("gps_dop")
-    if obj.get("gps_position") is not None:
-        metadata.gps_position.value = obj.get("gps_position")
-    if obj.get("skey") is not None:
-        metadata.sequence_key.value = obj.get("skey")
-    if obj.get("accelerometer") is not None:
-        metadata.accelerometer.value = obj.get("accelerometer")
-    if obj.get("compass") is not None:
-        compass = obj.get("compass")
-        if "angle" in compass:
-            metadata.compass_angle.value = compass["angle"]
-        if "accuracy" in compass:
-            metadata.compass_accuracy.value = compass["accuracy"]
-    return metadata
 
 
 def point_from_json(
