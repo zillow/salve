@@ -139,12 +139,12 @@ def measure_algorithm_localization_accuracy(
 
         bTi_list_est = [bTi.compose(algocam_T_zillowcam) if bTi is not None else None for bTi in bTi_list_est]
 
-        #plot_3d_poses(aTi_list_gt, bTi_list_est)
+        # plot_3d_poses(aTi_list_gt, bTi_list_est)
 
         # align it to the 2d pose graph using Sim(3)
         aligned_bTi_list_est, _ = geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
-        #plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
+        # plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
 
         # project to 2d
         est_floor_pose_graph = PoseGraph3d.from_wTi_list(aligned_bTi_list_est, building_id, floor_id)
