@@ -32,7 +32,7 @@ def panoid_from_key(key: str) -> int:
 
 
 def load_openmvg_reconstructions_from_json(building_id: str, floor_id: str) -> List[SfmReconstruction]:
-    """
+    """Read OpenMVG-specific format ("sfm_data.json") to AutoFloorPlan generic types.
 
     Args:
         building_id
