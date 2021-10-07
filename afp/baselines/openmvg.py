@@ -204,7 +204,7 @@ def run_openmvg_all_tours() -> None:
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
-    for building_id in building_ids[::-1]:
+    for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         try:
@@ -216,9 +216,10 @@ def run_openmvg_all_tours() -> None:
         for floor_id in floor_ids:
             print(f"Running OpenMVG on {building_id}, {floor_id}")
 
+            matches_dirpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
             reconstruction_json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
-            if Path(reconstruction_json_fpath).exists():
-                print(f"Results already exsit for Building {building_id}, {floor_id}, skipping...")
+            if Path(reconstruction_json_fpath).exists() or Path(matches_dirpath).exists():
+                print(f"Results already exists for Building {building_id}, {floor_id}, skipping...")
                 continue
 
             # building_id = "1183"
