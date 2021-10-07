@@ -1,6 +1,8 @@
 
 """
 
+TODO: wrap doors, windows, oepnings around image border (merge them if starts or ends within 50 px of edge)
+
 """
 import copy
 import csv
@@ -9,7 +11,7 @@ import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Dict, List
 
 import argoverse.utils.json_utils as json_utils
 import cv2
@@ -18,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import afp.common.posegraph2d as posegraph2d
+import afp.dataset.zind_data as zind_data
 
 MODEL_NAMES = [
     "rmx-madori-v1_predictions", # Ethan’s new shape DWO joint model
@@ -30,12 +33,28 @@ MODEL_NAMES = [
 # could also try partial manhattanization (separate model) -- get link from Yuguang
 
 
+WINDOW_COLOR = "y" # yellow
+DOOR_COLOR = "k" # black
+OPENING_COLOR =  "m" # magenta
+
 
 # Yuguang: what is "Old home ID" vs. "New home ID"
 # zind building 002 --totally off, building 007, 016, 14, 17, 24
 
 # 013 looks good, 23 looks good.
 
+
+def read_csv(fpath: str, delimiter: str = ",") -> List[Dict[str,Any]]:
+    """Read in a .csv or .tsv file as a list of dictionaries."""
+    rows = []
+
+    with open(fpath) as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=delimiter)
+
+        for row in reader:
+            rows.append(row)
+    
+    return rows
 
 
 def main() -> None:
@@ -48,7 +67,8 @@ def main() -> None:
     # https://d2ayvmm1jte7yn.cloudfront.net/vrmodels/e9c3eb49-6cbc-425f-b301-7da0aff161d2/floor_map/b912c68c-47da-40e5-a43a-4e1469009f7f/pano/cf94fcb5a5/straightened.jpg
     # 1012 (not 109) and it is by order
     """
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
 
@@ -56,100 +76,113 @@ def main() -> None:
 
     # e.g. building_guid resembles "0a7a6c6c-77ce-4aa9-9b8c-96e2588ac7e8"
 
+    pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    pano_mapping_rows = read_csv(pano_mapping_tsv_fpath, delimiter=",")
+
+    # Note: pano_guid is unique across the entire dataset.
+    panoguid_to_panoid = {}
+    panoguid_to_vrmodelurl = {}
+    for pano_metadata in pano_mapping_rows:
+        pano_guid = pano_metadata["pano_guid"]
+        dgx_fpath = pano_metadata["file"]
+        pano_id = zind_data.pano_id_from_fpath(dgx_fpath)
+        panoguid_to_panoid[pano_guid] = pano_id
+        panoguid_to_vrmodelurl[pano_guid] = pano_metadata["url"] # .replace('https://www.zillowstatic.com/')
+
     # floor_map
     tsv_fpath = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Re-processing.tsv"
-    with open(tsv_fpath) as csvfile:
-        reader = csv.DictReader(csvfile, delimiter="\t")
+    tsv_rows = read_csv(tsv_fpath, delimiter="\t")
+    for row in tsv_rows:
+        building_guid = row["floor_map_guid_new"]
+        # if building_guid != "b912c68c-47da-40e5-a43a-4e1469009f7f":
+        #     continue
 
-        for row in reader:
-            building_guid = row["floor_map_guid_new"]
-            # if building_guid != "b912c68c-47da-40e5-a43a-4e1469009f7f":
-            #     continue
+        zind_building_id = row["new_home_id"].zfill(4)
 
-            zind_building_id = row["old_home_id"].zfill(3)
+        if building_guid == "":
+            print("Invalid building_guid, skipping...")
+            continue
 
-            if building_guid == "":
-                print("Invalid building_guid, skipping...")
-                continue
+        # if zind_building_id in ["000", "001", "002"]:
+        #     continue
 
-            # if zind_building_id in ["000", "001", "002"]:
-            #     continue
+        print(f"On ZinD Building {zind_building_id}")
+        # if int(zind_building_id) not in [7, 16, 14, 17, 24]:# != 1:
+        #     continue
 
-            print(f"On ZinD Building {zind_building_id}")
-            if int(zind_building_id) < 1400:
-                continue
-            pano_guids = [Path(dirpath).stem for dirpath in glob.glob(f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/*")]
+        #import pdb; pdb.set_trace()
 
-            floor_map_json_fpath = f"{data_root}/{building_guid}/floor_map.json"
-            if not Path(floor_map_json_fpath).exists():
-                import pdb; pdb.set_trace()
-            floor_map_json = json_utils.read_json_file(floor_map_json_fpath)
+        pano_guids = [Path(dirpath).stem for dirpath in glob.glob(f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/*")]
 
-            panoguid_to_panoid = {}
-            for pano_guid, pano_metadata in floor_map_json['panos'].items():
-                i = pano_metadata["order"]
-                panoguid_to_panoid[pano_guid] = i
-            
-            # import pdb; pdb.set_trace()
-            panoid_to_panoguid = {i: pano_guid for pano_guid, i in panoguid_to_panoid.items()}
+        floor_map_json_fpath = f"{data_root}/{building_guid}/floor_map.json"
+        if not Path(floor_map_json_fpath).exists():
+            import pdb; pdb.set_trace()
+        floor_map_json = json_utils.read_json_file(floor_map_json_fpath)
 
+        for pano_guid, pano_metadata in floor_map_json['panos'].items():
             #import pdb; pdb.set_trace()
-            # get floor height.
-            #gt_pose_graph = posegraph2d.get_gt_pose_graph(building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir)
+            #vrmodelurl = panoguid_to_vrmodelurl[pano_guid]
+            pass
+            # these differ, for some reason
+            #assert vrmodelurl == pano_metadata["url"]
 
-            for i in sorted(panoid_to_panoguid.keys()):
-                pano_guid = panoid_to_panoguid[i]
+        # get floor height.
+        #gt_pose_graph = posegraph2d.get_gt_pose_graph(building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir)
 
-                img_fpaths = glob.glob(f"{raw_dataset_dir}/{zind_building_id}/panos/floor*_pano_{i}.jpg")
-                if not len(img_fpaths) == 1:
-                    print("\tShould only be one image for this (building id, pano id) tuple.")
-                    print(f"\tPano {i} was missing")
-                    plt.close("all")
+        for pano_guid in pano_guids:
+
+            if pano_guid not in panoguid_to_panoid:
+                print(f"Missing the panorama for Building {zind_building_id} -> {pano_guid}")
+                continue
+            i = panoguid_to_panoid[pano_guid]
+
+            img_fpaths = glob.glob(f"{raw_dataset_dir}/{zind_building_id}/panos/floor*_pano_{i}.jpg")
+            if not len(img_fpaths) == 1:
+                print("\tShould only be one image for this (building id, pano id) tuple.")
+                print(f"\tPano {i} was missing")
+                plt.close("all")
+                continue
+
+            # if i > 3:
+            #     continue
+
+            img_fpath = img_fpaths[0]
+            img = imageio.imread(img_fpath)
+            
+            img_resized = cv2.resize(img, (1024,512))
+            img_h, img_w, _ = img_resized.shape
+            plt.imshow(img_resized)
+
+            model_names = ["rmx-madori-v1_predictions"] # MODEL_NAMES, "rmx-tg-manh-v1_predictions"]
+            # plot the image in question
+            for model_name in model_names:
+                print(f"\tLoaded {model_name} prediction for Pano {i}")
+                model_prediction_fpath = f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
+                if not Path(model_prediction_fpath).exists():
+                    import pdb; pdb.set_trace()
+                prediction_data = json_utils.read_json_file(model_prediction_fpath)
+
+                if model_name == "rmx-madori-v1_predictions":
+                    pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
+                    pred_obj.render_layout_on_pano(img_h, img_w)
+
+                elif model_name == "rmx-dwo-rcnn_predictions":
+                    pred_obj = PanoStructurePredictionRmxDwoRCNN.from_json(prediction_data["predictions"])
+                    # if not prediction_data["predictions"] == prediction_data["raw_predictions"]:
+                    #     import pdb; pdb.set_trace()
+                    #print("\tDWO RCNN: ", pred_obj)
+                elif model_name == "rmx-tg-manh-v1_predictions":
+                    pred_obj = PanoStructurePredictionRmxTgManhV1.from_json(prediction_data[0]["predictions"])
+                    pred_obj.render_layout_on_pano(img_h, img_w)
+                else:
                     continue
 
-                # if i > 3:
-                #     continue
-
-                img_fpath = img_fpaths[0]
-                img = imageio.imread(img_fpath)
-
-                
-                img_resized = cv2.resize(img, (1024,512))
-                img_h, img_w, _ = img_resized.shape
-                plt.imshow(img_resized)
-
-                model_names = ["rmx-tg-manh-v1_predictions"] # "rmx-madori-v1_predictions"] # MODEL_NAMES
-                # plot the image in question
-                for model_name in model_names:
-                    print(f"\tLoaded {model_name} prediction for Pano {i}")
-                    model_prediction_fpath = f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
-                    if not Path(model_prediction_fpath).exists():
-                        import pdb; pdb.set_trace()
-                    prediction_data = json_utils.read_json_file(model_prediction_fpath)
-
-                    if model_name == "rmx-madori-v1_predictions":
-                        pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
-                        #pred_obj.render_layout_on_pano(img_h, img_w)
-
-                        # import pdb; pdb.set_trace()
-
-                    elif model_name == "rmx-dwo-rcnn_predictions":
-                        pred_obj = PanoStructurePredictionRmxDwoRCNN.from_json(prediction_data["predictions"])
-                        # if not prediction_data["predictions"] == prediction_data["raw_predictions"]:
-                        #     import pdb; pdb.set_trace()
-                        #print("\tDWO RCNN: ", pred_obj)
-                    elif model_name == "rmx-tg-manh-v1_predictions":
-                        pred_obj = PanoStructurePredictionRmxTgManhV1.from_json(prediction_data[0]["predictions"])
-                        pred_obj.render_layout_on_pano(img_h, img_w)
-                    else:
-                        continue
-
-                plt.title(f"Pano {i} from Building {zind_building_id}")
-                os.makedirs(f"prod_pred_model_visualizations/{model_name}", exist_ok=True)
-                plt.savefig(f"prod_pred_model_visualizations/{model_name}/{zind_building_id}_{i}.jpg", dpi=400)
-                #plt.show()
-                plt.close("all")
-                plt.figure(figsize=(20,10))
+            plt.title(f"Pano {i} from Building {zind_building_id}")
+            os.makedirs(f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}", exist_ok=True)
+            plt.savefig(f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}/{zind_building_id}_{i}.jpg", dpi=400)
+            #plt.show()
+            plt.close("all")
+            plt.figure(figsize=(20,10))
 
 @dataclass
 class RcnnDwoPred:
@@ -269,33 +302,33 @@ class PanoStructurePredictionRmxMadoriV1:
 
     def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
         """ """
-        # uv = copy.deepcopy(self.corners_in_uv)
-        # uv[:,0] *= img_w
-        # uv[:,1] *= img_h
+        uv = copy.deepcopy(self.corners_in_uv)
+        uv[:,0] *= img_w
+        uv[:,1] *= img_h
 
-        # floor_uv = uv[::2]
-        # ceiling_uv = uv[1::2]
+        floor_uv = uv[::2]
+        ceiling_uv = uv[1::2]
 
-        # plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='o')
-        # plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='o')
+        plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='o')
+        plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='o')
 
-        # # import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
 
-        # # yellow -> window
-        # # black -> door
-        # # magenta -> opening
+        # yellow -> window
+        # black -> door
+        # magenta -> opening
 
-        # for wdo_instances, color in zip([self.windows, self.doors, self.openings], ["y", "k", "m"]):
-        #     for wdo in wdo_instances:
-        #         plt.plot([wdo.s * img_w, wdo.s * img_w], [0,img_h-1], color)
-        #         plt.plot([wdo.e * img_w, wdo.e * img_w], [0,img_h-1], color)
+        for wdo_instances, color in zip([self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]):
+            for wdo in wdo_instances:
+                plt.plot([wdo.s * img_w, wdo.s * img_w], [0,img_h-1], color)
+                plt.plot([wdo.e * img_w, wdo.e * img_w], [0,img_h-1], color)
 
-        # if len(self.floor_boundary) != 1024:
-        #     print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
-        #     return
-        # plt.scatter(np.arange(1024), self.floor_boundary, 10, color='y', marker='.')
+        if len(self.floor_boundary) != 1024:
+            print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
+            return
+        plt.scatter(np.arange(1024), self.floor_boundary, 10, color='y', marker='.')
 
-        self.render_bev()
+        # self.render_bev()
 
     def render_bev(self) -> None:
         """ """
