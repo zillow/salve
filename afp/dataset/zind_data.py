@@ -6,7 +6,7 @@ import glob
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Callable, List, Tuple, Union
 
 import imageio
 from torch.utils.data import Dataset
@@ -70,6 +70,9 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args: Training
         fpaths:
         label_idx: index of ground truth class to associate with 4-tuple
         modalities:
+
+    Returns:
+        tuples: list of tuples. If modalities are floor and ceiling, this is (ceiling 1, ceiling 2, floor 1, floor 2).
     """
     # put each file path into a dictionary, to group them
     pairidx_to_fpath_dict = defaultdict(list)
