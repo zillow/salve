@@ -520,8 +520,8 @@ def eval_openmvg_errors_all_tours():
             reconstruction_json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
             
             # whether we want consider failed reconstructions
-            # if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
-            #     save_empty_json_results_file(building_id, floor_id, algorithm_name="openmvg")
+            if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
+                save_empty_json_results_file(building_id, floor_id, algorithm_name="openmvg")
 
             if not Path(reconstruction_json_fpath).exists():
                 continue
