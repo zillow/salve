@@ -51,21 +51,17 @@ def test_get_uni_sphere_xyz() -> None:
     """
     sphere_xyz = get_uni_sphere_xyz(H=512, W=1024)
 
-    import pdb; pdb.set_trace()
-
     u, v = 0,0
-    assert np.allclose(sphere_xyz[v,u], np.array([0,0,1])) # top-left pixel should point upwards @x=0
+    assert np.allclose(sphere_xyz[v,u], np.array([0,0,1]), atol=4e-3) # top-left pixel should point upwards @x=0
 
     u, v = 1023, 0
-    assert np.allclose(sphere_xyz[v,u], np.array([0,0,1])) # top-right pixel should point upwards @x=0 (wrapped around)
+    assert np.allclose(sphere_xyz[v,u], np.array([0,0,1]), atol=4e-3) # top-right pixel should point upwards @x=0 (wrapped around)
 
     u, v = 0, 511
-    assert np.allclose(sphere_xyz[v,u], np.array([0,0,-1])) # bottom-left pixel should point downwards @x=0
+    assert np.allclose(sphere_xyz[v,u], np.array([0,0,-1]), atol=4e-3) # bottom-left pixel should point downwards @x=0
     
     u, v = 512, 256
-    assert np.allclose(sphere_xyz[v,u], np.array([-1,0,0])) # center pixel of panorama points towards -x direction
-
-    assert False
+    assert np.allclose(sphere_xyz[v,u], np.array([-1,0,0]), atol=4e-3) # center pixel of panorama points towards -x direction
 
 
 """
