@@ -153,17 +153,7 @@ def main() -> None:
             # these differ, for some reason
             # assert vrmodelurl == pano_metadata["url"]
 
-        # get floor height.
-        gt_pose_graph = posegraph2d.get_gt_pose_graph(
-            building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir
-        )
-
-        # zillow_floor_map["scale_meters_per_coordinate"][floor_id]
-        scale_meters_per_coordinate = gt_pose_graph.scale_meters_per_coordinate
-
-        # from pano_data["floor_plan_transformation"]["scale"]
-        floor_plan_transformation_scale = gt_pose_graph.nodes[9].global_Sim2_local.scale
-
+        camera_height_m = get_camera_height_m(raw_dataset_dir, zind_building_id, floor_id="floor_01")
         for pano_guid in pano_guids:
 
             if pano_guid not in panoguid_to_panoid:
@@ -186,7 +176,7 @@ def main() -> None:
 
             img_resized = cv2.resize(img, (1024, 512))
             img_h, img_w, _ = img_resized.shape
-            plt.imshow(img_resized)
+            #plt.imshow(img_resized)
 
             model_names = ["rmx-madori-v1_predictions"]  # MODEL_NAMES, "rmx-tg-manh-v1_predictions"]
             # plot the image in question
@@ -203,7 +193,7 @@ def main() -> None:
 
                 if model_name == "rmx-madori-v1_predictions":
                     pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
-                    pred_obj.render_layout_on_pano(img_h, img_w)
+                    pred_obj.render_layout_on_pano(img_h, img_w, camera_height_m)
 
                 elif model_name == "rmx-dwo-rcnn_predictions":
                     pred_obj = PanoStructurePredictionRmxDwoRCNN.from_json(prediction_data["predictions"])
@@ -224,6 +214,31 @@ def main() -> None:
             # plt.show()
             plt.close("all")
             plt.figure(figsize=(20, 10))
+
+
+
+def get_camera_height_m(raw_dataset_dir: str, building_id: str, floor_id: str) -> float:
+    """
+
+    """
+    # get floor height.
+    gt_pose_graph = posegraph2d.get_gt_pose_graph(
+        building_id=building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
+    )
+
+    # from zillow_floor_map["scale_meters_per_coordinate"][floor_id]
+    worldmetric_s_worldnormalized = gt_pose_graph.scale_meters_per_coordinate
+
+    # from pano_data["floor_plan_transformation"]["scale"]
+    worldnormalized_s_egonormalized = gt_pose_graph.nodes[9].global_Sim2_local.scale
+
+    worldmetric_s_egonormalized = worldmetric_s_worldnormalized * worldnormalized_s_egonormalized
+
+    cam_height_egonormalized = 1.0
+    camera_height_m = worldmetric_s_egonormalized * cam_height_egonormalized
+
+    print("Camera height (meters): ", camera_height_m)
+    return camera_height_m
 
 
 @dataclass
@@ -345,7 +360,7 @@ class PanoStructurePredictionRmxMadoriV1:
     openings: List[RmxMadoriV1DWO]
     windows: List[RmxMadoriV1DWO]
 
-    def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
+    def render_layout_on_pano(self, img_h: int, img_w: int, camera_height_m: float) -> None:
         """ """
         render_egoview = False
         if render_egoview:
@@ -377,41 +392,30 @@ class PanoStructurePredictionRmxMadoriV1:
                 return
             plt.scatter(np.arange(1024), self.floor_boundary, 10, color="y", marker=".")
         else:
-            self.render_bev()
+            self.render_bev(camera_height_m)
 
-    def render_bev(self) -> None:
+    def render_bev(self, camera_height_m: float) -> None:
         """Render the wall-floor boundary in a bird's eye view."""
         floor_height = 0.5
 
         plt.close("All")
         import afp.utils.pano_utils as pano_utils
 
-        u, v = np.arange(1024), np.round(self.floor_boundary).astype(np.int32)
+        u, v = np.arange(1024), np.round(self.floor_boundary) # .astype(np.int32)
         pred_floor_wall_pixel_corners = np.hstack([u.reshape(-1, 1), v.reshape(-1, 1)])
-        floor_height = 999
         image_width = 1024
 
-        import pdb
+        import pdb; pdb.set_trace()
 
-        pdb.set_trace()
-
-        floor_real_scale = zillow_floor_map["scale_meters_per_coordinate"][floor_id]
-        room_shape_real_scale = pano_data["floor_plan_transformation"]["scale"]
-        real_scale = floor_real_scale * room_shape_real_scale
-        camera_height = pano_data["camera_height"]
-        floor_height = camera_height * real_scale
-
-        pred_floor_wall_sphere_corners = pixel_to_sphere(pred_floor_wall_pixel_corners, width=image_width)
-        pred_floor_wall_cartesian_corners = sphere_to_cartesian(pred_floor_wall_sphere_corners)
-        ray_dirs = intersect_cartesian_with_floor_plane(pred_floor_wall_cartesian_corners, floor_height)
+        pred_floor_wall_sphere_corners = zind_pixel_to_sphere(pred_floor_wall_pixel_corners, width=image_width)
+        pred_floor_wall_cartesian_corners = zind_sphere_to_cartesian(pred_floor_wall_sphere_corners)
+        ray_dirs = zind_intersect_cartesian_with_floor_plane(pred_floor_wall_cartesian_corners, camera_height_m)
 
         # # get unit-norm rays
         # ray_dirs_all = pano_utils.get_uni_sphere_xyz(H=512, W=1024)
         # ray_dirs = ray_dirs_all[v, u]
 
-        import pdb
-
-        pdb.set_trace()
+        import pdb; pdb.set_trace()
         # ray_dirs /= ray_dirs[:, 1].reshape(-1, 1) # scale so that y has unit norm
         # ray_dirs *= floor_height
 
@@ -419,20 +423,15 @@ class PanoStructurePredictionRmxMadoriV1:
         rgb = np.zeros((n, 3)).astype(np.uint8)
         rgb[:, 0] = 255
         import visualization.open3d_vis_utils as open3d_vis_utils
-        import pdb
-
-        pdb.set_trace()
+        import pdb; pdb.set_trace()
         # pcd = open3d_vis_utils.create_colored_spheres_open3d(
         #     point_cloud=ray_dirs, rgb=rgb, sphere_radius=0.1
         # )
         pcd = open3d_vis_utils.create_colored_point_cloud_open3d(point_cloud=ray_dirs, rgb=rgb)
         import open3d
-
         open3d.visualization.draw_geometries([pcd])
 
-        import pdb
-
-        pdb.set_trace()
+        import pdb; pdb.set_trace()
         plt.scatter(ray_dirs[:, 0], ray_dirs[:, 2], 10, color="m", marker=".")
         plt.show()
         plt.close("all")
@@ -472,46 +471,73 @@ EPS_RAD = 1e-10
 
 # from
 # https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
-def intersect_cartesian_with_floor_plane(cartesian_coordinates: np.ndarray, floor_height: float) -> np.ndarray:
+def zind_intersect_cartesian_with_floor_plane(cartesian_coordinates: np.ndarray, floor_height: float) -> np.ndarray:
     """
     In order to get the floor coordinates, intersect with the floor plane
     """
     return cartesian_coordinates * floor_height / cartesian_coordinates[:, 1].reshape(-1, 1)
 
 
+
+def test_zind_sphere_to_cartesian() -> None:
+    """
+    Imagine (H,W)=(512,1024) image
+    """
+    # provided as (u,v) coordinates.
+    points_sph = np.array(
+        [
+            [-np.pi, np.pi/2], # corresponds to (u,v) = (0,0)
+            [-np.pi, -np.pi/2], # corresponds to (u,v) = (0,511)
+            [np.pi, -np.pi/2], # corresponds to (u,v) = (1023,511)
+            [np.pi, np.pi/2], # corresponds to (u,v) = (1023,0)
+            [0, 0], # corresponds to (u,v) = (512,256)
+            [np.pi/2, 0] # 1/4 way from left edge of pano, midway up pano (u,v)=(256,0)
+
+        ])
+
+    points_cart = zind_sphere_to_cartesian(points_sph)
+
+    # fmt: off
+    expected_points_cart = np.array(
+        [
+            [0,  1, 0],
+            [0, -1, 0],
+            [0, -1, 0],
+            [0,  1, 0],
+            [0,  0,-1],
+            [1, 0, 0]
+       ]
+    )
+    # fmt: on
+    assert np.allclose(points_cart, expected_points_cart)
+
+
 # from
 # https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
-def sphere_to_cartesian(points_sph: np.ndarray) -> np.ndarray:
+def zind_sphere_to_cartesian(points_sph: np.ndarray) -> np.ndarray:
     """Convert spherical coordinates to cartesian.
 
+    Center pixel of equirectangular projection corresponds to -z axis in Cartesian.
+
     Args:
-        points_sph: List of points given in spherical coordinates. We support
-            two formats, both in a row major-order: [theta, phi, rho] or
-            [theta, phi], where in the second form we assume all points lie
-            on the unit sphere, i.e. rho = 1.0 for all points.
-
-        theta is the azimuthal angle in [-pi, pi],
-        phi is the elevation angle in [-pi/2, pi/2]
-        rho is the radial distance in (0, inf)
-
-    Note:
-        If rho is omitted, we will assume the radial distances is 1 for all.
-        thus points_sph.shape can be (num_points, 2) or (num_points, 3).
+        points_sph: array of shape (N,2) representing points in spherical coordinates [theta, phi],
+            where the spherical point [theta=0, phi=0] maps to the image center.
+            We assume all points lie on the unit sphere, i.e. rho = 1.0 for all points.
+            theta (horizontal) is far left of image (-pi) to far right of image (pi)
+            phi (vertical) is bottom of image (-pi/2) to top of image (pi/2)
+            theta is the azimuthal angle in [-pi, pi],
+            phi is the elevation angle in [-pi/2, pi/2]
+            rho is the radial distance in (0, inf)
 
     Return:
         List of points in cartesian coordinates [x, y, z], where the shape
         is (num_points, 3)
     """
-    if not isinstance(points_sph, np.ndarray) or points_sph.ndim == 1:
-        points_sph = np.reshape(points_sph, (1, -1))
-        output_shape = (3,)
-    else:
-        output_shape = (points_sph.shape[0], 3)  # type: ignore
+    output_shape = (points_sph.shape[0], 3)  # type: ignore
 
-    num_points = points_sph.shape[0]
+    num_points, num_coords = points_sph.shape
     assert num_points > 0
 
-    num_coords = points_sph.shape[1]
     assert num_coords == 2 or num_coords == 3
 
     theta = points_sph[:, 0]
@@ -545,37 +571,34 @@ def sphere_to_cartesian(points_sph: np.ndarray) -> np.ndarray:
 
 # from
 # https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
-def pixel_to_sphere(points_pix: np.ndarray, width: int) -> np.ndarray:
-    """Convert pixel coordinates into spherical coordinates from a 360 pano
-    with a given width.
+def zind_pixel_to_sphere(points_pix: np.ndarray, width: int) -> np.ndarray:
+    """Convert pixel coordinates into spherical coordinates from a 360 pano with a given width.
 
     Note:
-        We assume the width covers the full 360 degrees horizontally, and the
-        height is derived as width/2 and covers the full 180 degrees
-        vertical, i.e. we support mapping only on full FoV panos.
+        We assume the width covers the full 360 degrees horizontally, and the height is derived
+        as width/2 and covers the full 180 degrees vertical, i.e. we support mapping only on full FoV panos.
 
     Args:
-        points_pix: List of points given in pano image coordinates [x, y],
-            thus points_sph.shape is (num_points, 2)
-
+        points_pix: array of shape (N,2) represenenting N points given in pano image coordinates [x, y],
         width: The width of the pano image (defines the azimuth scale).
 
     Return:
-        List of points in spherical coordinates [theta, phi], where the
+        array of shape (N,2) representing points in spherical coordinates [theta, phi], where the
         spherical point [theta=0, phi=0] maps to the image center.
-        Shape of the result is (num_points, 2).
+
+        theta (horizontal) is far left of image (-pi) to far right of image (pi)
+        phi (vertical) is bottom of image (-pi/2) to top of image (pi/2)
     """
-    if not isinstance(points_pix, np.ndarray) or points_pix.ndim == 1:
-        points_pix = np.reshape(points_pix, (1, -1))
-        output_shape = (2,)
-    else:
-        output_shape = (points_pix.shape[0], 2)  # type: ignore
+    if not isinstance(points_pix, np.ndarray) or points_pix.ndim != 2:
+        raise RuntimeError(f"Input shape should have been (N,2), but received {points_pix.shape}")
 
-    num_points = points_pix.shape[0]
+    if points_pix.shape[1] != 2:
+        raise RuntimeError(f"Input shape should have been (N,2), but received {points_pix.shape}")
+
+    num_points, num_coords = points_pix.shape
+    output_shape = (points_pix.shape[0], 2)  # type: ignore
+
     assert num_points > 0
-
-    num_coords = points_pix.shape[1]
-    assert num_coords == 2
 
     height = width / 2
     assert width > 1 and height > 1
@@ -603,6 +626,33 @@ def pixel_to_sphere(points_pix: np.ndarray, width: int) -> np.ndarray:
     phi -= math.pi / 2.0  # Map to [-pi/2, pi/2]
 
     return np.column_stack((theta, phi)).reshape(output_shape)
+
+
+def test_zind_pixel_to_sphere() -> None:
+    """
+    Assume (512,1024) for (H,W) of equirectangular projection of panorama.
+    """
+    # fmt: off
+    # provided as (u,v) in image
+    points_pix = np.array(
+        [
+            [0,0], # should be (-pi,pi/2)
+            [0,511], # should be (-pi, -pi/2)
+            [1023,511], # should be (pi, -pi/2)
+            [1023,0] # should be (pi, pi/2)
+        ])
+    
+    # provided as (u,v) coordinates.
+    expected_points_sph = np.array(
+        [
+            [-np.pi, np.pi/2],
+            [-np.pi, -np.pi/2],
+            [np.pi, -np.pi/2],
+            [np.pi, np.pi/2]
+        ])
+    # fmt: on
+    points_sph = zind_pixel_to_sphere(points_pix, width=1024)
+    assert np.allclose(points_sph, expected_points_sph)
 
 
 # batch_transform_input_manifest_rmx-tg-manh-v1.json
