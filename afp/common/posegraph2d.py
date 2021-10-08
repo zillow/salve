@@ -1,4 +1,3 @@
-
 """
 Class to represent 2d pose graphs, render them, and compute error between two of them.
 """
@@ -51,7 +50,7 @@ class PoseGraph2d(NamedTuple):
             building_id=building_id,
             floor_id=fd.floor_id,
             nodes={p.id: p for p in fd.panos},
-            scale_meters_per_coordinate=scale_meters_per_coordinate
+            scale_meters_per_coordinate=scale_meters_per_coordinate,
         )
 
     @classmethod
@@ -106,7 +105,6 @@ class PoseGraph2d(NamedTuple):
 
         return wTi_list
 
-
     @classmethod
     def from_wRi_wti_lists(
         cls,
@@ -159,7 +157,7 @@ class PoseGraph2d(NamedTuple):
         """ """
         pass
 
-    def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float,float]:
+    def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float]:
         """ """
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
         bTi_list_est = self.as_3d_pose_graph()
@@ -167,8 +165,7 @@ class PoseGraph2d(NamedTuple):
         mean_rot_err, mean_trans_err = compute_pose_errors(aTi_list_gt, bTi_list_est)
         return mean_rot_err, mean_trans_err
 
-
-    def measure_unaligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float,float]:
+    def measure_unaligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float]:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
 
         Args:
@@ -190,7 +187,6 @@ class PoseGraph2d(NamedTuple):
 
         mean_rot_err, mean_trans_err = compute_pose_errors(aTi_list_gt, aligned_bTi_list_est)
         return mean_rot_err, mean_trans_err
-
 
     def measure_avg_abs_rotation_err(self, gt_floor_pg: "PoseGraph2d") -> float:
         """Measure how the absolute poses satisfy the individual binary measurement constraints.
@@ -264,17 +260,22 @@ class PoseGraph2d(NamedTuple):
         return mean_err
 
     def render_estimated_layout(
-        self, show_plot: bool = True, save_plot: bool = False, plot_save_dir: str = "floorplan_renderings", gt_floor_pg: "PoseGraph2d" = None, plot_save_fpath: Optional[str] = None
+        self,
+        show_plot: bool = True,
+        save_plot: bool = False,
+        plot_save_dir: str = "floorplan_renderings",
+        gt_floor_pg: "PoseGraph2d" = None,
+        plot_save_fpath: Optional[str] = None,
     ) -> None:
         """
         Either render (show plot) or save plot to disk.
         """
         if gt_floor_pg is not None:
             plt.suptitle("left: GT floorplan. Right: estimated floorplan.")
-            plt.subplot(1,2,1)
+            plt.subplot(1, 2, 1)
             gt_floor_pg.render_estimated_layout(show_plot=False, save_plot=False, plot_save_dir=None, gt_floor_pg=None)
             plt.axis("equal")
-            plt.subplot(1,2,2)
+            plt.subplot(1, 2, 2)
 
         for i, pano_obj in self.nodes.items():
             pano_obj.plot_room_layout(coord_frame="global", show_plot=False)
@@ -289,11 +290,10 @@ class PoseGraph2d(NamedTuple):
                 save_fpath = plot_save_fpath
             plt.savefig(save_fpath, dpi=500)
             plt.close("all")
-            
+
         if show_plot:
             plt.axis("equal")
             plt.show()
-
 
     def draw_edge(self, i1: int, i2: int, color: str) -> None:
         """ """
@@ -468,7 +468,7 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
     """
     floor_map_json = read_json_file(json_annot_fpath)
 
-    scale_meters_per_coordinate_dict = floor_map_json['scale_meters_per_coordinate']
+    scale_meters_per_coordinate_dict = floor_map_json["scale_meters_per_coordinate"]
 
     if "merger" not in floor_map_json:
         print(f"Building {building_id} missing `merger` data, skipping...")
@@ -480,7 +480,9 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
     for floor_id, floor_data in merger_data.items():
 
         fd = FloorData.from_json(floor_data, floor_id)
-        pg = PoseGraph2d.from_floor_data(building_id=building_id, fd=fd, scale_meters_per_coordinate=scale_meters_per_coordinate_dict[floor_id])
+        pg = PoseGraph2d.from_floor_data(
+            building_id=building_id, fd=fd, scale_meters_per_coordinate=scale_meters_per_coordinate_dict[floor_id]
+        )
 
         floor_pg_dict[floor_id] = pg
 
@@ -523,7 +525,7 @@ def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
     return Rot3(R_Rot3)
 
 
-def compute_pose_errors(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]) -> Tuple[float,float]:
+def compute_pose_errors(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]) -> Tuple[float, float]:
     """
 
     Args:
