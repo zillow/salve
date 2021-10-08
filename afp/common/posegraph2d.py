@@ -38,15 +38,21 @@ class PoseGraph2d(NamedTuple):
     building_id: int
     floor_id: str
     nodes: Dict[int, PanoData]
+    scale_meters_per_coordinate: float
 
     def __repr__(self) -> str:
         """ """
         return f"Graph has {len(self.nodes.keys())} nodes in Building {self.building_id}, {self.floor_id}: {self.nodes.keys()}"
 
     @classmethod
-    def from_floor_data(cls, building_id: str, fd: FloorData) -> "PoseGraph2d":
+    def from_floor_data(cls, building_id: str, fd: FloorData, scale_meters_per_coordinate: float) -> "PoseGraph2d":
         """ """
-        return cls(building_id=building_id, floor_id=fd.floor_id, nodes={p.id: p for p in fd.panos})
+        return cls(
+            building_id=building_id,
+            floor_id=fd.floor_id,
+            nodes={p.id: p for p in fd.panos},
+            scale_meters_per_coordinate=scale_meters_per_coordinate
+        )
 
     @classmethod
     def from_json(cls, json_fpath: str) -> "PoseGraph2d":
@@ -462,6 +468,8 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
     """
     floor_map_json = read_json_file(json_annot_fpath)
 
+    scale_meters_per_coordinate_dict = floor_map_json['scale_meters_per_coordinate']
+
     if "merger" not in floor_map_json:
         print(f"Building {building_id} missing `merger` data, skipping...")
         return
@@ -472,7 +480,7 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
     for floor_id, floor_data in merger_data.items():
 
         fd = FloorData.from_json(floor_data, floor_id)
-        pg = PoseGraph2d.from_floor_data(building_id=building_id, fd=fd)
+        pg = PoseGraph2d.from_floor_data(building_id=building_id, fd=fd, scale_meters_per_coordinate=scale_meters_per_coordinate_dict[floor_id])
 
         floor_pg_dict[floor_id] = pg
 
