@@ -127,7 +127,13 @@ def main() -> None:
             #assert vrmodelurl == pano_metadata["url"]
 
         # get floor height.
-        #gt_pose_graph = posegraph2d.get_gt_pose_graph(building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir)
+        gt_pose_graph = posegraph2d.get_gt_pose_graph(building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir)
+
+        # zillow_floor_map["scale_meters_per_coordinate"][floor_id]
+        scale_meters_per_coordinate = gt_pose_graph.scale_meters_per_coordinate
+
+        # from pano_data["floor_plan_transformation"]["scale"]
+        floor_plan_transformation_scale = gt_pose_graph.nodes[9].global_Sim2_local.scale
 
         for pano_guid in pano_guids:
 
@@ -302,51 +308,59 @@ class PanoStructurePredictionRmxMadoriV1:
 
     def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
         """ """
-        uv = copy.deepcopy(self.corners_in_uv)
-        uv[:,0] *= img_w
-        uv[:,1] *= img_h
+        render_egoview = False
+        if render_egoview:
+            uv = copy.deepcopy(self.corners_in_uv)
+            uv[:,0] *= img_w
+            uv[:,1] *= img_h
 
-        floor_uv = uv[::2]
-        ceiling_uv = uv[1::2]
+            floor_uv = uv[::2]
+            ceiling_uv = uv[1::2]
 
-        plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='o')
-        plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='o')
+            plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker='o')
+            plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker='o')
 
-        # import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
 
-        # yellow -> window
-        # black -> door
-        # magenta -> opening
+            # yellow -> window
+            # black -> door
+            # magenta -> opening
 
-        for wdo_instances, color in zip([self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]):
-            for wdo in wdo_instances:
-                plt.plot([wdo.s * img_w, wdo.s * img_w], [0,img_h-1], color)
-                plt.plot([wdo.e * img_w, wdo.e * img_w], [0,img_h-1], color)
+            for wdo_instances, color in zip([self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]):
+                for wdo in wdo_instances:
+                    plt.plot([wdo.s * img_w, wdo.s * img_w], [0,img_h-1], color)
+                    plt.plot([wdo.e * img_w, wdo.e * img_w], [0,img_h-1], color)
 
-        if len(self.floor_boundary) != 1024:
-            print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
-            return
-        plt.scatter(np.arange(1024), self.floor_boundary, 10, color='y', marker='.')
-
-        # self.render_bev()
+            if len(self.floor_boundary) != 1024:
+                print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
+                return
+            plt.scatter(np.arange(1024), self.floor_boundary, 10, color='y', marker='.')
+        else:
+            self.render_bev()
 
     def render_bev(self) -> None:
-        """ """
+        """Render the wall-floor boundary in a bird's eye view."""
         floor_height = 0.5
 
         plt.close("All")
         import afp.utils.pano_utils as pano_utils
 
-
-        #import pdb; pdb.set_trace()
         u, v = np.arange(1024), np.round(self.floor_boundary).astype(np.int32)
         pred_floor_wall_pixel_corners = np.hstack([u.reshape(-1,1), v.reshape(-1,1)])
-        inference_floor = -58
+        floor_height = 999
         image_width = 1024
+
+        import pdb; pdb.set_trace()
+
+        floor_real_scale = zillow_floor_map["scale_meters_per_coordinate"][floor_id]
+        room_shape_real_scale = pano_data["floor_plan_transformation"]["scale"]
+        real_scale = floor_real_scale * room_shape_real_scale
+        camera_height = pano_data["camera_height"]
+        floor_height = camera_height * real_scale
 
         pred_floor_wall_sphere_corners = pixel_to_sphere(pred_floor_wall_pixel_corners, width=image_width)
         pred_floor_wall_cartesian_corners = sphere_to_cartesian(pred_floor_wall_sphere_corners)
-        ray_dirs = intersect_cartesian_with_floor_plane(pred_floor_wall_cartesian_corners, inference_floor)
+        ray_dirs = intersect_cartesian_with_floor_plane(pred_floor_wall_cartesian_corners, floor_height)
 
 
         # # get unit-norm rays
