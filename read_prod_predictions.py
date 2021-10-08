@@ -2,6 +2,30 @@
 
 TODO: wrap doors, windows, oepnings around image border (merge them if starts or ends within 50 px of edge)
 
+
+There are at least 4 coordinate systems we work with in ZinD.
+We have these 4 CSs and they have different scales.
+
+1. Spherical coordinate system (we are still working on defining
+the axes configuration w.r.t. the equirectangular projection). 
+
+2. Ego-normalized coordinate system. (a Cartesian conversion of the spherical coordinate system.
+If this cartesian system was scaled so that the camera was 1 unit above the floor,
+this is our ego-normalized coordinate system.
+(ego-normalized CS = room CS)
+
+3. World-normalized coordinate system. We know how the ego-normalized coordinate system fits into
+the world-normalized coordinate system, by (R,t,s).
+(world-normalized = floor)
+
+4.World-metric coordinate system, where units are in meters. (`world`)
+The constant scale_meters_per_coordinate is providing the scaling to go from world-normalized to world-metric.
+
+
+We used to name ego-normalized the room CS and world-normalized the floor CS
+
+there is a reflection between one of these coordinate systems
+(specifically between ego-normalized and world-normalized.
 """
 import copy
 import csv
