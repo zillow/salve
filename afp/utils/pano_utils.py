@@ -30,3 +30,15 @@ def get_uni_sphere_xyz(H: int, W: int) -> np.ndarray:
     x = c * np.cos(u)
     sphere_xyz = np.stack([x, y, z], -1)
     return sphere_xyz
+
+
+
+
+"""
+
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py#L3853:31
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/master/evaluate_horizonnet_output.py#L734
+
+
+"""
