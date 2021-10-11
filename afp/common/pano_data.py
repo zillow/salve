@@ -133,7 +133,7 @@ class WDO:
 
 
 def test_get_wd_normal_2d() -> None:
-    """ """
+    """Verify that normal vector to a window/door object is computed correctly."""
 
     # flat horizontal line for window
     wd1 = WDO(global_Sim2_local=None, pt1=(-2, 0), pt2=(2, 0), bottom_z=-1, top_z=1, type="window")
@@ -153,7 +153,7 @@ def test_get_wd_normal_2d() -> None:
 
 
 class PanoData(NamedTuple):
-    """ """
+    """Container for ground truth relevant to a single panorama."""
 
     id: int
     global_Sim2_local: Sim2
@@ -228,7 +228,7 @@ class PanoData(NamedTuple):
             show_plot
 
         Returns:
-
+            wdo_objs_seen_on_floor
         """
         # hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
 
