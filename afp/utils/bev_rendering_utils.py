@@ -22,13 +22,14 @@ from imageio import imread
 
 # from vis_zind_annotations import rotmat2d
 
+import afp.utils.hohonet_pano_utils as hohonet_pano_utils
+import afp.utils.zorder_utils as zorder_utils
 from afp.common.pano_data import WDO
 from afp.common.posegraph2d import PoseGraph2d
 from afp.utils.colormap import colormap
 from afp.utils.interpolation_utils import remove_hallucinated_content, interp_dense_grid_from_sparse
-from afp.utils.pano_utils import get_uni_sphere_xyz
 from afp.utils.rotation_utils import rotmat2d
-from afp.utils.zorder_utils import choose_elevated_repeated_vals
+
 
 RED = [255, 0, 0]
 GREEN = [0, 255, 0]
@@ -314,7 +315,7 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     prioritize_elevated = True
     if prioritize_elevated:
-        valid = choose_elevated_repeated_vals(x, y, z)
+        valid = zorder_utils.choose_elevated_repeated_vals(x, y, z)
         img_xy = img_xy[valid]
         rgb = rgb[valid]
 
@@ -395,7 +396,7 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
 
     # Project to 3d
     H, W = rgb.shape[:2]
-    xyz = depth * get_uni_sphere_xyz(H, W)
+    xyz = depth * hohonet_pano_utils.get_uni_sphere_xyz(H, W)
 
     xyzrgb = np.concatenate([xyz, rgb / 255.0], 2)
 
@@ -460,7 +461,7 @@ def vis_depth(args):
 
     # Project to 3d
     H, W = rgb.shape[:2]
-    xyz = depth * get_uni_sphere_xyz(H, W)
+    xyz = depth * hohonet_pano_utils.get_uni_sphere_xyz(H, W)
     xyzrgb = np.concatenate([xyz, rgb / 255.0], 2)
 
     # Crop the image and flatten
