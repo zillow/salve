@@ -21,11 +21,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.json_utils import read_json_file, save_json_dict
 from argoverse.utils.sim2 import Sim2
+from shapely.geometry import LineString
 
+import afp.utils.sim3_align_dw as sim3_align_dw # TODO: rename module to more informative name
 from afp.common.pano_data import FloorData, PanoData, WDO
 from afp.utils.logger_utils import get_logger
 from afp.utils.overlap_utils import determine_invalid_wall_overlap
-from afp.utils.sim3_align_dw import align_points_sim3, align_points_SE2, rotmat2d
+from afp.utils.sim3_align_dw import rotmat2d
 
 
 logger = get_logger()
@@ -62,8 +64,6 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     """ """
     DIST_THRESH = 0.1
     # do they share a door or window?
-
-    from shapely.geometry import LineString
 
     for wdo1 in pano1_obj.windows + pano1_obj.doors + pano1_obj.openings:
         poly1 = LineString(wdo1.vertices_global_2d)
@@ -493,9 +493,9 @@ def align_rooms_by_wd(
                     #     plt.close("all")
 
                     if transform_type == "SE2":
-                        i2Ti1, aligned_pts1 = align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
+                        i2Ti1, aligned_pts1 = sim3_align_dw.align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
                     elif transform_type == "Sim3":
-                        i2Ti1, aligned_pts1 = align_points_sim3(pano2_wd_pts, pano1_wd_pts)
+                        i2Ti1, aligned_pts1 = sim3_align_dw.align_points_sim3(pano2_wd_pts, pano1_wd_pts)
                     else:
                         raise RuntimeError
 

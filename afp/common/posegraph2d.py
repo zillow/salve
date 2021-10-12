@@ -77,7 +77,7 @@ class PoseGraph2d(NamedTuple):
     @classmethod
     def from_floor_data(cls, building_id: str, fd: FloorData, scale_meters_per_coordinate: float) -> "PoseGraph2d":
         """ """
-        print("scale_meters_per_coordinate: ", scale_meters_per_coordinate)
+        print(f"scale_meters_per_coordinate: {scale_meters_per_coordinate:.2f}")
         return cls(
             building_id=building_id,
             floor_id=fd.floor_id,
