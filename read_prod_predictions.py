@@ -1,9 +1,7 @@
 """
-
-TODO: wrap doors, windows, oepnings around image border (merge them if starts or ends within 50 px of edge)
-
-
+Converts an inference result to PanoData and PoseGraph2d objects.
 """
+
 import copy
 import csv
 import glob
@@ -25,6 +23,7 @@ import afp.utils.zind_pano_utils as zind_pano_utils
 from afp.common.pano_data import PanoData, WDO
 from afp.common.posegraph2d import PoseGraph2d
 
+
 MODEL_NAMES = [
     "rmx-madori-v1_predictions",  # Ethan’s new shape DWO joint model
     "rmx-dwo-rcnn_predictions",  #  RCNN DWO predictions
@@ -35,9 +34,6 @@ MODEL_NAMES = [
 ]
 # could also try partial manhattanization (separate model) -- get link from Yuguang
 
-# WINDOW_COLOR = "y"  # yellow
-# DOOR_COLOR = "k"  # black
-# OPENING_COLOR = "m"  # magenta
 
 RED = (1.0, 0, 0)
 GREEN = (0, 1.0, 0)
@@ -47,11 +43,6 @@ BLUE = (0, 0, 1.0)
 WINDOW_COLOR = RED
 DOOR_COLOR = GREEN
 OPENING_COLOR = BLUE
-
-# Yuguang: what is "Old home ID" vs. "New home ID"
-# zind building 002 --totally off, building 007, 016, 14, 17, 24
-
-# 013 looks good, 23 looks good.
 
 
 def read_csv(fpath: str, delimiter: str = ",") -> List[Dict[str, Any]]:
@@ -109,9 +100,6 @@ def main() -> None:
         if building_guid == "":
             print("Invalid building_guid, skipping...")
             continue
-
-        # if zind_building_id in ["000", "001", "002"]:
-        #     continue
 
         print(f"On ZinD Building {zind_building_id}")
         # if int(zind_building_id) not in [7, 16, 14, 17, 24]:# != 1:
@@ -225,7 +213,6 @@ def main() -> None:
             floor_pose_graph.render_estimated_layout(
                 show_plot=True,
                 save_plot=False,
-                # gt_floor_pg = 
                 # plot_save_dir: str = "floorplan_renderings",
                 gt_floor_pg=gt_pose_graph,
                 # plot_save_fpath: Optional[str] = None,
@@ -254,7 +241,6 @@ def test_get_floor_id_from_img_fpath() -> None:
     img_fpath = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05/1386/panos/floor_02_partial_room_18_pano_53.jpg"
     floor_id = get_floor_id_from_img_fpath(img_fpath)
     assert floor_id == "floor_02"
-
 
 
 @dataclass
@@ -359,7 +345,6 @@ class RmxMadoriV1DWO:
         return cls(s=s, e=e)
 
 
-
 @dataclass
 class PanoStructurePredictionRmxMadoriV1:
     """ """
@@ -405,10 +390,11 @@ class PanoStructurePredictionRmxMadoriV1:
         """Render the wall-floor boundary in a bird's eye view.
 
         Args:
-            img_h
-            img_w
-            pano_id
-            gt_pose_graph
+            img_h: height of panorama image, in pixels.
+            img_w: width of panorama image, in pixels.
+            pano_id: integer ID of panorama
+            gt_pose_graph: ground-truth 2d pose graph, with GT shapes and GT global poses.
+            img_fpath: file path to panorama image.
         """
         camera_height_m = gt_pose_graph.get_camera_height_m(pano_id)
         camera_height_m = 1.0
@@ -417,13 +403,10 @@ class PanoStructurePredictionRmxMadoriV1:
         pred_floor_wall_boundary_pixel = np.hstack([u.reshape(-1, 1), v.reshape(-1, 1)])
         image_width = 1024
 
-        # plt.subplot(1, 2, 1)
-
         layout_pts_worldmetric = convert_points_px_to_worldmetric(
             points_px=pred_floor_wall_boundary_pixel, image_width=img_w, camera_height_m=camera_height_m
         )
 
-        #import pdb; pdb.set_trace()
         # ignore y values, which are along the vertical axis
         room_vertices_local_2d = layout_pts_worldmetric[:, np.array([0,2]) ]
 
@@ -488,7 +471,9 @@ class PanoStructurePredictionRmxMadoriV1:
 
 
     def render_bev(pano_data: PanoData) -> None:
-        """ """
+        """
+        Render the estimated layout for a single panorama.
+        """
         import pdb; pdb.set_trace()
 
         # plt.close("All")
@@ -565,7 +550,7 @@ class PanoStructurePredictionRmxMadoriV1:
 
 
 def convert_points_px_to_worldmetric(points_px: np.ndarray, image_width: int, camera_height_m: int) -> np.ndarray:
-    """
+    """Convert pixel coordinates to Cartesian coordinates with a known scale (i.e. the units are meters).
 
     Args:
         points_px: 2d points in pixel coordaintes
