@@ -38,9 +38,9 @@ MODEL_NAMES = [
 # DOOR_COLOR = "k"  # black
 # OPENING_COLOR = "m"  # magenta
 
-RED = (1., 0, 0)
-GREEN = (0, 1., 0)
-BLUE = (0, 0, 1.)
+RED = (1.0, 0, 0)
+GREEN = (0, 1.0, 0)
+BLUE = (0, 0, 1.0)
 
 # in accordance with color scheme in afp/common/pano_data.py
 WINDOW_COLOR = RED
@@ -139,8 +139,13 @@ def main() -> None:
             # these differ, for some reason
             # assert vrmodelurl == pano_metadata["url"]
 
-        gt_pose_graph = posegraph2d.get_gt_pose_graph(building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir)
+        # TODO: add a loop over the floors present for this dataset.
 
+        gt_pose_graph = posegraph2d.get_gt_pose_graph(
+            building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir
+        )
+
+        plt.figure(figsize=(20, 10))
         for pano_guid in pano_guids:
 
             if pano_guid not in panoguid_to_panoid:
@@ -160,7 +165,7 @@ def main() -> None:
 
             img_resized = cv2.resize(img, (1024, 512))
             img_h, img_w, _ = img_resized.shape
-            plt.imshow(img_resized)
+            # plt.imshow(img_resized)
 
             model_names = ["rmx-madori-v1_predictions"]  # MODEL_NAMES, "rmx-tg-manh-v1_predictions"]
             # plot the image in question
@@ -177,6 +182,8 @@ def main() -> None:
 
                 if model_name == "rmx-madori-v1_predictions":
                     pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
+                    if pred_obj is None:  # malformatted pred for some reason
+                        continue
                     # pred_obj.render_layout_on_pano(img_h, img_w)
                     pred_obj.render_bev(img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph)
 
@@ -191,14 +198,15 @@ def main() -> None:
                 else:
                     continue
 
-            # plt.title(f"Pano {i} from Building {zind_building_id}")
-            # os.makedirs(f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}", exist_ok=True)
-            # plt.savefig(
-            #     f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}/{zind_building_id}_{i}.jpg", dpi=400
-            # )
-            # # plt.show()
-            # plt.close("all")
-            # plt.figure(figsize=(20, 10))
+            plt.title(f"Pano {i} from Building {zind_building_id}")
+            plt.tight_layout()
+            os.makedirs(f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}_bev", exist_ok=True)
+            plt.savefig(
+                f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg", dpi=400
+            )
+            # plt.show()
+            plt.close("all")
+            plt.figure(figsize=(20, 10))
 
 
 @dataclass
@@ -342,38 +350,43 @@ class PanoStructurePredictionRmxMadoriV1:
             [self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]
         ):
             for wdo in wdo_instances:
-                plt.plot([wdo.s * img_w, wdo.s * img_w], [0, img_h - 1], color=color)
-                plt.plot([wdo.e * img_w, wdo.e * img_w], [0, img_h - 1], color=color)
+                plt.plot([wdo.s * img_w, wdo.s * img_w], [0, img_h - 1], color=color, linewidth=5)
+                plt.plot([wdo.e * img_w, wdo.e * img_w], [0, img_h - 1], color=color, linewidth=5)
 
         if len(self.floor_boundary) != 1024:
             print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
             return
         plt.scatter(np.arange(1024), self.floor_boundary, 10, color="y", marker=".")
 
-
     def render_bev(self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d) -> None:
         """Render the wall-floor boundary in a bird's eye view.
 
-        TODO: remove camera_height_m arg, and just extract it directly get_camera_height(from gt_pose_graph)
-
+        Args:
+            img_h
+            img_w
+            pano_id
+            gt_pose_graph
         """
         camera_height_m = gt_pose_graph.get_camera_height_m(pano_id)
+        camera_height_m = 1.0
 
         plt.close("All")
 
-        u, v = np.arange(1024), np.round(self.floor_boundary) # .astype(np.int32)
+        u, v = np.arange(1024), np.round(self.floor_boundary)  # .astype(np.int32)
         pred_floor_wall_boundary_pixel = np.hstack([u.reshape(-1, 1), v.reshape(-1, 1)])
         image_width = 1024
 
         plt.subplot(1, 2, 1)
         plt.axis("equal")
-        layout_pts_worldmetric = convert_points_px_to_worldmetric(points_px=pred_floor_wall_boundary_pixel, image_width=img_w, camera_height_m = camera_height_m)
+        layout_pts_worldmetric = convert_points_px_to_worldmetric(
+            points_px=pred_floor_wall_boundary_pixel, image_width=img_w, camera_height_m=camera_height_m
+        )
         plt.scatter(layout_pts_worldmetric[:, 0], layout_pts_worldmetric[:, 2], 10, color="m", marker=".")
 
-        for wdo_instances, color in zip(
+        for wdo_instances_single_type, color in zip(
             [self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]
         ):
-            for wdo in wdo_instances:
+            for wdo in wdo_instances_single_type:
                 wdo_s_u = wdo.s * img_w
                 wdo_e_u = wdo.e * img_w
                 wdo_s_u = np.clip(wdo_s_u, a_min=0, a_max=img_w - 1)
@@ -381,16 +394,13 @@ class PanoStructurePredictionRmxMadoriV1:
                 # self.floor_boundary contains the `v` coordinates at each `u`.
                 wdo_s_v = self.floor_boundary[round(wdo_s_u)]
                 wdo_e_v = self.floor_boundary[round(wdo_e_u)]
-                wdo_endpoints_px = np.array(
-                    [
-                        [wdo_s_u, wdo_s_v],
-                        [wdo_e_u, wdo_e_v]
-                    ]
+                # fmt: off
+                wdo_endpoints_px = np.array([[wdo_s_u, wdo_s_v], [wdo_e_u, wdo_e_v]])
+                # fmt: on
+                wdo_endpoints_worldmetric = convert_points_px_to_worldmetric(
+                    points_px=wdo_endpoints_px, image_width=img_w, camera_height_m=camera_height_m
                 )
-                #print(wdo_endpoints_px)
-                print("Color: ", color)
-                wdo_endpoints_worldmetric = convert_points_px_to_worldmetric(points_px=wdo_endpoints_px, image_width=img_w, camera_height_m = camera_height_m)
-                plt.plot(wdo_endpoints_worldmetric[:,0], wdo_endpoints_worldmetric[:,2], color=color, linewidth=10)
+                plt.plot(wdo_endpoints_worldmetric[:, 0], wdo_endpoints_worldmetric[:, 2], color=color, linewidth=6)
 
         # n = ray_dirs.shape[0]
         # rgb = np.zeros((n, 3)).astype(np.uint8)
@@ -404,10 +414,12 @@ class PanoStructurePredictionRmxMadoriV1:
         # open3d.visualization.draw_geometries([pcd])
 
         plt.subplot(1, 2, 2)
-        gt_pose_graph.nodes[pano_id].plot_room_layout(coord_frame="local", show_plot=True)
+        gt_pose_graph.nodes[pano_id].plot_room_layout(coord_frame="local", show_plot=False)
 
-        plt.show()
-        plt.close("all")
+        plt.axis("equal")
+
+        # plt.show()
+        # plt.close("all")
 
     @classmethod
     def from_json(cls, json_data: Any) -> "PanoStructurePredictionRmxMadoriV1":
@@ -422,6 +434,13 @@ class PanoStructurePredictionRmxMadoriV1:
         doors = [RmxMadoriV1DWO.from_json(d) for d in json_data["wall_features"]["door"]]
         windows = [RmxMadoriV1DWO.from_json(w) for w in json_data["wall_features"]["window"]]
         openings = [RmxMadoriV1DWO.from_json(o) for o in json_data["wall_features"]["opening"]]
+
+        doors = merge_wdos_straddling_img_border(doors)
+        windows = merge_wdos_straddling_img_border(windows)
+        openings = merge_wdos_straddling_img_border(openings)
+
+        if len(json_data["room_shape"]["raw_predictions"]["floor_boundary"]) == 0:
+            return None
 
         return cls(
             ceiling_height=json_data["room_shape"]["ceiling_height"],
@@ -439,14 +458,118 @@ class PanoStructurePredictionRmxMadoriV1:
             windows=windows,
         )
 
+
 def convert_points_px_to_worldmetric(points_px: np.ndarray, image_width: int, camera_height_m: int) -> np.ndarray:
-    """ """
+    """
+
+    Args:
+        points_px: 2d points in pixel coordaintes
+
+    Returns:
+        points_worldmetric: 
+    """
 
     points_sph = zind_pano_utils.zind_pixel_to_sphere(points_px, width=image_width)
     points_cartesian = zind_pano_utils.zind_sphere_to_cartesian(points_sph)
     points_worldmetric = zind_pano_utils.zind_intersect_cartesian_with_floor_plane(points_cartesian, camera_height_m)
     return points_worldmetric
 
+
+def merge_wdos_straddling_img_border(wdo_instances: List[RmxMadoriV1DWO]) -> List[RmxMadoriV1DWO]:
+    """Merge an object that has been split by the panorama seam (merge two pieces into one).
+
+    Args:
+        wdo_instances: of a single type (all doors, all windows, or all openings)
+
+    Returns:
+        wdo_instances_merged
+    """
+    if len(wdo_instances) <= 1:
+        # we require at least two objects of the same type to attempt a merge
+        return wdo_instances
+
+    wdo_instances_merged = []
+
+    # first ensure that the WDOs are provided left to right, sorted
+
+    # for each set. if one end is located within 50 px of the border (or 1% of image width), than it may have been a byproduct of a seam
+    straddles_left = [wdo.s < 0.01 for wdo in wdo_instances]
+    straddles_right = [wdo.e > 0.99 for wdo in wdo_instances]
+
+    any_straddles_left_border = any(straddles_left)
+    any_straddles_right_border = any(straddles_right)
+    merge_is_allowed = any_straddles_left_border and any_straddles_right_border
+
+    if not merge_is_allowed:
+        return wdo_instances
+
+    straddles_left = np.array(straddles_left)
+    straddles_right = np.array(straddles_right)
+
+    left_idx = np.argmax(straddles_left)
+    right_idx = np.argmax(straddles_right)
+
+    for i, wdo in enumerate(wdo_instances):
+        if i in [left_idx, right_idx]:
+            continue
+        wdo_instances_merged.append(wdo)
+
+    # merge with last (far-right) if exists, if it also straddles far-right edge
+    # merge with first (far-left) if exists, and it straddles far-left edge
+    left_wdo = wdo_instances[left_idx]
+    right_wdo = wdo_instances[right_idx]
+    merged_wdo = RmxMadoriV1DWO(s=right_wdo.s, e=left_wdo.e)
+    wdo_instances_merged.append(merged_wdo)
+
+    return wdo_instances_merged
+
+
+def test_merge_wdos_straddling_img_border_windows() -> None:
+    """
+    On ZinD Building 0000, Pano 17
+    """
+    windows = []
+    windows_merged = merge_wdos_straddling_img_border(wdo_instances=windows)
+    assert len(windows_merged) == 0
+    assert isinstance(windows_merged, list)
+
+
+def test_merge_wdos_straddling_img_border_doors() -> None:
+    """
+    On ZinD Building 0000, Pano 17
+    """
+    doors = [
+        RmxMadoriV1DWO(s=0.14467253176930597, e=0.3704789833822092),
+        RmxMadoriV1DWO(s=0.45356793743890517, e=0.46920821114369504),
+        RmxMadoriV1DWO(s=0.47702834799608995, e=0.5278592375366569),
+        RmxMadoriV1DWO(s=0.5376344086021505, e=0.5865102639296188),
+        RmxMadoriV1DWO(s=0.6217008797653959, e=0.8084066471163245),
+    ]
+    doors_merged = merge_wdos_straddling_img_border(wdo_instances=doors)
+
+    assert doors == doors_merged
+    assert len(doors_merged) == 5 # should be same as input
+
+    import pdb; pdb.set_trace()
+
+
+def test_merge_wdos_straddling_img_border_openings() -> None:
+    """
+    On ZinD Building 0000, Pano 17
+
+    Other good examples are:
+    Panos 16, 22, 33 for building 0000. 
+    Pano 21 for building 0001, 
+    """
+    openings = [
+        RmxMadoriV1DWO(s=0.0009775171065493646, e=0.10361681329423265),
+        RmxMadoriV1DWO(s=0.9354838709677419, e=1.0),
+    ]
+    openings_merged = merge_wdos_straddling_img_border(wdo_instances=openings)
+
+    import pdb; pdb.set_trace()
+    assert len(openings_merged) == 1
+    assert openings_merged[0] == RmxMadoriV1DWO(s=0.9354838709677419, e=0.10361681329423265)
 
 
 # batch_transform_input_manifest_rmx-tg-manh-v1.json
