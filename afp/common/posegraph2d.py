@@ -43,9 +43,41 @@ class PoseGraph2d(NamedTuple):
         """ """
         return f"Graph has {len(self.nodes.keys())} nodes in Building {self.building_id}, {self.floor_id}: {self.nodes.keys()}"
 
+
+    def get_camera_height_m(self, pano_id: int) -> float:
+        """Obtain the actual height of a RICOH Theta camera, from the saved ZinD dataset information.
+
+        Args:
+            pano_id: 
+            TODO: this is same for every pano on a floor, argument is unnecessary (can be removed)
+               but programmatically verify this first.
+
+        Returns:
+            camera_height_m: camera height above the floor, in meters.
+        """
+        if pano_id not in self.nodes:
+            print(f"Pano id {pano_id} not found among {self.nodes.keys()}")
+            import pdb; pdb.set_trace()
+
+        # from zillow_floor_map["scale_meters_per_coordinate"][floor_id]
+        worldmetric_s_worldnormalized = self.scale_meters_per_coordinate
+
+        # from pano_data["floor_plan_transformation"]["scale"]
+        worldnormalized_s_egonormalized = self.nodes[pano_id].global_Sim2_local.scale
+
+        worldmetric_s_egonormalized = worldmetric_s_worldnormalized * worldnormalized_s_egonormalized
+
+        cam_height_egonormalized = 1.0
+        camera_height_m = worldmetric_s_egonormalized * cam_height_egonormalized
+
+        print(f"Camera height (meters): {camera_height_m:.2f}")
+        return camera_height_m
+
+
     @classmethod
     def from_floor_data(cls, building_id: str, fd: FloorData, scale_meters_per_coordinate: float) -> "PoseGraph2d":
         """ """
+        print("scale_meters_per_coordinate: ", scale_meters_per_coordinate)
         return cls(
             building_id=building_id,
             floor_id=fd.floor_id,
