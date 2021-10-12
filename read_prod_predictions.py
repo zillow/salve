@@ -141,10 +141,6 @@ def main() -> None:
 
         # TODO: add a loop over the floors present for this dataset.
 
-        gt_pose_graph = posegraph2d.get_gt_pose_graph(
-            building_id=zind_building_id, floor_id="floor_01", raw_dataset_dir=raw_dataset_dir
-        )
-
         plt.figure(figsize=(20, 10))
         for pano_guid in pano_guids:
 
@@ -166,6 +162,12 @@ def main() -> None:
             img_resized = cv2.resize(img, (1024, 512))
             img_h, img_w, _ = img_resized.shape
             # plt.imshow(img_resized)
+
+            floor_id = get_floor_id_from_img_fpath(img_fpath)
+
+            gt_pose_graph = posegraph2d.get_gt_pose_graph(
+                building_id=zind_building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
+            )
 
             model_names = ["rmx-madori-v1_predictions"]  # MODEL_NAMES, "rmx-tg-manh-v1_predictions"]
             # plot the image in question
@@ -207,6 +209,32 @@ def main() -> None:
             # plt.show()
             plt.close("all")
             plt.figure(figsize=(20, 10))
+
+
+
+def get_floor_id_from_img_fpath(img_fpath: str) -> str:
+    """Fetch the corresponding embedded floor ID from a panorama file path.
+
+    For example, 
+    "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05/0109/panos/floor_01_partial_room_03_pano_13.jpg" -> "floor_01"
+    """
+    fname = Path(img_fpath).name
+    k = fname.find("_partial")
+    floor_id = fname[:k]
+
+    return floor_id
+
+
+def test_get_floor_id_from_img_fpath() -> None:
+    """Verify we can fetch the floor ID from a panorama file path."""
+    img_fpath = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05/0109/panos/floor_01_partial_room_03_pano_13.jpg"
+    floor_id = get_floor_id_from_img_fpath(img_fpath)
+    assert floor_id == "floor_01"
+
+    img_fpath = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05/1386/panos/floor_02_partial_room_18_pano_53.jpg"
+    floor_id = get_floor_id_from_img_fpath(img_fpath)
+    assert floor_id == "floor_02"
+
 
 
 @dataclass
@@ -550,8 +578,6 @@ def test_merge_wdos_straddling_img_border_doors() -> None:
     assert doors == doors_merged
     assert len(doors_merged) == 5 # should be same as input
 
-    import pdb; pdb.set_trace()
-
 
 def test_merge_wdos_straddling_img_border_openings() -> None:
     """
@@ -567,7 +593,6 @@ def test_merge_wdos_straddling_img_border_openings() -> None:
     ]
     openings_merged = merge_wdos_straddling_img_border(wdo_instances=openings)
 
-    import pdb; pdb.set_trace()
     assert len(openings_merged) == 1
     assert openings_merged[0] == RmxMadoriV1DWO(s=0.9354838709677419, e=0.10361681329423265)
 
