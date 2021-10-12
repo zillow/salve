@@ -22,6 +22,7 @@ import numpy as np
 import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_data as zind_data
 import afp.utils.zind_pano_utils as zind_pano_utils
+from afp.common.pano_data import PanoData, WDO
 from afp.common.posegraph2d import PoseGraph2d
 
 MODEL_NAMES = [
@@ -103,9 +104,6 @@ def main() -> None:
     tsv_rows = read_csv(tsv_fpath, delimiter="\t")
     for row in tsv_rows:
         building_guid = row["floor_map_guid_new"]
-        # if building_guid != "b912c68c-47da-40e5-a43a-4e1469009f7f":
-        #     continue
-
         zind_building_id = row["new_home_id"].zfill(4)
 
         if building_guid == "":
@@ -118,8 +116,6 @@ def main() -> None:
         print(f"On ZinD Building {zind_building_id}")
         # if int(zind_building_id) not in [7, 16, 14, 17, 24]:# != 1:
         #     continue
-
-        # import pdb; pdb.set_trace()
 
         pano_guids = [
             Path(dirpath).stem for dirpath in glob.glob(f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/*")
@@ -139,7 +135,8 @@ def main() -> None:
             # these differ, for some reason
             # assert vrmodelurl == pano_metadata["url"]
 
-        # TODO: add a loop over the floors present for this dataset.
+
+        floor_pose_graphs = {}
 
         plt.figure(figsize=(20, 10))
         for pano_guid in pano_guids:
@@ -164,10 +161,18 @@ def main() -> None:
             # plt.imshow(img_resized)
 
             floor_id = get_floor_id_from_img_fpath(img_fpath)
-
             gt_pose_graph = posegraph2d.get_gt_pose_graph(
                 building_id=zind_building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
             )
+
+            if floor_id not in floor_pose_graphs:
+                # start populating the pose graph for each floor pano-by-pano
+                floor_pose_graphs[floor_id] = PoseGraph2d(
+                    building_id=zind_building_id,
+                    floor_id=floor_id,
+                    nodes= {},
+                    scale_meters_per_coordinate = gt_pose_graph.scale_meters_per_coordinate
+                )
 
             model_names = ["rmx-madori-v1_predictions"]  # MODEL_NAMES, "rmx-tg-manh-v1_predictions"]
             # plot the image in question
@@ -187,7 +192,8 @@ def main() -> None:
                     if pred_obj is None:  # malformatted pred for some reason
                         continue
                     # pred_obj.render_layout_on_pano(img_h, img_w)
-                    pred_obj.render_bev(img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph)
+                    pano_data = pred_obj.convert_to_pano_data(img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph, img_fpath=img_fpath)
+                    floor_pose_graphs[floor_id].nodes[i] = pano_data
 
                 elif model_name == "rmx-dwo-rcnn_predictions":
                     pred_obj = PanoStructurePredictionRmxDwoRCNN.from_json(prediction_data["predictions"])
@@ -200,16 +206,30 @@ def main() -> None:
                 else:
                     continue
 
-            plt.title(f"Pano {i} from Building {zind_building_id}")
-            plt.tight_layout()
-            os.makedirs(f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}_bev", exist_ok=True)
-            plt.savefig(
-                f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg", dpi=400
-            )
-            # plt.show()
-            plt.close("all")
-            plt.figure(figsize=(20, 10))
+            # plt.title(f"Pano {i} from Building {zind_building_id}")
+            # plt.tight_layout()
+            # os.makedirs(f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}_bev", exist_ok=True)
+            # plt.savefig(
+            #     f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg", dpi=400
+            # )
+            # # plt.show()
+            # plt.close("all")
+            # plt.figure(figsize=(20, 10))
 
+        for floor_id, floor_pose_graph in floor_pose_graphs.items():
+
+            gt_pose_graph = posegraph2d.get_gt_pose_graph(
+                building_id=zind_building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
+            )
+
+            floor_pose_graph.render_estimated_layout(
+                show_plot=True,
+                save_plot=False,
+                # gt_floor_pg = 
+                # plot_save_dir: str = "floorplan_renderings",
+                gt_floor_pg=gt_pose_graph,
+                # plot_save_fpath: Optional[str] = None,
+            )
 
 
 def get_floor_id_from_img_fpath(img_fpath: str) -> str:
@@ -339,6 +359,7 @@ class RmxMadoriV1DWO:
         return cls(s=s, e=e)
 
 
+
 @dataclass
 class PanoStructurePredictionRmxMadoriV1:
     """ """
@@ -368,12 +389,6 @@ class PanoStructurePredictionRmxMadoriV1:
         plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker="o")
         plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker="o")
 
-        # import pdb; pdb.set_trace()
-
-        # yellow -> window
-        # black -> door
-        # magenta -> opening
-
         for wdo_instances, color in zip(
             [self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]
         ):
@@ -386,7 +401,7 @@ class PanoStructurePredictionRmxMadoriV1:
             return
         plt.scatter(np.arange(1024), self.floor_boundary, 10, color="y", marker=".")
 
-    def render_bev(self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d) -> None:
+    def convert_to_pano_data(self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d, img_fpath: str) -> PanoData:
         """Render the wall-floor boundary in a bird's eye view.
 
         Args:
@@ -398,22 +413,28 @@ class PanoStructurePredictionRmxMadoriV1:
         camera_height_m = gt_pose_graph.get_camera_height_m(pano_id)
         camera_height_m = 1.0
 
-        plt.close("All")
-
         u, v = np.arange(1024), np.round(self.floor_boundary)  # .astype(np.int32)
         pred_floor_wall_boundary_pixel = np.hstack([u.reshape(-1, 1), v.reshape(-1, 1)])
         image_width = 1024
 
-        plt.subplot(1, 2, 1)
-        plt.axis("equal")
+        # plt.subplot(1, 2, 1)
+
         layout_pts_worldmetric = convert_points_px_to_worldmetric(
             points_px=pred_floor_wall_boundary_pixel, image_width=img_w, camera_height_m=camera_height_m
         )
-        plt.scatter(layout_pts_worldmetric[:, 0], layout_pts_worldmetric[:, 2], 10, color="m", marker=".")
 
-        for wdo_instances_single_type, color in zip(
-            [self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]
-        ):
+        #import pdb; pdb.set_trace()
+        # ignore y values, which are along the vertical axis
+        room_vertices_local_2d = layout_pts_worldmetric[:, np.array([0,2]) ]
+
+        # TODO: remove this when saving (only for plotting a ready-to-go PanoData instance)
+        room_vertices_local_2d[:,0] *= -1
+
+        windows = []
+        doors = []
+        openings = []
+
+        for wdo_type, wdo_instances_single_type in zip(["windows", "doors", "openings"], [self.windows, self.doors, self.openings]):
             for wdo in wdo_instances_single_type:
                 wdo_s_u = wdo.s * img_w
                 wdo_e_u = wdo.e * img_w
@@ -428,7 +449,63 @@ class PanoStructurePredictionRmxMadoriV1:
                 wdo_endpoints_worldmetric = convert_points_px_to_worldmetric(
                     points_px=wdo_endpoints_px, image_width=img_w, camera_height_m=camera_height_m
                 )
-                plt.plot(wdo_endpoints_worldmetric[:, 0], wdo_endpoints_worldmetric[:, 2], color=color, linewidth=6)
+                
+                x1, x2 = wdo_endpoints_worldmetric[:, 0]
+                y1, y2 = wdo_endpoints_worldmetric[:, 2]
+
+                # TODO: remove this when saving (only for plotting a ready-to-go PanoData instance)
+                x1 = -x1
+                x2 = -x2
+
+                inferred_wdo = WDO(
+                    global_Sim2_local=gt_pose_graph.nodes[pano_id].global_Sim2_local, # using GT pose for now
+                    pt1=(x1,y1),
+                    pt2=(x2,y2),
+                    bottom_z=None,
+                    top_z=None,
+                    type=wdo_type
+                )
+                if wdo_type == "windows":
+                    windows.append(inferred_wdo)
+
+                elif wdo_type == "doors":
+                    doors.append(inferred_wdo)
+
+                elif wdo_type == "openings":
+                    openings.append(inferred_wdo)
+
+        pano_data = PanoData(
+            id=pano_id,
+            global_Sim2_local=gt_pose_graph.nodes[pano_id].global_Sim2_local, # using GT pose for now
+            room_vertices_local_2d=room_vertices_local_2d,
+            image_path=img_fpath,
+            label=gt_pose_graph.nodes[pano_id].label,
+            doors=doors,
+            windows=windows,
+            openings=openings,
+        )
+        return pano_data
+
+
+    def render_bev(pano_data: PanoData) -> None:
+        """ """
+        import pdb; pdb.set_trace()
+
+        # plt.close("All")
+        #         plt.scatter(, 10, color="m", marker=".")
+        # plt.axis("equal")
+        # gt_pose_graph.nodes[pano_id].plot_room_layout(coord_frame="local", show_plot=False)
+
+
+        # for wdo_instances_single_type, color in zip(
+        #     [self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]
+        # ):
+        #     for wdo in wdo_instances_single_type:
+
+        #         plt.plot(, color=color, linewidth=6)
+
+
+
 
         # n = ray_dirs.shape[0]
         # rgb = np.zeros((n, 3)).astype(np.uint8)
@@ -441,8 +518,8 @@ class PanoStructurePredictionRmxMadoriV1:
         # import open3d
         # open3d.visualization.draw_geometries([pcd])
 
-        plt.subplot(1, 2, 2)
-        gt_pose_graph.nodes[pano_id].plot_room_layout(coord_frame="local", show_plot=False)
+        # plt.subplot(1, 2, 2)
+        # gt_pose_graph.nodes[pano_id].plot_room_layout(coord_frame="local", show_plot=False)
 
         plt.axis("equal")
 
