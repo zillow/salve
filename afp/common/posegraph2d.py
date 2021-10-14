@@ -8,10 +8,10 @@ import os
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
+import argoverse.utils.json_utils as json_utils
 import gtsfm.utils.geometry_comparisons as geometry_comparisons
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Rot3, Pose3
 from gtsfm.utils.geometry_comparisons import align_poses_sim3_ignore_missing
@@ -301,6 +301,13 @@ class PoseGraph2d(NamedTuple):
     ) -> None:
         """
         Either render (show plot) or save plot to disk.
+
+        Args:
+            show_plot: boolean indicating whether to show via GUI a rendering of the plot.
+            save_plot: boolean indicating whether to save a rendering of the plot.
+            plot_save_dir: if only a general saving directory is provided for saving
+            gt_floor_pg: ground truth pose graph
+            plot_save_fpath: if a specifically desired file path is provided.
         """
         if gt_floor_pg is not None:
             plt.suptitle("left: GT floorplan. Right: estimated floorplan.")
@@ -336,6 +343,44 @@ class PoseGraph2d(NamedTuple):
         t2 = t2.squeeze()
 
         plt.plot([t1[0], t2[0]], [t1[1], t2[1]], c=color, linestyle="dotted", alpha=0.6)
+
+    def save_as_zind_data_json(self, save_fpath: str) -> None:
+        """ """
+        os.makedirs(Path(save_fpath).parent, exist_ok=True)
+
+        import pdb; pdb.set_trace()
+
+        floor_merger_dict = {}
+        # for each complete room: "complete_room_{complete_room_id}"
+            # for each partial room "partial_room_{partial_room_id}"
+                # for each pano "pano_{pano_id}"
+
+
+        pano_dict = {
+            'is_primary': None,
+            'is_inside': None,
+            'layout_complete': None,
+            'camera_height': 1.0,
+            'floor_number': None,
+            'label': pano_data.label,
+            'floor_plan_transformation': {"rotation": None, "translation": None, "scale": None},
+            # raw layout consists of 2-tuples
+            'layout_raw': {'doors': [], 'vertices': [], 'windows': [], 'openings': []},
+            'is_ceiling_flat': None,
+            'image_path': pano_data.image_path,
+            'layout_visible': None
+            'checksum': None
+            'ceiling_height': None
+        }
+
+        # this is the dictionary that will be serialized to disk.
+        save_dict = {
+            'redraw': {},
+            'floorplan_to_redraw_transformation': {}, # not needed for SfM.
+            'scale_meters_per_coordinate': {self.floor_id: self.scale_meters_per_coordinate},
+            'merger': {self.floor_id: floor_merger_dict}
+        }
+        json_utils.save_json_dict(save_fpath, save_dict)
 
 
 def test_measure_abs_pose_error_shifted() -> None:
@@ -498,7 +543,7 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
     Returns:
         floor_pg_dict: mapping from floor_id to pose graph
     """
-    floor_map_json = read_json_file(json_annot_fpath)
+    floor_map_json = json_utils.read_json_file(json_annot_fpath)
 
     scale_meters_per_coordinate_dict = floor_map_json["scale_meters_per_coordinate"]
 
