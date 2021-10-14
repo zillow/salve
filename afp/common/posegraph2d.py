@@ -5,6 +5,7 @@ Class to represent 2d pose graphs, render them, and compute error between two of
 import copy
 import glob
 import os
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
@@ -348,30 +349,102 @@ class PoseGraph2d(NamedTuple):
         """ """
         os.makedirs(Path(save_fpath).parent, exist_ok=True)
 
-        import pdb; pdb.set_trace()
+        partialroom_pano_dict = defaultdict(list)
 
         floor_merger_dict = {}
         # for each complete room: "complete_room_{complete_room_id}"
             # for each partial room "partial_room_{partial_room_id}"
                 # for each pano "pano_{pano_id}"
 
+        for pano_id, pano_data in self.nodes.items():
 
-        pano_dict = {
-            'is_primary': None,
-            'is_inside': None,
-            'layout_complete': None,
-            'camera_height': 1.0,
-            'floor_number': None,
-            'label': pano_data.label,
-            'floor_plan_transformation': {"rotation": None, "translation": None, "scale": None},
-            # raw layout consists of 2-tuples
-            'layout_raw': {'doors': [], 'vertices': [], 'windows': [], 'openings': []},
-            'is_ceiling_flat': None,
-            'image_path': pano_data.image_path,
-            'layout_visible': None
-            'checksum': None
-            'ceiling_height': None
-        }
+            fname_stem = Path(pano_data.image_path).stem
+            fname_stem = fname_stem.replace(f"{self.floor_id}_", "")
+            k = fname_stem.find("_pano_")
+
+            # partial_room_id e.g. partial_room_06
+            partial_room_id = fname_stem[:k]
+            assert pano_id == pano_data.id
+
+            DUMMY_VAL_INF = 99999
+
+            # should be vstacked 3x2 arrays, for (pt1, pt2, (bottomz, topz))
+            doors = []
+            for d in pano_data.doors:
+                doors.append(d.pt1)
+                doors.append(d.pt2)
+                doors.append((-DUMMY_VAL_INF,DUMMY_VAL_INF))
+
+            windows = []
+            for w in pano_data.windows:
+                windows.append(w.pt1)
+                windows.append(w.pt2)
+                windows.append((-DUMMY_VAL_INF,DUMMY_VAL_INF))
+
+            openings = []
+            for o in pano_data.openings:
+                openings.append(o.pt1)
+                openings.append(o.pt2)
+                openings.append((-DUMMY_VAL_INF,DUMMY_VAL_INF))
+
+            v = pano_data.room_vertices_local_2d
+
+            # from rdp import rdp
+            # # See https://cartography-playground.gitlab.io/playgrounds/douglas-peucker-algorithm/
+            # # https://rdp.readthedocs.io/en/latest/
+
+            # import matplotlib.pyplot as plt
+            # plt.close("all")
+            # plt.figure(figsize=(10,8))
+            # plt.axis("equal")
+            # for i in range(2):
+
+            #     if i == 1:
+            #         # Run Ramer-Douglas-Peucker
+            #         # render the simplified polygon on the second iteration
+            #         v = rdp(v, epsilon=0.02)
+            #         color = 'g'
+            #         print(f"-> To {v.shape}")
+            #     elif i == 0:
+            #         print(f"From {v.shape}")
+            #         color = 'k'
+            #         #import pdb; pdb.set_trace()
+            #         xmin, ymin = np.amin(v, axis=0)
+            #         xmax, ymax = np.amax(v, axis=0)
+
+            #     plt.plot(v[:, 0], v[:, 1], 10, color=color)
+            #     plt.scatter(v[:, 0], v[:, 1], 10, color='r', marker='.')
+
+            # plt.xlim([xmin - 1,xmax + 1])
+            # plt.ylim([ymin - 1,ymax + 1])
+            # plt.tight_layout()
+            
+            # plt.show()
+            # plt.close("all")
+
+            vertices = np.round(pano_data.room_vertices_local_2d, 3).tolist()
+
+
+            pano_dict = {
+                'is_primary': None,
+                'is_inside': None,
+                'layout_complete': None,
+                'camera_height': 1.0,
+                'floor_number': None,
+                'label': pano_data.label,
+                'floor_plan_transformation': {"rotation": None, "translation": None, "scale": None},
+                # raw layout consists of 2-tuples
+                'layout_raw': {'doors': doors, 'vertices': vertices, 'windows': windows, 'openings': openings},
+                'is_ceiling_flat': None,
+                'image_path': pano_data.image_path,
+                'layout_visible': None,
+                'checksum': None,
+                'ceiling_height': None
+            }
+            partialroom_pano_dict[partial_room_id] += [ pano_dict ]
+
+        # dummy ID for complete room ID
+        floor_merger_dict = {"complete_room_99999": partialroom_pano_dict}
 
         # this is the dictionary that will be serialized to disk.
         save_dict = {
