@@ -41,4 +41,5 @@ dependencies:
   - pip:
     - hydra-core==1.1.0
     - argoverse @ git+https://github.com/argoai/argoverse-api.git@master
+    - rdp
 
