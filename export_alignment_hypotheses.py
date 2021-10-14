@@ -17,9 +17,9 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
+import argoverse.utils.json_utils as json_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.json_utils import read_json_file, save_json_dict
 from argoverse.utils.sim2 import Sim2
 from shapely.geometry import LineString
 
@@ -190,7 +190,7 @@ def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
         "t": i2Ti1.translation.flatten().tolist(),
         "s": i2Ti1.scale,
     }
-    save_json_dict(save_fpath, dict_for_serialization)
+    json_utils.save_json_dict(save_fpath, dict_for_serialization)
 
 
 def test_get_relative_angle() -> None:
@@ -595,7 +595,7 @@ def export_single_building_wdo_alignment_hypotheses(
         pano_dir:
         json_annot_fpath:
     """
-    floor_map_json = read_json_file(json_annot_fpath)
+    floor_map_json = json_utils.read_json_file(json_annot_fpath)
 
     if "merger" not in floor_map_json:
         logger.error(f"Building {building_id} does not have `merger` data, skipping...")
