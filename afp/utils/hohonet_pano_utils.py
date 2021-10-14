@@ -64,9 +64,3 @@ def test_get_uni_sphere_xyz() -> None:
     assert np.allclose(sphere_xyz[v,u], np.array([-1,0,0]), atol=4e-3) # center pixel of panorama points towards -x direction
 
 
-"""
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py#L3853:31
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/master/evaluate_horizonnet_output.py#L734
-"""
-

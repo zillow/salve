@@ -1,5 +1,7 @@
 """
 Converts an inference result to PanoData and PoseGraph2d objects.
+
+Reference for RCNN: https://www.zillow.com/tech/training-models-to-detect-windows-doors-in-panos/
 """
 
 import copy
@@ -211,12 +213,14 @@ def main() -> None:
             )
 
             floor_pose_graph.render_estimated_layout(
-                show_plot=True,
-                save_plot=False,
-                # plot_save_dir: str = "floorplan_renderings",
+                show_plot=False,
+                save_plot=True,
+                plot_save_dir=f"{model_name}__oracle_pose",
                 gt_floor_pg=gt_pose_graph,
                 # plot_save_fpath: Optional[str] = None,
             )
+
+            floor_pose_graph.save_as_zind_data_json(save_fpath=f"ZinD_Inferred_GT_bridgeapi_2021_10_05/{zind_building_id}/{floor_id}.json")
 
 
 def get_floor_id_from_img_fpath(img_fpath: str) -> str:
