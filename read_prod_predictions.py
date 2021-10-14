@@ -18,6 +18,7 @@ import cv2
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
+import rdp
 
 import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_data as zind_data
@@ -36,6 +37,7 @@ MODEL_NAMES = [
 ]
 # could also try partial manhattanization (separate model) -- get link from Yuguang
 
+RAMER_DOUGLAS_PEUCKER_EPSILON=0.02
 
 RED = (1.0, 0, 0)
 GREEN = (0, 1.0, 0)
@@ -416,6 +418,10 @@ class PanoStructurePredictionRmxMadoriV1:
 
         # TODO: remove this when saving (only for plotting a ready-to-go PanoData instance)
         room_vertices_local_2d[:,0] *= -1
+
+        # See https://cartography-playground.gitlab.io/playgrounds/douglas-peucker-algorithm/
+        # https://rdp.readthedocs.io/en/latest/
+        room_vertices_local_2d = rdp.rdp(room_vertices_local_2d, epsilon=RAMER_DOUGLAS_PEUCKER_EPSILON)
 
         windows = []
         doors = []
