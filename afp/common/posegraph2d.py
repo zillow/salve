@@ -23,6 +23,9 @@ from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg
 REDTEXT = "\033[91m"
 ENDCOLOR = "\033[0m"
 
+# averaged over 1575 buildings and 2453 valid scales.
+ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE = 3.5083
+
 
 class PoseGraph2d(NamedTuple):
     """Pose graph for a single floor.
@@ -617,7 +620,6 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
         floor_pg_dict: mapping from floor_id to pose graph
     """
     floor_map_json = json_utils.read_json_file(json_annot_fpath)
-
     scale_meters_per_coordinate_dict = floor_map_json["scale_meters_per_coordinate"]
 
     if "merger" not in floor_map_json:
@@ -629,9 +631,25 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
     merger_data = floor_map_json["merger"]
     for floor_id, floor_data in merger_data.items():
 
+        scale_meters_per_coordinate = scale_meters_per_coordinate_dict[floor_id]
+        if scale_meters_per_coordinate is None:
+            # Impute value!
+            # There are floor plans with no scale (specifically, 'floor_XX' : None),
+            # and this is typically caused by issues in calibration.
+            # See https://github.com/zillow/zind/blob/main/data_organization.md#glossary-of-terms
+            # to fill in this missing data by using the average across the other floors,
+            valid_scales = [v for v in scale_meters_per_coordinate_dict.values() if v is not None]
+            avg_valid_scale = np.mean(valid_scales) if len(valid_scales) > 0 else None
+            if avg_valid_scale is not None:
+                scale_meters_per_coordinate = avg_valid_scale
+            else:
+                # and if all floors in a tour have none use the average across the dataset
+                # (that should be a relatively stable number)
+                scale_meters_per_coordinate = ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE
+
         fd = FloorData.from_json(floor_data, floor_id)
         pg = PoseGraph2d.from_floor_data(
-            building_id=building_id, fd=fd, scale_meters_per_coordinate=scale_meters_per_coordinate_dict[floor_id]
+            building_id=building_id, fd=fd, scale_meters_per_coordinate=scale_meters_per_coordinate
         )
 
         floor_pg_dict[floor_id] = pg
