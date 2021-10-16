@@ -1,6 +1,8 @@
 """
 Utilities and classes for working with RCNN predictions
 These come from "rmx-dwo-rcnn_predictions", representing RCNN DWO predictions.
+
+Reference for RCNN: https://www.zillow.com/tech/training-models-to-detect-windows-doors-in-panos/
 """
 
 from dataclasses import dataclass

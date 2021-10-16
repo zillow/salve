@@ -1,13 +1,11 @@
 """
-Converts an inference result to PanoData and PoseGraph2d objects.
-
-Reference for RCNN: https://www.zillow.com/tech/training-models-to-detect-windows-doors-in-panos/
+Converts an inference result to PanoData and PoseGraph2d objects. Also supports rendering the inference
+result with oracle pose.
 """
 
 import copy
 import csv
 import glob
-import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,7 +16,6 @@ import cv2
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
-
 
 import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_data as zind_data
@@ -64,43 +61,47 @@ def read_csv(fpath: str, delimiter: str = ",") -> List[Dict[str, Any]]:
 
 def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
     """
-    Read in mapping from Excel, mapping from their ZInD index to these guid
+
+    Note: we read in mapping from spreadsheet, mapping from their ZInD index to these guid
         https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing
 
-    "b912c68c-47da-40e5-a43a-4e1469009f7f":
-    # /Users/johnlam/Downloads/complete_07_10_new/1012/panos/floor_01_partial_room_15_pano_19.jpg
-    # https://d2ayvmm1jte7yn.cloudfront.net/vrmodels/e9c3eb49-6cbc-425f-b301-7da0aff161d2/floor_map/b912c68c-47da-40e5-a43a-4e1469009f7f/pano/cf94fcb5a5/straightened.jpg
-    # 1012 (not 109) and it is by order
+        For example:
+            "b912c68c-47da-40e5-a43a-4e1469009f7f":
+            ZinD Image: /Users/johnlam/Downloads/complete_07_10_new/1012/panos/floor_01_partial_room_15_pano_19.jpg
+            Prod: Image URL https://d2ayvmm1jte7yn.cloudfront.net/vrmodels/e9c3eb49-6cbc-425f-b301-7da0aff161d2/floor_map/b912c68c-47da-40e5-a43a-4e1469009f7f/pano/cf94fcb5a5/straightened.jpg # noqa
+            See this corresponds to 1012 (not 109).
+
+    Args:
+        query_building_id: string representing ZinD building ID to fetch the per-floor inferred pose graphs for.
+            Should be a zfilled-4 digit string, e.g. "0001"
     """
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-
     # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
+    
+    # path to batch of unzipped prediction files, from Yuguang
     data_root = "/Users/johnlam/Downloads/zind2_john"
 
-    building_guids = [Path(dirpath).stem for dirpath in glob.glob(f"{data_root}/*")]
-
-    # e.g. building_guid resembles "0a7a6c6c-77ce-4aa9-9b8c-96e2588ac7e8"
-
+    # TSV contains mapping between Prod building IDs and ZinD building IDs
+    tsv_fpath = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Re-processing.tsv"
     pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+
     pano_mapping_rows = read_csv(pano_mapping_tsv_fpath, delimiter=",")
 
     # Note: pano_guid is unique across the entire dataset.
     panoguid_to_panoid = {}
-    panoguid_to_vrmodelurl = {}
     for pano_metadata in pano_mapping_rows:
         pano_guid = pano_metadata["pano_guid"]
         dgx_fpath = pano_metadata["file"]
         pano_id = zind_data.pano_id_from_fpath(dgx_fpath)
         panoguid_to_panoid[pano_guid] = pano_id
-        panoguid_to_vrmodelurl[pano_guid] = pano_metadata["url"]  # .replace('https://www.zillowstatic.com/')
 
-    # floor_map
-    tsv_fpath = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Re-processing.tsv"
     tsv_rows = read_csv(tsv_fpath, delimiter="\t")
     for row in tsv_rows:
-        # building_guid = row["floor_map_guid_new"]
-        building_guid = row["floormap_guid_prod"]
+        # building_guid = row["floor_map_guid_new"] # use for Batch 1 from Yuguang
+        building_guid = row["floormap_guid_prod"] # use for Batch 2 from Yuguang
+        # e.g. building_guid resembles "0a7a6c6c-77ce-4aa9-9b8c-96e2588ac7e8"
+
         zind_building_id = row["new_home_id"].zfill(4)
 
         # print("on ", zind_building_id)
@@ -108,8 +109,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
             continue
 
         if building_guid == "":
-            print("Invalid building_guid, skipping...")
-            # import pdb; pdb.set_trace()
+            print(f"Invalid building_guid, skipping ZinD Building {zind_building_id}...")
             return None
 
         print(f"On ZinD Building {zind_building_id}")
@@ -124,16 +124,8 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
         if not Path(floor_map_json_fpath).exists():
             print(f"JSON file missing for {zind_building_id}")
             return None
-            # import pdb; pdb.set_trace()
+
         floor_map_json = json_utils.read_json_file(floor_map_json_fpath)
-
-        for pano_guid, pano_metadata in floor_map_json["panos"].items():
-            # import pdb; pdb.set_trace()
-            # vrmodelurl = panoguid_to_vrmodelurl[pano_guid]
-            pass
-            # these differ, for some reason
-            # assert vrmodelurl == pano_metadata["url"]
-
         floor_pose_graphs = {}
 
         plt.figure(figsize=(20, 10))
@@ -173,7 +165,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
                     scale_meters_per_coordinate=gt_pose_graph.scale_meters_per_coordinate,
                 )
 
-            model_names = ["rmx-madori-v1_predictions"]  # MODEL_NAMES, "rmx-tg-manh-v1_predictions"]
+            model_names = ["rmx-madori-v1_predictions"]
             # plot the image in question
             for model_name in model_names:
                 print(f"\tLoaded {model_name} prediction for Pano {i}")
@@ -224,7 +216,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
 
         return floor_pose_graphs
 
-    assert False, "Unknown error loading inferred pose graphs"
+    raise RuntimeError("Unknown error loading inferred pose graphs")
     return None
 
 
@@ -252,30 +244,29 @@ def test_get_floor_id_from_img_fpath() -> None:
     assert floor_id == "floor_02"
 
 
-# batch_transform_input_manifest_rmx-tg-manh-v1.json
-# batch_transform_input_manifest_rmx-dwo-rcnn.json
-# batch_transform_input_manifest_rmx-joint-v1.json
-# batch_transform_input_manifest_rmx-madori-v1.json
-# batch_transform_input_manifest_rmx-manh-joint-v2.json
-# batch_transform_input_manifest_rmx-rse-v1.json
 
-
-def main():
-    """ """
+def main() -> None:
+    """
+    For each of the 1575 ZinD homes, check to see if we have Rmx-Madori-V1 predictions. If we do, load
+    the predictions as a PoseGraph2d object, and render overlaid with oracle pose estimation.
+    """
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
+    rendering_save_dir = "ZinD_Inferred_GT_bridgeapi_2021_10_05_rendered_2021_10_14"
     model_name = "rmx-madori-v1_predictions"
 
+    # Generate all possible building IDs for ZinD.
     building_ids = [str(v).zfill(4) for v in range(1575)]
 
     for building_id in building_ids:
         floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id)
-        # import pdb; pdb.set_trace()
         if floor_pose_graphs is None:
+            # prediction files must have been missing, so we skip.
             continue
 
         for floor_id, floor_pose_graph in floor_pose_graphs.items():
 
+            # load the GT pose graph to rip out the GT pose for each pano.
             gt_pose_graph = posegraph2d.get_gt_pose_graph(
                 building_id=building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
             )
@@ -285,11 +276,10 @@ def main():
                 save_plot=True,
                 plot_save_dir=f"{model_name}__oracle_pose",
                 gt_floor_pg=gt_pose_graph,
-                # plot_save_fpath: Optional[str] = None,
             )
 
             floor_pose_graph.save_as_zind_data_json(
-                save_fpath=f"ZinD_Inferred_GT_bridgeapi_2021_10_05_rendered_2021_10_14/{building_id}/{floor_id}.json"
+                save_fpath=f"{rendering_save_dir}/{building_id}/{floor_id}.json"
             )
 
 
