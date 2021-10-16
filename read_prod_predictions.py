@@ -25,6 +25,7 @@ from afp.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
 from afp.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
 from afp.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
+REPO_ROOT = Path(__file__).resolve().parent
 
 MODEL_NAMES = [
     "rmx-madori-v1_predictions",  # Ethan’s new shape DWO joint model
@@ -82,10 +83,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
     # path to batch of unzipped prediction files, from Yuguang
     data_root = "/Users/johnlam/Downloads/zind2_john"
 
-    # TSV contains mapping between Prod building IDs and ZinD building IDs
-    tsv_fpath = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Re-processing.tsv"
     pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-
     pano_mapping_rows = read_csv(pano_mapping_tsv_fpath, delimiter=",")
 
     # Note: pano_guid is unique across the entire dataset.
@@ -96,6 +94,8 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
         pano_id = zind_data.pano_id_from_fpath(dgx_fpath)
         panoguid_to_panoid[pano_guid] = pano_id
 
+    # TSV contains mapping between Prod building IDs and ZinD building IDs
+    tsv_fpath = REPO_ROOT / "ZInD_Re-processing.tsv"
     tsv_rows = read_csv(tsv_fpath, delimiter="\t")
     for row in tsv_rows:
         # building_guid = row["floor_map_guid_new"] # use for Batch 1 from Yuguang
