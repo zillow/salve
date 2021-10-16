@@ -43,6 +43,73 @@ def zind_intersect_cartesian_with_floor_plane(cartesian_coordinates: np.ndarray,
 
 
 
+def zind_cartesian_to_sphere(points_cart: np.ndarray) -> np.ndarray:
+    """Convert cartesian to spherical coordinates.
+
+    Note: conflicts with all other methods in this file.
+    See: https://github.com/zillow/zind/blob/main/code/transformations.py#L124
+
+    Args:
+        points_cart:
+
+    Returns:
+        points_sph:
+    """
+    output_shape = (points_cart.shape[0], 3)  # type: ignore
+
+    num_points = points_cart.shape[0]
+    assert num_points > 0
+
+    num_coords = points_cart.shape[1]
+    assert num_coords == 3
+
+    x_arr = points_cart[:, 0]
+    y_arr = points_cart[:, 1]
+    z_arr = points_cart[:, 2]
+
+    # Azimuth angle is in [-pi, pi].
+    # Note the x-axis flip to align the handedness of the pano and room shape coordinate systems.
+    theta = np.arctan2(-x_arr, y_arr)
+
+    # Radius can be anything between (0, inf)
+    rho = np.sqrt(np.sum(np.square(points_cart), axis=1))
+    phi = np.arcsin(z_arr / rho)  # Map elevation to [-pi/2, pi/2]
+    return np.column_stack((theta, phi, rho)).reshape(output_shape)
+
+
+def test_zinc_cartesian_to_sphere() -> None:
+    """ """
+    pass
+    # # fmt: off
+    # points_cart = np.array(
+    #     [
+    #         [0,  1, 0],
+    #         [0, -1, 0],
+    #         [0, -1, 0],
+    #         [0,  1, 0],
+    #         [0,  0,-1],
+    #         [1, 0, 0],
+    #         [0, 0, 1]
+    #    ]
+    # )
+    # # fmt: on
+
+    # # provided as (u,v) coordinates.
+    # expected_points_sph = np.array(
+    #     [
+    #         [-np.pi, np.pi/2], # corresponds to (u,v) = (0,0)
+    #         [-np.pi, -np.pi/2], # corresponds to (u,v) = (0,511)
+    #         [np.pi, -np.pi/2], # corresponds to (u,v) = (1023,511)
+    #         [np.pi, np.pi/2], # corresponds to (u,v) = (1023,0)
+    #         [0, 0], # corresponds to (u,v) = (512,256)
+    #         [np.pi/2, 0], # 1/4 way from left edge of pano, midway up pano (u,v)=(256,0)
+    #         [-np.pi,0]
+    #     ])
+
+    # points_sph = zind_cartesian_to_sphere(points_cart)
+    # import pdb; pdb.set_trace()
+
+
 def test_zind_sphere_to_cartesian() -> None:
     """
     Imagine (H,W)=(512,1024) image
@@ -115,7 +182,9 @@ def zind_sphere_to_cartesian(points_sph: np.ndarray) -> np.ndarray:
     phi = points_sph[:, 1]
 
     # Validate the elevation angles.
-    assert np.all(np.greater_equal(phi, -math.pi / 2.0 - EPS_RAD))
+    if not np.all(np.greater_equal(phi, -math.pi / 2.0 - EPS_RAD)):
+        print("Phi out of bounds")
+        import pdb; pdb.set_trace()
     assert np.all(np.less_equal(phi, math.pi / 2.0 + EPS_RAD))
 
     if num_coords == 2:
@@ -178,7 +247,12 @@ def zind_pixel_to_sphere(points_pix: np.ndarray, width: int) -> np.ndarray:
 
     y_arr = points_pix[:, 1]
     assert np.all(np.greater_equal(y_arr, 0.0))
-    assert np.all(np.less(y_arr, height))
+    if not np.all(np.less(y_arr, height)):
+        # TODO: this is weird that sometimes the predictions lie outside the height (514 vs. 512 height). need to debug why.
+        print(f"Found coords {np.amax(y_arr)} vs {height}")
+        y_arr = np.clip(y_arr, a_min=0, a_max=height-1)
+        #import pdb; pdb.set_trace()
+    #assert np.all(np.less(y_arr, height))
 
     # Convert the x-coordinates to azimuth spherical coordinates, where
     # theta=0 maps to the horizontal center.
@@ -222,5 +296,29 @@ def test_zind_pixel_to_sphere() -> None:
     points_sph = zind_pixel_to_sphere(points_pix, width=1024)
     assert np.allclose(points_sph, expected_points_sph)
 
+
+def convert_points_px_to_worldmetric(points_px: np.ndarray, image_width: int, camera_height_m: int) -> np.ndarray:
+    """Convert pixel coordinates to Cartesian coordinates with a known scale (i.e. the units are meters).
+
+    Args:
+        points_px: 2d points in pixel coordaintes
+
+    Returns:
+        points_worldmetric: 
+    """
+
+    points_sph = zind_pixel_to_sphere(points_px, width=image_width)
+    points_cartesian = zind_sphere_to_cartesian(points_sph)
+    points_worldmetric = zind_intersect_cartesian_with_floor_plane(points_cartesian, camera_height_m)
+    return points_worldmetric
+
+
+
+"""
+See for reference: 
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py#L3853:31
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/master/evaluate_horizonnet_output.py#L734
+"""
 
     
