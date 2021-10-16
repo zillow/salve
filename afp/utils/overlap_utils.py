@@ -1,8 +1,8 @@
-
 """
 Utilities to verify if two set of walls intersect into another room's free-space, which is infeasible.
 """
 
+import os
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -15,7 +15,7 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
     """
     Reference: https://stackoverflow.com/questions/49558464/shrink-polygon-using-corner-coordinates
-    
+
     Args:
         shrink_factor: shrink by 10%
     """
@@ -46,25 +46,26 @@ def test_shrink_polygon() -> None:
     If not handled correctly, will see the following error:
         *** AttributeError: 'MultiPolygon' object has no attribute 'exterior'
     """
+
     def draw_polyline(polyline: np.ndarray, color: str) -> None:
         """ """
-        plt.scatter(polyline[:,0], polyline[:,1], 10, color=color, marker='.')
-        plt.plot(polyline[:,0], polyline[:,1], color=color)
+        plt.scatter(polyline[:, 0], polyline[:, 1], 10, color=color, marker=".")
+        plt.plot(polyline[:, 0], polyline[:, 1], color=color)
 
     pano1_room_vertices = np.array(
         [
-            [ 0.61807389, -1.0028074 ],
-            [ 0.59331251, -0.48251453],
-            [ 0.63846121, -0.38975602],
-            [ 0.81566386, -0.02569123],
-            [ 0.85433859,  0.05376642],
-            [-1.9087475 ,  1.3986739 ],
-            [-0.71553403,  3.85014409],
-            [ 2.87482109,  2.10250285],
-            [ 2.51753773,  1.36848825],
-            [ 2.26585724,  1.49099615],
-            [ 1.31355939, -0.46543567],
-            [ 1.32937937, -1.00994635]
+            [0.61807389, -1.0028074],
+            [0.59331251, -0.48251453],
+            [0.63846121, -0.38975602],
+            [0.81566386, -0.02569123],
+            [0.85433859, 0.05376642],
+            [-1.9087475, 1.3986739],
+            [-0.71553403, 3.85014409],
+            [2.87482109, 2.10250285],
+            [2.51753773, 1.36848825],
+            [2.26585724, 1.49099615],
+            [1.31355939, -0.46543567],
+            [1.32937937, -1.00994635],
         ]
     )
     polygon1 = Polygon(pano1_room_vertices)
@@ -104,24 +105,24 @@ def test_interp_evenly_spaced_points() -> None:
     """ """
     pano2_room_vertices = np.array(
         [
-            [ 3.41491678,  0.82735686],
-            [ 2.5812492 , -2.36060637],
-            [ 0.2083626 , -1.74008522],
-            [ 0.53871724, -0.47680178],
-            [ 0.40395381, -0.4415605 ],
-            [ 0.40395381, -0.4415605 ],
+            [3.41491678, 0.82735686],
+            [2.5812492, -2.36060637],
+            [0.2083626, -1.74008522],
+            [0.53871724, -0.47680178],
+            [0.40395381, -0.4415605],
+            [0.40395381, -0.4415605],
             [-0.36244272, -0.24114416],
             [-0.36244272, -0.24114416],
             [-0.56108295, -0.18919879],
-            [-0.14397634,  1.40582611],
-            [ 0.06767395,  1.35047855],
-            [ 0.15388028,  1.68013345]
+            [-0.14397634, 1.40582611],
+            [0.06767395, 1.35047855],
+            [0.15388028, 1.68013345],
         ]
     )
     pano2_room_vertices_interp = interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)  # meters
 
     assert isinstance(pano2_room_vertices_interp, np.ndarray)
-    assert pano2_room_vertices_interp.shape == (104,2)
+    assert pano2_room_vertices_interp.shape == (104, 2)
 
 
 # def test_interp_arc() -> None:
@@ -169,7 +170,6 @@ def eliminate_duplicates_2d(px: np.ndarray, py: np.ndarray) -> Tuple[np.ndarray,
     return px, py
 
 
-
 def test_eliminate_duplicates_2d() -> None:
     """Ensure two duplicated waypoints are removed.
 
@@ -177,35 +177,35 @@ def test_eliminate_duplicates_2d() -> None:
     """
     polyline = np.array(
         [
-            [ 3.41491678,  0.82735686], # 0
-            [ 2.5812492 , -2.36060637], # 1
-            [ 0.2083626 , -1.74008522], # 2
-            [ 0.53871724, -0.47680178], # 3
-            [ 0.40395381, -0.4415605 ], # 4
-            [ 0.40395381, -0.4415605 ], # 5
-            [-0.36244272, -0.24114416], # 6
-            [-0.36244272, -0.24114416], # 7
-            [-0.56108295, -0.18919879], # 8
-            [-0.14397634,  1.40582611], # 9
-            [ 0.06767395,  1.35047855], # 10
-            [ 0.15388028,  1.68013345] # 11
+            [3.41491678, 0.82735686],  # 0
+            [2.5812492, -2.36060637],  # 1
+            [0.2083626, -1.74008522],  # 2
+            [0.53871724, -0.47680178],  # 3
+            [0.40395381, -0.4415605],  # 4
+            [0.40395381, -0.4415605],  # 5
+            [-0.36244272, -0.24114416],  # 6
+            [-0.36244272, -0.24114416],  # 7
+            [-0.56108295, -0.18919879],  # 8
+            [-0.14397634, 1.40582611],  # 9
+            [0.06767395, 1.35047855],  # 10
+            [0.15388028, 1.68013345],  # 11
         ]
     )
-    px, py = eliminate_duplicates_2d(px=polyline[:,0], py=polyline[:,1])
-    polyline_no_dups = np.stack([px,py], axis=-1)
+    px, py = eliminate_duplicates_2d(px=polyline[:, 0], py=polyline[:, 1])
+    polyline_no_dups = np.stack([px, py], axis=-1)
 
     expected_polyline_no_dups = np.array(
         [
-            [ 3.41491678,  0.82735686],
-            [ 2.5812492 , -2.36060637],
-            [ 0.2083626 , -1.74008522],
-            [ 0.53871724, -0.47680178],
-            [ 0.40395381, -0.4415605 ],
+            [3.41491678, 0.82735686],
+            [2.5812492, -2.36060637],
+            [0.2083626, -1.74008522],
+            [0.53871724, -0.47680178],
+            [0.40395381, -0.4415605],
             [-0.36244272, -0.24114416],
             [-0.56108295, -0.18919879],
-            [-0.14397634,  1.40582611],
-            [ 0.06767395,  1.35047855],
-            [ 0.15388028,  1.68013345]
+            [-0.14397634, 1.40582611],
+            [0.06767395, 1.35047855],
+            [0.15388028, 1.68013345],
         ]
     )
     assert np.allclose(polyline_no_dups, expected_polyline_no_dups)
@@ -379,12 +379,12 @@ def test_determine_invalid_wall_overlap2() -> None:
     assert is_valid
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
     # test_shrink_polygon()
 
     # test_interp_evenly_spaced_points()
-    #test_interp_arc()
+    # test_interp_arc()
     # test_eliminate_duplicates_2d()
 
     # test_determine_invalid_wall_overlap1()
