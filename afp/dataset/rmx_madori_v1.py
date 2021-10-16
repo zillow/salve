@@ -16,6 +16,8 @@ from afp.common.pano_data import PanoData, WDO
 from afp.common.posegraph2d import PoseGraph2d
 import afp.utils.zind_pano_utils as zind_pano_utils
 
+RAMER_DOUGLAS_PEUCKER_EPSILON = 0.02
+
 
 @dataclass
 class RmxMadoriV1DWO:
@@ -187,8 +189,6 @@ class PanoStructurePredictionRmxMadoriV1:
                 # TODO: remove this when saving (only for plotting a ready-to-go PanoData instance)
                 x1 = -x1
                 x2 = -x2
-
-                import pdb; pdb.set_trace()
 
                 inferred_wdo = WDO(
                     global_Sim2_local=gt_pose_graph.nodes[pano_id].global_Sim2_local, # using GT pose for now

@@ -39,8 +39,6 @@ MODEL_NAMES = [
 ]
 # could also try partial manhattanization (separate model) -- get link from Yuguang
 
-RAMER_DOUGLAS_PEUCKER_EPSILON = 0.02
-
 RED = (1.0, 0, 0)
 GREEN = (0, 1.0, 0)
 BLUE = (0, 0, 1.0)
