@@ -75,7 +75,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
-    #data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
+    # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
     data_root = "/Users/johnlam/Downloads/zind2_john"
 
     building_guids = [Path(dirpath).stem for dirpath in glob.glob(f"{data_root}/*")]
@@ -99,17 +99,17 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
     tsv_fpath = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Re-processing.tsv"
     tsv_rows = read_csv(tsv_fpath, delimiter="\t")
     for row in tsv_rows:
-        #building_guid = row["floor_map_guid_new"]
+        # building_guid = row["floor_map_guid_new"]
         building_guid = row["floormap_guid_prod"]
         zind_building_id = row["new_home_id"].zfill(4)
 
-        #print("on ", zind_building_id)
+        # print("on ", zind_building_id)
         if zind_building_id != query_building_id:
             continue
 
         if building_guid == "":
             print("Invalid building_guid, skipping...")
-            #import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             return None
 
         print(f"On ZinD Building {zind_building_id}")
@@ -124,7 +124,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
         if not Path(floor_map_json_fpath).exists():
             print(f"JSON file missing for {zind_building_id}")
             return None
-            #import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
         floor_map_json = json_utils.read_json_file(floor_map_json_fpath)
 
         for pano_guid, pano_metadata in floor_map_json["panos"].items():
@@ -133,7 +133,6 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
             pass
             # these differ, for some reason
             # assert vrmodelurl == pano_metadata["url"]
-
 
         floor_pose_graphs = {}
 
@@ -170,8 +169,8 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
                 floor_pose_graphs[floor_id] = PoseGraph2d(
                     building_id=zind_building_id,
                     floor_id=floor_id,
-                    nodes= {},
-                    scale_meters_per_coordinate = gt_pose_graph.scale_meters_per_coordinate
+                    nodes={},
+                    scale_meters_per_coordinate=gt_pose_graph.scale_meters_per_coordinate,
                 )
 
             model_names = ["rmx-madori-v1_predictions"]  # MODEL_NAMES, "rmx-tg-manh-v1_predictions"]
@@ -182,7 +181,11 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
                     f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
                 )
                 if not Path(model_prediction_fpath).exists():
-                    print("Home too old, no Madori predictions currently available for this building id (Yuguang will re-compute later).", building_guid, zind_building_id)
+                    print(
+                        "Home too old, no Madori predictions currently available for this building id (Yuguang will re-compute later).",
+                        building_guid,
+                        zind_building_id,
+                    )
                     # skip this building.
                     return None
 
@@ -193,7 +196,9 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
                     if pred_obj is None:  # malformatted pred for some reason
                         continue
                     # pred_obj.render_layout_on_pano(img_h, img_w)
-                    pano_data = pred_obj.convert_to_pano_data(img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph, img_fpath=img_fpath)
+                    pano_data = pred_obj.convert_to_pano_data(
+                        img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph, img_fpath=img_fpath
+                    )
                     floor_pose_graphs[floor_id].nodes[i] = pano_data
 
                 elif model_name == "rmx-dwo-rcnn_predictions":
@@ -217,7 +222,6 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
             # plt.close("all")
             # plt.figure(figsize=(20, 10))
 
-
         return floor_pose_graphs
 
     assert False, "Unknown error loading inferred pose graphs"
@@ -227,7 +231,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
 def get_floor_id_from_img_fpath(img_fpath: str) -> str:
     """Fetch the corresponding embedded floor ID from a panorama file path.
 
-    For example, 
+    For example,
     "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05/0109/panos/floor_01_partial_room_03_pano_13.jpg" -> "floor_01"
     """
     fname = Path(img_fpath).name
@@ -248,8 +252,6 @@ def test_get_floor_id_from_img_fpath() -> None:
     assert floor_id == "floor_02"
 
 
-
-
 # batch_transform_input_manifest_rmx-tg-manh-v1.json
 # batch_transform_input_manifest_rmx-dwo-rcnn.json
 # batch_transform_input_manifest_rmx-joint-v1.json
@@ -264,11 +266,11 @@ def main():
 
     model_name = "rmx-madori-v1_predictions"
 
-    building_ids = [ str(v).zfill(4) for v in range(1575)]
-    
+    building_ids = [str(v).zfill(4) for v in range(1575)]
+
     for building_id in building_ids:
         floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id)
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         if floor_pose_graphs is None:
             continue
 
@@ -286,8 +288,9 @@ def main():
                 # plot_save_fpath: Optional[str] = None,
             )
 
-            floor_pose_graph.save_as_zind_data_json(save_fpath=f"ZinD_Inferred_GT_bridgeapi_2021_10_05_rendered_2021_10_14/{building_id}/{floor_id}.json")
-
+            floor_pose_graph.save_as_zind_data_json(
+                save_fpath=f"ZinD_Inferred_GT_bridgeapi_2021_10_05_rendered_2021_10_14/{building_id}/{floor_id}.json"
+            )
 
 
 if __name__ == "__main__":
