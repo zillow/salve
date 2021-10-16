@@ -183,8 +183,9 @@ def zind_sphere_to_cartesian(points_sph: np.ndarray) -> np.ndarray:
 
     # Validate the elevation angles.
     if not np.all(np.greater_equal(phi, -math.pi / 2.0 - EPS_RAD)):
-        print("Phi out of bounds")
-        import pdb; pdb.set_trace()
+        print(f"Found phi {np.amin(phi):.3f} vs [-pi/2,pi/2]=[{-np.pi/2:.3f},{np.pi/2:.3f}]. Clipping...")
+        phi = np.clip(phi, a_min=-np.pi/2, a_max=np.pi/2)
+
     assert np.all(np.less_equal(phi, math.pi / 2.0 + EPS_RAD))
 
     if num_coords == 2:
