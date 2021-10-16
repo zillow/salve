@@ -1,4 +1,3 @@
-
 """
 Utilities and containers for working with the output of model predictions for "rmx-madori-v1_predictions"
 This is Ethan’s new shape DWO joint model.
@@ -41,7 +40,6 @@ class RmxMadoriV1DWO:
         return cls(s=s, e=e)
 
 
-
 @dataclass
 class PanoStructurePredictionRmxMadoriV1:
     """ """
@@ -58,7 +56,6 @@ class PanoStructurePredictionRmxMadoriV1:
     doors: List[RmxMadoriV1DWO]
     openings: List[RmxMadoriV1DWO]
     windows: List[RmxMadoriV1DWO]
-
 
     @classmethod
     def from_json(cls, json_data: Any) -> "PanoStructurePredictionRmxMadoriV1":
@@ -98,7 +95,6 @@ class PanoStructurePredictionRmxMadoriV1:
             windows=windows,
         )
 
-
     def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
         """Render the predicted wall-floor boundary and wall corners onto the equirectangular projection,
         for visualization.
@@ -129,7 +125,9 @@ class PanoStructurePredictionRmxMadoriV1:
             return
         plt.scatter(np.arange(1024), self.floor_boundary, 10, color="y", marker=".")
 
-    def convert_to_pano_data(self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d, img_fpath: str) -> PanoData:
+    def convert_to_pano_data(
+        self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d, img_fpath: str
+    ) -> PanoData:
         """Render the wall-floor boundary in a bird's eye view.
 
         We run the Ramer-Douglas-Peucker simplification algorithm on the 1024 vertex contour
@@ -154,10 +152,10 @@ class PanoStructurePredictionRmxMadoriV1:
         )
 
         # ignore y values, which are along the vertical axis
-        room_vertices_local_2d = layout_pts_worldmetric[:, np.array([0,2]) ]
+        room_vertices_local_2d = layout_pts_worldmetric[:, np.array([0, 2])]
 
         # TODO: remove this when saving (only for plotting a ready-to-go PanoData instance)
-        room_vertices_local_2d[:,0] *= -1
+        room_vertices_local_2d[:, 0] *= -1
 
         # See https://cartography-playground.gitlab.io/playgrounds/douglas-peucker-algorithm/
         # https://rdp.readthedocs.io/en/latest/
@@ -167,7 +165,9 @@ class PanoStructurePredictionRmxMadoriV1:
         doors = []
         openings = []
 
-        for wdo_type, wdo_instances_single_type in zip(["windows", "doors", "openings"], [self.windows, self.doors, self.openings]):
+        for wdo_type, wdo_instances_single_type in zip(
+            ["windows", "doors", "openings"], [self.windows, self.doors, self.openings]
+        ):
             for wdo in wdo_instances_single_type:
                 wdo_s_u = wdo.s * img_w
                 wdo_e_u = wdo.e * img_w
@@ -182,7 +182,7 @@ class PanoStructurePredictionRmxMadoriV1:
                 wdo_endpoints_worldmetric = zind_pano_utils.convert_points_px_to_worldmetric(
                     points_px=wdo_endpoints_px, image_width=img_w, camera_height_m=camera_height_m
                 )
-                
+
                 x1, x2 = wdo_endpoints_worldmetric[:, 0]
                 y1, y2 = wdo_endpoints_worldmetric[:, 2]
 
@@ -191,12 +191,12 @@ class PanoStructurePredictionRmxMadoriV1:
                 x2 = -x2
 
                 inferred_wdo = WDO(
-                    global_Sim2_local=gt_pose_graph.nodes[pano_id].global_Sim2_local, # using GT pose for now
-                    pt1=(x1,y1),
-                    pt2=(x2,y2),
+                    global_Sim2_local=gt_pose_graph.nodes[pano_id].global_Sim2_local,  # using GT pose for now
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
                     bottom_z=-np.nan,
                     top_z=np.nan,
-                    type=wdo_type
+                    type=wdo_type,
                 )
                 if wdo_type == "windows":
                     windows.append(inferred_wdo)
@@ -209,7 +209,7 @@ class PanoStructurePredictionRmxMadoriV1:
 
         pano_data = PanoData(
             id=pano_id,
-            global_Sim2_local=gt_pose_graph.nodes[pano_id].global_Sim2_local, # using GT pose for now
+            global_Sim2_local=gt_pose_graph.nodes[pano_id].global_Sim2_local,  # using GT pose for now
             room_vertices_local_2d=room_vertices_local_2d,
             image_path=img_fpath,
             label=gt_pose_graph.nodes[pano_id].label,
@@ -219,18 +219,18 @@ class PanoStructurePredictionRmxMadoriV1:
         )
         return pano_data
 
-
     def render_bev(pano_data: PanoData) -> None:
         """
         Render the estimated layout for a single panorama.
         """
-        import pdb; pdb.set_trace()
+        import pdb
+
+        pdb.set_trace()
 
         # plt.close("All")
         #         plt.scatter(, 10, color="m", marker=".")
         # plt.axis("equal")
         # gt_pose_graph.nodes[pano_id].plot_room_layout(coord_frame="local", show_plot=False)
-
 
         # for wdo_instances_single_type, color in zip(
         #     [self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]
@@ -238,9 +238,6 @@ class PanoStructurePredictionRmxMadoriV1:
         #     for wdo in wdo_instances_single_type:
 
         #         plt.plot(, color=color, linewidth=6)
-
-
-
 
         # n = ray_dirs.shape[0]
         # rgb = np.zeros((n, 3)).astype(np.uint8)
@@ -335,7 +332,7 @@ def test_merge_wdos_straddling_img_border_doors() -> None:
     doors_merged = merge_wdos_straddling_img_border(wdo_instances=doors)
 
     assert doors == doors_merged
-    assert len(doors_merged) == 5 # should be same as input
+    assert len(doors_merged) == 5  # should be same as input
 
 
 def test_merge_wdos_straddling_img_border_openings() -> None:
@@ -343,8 +340,8 @@ def test_merge_wdos_straddling_img_border_openings() -> None:
     On ZinD Building 0000, Pano 17
 
     Other good examples are:
-    Panos 16, 22, 33 for building 0000. 
-    Pano 21 for building 0001, 
+    Panos 16, 22, 33 for building 0000.
+    Pano 21 for building 0001,
     """
     openings = [
         RmxMadoriV1DWO(s=0.0009775171065493646, e=0.10361681329423265),
@@ -354,7 +351,3 @@ def test_merge_wdos_straddling_img_border_openings() -> None:
 
     assert len(openings_merged) == 1
     assert openings_merged[0] == RmxMadoriV1DWO(s=0.9354838709677419, e=0.10361681329423265)
-
-
-
-

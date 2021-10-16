@@ -1,4 +1,3 @@
-
 """
 Corresponds to model output for the "rmx-tg-manh-v1_predictions"
 

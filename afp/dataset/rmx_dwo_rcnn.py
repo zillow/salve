@@ -1,5 +1,3 @@
-
-
 """
 Utilities and classes for working with RCNN predictions
 These come from "rmx-dwo-rcnn_predictions", representing RCNN DWO predictions.
@@ -61,5 +59,3 @@ class PanoStructurePredictionRmxDwoRCNN:
             dwo_preds += [RcnnDwoPred.from_json(dwo_data)]
 
         return cls(dwo_preds=dwo_preds)
-
-
