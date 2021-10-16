@@ -600,7 +600,6 @@ def export_single_building_wdo_alignment_hypotheses(
         pano_dir:
         json_annot_fpath:
     """
-
     use_inferred_wdos_layout = True
     if use_inferred_wdos_layout:
         from read_prod_predictions import load_inferred_floor_pose_graphs
@@ -608,7 +607,6 @@ def export_single_building_wdo_alignment_hypotheses(
         if floor_pose_graphs is None:
             # cannot compute putative alignments if prediction files are missing.
             return
-        #import pdb; pdb.set_trace()
 
     floor_map_json = json_utils.read_json_file(json_annot_fpath)
 
@@ -776,7 +774,9 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
     # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     #raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    
+    #raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -788,9 +788,10 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
 
-    num_processes = 1
+    num_processes = 30
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
