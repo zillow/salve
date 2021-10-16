@@ -119,6 +119,9 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
         pano_guids = [
             Path(dirpath).stem for dirpath in glob.glob(f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/*")
         ]
+        if len(pano_guids) == 0:
+            # e.g. building '0258' is missing predictions.
+            return None
 
         floor_map_json_fpath = f"{data_root}/{building_guid}/floor_map.json"
         if not Path(floor_map_json_fpath).exists():
