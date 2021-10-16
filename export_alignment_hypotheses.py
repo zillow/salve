@@ -389,7 +389,7 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 
 
 def align_rooms_by_wd(
-    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", use_inferred_wdos_layout: bool = True, visualize: bool = True,
+    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", use_inferred_wdos_layout: bool = True, visualize: bool = False,
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
@@ -608,7 +608,7 @@ def export_single_building_wdo_alignment_hypotheses(
         if floor_pose_graphs is None:
             # cannot compute putative alignments if prediction files are missing.
             return
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
 
     floor_map_json = json_utils.read_json_file(json_annot_fpath)
 
