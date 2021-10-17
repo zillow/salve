@@ -35,6 +35,14 @@ class WDO:
     type: str
 
     @property
+    def width(self) -> float:
+        """Determine the width of the WDO.
+
+        We define this as length of the line segment from start to end vertices.
+        """
+        return np.linalg.norm(np.array(self.pt1) - np.array(self.pt2))
+
+    @property
     def vertices_local_2d(self) -> np.ndarray:
         """ """
         return np.array([self.pt1, self.pt2])
