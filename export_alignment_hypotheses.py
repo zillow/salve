@@ -628,7 +628,8 @@ def align_rooms_by_wd(
                         else:
                             is_valid = True
 
-                        print(f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}")
+                        if verbose:
+                            print(f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}")
 
                     else:
                         is_valid = overlap_utils.determine_invalid_wall_overlap(
@@ -698,6 +699,8 @@ def export_single_building_wdo_alignment_hypotheses(
         pano_dir:
         json_annot_fpath:
     """
+    verbose = False
+
     use_inferred_wdos_layout = True
     if use_inferred_wdos_layout:
         from read_prod_predictions import load_inferred_floor_pose_graphs
@@ -806,7 +809,9 @@ def export_single_building_wdo_alignment_hypotheses(
                     proposed_fpath = f"{save_dir}/{fname}"
                     save_Sim2(proposed_fpath, ah.i2Ti1)
 
-                    print(label, fname)
+                    if verbose:
+                        # allows debugging of tolerances (compare with plots)
+                        print(label, fname)
 
                     # print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
                     # print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)

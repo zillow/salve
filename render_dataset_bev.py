@@ -412,7 +412,7 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 1
+    num_processes = 20
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     #depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
