@@ -1,0 +1,19 @@
+
+
+
+ZinD errors
+building 0000, Pano 4, should be door, not opening
+
+
+
+103 panos on floor 1
+
+building 0003
+
+{"scale_meters_per_coordinate": {"floor_01": null, "floor_02": 2.8983020077773243}, "merger": {"floor_01": {"complete_room_01": {"partial_room_01": {"pano_25": {"layout_raw": {"ve
+
+
+
+building 0006
+pose for 7 and 8 stated as same
+but pose for 7 is wrong (should be on the opposite side)
