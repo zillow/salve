@@ -6,6 +6,8 @@ Data can be found at:
 /mnt/data/zhiqiangw/ZInD_release/complete_zind_paper_final_localized_json_6_3_21
 
 conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=10.1 -c pytorch
+
+No shared texture between (0,75) -- yet doors align it (garage to kitchen)
 """
 
 import collections
@@ -28,6 +30,11 @@ from afp.common.pano_data import FloorData, PanoData, WDO
 from afp.utils.logger_utils import get_logger
 import afp.utils.overlap_utils as overlap_utils
 from afp.utils.sim3_align_dw import rotmat2d
+
+# could increase to 10
+ALIGNMENT_ANGLE_TOLERANCE = 7.0 # set to 5.0 for GT
+ALIGNMENT_TRANSLATION_TOLERANCE = 0.35 # was set to 0.2 for GT
+
 
 
 logger = get_logger()
@@ -84,6 +91,56 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
+def angle_is_equal(angle1: float, angle2: float, atol: float) -> bool:
+    """Calculate shortest distance betwen two angles, provided in degrees.
+
+    See: https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
+
+    Works for angles in the range [-360,360], but we use this only for Sim(2) angles that are spit out of np.arctan2
+    thus range is limited to [-180,180]
+
+    Args:
+        angle1: angle 1 (in degrees), in [-360,360]
+        angle2: angle 2 (in degrees), in [-360,360]
+    """
+    #wrap that result to the range [-180, 179)
+    diff = ( angle2 - angle1 + 180 ) % 360 - 180
+    if diff < -180:
+        # do nothing
+        diff = diff + 360
+
+    return np.absolute(diff) <= atol
+  
+
+def test_angle_is_equal() -> None:
+    """
+    """
+    angle1 = -177.8
+    angle2 =  179.5
+    import pdb; pdb.set_trace()
+    assert angle_is_equal(angle1, angle2, atol=5.0)
+
+    angle1 = -170
+    angle2 = 170
+    assert not angle_is_equal(angle1, angle2, atol=5.0)
+
+    angle1 = -170
+    angle2 = 180
+    assert angle_is_equal(angle1, angle2, atol=10.0)
+
+    angle1 = 5
+    angle2 = 11
+    assert not angle_is_equal(angle1, angle2, atol=5.0)
+
+    angle1 = -5
+    angle2 = -11
+    assert not angle_is_equal(angle1, angle2, atol=5.0)
+
+    angle1 = -5
+    angle2 = -9
+    assert angle_is_equal(angle1, angle2, atol=5.0)
+
+
 def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     """ """
     angle1 = i2Ti1.theta_deg
@@ -93,13 +150,13 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     # print(f"\t\tScale: {i2Ti1.scale:.1f} vs. {i2Ti1_.scale:.1f}")
     # print(f"\t\tAngle: {angle1:.1f} vs. {angle2:.1f}")
 
-    if not np.allclose(i2Ti1.translation, i2Ti1_.translation, atol=0.2):
+    if not np.allclose(i2Ti1.translation, i2Ti1_.translation, atol=ALIGNMENT_TRANSLATION_TOLERANCE):
         return False
 
     if not np.isclose(i2Ti1.scale, i2Ti1_.scale, atol=0.35):
         return False
 
-    if not np.isclose(angle1, angle2, atol=5):
+    if not angle_is_equal(angle1, angle2, atol=ALIGNMENT_ANGLE_TOLERANCE):
         return False
 
     return True
@@ -112,9 +169,9 @@ def test_obj_almost_equal():
             [
                 [-0.99928814,  0.03772511],
                 [-0.03772511, -0.99928814]
-            ], dtype=float32
+            ], dtype=np.float32
         ),
-        t=np.array([-3.0711207, -0.5683456], dtype=float32),
+        t=np.array([-3.0711207, -0.5683456], dtype=np.float32),
         s=1.0
     )
 
@@ -123,9 +180,9 @@ def test_obj_almost_equal():
             [
                 [-0.9999569 , -0.00928213],
                 [ 0.00928213, -0.9999569 ]
-            ], dtype=float32
+            ], dtype=np.float32
         ),
-        t=np.array([-3.0890038, -0.5540818], dtype=float32),
+        t=np.array([-3.0890038, -0.5540818], dtype=np.float32),
         s=0.9999999999999999
     )
     import pdb; pdb.set_trace()
@@ -255,100 +312,100 @@ def get_relative_angle(vec1: np.ndarray, vec2: np.ndarray) -> float:
     return angle_deg
 
 
-def test_align_rooms_by_wd() -> None:
-    """ """
-    wTi5 = Sim2(
-        R=np.array([[0.999897, -0.01435102], [0.01435102, 0.999897]], dtype=np.float32),
-        t=np.array([0.7860708, -1.57248], dtype=np.float32),
-        s=0.4042260417272217,
-    )
-    wTi8 = Sim2(
-        R=np.array([[0.02998102, -0.99955046], [0.99955046, 0.02998102]], dtype=np.float32),
-        t=np.array([0.91035557, -3.2141], dtype=np.float32),
-        s=0.4042260417272217,
-    )
+# def test_align_rooms_by_wd() -> None:
+#     """ """
+#     wTi5 = Sim2(
+#         R=np.array([[0.999897, -0.01435102], [0.01435102, 0.999897]], dtype=np.float32),
+#         t=np.array([0.7860708, -1.57248], dtype=np.float32),
+#         s=0.4042260417272217,
+#     )
+#     wTi8 = Sim2(
+#         R=np.array([[0.02998102, -0.99955046], [0.99955046, 0.02998102]], dtype=np.float32),
+#         t=np.array([0.91035557, -3.2141], dtype=np.float32),
+#         s=0.4042260417272217,
+#     )
 
-    # fmt: off
-    pano1_obj = PanoData(
-        id=5,
-        global_Sim2_local=wTi5,
-        room_vertices_local_2d=np.array(
-            [
-                [ 1.46363621, -2.43808616],
-                [ 1.3643741 ,  0.5424695 ],
-                [ 0.73380685,  0.52146958],
-                [ 0.7149462 ,  1.08780075],
-                [ 0.4670652 ,  1.07954551],
-                [ 0.46914653,  1.01704912],
-                [-1.2252865 ,  0.96061904],
-                [-1.10924507, -2.5237714 ]
-            ]),
-        image_path='panos/floor_01_partial_room_05_pano_5.jpg',
-        label='living room',
-        doors=[],
-        windows=[
-            WDO(
-                global_Sim2_local=wTi5,
-                pt1=[-1.0367953294361147, -2.5213585867749635],
-                pt2=[-0.4661345615720372, -2.5023537435761822],
-                bottom_z=-0.5746298535133153,
-                top_z=0.38684337323286566,
-                type='windows'
-            ),
-            WDO(
-                global_Sim2_local=wTi5,
-                pt1=[0.823799786466513, -2.45939477144822],
-                pt2=[1.404932996095547, -2.4400411621788427],
-                bottom_z=-0.5885416433689703,
-                top_z=0.3591070365687572,
-                type='windows'
-            )
-        ],
-        openings=[]
-    )
+#     # fmt: off
+#     pano1_obj = PanoData(
+#         id=5,
+#         global_Sim2_local=wTi5,
+#         room_vertices_local_2d=np.array(
+#             [
+#                 [ 1.46363621, -2.43808616],
+#                 [ 1.3643741 ,  0.5424695 ],
+#                 [ 0.73380685,  0.52146958],
+#                 [ 0.7149462 ,  1.08780075],
+#                 [ 0.4670652 ,  1.07954551],
+#                 [ 0.46914653,  1.01704912],
+#                 [-1.2252865 ,  0.96061904],
+#                 [-1.10924507, -2.5237714 ]
+#             ]),
+#         image_path='panos/floor_01_partial_room_05_pano_5.jpg',
+#         label='living room',
+#         doors=[],
+#         windows=[
+#             WDO(
+#                 global_Sim2_local=wTi5,
+#                 pt1=[-1.0367953294361147, -2.5213585867749635],
+#                 pt2=[-0.4661345615720372, -2.5023537435761822],
+#                 bottom_z=-0.5746298535133153,
+#                 top_z=0.38684337323286566,
+#                 type='windows'
+#             ),
+#             WDO(
+#                 global_Sim2_local=wTi5,
+#                 pt1=[0.823799786466513, -2.45939477144822],
+#                 pt2=[1.404932996095547, -2.4400411621788427],
+#                 bottom_z=-0.5885416433689703,
+#                 top_z=0.3591070365687572,
+#                 type='windows'
+#             )
+#         ],
+#         openings=[]
+#     )
 
 
-    pano2_obj = PanoData(
-        id=8,
-        global_Sim2_local=wTi8,
-        room_vertices_local_2d=np.array(
-            [
-                [-0.7336625 , -1.3968136 ],
-                [ 2.23956454, -1.16554334],
-                [ 2.19063694, -0.53652654],
-                [ 2.75557561, -0.4925832 ],
-                [ 2.73634178, -0.2453117 ],
-                [ 2.67399906, -0.25016098],
-                [ 2.54252291,  1.44010577],
-                [-0.93330008,  1.16974146]
-            ]), 
-        image_path='panos/floor_01_partial_room_05_pano_8.jpg',
-        label='living room',
-        doors=[],
-        windows=[
-            WDO(
-                global_Sim2_local=wTi8,
-                pt1=[-0.9276784906829552, 1.0974698581331057],
-                pt2=[-0.8833992085857922, 0.5282122352406332],
-                bottom_z=-0.5746298535133153,
-                top_z=0.38684337323286566,
-                type='windows'
-            ),
-            WDO(
-                global_Sim2_local=wTi8,
-                pt1=[-0.7833093301499523, -0.758550412558342],
-                pt2=[-0.7382174598580689, -1.338254727497497],
-                bottom_z=-0.5885416433689703,
-                top_z=0.3591070365687572,
-                type='windows'
-            )
-        ],
-        openings=[]
-    )
+#     pano2_obj = PanoData(
+#         id=8,
+#         global_Sim2_local=wTi8,
+#         room_vertices_local_2d=np.array(
+#             [
+#                 [-0.7336625 , -1.3968136 ],
+#                 [ 2.23956454, -1.16554334],
+#                 [ 2.19063694, -0.53652654],
+#                 [ 2.75557561, -0.4925832 ],
+#                 [ 2.73634178, -0.2453117 ],
+#                 [ 2.67399906, -0.25016098],
+#                 [ 2.54252291,  1.44010577],
+#                 [-0.93330008,  1.16974146]
+#             ]), 
+#         image_path='panos/floor_01_partial_room_05_pano_8.jpg',
+#         label='living room',
+#         doors=[],
+#         windows=[
+#             WDO(
+#                 global_Sim2_local=wTi8,
+#                 pt1=[-0.9276784906829552, 1.0974698581331057],
+#                 pt2=[-0.8833992085857922, 0.5282122352406332],
+#                 bottom_z=-0.5746298535133153,
+#                 top_z=0.38684337323286566,
+#                 type='windows'
+#             ),
+#             WDO(
+#                 global_Sim2_local=wTi8,
+#                 pt1=[-0.7833093301499523, -0.758550412558342],
+#                 pt2=[-0.7382174598580689, -1.338254727497497],
+#                 bottom_z=-0.5885416433689703,
+#                 top_z=0.3591070365687572,
+#                 type='windows'
+#             )
+#         ],
+#         openings=[]
+#     )
 
-    # fmt: on
-    possible_alignment_info, _ = align_rooms_by_wd(pano1_obj, pano2_obj)
-    assert len(possible_alignment_info) == 3
+#     # fmt: on
+#     possible_alignment_info, _ = align_rooms_by_wd(pano1_obj, pano2_obj)
+#     assert len(possible_alignment_info) == 3
 
 
 def plot_room_walls(
@@ -420,7 +477,7 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 
 
 def align_rooms_by_wd(
-    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", use_inferred_wdos_layout: bool = True, visualize: bool = True
+    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", use_inferred_wdos_layout: bool = True, visualize: bool = False
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
@@ -491,7 +548,6 @@ def align_rooms_by_wd(
                     plausible_configurations = ["identity", "rotated"]
 
                 for configuration in plausible_configurations:
-
                     if verbose:
                         logger.debug(f"\t{alignment_object} {i}/{j} {configuration}")
 
@@ -562,7 +618,18 @@ def align_rooms_by_wd(
                     if use_inferred_wdos_layout:
                         # overlap isn't reliable anymore?
                         # TODO: write new code that considers whether we are beyond an opening? in which case invalid?
-                        is_valid = True
+                        
+                        # Check to see if relative width ratio is within the range [0.5, 2]
+                        width_ratio = pano1_wd.width / pano2_wd_.width
+                        
+                        if width_ratio < 0.5 or width_ratio > 2.0:
+                            # infeasible!
+                            is_valid = False
+                        else:
+                            is_valid = True
+
+                        print(f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}")
+
                     else:
                         is_valid = overlap_utils.determine_invalid_wall_overlap(
                             pano1_id, pano2_id, i, j, pano1_room_vertices, pano2_room_vertices, shrink_factor=0.1, visualize=False
@@ -677,11 +744,16 @@ def export_single_building_wdo_alignment_hypotheses(
                 if i1 >= i2:
                     continue
 
+                if (building_id == "0006") and (i1 == 7 or i2 == 7):
+                    # annotation error for pano 7?
+                    continue
+
                 if i1 % 1000 == 0:
                     logger.info(f"\tOn pano pair ({i1},{i2})")
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
+                # we use the GT WDOs to infer this GT label.
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
 
                 try:
@@ -708,11 +780,10 @@ def export_single_building_wdo_alignment_hypotheses(
                     expected = i2Ti1_gt.rotation.T @ i2Ti1_gt.rotation
                     # print("Identity? ", np.round(expected, 1))
                     if not np.allclose(expected, np.eye(2), atol=1e-6):
-                        import pdb
-
-                        pdb.set_trace()
+                        import pdb; pdb.set_trace()
 
                 # TODO: estimate how often an inferred opening can provide the correct relative pose.
+                # TODO: make sure wide door cannot fid narrow door (e.g. 2x width not allowed)
 
                 # remove redundant transformations
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
@@ -748,7 +819,6 @@ def export_single_building_wdo_alignment_hypotheses(
                 else:
                     GT_valid = "aligned" not in labels
 
-                import pdb; pdb.set_trace()
                 # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
                 if not GT_valid:
                     logger.warning(
@@ -784,6 +854,9 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 
     for building_id in building_ids:
 
+        # if building_id in ["0003","0006","0034"]:
+        #     continue
+
         # if building_id not in ["0000"]: #, "001", "002"]: #'1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
         #     continue
 
@@ -811,8 +884,8 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     #raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
     
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    # raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -824,10 +897,10 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
 
-    num_processes = 1 # 30
+    num_processes = 30
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
