@@ -105,8 +105,39 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     return True
 
 
-def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]) -> List[AlignmentHypothesis]:
+def test_obj_almost_equal():
     """ """
+    i2Ti1_pred = Sim2(
+        R=np.array(
+            [
+                [-0.99928814,  0.03772511],
+                [-0.03772511, -0.99928814]
+            ], dtype=float32
+        ),
+        t=np.array([-3.0711207, -0.5683456], dtype=float32),
+        s=1.0
+    )
+
+    i2Ti1_gt = Sim2(
+        R=np.array(
+            [
+                [-0.9999569 , -0.00928213],
+                [ 0.00928213, -0.9999569 ]
+            ], dtype=float32
+        ),
+        t=np.array([-3.0890038, -0.5540818], dtype=float32),
+        s=0.9999999999999999
+    )
+    import pdb; pdb.set_trace()
+    assert obj_almost_equal(i2Ti1_pred, i2Ti1_gt)
+    assert obj_almost_equal(i2Ti1_gt, i2Ti1_pred)
+
+
+
+def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]) -> List[AlignmentHypothesis]:
+    """
+    Only useful for GT objects, that might have exact equality? (confirm how GT can actually have exact values)
+    """
     pruned_possible_alignment_info = []
 
     for j, alignment_hypothesis in enumerate(possible_alignment_info):
@@ -389,7 +420,7 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 
 
 def align_rooms_by_wd(
-    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", use_inferred_wdos_layout: bool = True, visualize: bool = False,
+    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", use_inferred_wdos_layout: bool = True, visualize: bool = True
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
@@ -573,7 +604,7 @@ def align_rooms_by_wd(
                         plt.axis("equal")
                         os.makedirs(f"debug_plots/{classification}", exist_ok=True)
                         plt.savefig(
-                            f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step3_{configuration}_{i}_{j}.jpg"
+                            f"debug_plots/{classification}/{alignment_object}_{pano1_id}_{pano2_id}___step3_{configuration}_{i}_{j}.jpg"
                         )
 
                         # plt.show()
@@ -583,7 +614,7 @@ def align_rooms_by_wd(
 
 
 def export_single_building_wdo_alignment_hypotheses(
-    hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str
+    hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str, raw_dataset_dir: str
 ) -> None:
     """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
@@ -603,7 +634,7 @@ def export_single_building_wdo_alignment_hypotheses(
     use_inferred_wdos_layout = True
     if use_inferred_wdos_layout:
         from read_prod_predictions import load_inferred_floor_pose_graphs
-        floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id)
+        floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
         if floor_pose_graphs is None:
             # cannot compute putative alignments if prediction files are missing.
             return
@@ -681,6 +712,8 @@ def export_single_building_wdo_alignment_hypotheses(
 
                         pdb.set_trace()
 
+                # TODO: estimate how often an inferred opening can provide the correct relative pose.
+
                 # remove redundant transformations
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
 
@@ -702,6 +735,8 @@ def export_single_building_wdo_alignment_hypotheses(
                     proposed_fpath = f"{save_dir}/{fname}"
                     save_Sim2(proposed_fpath, ah.i2Ti1)
 
+                    print(label, fname)
+
                     # print(f"\t GT {i2Ti1_gt.scale:.2f} ", np.round(i2Ti1_gt.translation,1))
                     # print(f"\t    {i2Ti1.scale:.2f} ", np.round(i2Ti1.translation,1), label, "visibly adjacent?", visibly_adjacent)
 
@@ -713,6 +748,7 @@ def export_single_building_wdo_alignment_hypotheses(
                 else:
                     GT_valid = "aligned" not in labels
 
+                import pdb; pdb.set_trace()
                 # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
                 if not GT_valid:
                     logger.warning(
@@ -755,7 +791,7 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
-        args += [(hypotheses_save_root, building_id, pano_dir, json_annot_fpath)]
+        args += [(hypotheses_save_root, building_id, pano_dir, json_annot_fpath, raw_dataset_dir)]
 
     if num_processes > 1:
         with Pool(num_processes) as p:
@@ -775,8 +811,8 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     #raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
     
-    #raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    # raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -788,10 +824,10 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
 
-    num_processes = 30
+    num_processes = 1 # 30
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
