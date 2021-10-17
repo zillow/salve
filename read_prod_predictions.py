@@ -71,9 +71,11 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
     # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
     
     # path to batch of unzipped prediction files, from Yuguang
-    data_root = "/Users/johnlam/Downloads/zind2_john"
+    #data_root = "/Users/johnlam/Downloads/zind2_john"
+    data_root = "/mnt/data/johnlam/zind2_john"
 
-    pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    #pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     pano_mapping_rows = read_csv(pano_mapping_tsv_fpath, delimiter=",")
 
     # Note: pano_guid is unique across the entire dataset.
