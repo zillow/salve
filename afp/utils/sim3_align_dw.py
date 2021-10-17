@@ -124,6 +124,48 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim
     return aSb, pts_a_
 
 
+# NOTE: TEST BELOW IS BASED OFF OF AN ANNOTATION ERROR I THINK -- CAN DELETE.
+# def test_align_points_SE2_door() -> None:
+#     """ """
+#     # fmt: off
+#     pano2_wd_pts = np.array(
+#         [
+#             [ 0.31029039,  5.0409614 ],
+#             [ 0.31029039,  5.0409614 ],
+#             [-0.19424723,  4.51055183],
+#             [-0.19424723,  4.51055183],
+#             [ 0.31029039,  5.0409614 ]
+#         ]
+#     )
+#     pano1_wd_pts = np.array(
+#         [
+#             [ 1.44758631,  0.30243336],
+#             [ 1.44758631,  0.30243336],
+#             [ 1.38693234, -0.40765391],
+#             [ 1.38693234, -0.40765391],
+#             [ 1.44758631,  0.30243336]
+#         ]
+#     )
+#     # fmt: on
+#     # passed in as target, source
+#     i2Ti1, pano1_pts_aligned = align_points_SE2(pts_a=pano2_wd_pts, pts_b=pano1_wd_pts)
+
+    
+
+#     # fmt: off
+#     i2Ti1_gt = Sim2(
+#         R = np.array(
+#             [
+#                 [ 0.65135753, -0.758771  ],
+#                 [ 0.758771  ,  0.65135753]
+#             ], dtype=np.float32
+#         ),
+#         t = np.array([-3.9725296 ,  0.15346308], dtype=np.float32),
+#         s = 0.9999999999999999
+#     )
+
+#     import pdb; pdb.set_trace()
+
 
 def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
     """ """
@@ -150,26 +192,26 @@ def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
     return i2Ti1_
 
 
-def test_reorthonormalize():
-    """ """
-    # from afp.common.pano_data import generate_Sim2_from_floorplan_transform
-    pano3_data = {
-        "translation": [0.01553549307166846, -0.002272521859178478],
-        "rotation": -352.5305535406924,
-        "scale": 0.4042260417272217,
-    }
-    pano4_data = {"translation": [0.0, 0.0], "rotation": 0.0, "scale": 0.4042260417272217}
+# def test_reorthonormalize():
+#     """ """
+#     # from afp.common.pano_data import generate_Sim2_from_floorplan_transform
+#     pano3_data = {
+#         "translation": [0.01553549307166846, -0.002272521859178478],
+#         "rotation": -352.5305535406924,
+#         "scale": 0.4042260417272217,
+#     }
+#     pano4_data = {"translation": [0.0, 0.0], "rotation": 0.0, "scale": 0.4042260417272217}
 
-    global_SIM2_i3 = generate_Sim2_from_floorplan_transform(pano3_data)
-    global_SIM2_i4 = generate_Sim2_from_floorplan_transform(pano4_data)
+#     global_SIM2_i3 = generate_Sim2_from_floorplan_transform(pano3_data)
+#     global_SIM2_i4 = generate_Sim2_from_floorplan_transform(pano4_data)
 
-    import pdb
+#     import pdb
 
-    pdb.set_trace()
+#     pdb.set_trace()
 
-    i2Ti1_gt = global_SIM2_i4.inverse().compose(global_SIM2_i3)
+#     i2Ti1_gt = global_SIM2_i4.inverse().compose(global_SIM2_i3)
 
-    reorthonormalize_sim2(i2Ti1_gt)
+#     reorthonormalize_sim2(i2Ti1_gt)
 
 
 def test_align_points_sim3_horseshoe() -> None:
@@ -183,7 +225,7 @@ def test_align_points_sim3_horseshoe() -> None:
             [1, 3, 0],
             [3, 3, 0]
         ]
-    ).tolist()
+    )
 
     # large horseshoe
     pts_b = np.array(
@@ -193,7 +235,7 @@ def test_align_points_sim3_horseshoe() -> None:
             [-1, 5, 10],
             [3, 5, 10]
         ]
-    ).tolist()
+    )
 
     # fmt: on
     # a is the reference, and b will be transformed to a_
