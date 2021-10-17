@@ -37,15 +37,6 @@ MODEL_NAMES = [
 ]
 # could also try partial manhattanization (separate model) -- get link from Yuguang
 
-RED = (1.0, 0, 0)
-GREEN = (0, 1.0, 0)
-BLUE = (0, 0, 1.0)
-
-# in accordance with color scheme in afp/common/pano_data.py
-WINDOW_COLOR = RED
-DOOR_COLOR = GREEN
-OPENING_COLOR = BLUE
-
 
 def read_csv(fpath: str, delimiter: str = ",") -> List[Dict[str, Any]]:
     """Read in a .csv or .tsv file as a list of dictionaries."""
@@ -60,7 +51,7 @@ def read_csv(fpath: str, delimiter: str = ",") -> List[Dict[str, Any]]:
     return rows
 
 
-def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
+def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str) -> None:
     """
 
     Note: we read in mapping from spreadsheet, mapping from their ZInD index to these guid
@@ -75,9 +66,8 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
     Args:
         query_building_id: string representing ZinD building ID to fetch the per-floor inferred pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
+        raw_dataset_dir: 
     """
-    # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
     
     # path to batch of unzipped prediction files, from Yuguang
@@ -151,7 +141,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
 
             img_resized = cv2.resize(img, (1024, 512))
             img_h, img_w, _ = img_resized.shape
-            # plt.imshow(img_resized)
+            # 
 
             floor_id = get_floor_id_from_img_fpath(img_fpath)
 
@@ -190,7 +180,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
                     pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
                     if pred_obj is None:  # malformatted pred for some reason
                         continue
-                    # pred_obj.render_layout_on_pano(img_h, img_w)
+                    # 
                     pano_data = pred_obj.convert_to_pano_data(
                         img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph, img_fpath=img_fpath
                     )
@@ -207,15 +197,19 @@ def load_inferred_floor_pose_graphs(query_building_id: str) -> None:
                 else:
                     continue
 
-            # plt.title(f"Pano {i} from Building {zind_building_id}")
-            # plt.tight_layout()
-            # os.makedirs(f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}_bev", exist_ok=True)
-            # plt.savefig(
-            #     f"prod_pred_model_visualizations_2021_10_07_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg", dpi=400
-            # )
-            # # plt.show()
-            # plt.close("all")
-            # plt.figure(figsize=(20, 10))
+            render_on_pano = False
+            if render_on_pano:
+                plt.imshow(img_resized)
+                pred_obj.render_layout_on_pano(img_h, img_w)
+                plt.title(f"Pano {i} from Building {zind_building_id}")
+                plt.tight_layout()
+                os.makedirs(f"prod_pred_model_visualizations_2021_10_16_bridge/{model_name}_bev", exist_ok=True)
+                plt.savefig(
+                    f"prod_pred_model_visualizations_2021_10_16_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg", dpi=400
+                )
+                # plt.show()
+                plt.close("all")
+                plt.figure(figsize=(20, 10))
 
         return floor_pose_graphs
 
@@ -253,6 +247,8 @@ def main() -> None:
     For each of the 1575 ZinD homes, check to see if we have Rmx-Madori-V1 predictions. If we do, load
     the predictions as a PoseGraph2d object, and render overlaid with oracle pose estimation.
     """
+
+    # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     rendering_save_dir = "ZinD_Inferred_GT_bridgeapi_2021_10_05_rendered_2021_10_14"
@@ -262,7 +258,7 @@ def main() -> None:
     building_ids = [str(v).zfill(4) for v in range(1575)]
 
     for building_id in building_ids:
-        floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id)
+        floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
         if floor_pose_graphs is None:
             # prediction files must have been missing, so we skip.
             continue
