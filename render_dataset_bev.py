@@ -417,7 +417,8 @@ if __name__ == "__main__":
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     #depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
-    depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    #depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
