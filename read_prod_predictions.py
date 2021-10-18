@@ -1,15 +1,16 @@
 """
 Converts an inference result to PanoData and PoseGraph2d objects. Also supports rendering the inference
 result with oracle pose.
+
+FINISH LAGO BASELINE
 """
 
 import copy
-import csv
 import glob
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import argoverse.utils.json_utils as json_utils
 import cv2
@@ -19,11 +20,13 @@ import numpy as np
 
 import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_data as zind_data
+import afp.utils.csv_utils as csv_utils
 from afp.common.pano_data import PanoData, WDO
 from afp.common.posegraph2d import PoseGraph2d
 from afp.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
 from afp.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
 from afp.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
+
 
 REPO_ROOT = Path(__file__).resolve().parent
 
@@ -36,19 +39,6 @@ MODEL_NAMES = [
     "rmx-tg-manh-v1_predictions",  # Total (visible) geometry with Manhattanization shape post processing
 ]
 # could also try partial manhattanization (separate model) -- get link from Yuguang
-
-
-def read_csv(fpath: str, delimiter: str = ",") -> List[Dict[str, Any]]:
-    """Read in a .csv or .tsv file as a list of dictionaries."""
-    rows = []
-
-    with open(fpath) as csvfile:
-        reader = csv.DictReader(csvfile, delimiter=delimiter)
-
-        for row in reader:
-            rows.append(row)
-
-    return rows
 
 
 def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str) -> None:
@@ -76,7 +66,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
 
     #pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-    pano_mapping_rows = read_csv(pano_mapping_tsv_fpath, delimiter=",")
+    pano_mapping_rows = csv_utils.read_csv(pano_mapping_tsv_fpath, delimiter=",")
 
     # Note: pano_guid is unique across the entire dataset.
     panoguid_to_panoid = {}
@@ -88,7 +78,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
 
     # TSV contains mapping between Prod building IDs and ZinD building IDs
     tsv_fpath = REPO_ROOT / "ZInD_Re-processing.tsv"
-    tsv_rows = read_csv(tsv_fpath, delimiter="\t")
+    tsv_rows = csv_utils.read_csv(tsv_fpath, delimiter="\t")
     for row in tsv_rows:
         # building_guid = row["floor_map_guid_new"] # use for Batch 1 from Yuguang
         building_guid = row["floormap_guid_prod"] # use for Batch 2 from Yuguang
