@@ -12,7 +12,9 @@ import imageio
 from torch.utils.data import Dataset
 from torch import Tensor
 
+from afp.dataset.zind_partition import OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
 from afp.training_config import TrainingConfig
+
 
 TRAIN_SPLIT_FRACTION = 0.85
 
@@ -27,6 +29,7 @@ TensorFourTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, int, str, str]
 # pano 1 ceiling, pano 2 ceiling, pano 1 floor, pano 2 floor, pano 1 layout, pano 2 layout
 PathSixTuple = Tuple[str, str, str, str, str, str, int]
 TensorSixTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int, str, str]
+
 
 
 def pair_idx_from_fpath(fpath: str) -> int:
@@ -191,7 +194,7 @@ def make_dataset(split: str, data_root: str, args: TrainingConfig) -> List[Union
 
     custom_splits = False
     if custom_splits:
-        val_building_ids = ["1635", "1584", "1583", "1578", "1530", "1490", "1442", "1626", "1427", "1394"]
+        val_building_ids = NEW_HOME_ID_TEST_SET
         train_building_ids = set(available_building_ids) - set(val_building_ids)
         train_building_ids = list(train_building_ids)
 
