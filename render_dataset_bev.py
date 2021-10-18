@@ -17,8 +17,11 @@ from argoverse.utils.json_utils import read_json_file
 
 from infer_depth import infer_depth
 
-from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
-from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
+import afp.algorithms.spanning_tree as spanning_tree
+import afp.common.posegraph2d as posegraph2d
+import afp.utils.csv_utils as csv_utils
+from afp.common.posegraph2d import PoseGraph2d
+from afp.dataset.zind_partition import OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
 from afp.utils.bev_rendering_utils import (
     get_bev_pair_xyzrgb,
     vis_depth,
@@ -26,6 +29,7 @@ from afp.utils.bev_rendering_utils import (
     render_bev_pair, 
     rasterize_room_layout_pair
 )
+
 
 HOHONET_CONFIG_FPATH = "config/mp3d_depth/HOHO_depth_dct_efficienthc_TransEn1_hardnet.yaml"
 HOHONET_CKPT_FPATH = "ckpt/mp3d_depth_HOHO_depth_dct_efficienthc_TransEn1_hardnet/ep60.pth"
@@ -144,7 +148,7 @@ def render_building_floor_pairs(
 
     floor_labels_dirpath = f"{hypotheses_save_root}/{building_id}/{floor_id}"
 
-    gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+    gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
     for label_type in ["gt_alignment_approx","incorrect_alignment"]:  # "gt_alignment_exact"
         pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
@@ -293,7 +297,7 @@ def render_floor_texture(
                 i2Si1_dict[(i1,i2)] = i2Si1
 
             # find the minimal spanning tree, and the absolute poses from it
-            wSi_list = greedily_construct_st_Sim2(i2Si1_dict)
+            wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict)
 
 
             xyzrgb = np.zeros((0,6))
@@ -383,8 +387,8 @@ def render_pairs(
     for building_id in building_ids:
 
         # # already rendered
-        # if building_id in ['1635', '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
-        #     continue
+        if building_id not in NEW_HOME_ID_TEST_SET:
+            continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         if not Path(json_annot_fpath).exists():
@@ -412,7 +416,7 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 20
+    num_processes = 10
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     #depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
@@ -431,7 +435,8 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     #hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
@@ -452,7 +457,8 @@ if __name__ == "__main__":
     #bev_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
     #bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
-    bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
+    #bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
+    bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
     #layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
