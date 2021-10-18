@@ -1,4 +1,3 @@
-
 """
 Render aligned texture maps and/or layouts in a bird's eye view, to be used for training a network.
 """
@@ -26,8 +25,8 @@ from afp.utils.bev_rendering_utils import (
     get_bev_pair_xyzrgb,
     vis_depth,
     vis_depth_and_render,
-    render_bev_pair, 
-    rasterize_room_layout_pair
+    render_bev_pair,
+    rasterize_room_layout_pair,
 )
 
 
@@ -129,7 +128,7 @@ def render_building_floor_pairs(
     building_id: str,
     floor_id: str,
     layout_save_root: str,
-    render_modalities: List[str] = ["rgb_texture"]#, "layout"]
+    render_modalities: List[str] = ["rgb_texture"],  # , "layout"]
 ) -> None:
     """
 
@@ -140,7 +139,7 @@ def render_building_floor_pairs(
         raw_dataset_dir: path to ZinD dataset.
         building_id: unique ID of ZinD building.
         floor_id: unique ID of floor.
-        layout_save_root: 
+        layout_save_root:
         render_modalities: "rgb_texture", "layout"
     """
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
@@ -150,7 +149,7 @@ def render_building_floor_pairs(
 
     gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
-    for label_type in ["gt_alignment_approx","incorrect_alignment"]:  # "gt_alignment_exact"
+    for label_type in ["gt_alignment_approx", "incorrect_alignment"]:  # "gt_alignment_exact"
         pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
         pairs.sort()
         print(f"On Building {building_id}, {floor_id}, {label_type}")
@@ -177,7 +176,7 @@ def render_building_floor_pairs(
                 i1, i2 = int(i1), int(i2)
 
                 # e.g. 'door_0_0_identity'
-                pair_uuid = Path(pair_fpath).stem.split('__')[-1]
+                pair_uuid = Path(pair_fpath).stem.split("__")[-1]
 
                 img1_fpath = img_fpaths_dict[i1]
                 img2_fpath = img_fpaths_dict[i2]
@@ -250,7 +249,9 @@ def render_building_floor_pairs(
                         continue
 
                     # skip for ceiling, since would be duplicate.
-                    layoutimg1, layoutimg2 = rasterize_room_layout_pair(i2Ti1, gt_floor_pose_graph, building_id, floor_id, i1, i2)
+                    layoutimg1, layoutimg2 = rasterize_room_layout_pair(
+                        i2Ti1, gt_floor_pose_graph, building_id, floor_id, i1, i2
+                    )
 
                     imageio.imwrite(layout_fpath1, layoutimg1)
                     imageio.imwrite(layout_fpath2, layoutimg2)
@@ -263,7 +264,7 @@ def render_floor_texture(
     raw_dataset_dir: str,
     building_id: str,
     floor_id: str,
-    layout_save_root: str
+    layout_save_root: str,
 ) -> None:
     """On a single canvas, texture-map all panoramas onto a single space.
 
@@ -271,12 +272,12 @@ def render_floor_texture(
     poses, using GT WDO locations.
 
     Args:
-        depth_save_root: 
-        bev_save_root: 
-        hypotheses_save_root: 
-        raw_dataset_dir: 
-        building_id: 
-        floor_id: 
+        depth_save_root:
+        bev_save_root:
+        hypotheses_save_root:
+        raw_dataset_dir:
+        building_id:
+        floor_id:
     """
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
     img_fpaths_dict = {panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
@@ -294,13 +295,12 @@ def render_floor_texture(
                 i1, i2 = int(i1), int(i2)
 
                 i2Si1 = Sim2.from_json(json_fpath=sim2_json_fpath)
-                i2Si1_dict[(i1,i2)] = i2Si1
+                i2Si1_dict[(i1, i2)] = i2Si1
 
             # find the minimal spanning tree, and the absolute poses from it
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict)
 
-
-            xyzrgb = np.zeros((0,6))
+            xyzrgb = np.zeros((0, 6))
             for pair_idx, pair_fpath in enumerate(pairs):
 
                 is_semantics = False
@@ -349,26 +349,32 @@ def render_floor_texture(
                 # will be in the frame of 2!
                 xyzrgb1, xyzrgb2 = get_bev_pair_xyzrgb(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
 
-                #import pdb; pdb.set_trace()
-                xyzrgb1[:,:2] = wSi_list[i2].transform_from(xyzrgb1[:,:2])
-                xyzrgb2[:,:2] = wSi_list[i2].transform_from(xyzrgb2[:,:2])
+                # import pdb; pdb.set_trace()
+                xyzrgb1[:, :2] = wSi_list[i2].transform_from(xyzrgb1[:, :2])
+                xyzrgb2[:, :2] = wSi_list[i2].transform_from(xyzrgb2[:, :2])
 
                 xyzrgb = np.vstack([xyzrgb, xyzrgb1])
                 xyzrgb = np.vstack([xyzrgb, xyzrgb2])
-        
+
                 import matplotlib.pyplot as plt
+
                 plt.scatter(xyzrgb[:, 0], xyzrgb[:, 1], 10, c=xyzrgb[:, 3:], marker=".", alpha=0.1)
                 plt.title("")
                 plt.axis("equal")
                 save_fpath = f"texture_aggregation/{building_id}/{floor_id}/aggregated_{pair_idx}_pairs.jpg"
                 os.makedirs(Path(save_fpath).parent, exist_ok=True)
                 plt.savefig(save_fpath, dpi=500)
-                #plt.show()
+                # plt.show()
                 plt.close("all")
 
 
 def render_pairs(
-    num_processes: int, depth_save_root: str, bev_save_root: str, raw_dataset_dir: str, hypotheses_save_root: str, layout_save_root: str
+    num_processes: int,
+    depth_save_root: str,
+    bev_save_root: str,
+    raw_dataset_dir: str,
+    hypotheses_save_root: str,
+    layout_save_root: str,
 ) -> None:
     """ """
 
@@ -402,7 +408,17 @@ def render_pairs(
 
         merger_data = floor_map_json["merger"]
         for floor_id in merger_data.keys():
-            args += [(depth_save_root, bev_save_root, hypotheses_save_root, raw_dataset_dir, building_id, floor_id, layout_save_root)]
+            args += [
+                (
+                    depth_save_root,
+                    bev_save_root,
+                    hypotheses_save_root,
+                    raw_dataset_dir,
+                    building_id,
+                    floor_id,
+                    layout_save_root,
+                )
+            ]
 
     if num_processes > 1:
         with Pool(num_processes) as p:
@@ -410,7 +426,7 @@ def render_pairs(
     else:
         for single_call_args in args:
             render_building_floor_pairs(*single_call_args)
-            #render_floor_texture(*single_call_args)
+            # render_floor_texture(*single_call_args)
 
 
 if __name__ == "__main__":
@@ -419,49 +435,49 @@ if __name__ == "__main__":
     num_processes = 10
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
-    #depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
+    # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
-    #depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v2_w_wdo_idxs"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v2_w_wdo_idxs"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    #raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    #raw_dataset_dir = DO NOT USE "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
-    #raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
+    # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    # raw_dataset_dir = DO NOT USE "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
+    # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
-    #raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
-    #bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
-    #bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
+    # bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v3"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs_filledpoly"
-    #bev_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
+    # bev_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
-    #bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
-    #bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
+    # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
     bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
-    #layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
+    # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
     layout_save_root = None
 
@@ -472,5 +488,5 @@ if __name__ == "__main__":
         bev_save_root=bev_save_root,
         raw_dataset_dir=raw_dataset_dir,
         hypotheses_save_root=hypotheses_save_root,
-        layout_save_root=layout_save_root
+        layout_save_root=layout_save_root,
     )
