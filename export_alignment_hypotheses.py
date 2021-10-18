@@ -25,11 +25,12 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from shapely.geometry import LineString
 
+import afp.utils.logger_utils as logger_utils
+import afp.utils.overlap_utils as overlap_utils
+import afp.utils.rotation_utils as rotation_utils
 import afp.utils.sim3_align_dw as sim3_align_dw # TODO: rename module to more informative name
 from afp.common.pano_data import FloorData, PanoData, WDO
-from afp.utils.logger_utils import get_logger
-import afp.utils.overlap_utils as overlap_utils
-from afp.utils.sim3_align_dw import rotmat2d
+
 
 # could increase to 10
 ALIGNMENT_ANGLE_TOLERANCE = 7.0 # set to 5.0 for GT
@@ -37,7 +38,7 @@ ALIGNMENT_TRANSLATION_TOLERANCE = 0.35 # was set to 0.2 for GT
 
 
 
-logger = get_logger()
+logger = logger_utils.get_logger()
 
 # The type of supported polygon/wall/point objects.
 class PolygonType(Enum):
@@ -91,56 +92,6 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
-def angle_is_equal(angle1: float, angle2: float, atol: float) -> bool:
-    """Calculate shortest distance betwen two angles, provided in degrees.
-
-    See: https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
-
-    Works for angles in the range [-360,360], but we use this only for Sim(2) angles that are spit out of np.arctan2
-    thus range is limited to [-180,180]
-
-    Args:
-        angle1: angle 1 (in degrees), in [-360,360]
-        angle2: angle 2 (in degrees), in [-360,360]
-    """
-    #wrap that result to the range [-180, 179)
-    diff = ( angle2 - angle1 + 180 ) % 360 - 180
-    if diff < -180:
-        # do nothing
-        diff = diff + 360
-
-    return np.absolute(diff) <= atol
-  
-
-def test_angle_is_equal() -> None:
-    """
-    """
-    angle1 = -177.8
-    angle2 =  179.5
-    import pdb; pdb.set_trace()
-    assert angle_is_equal(angle1, angle2, atol=5.0)
-
-    angle1 = -170
-    angle2 = 170
-    assert not angle_is_equal(angle1, angle2, atol=5.0)
-
-    angle1 = -170
-    angle2 = 180
-    assert angle_is_equal(angle1, angle2, atol=10.0)
-
-    angle1 = 5
-    angle2 = 11
-    assert not angle_is_equal(angle1, angle2, atol=5.0)
-
-    angle1 = -5
-    angle2 = -11
-    assert not angle_is_equal(angle1, angle2, atol=5.0)
-
-    angle1 = -5
-    angle2 = -9
-    assert angle_is_equal(angle1, angle2, atol=5.0)
-
-
 def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     """ """
     angle1 = i2Ti1.theta_deg
@@ -156,7 +107,7 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     if not np.isclose(i2Ti1.scale, i2Ti1_.scale, atol=0.35):
         return False
 
-    if not angle_is_equal(angle1, angle2, atol=ALIGNMENT_ANGLE_TOLERANCE):
+    if not rotation_utils.angle_is_equal(angle1, angle2, atol=ALIGNMENT_ANGLE_TOLERANCE):
         return False
 
     return True
@@ -903,7 +854,8 @@ if __name__ == "__main__":
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
 
     num_processes = 30
 

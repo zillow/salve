@@ -57,6 +57,56 @@ def wrap_angle_deg(angle1: float, angle2: float):
         return np.absolute(diff)
 
 
+def angle_is_equal(angle1: float, angle2: float, atol: float) -> bool:
+    """Calculate shortest distance betwen two angles, provided in degrees.
+
+    See: https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
+
+    Works for angles in the range [-360,360], but we use this only for Sim(2) angles that are spit out of np.arctan2
+    thus range is limited to [-180,180]
+
+    Args:
+        angle1: angle 1 (in degrees), in [-360,360]
+        angle2: angle 2 (in degrees), in [-360,360]
+    """
+    #wrap that result to the range [-180, 179)
+    diff = ( angle2 - angle1 + 180 ) % 360 - 180
+    if diff < -180:
+        # do nothing
+        diff = diff + 360
+
+    return np.absolute(diff) <= atol
+  
+
+def test_angle_is_equal() -> None:
+    """
+    """
+    angle1 = -177.8
+    angle2 =  179.5
+    import pdb; pdb.set_trace()
+    assert angle_is_equal(angle1, angle2, atol=5.0)
+
+    angle1 = -170
+    angle2 = 170
+    assert not angle_is_equal(angle1, angle2, atol=5.0)
+
+    angle1 = -170
+    angle2 = 180
+    assert angle_is_equal(angle1, angle2, atol=10.0)
+
+    angle1 = 5
+    angle2 = 11
+    assert not angle_is_equal(angle1, angle2, atol=5.0)
+
+    angle1 = -5
+    angle2 = -11
+    assert not angle_is_equal(angle1, angle2, atol=5.0)
+
+    angle1 = -5
+    angle2 = -9
+    assert angle_is_equal(angle1, angle2, atol=5.0)
+
+
 def test_wrap_angle_deg() -> None:
     """ """
     angle1 = 180
