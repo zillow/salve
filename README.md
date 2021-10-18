@@ -1,6 +1,6 @@
 # jlambert-auto-floorplan
 
-Code for the auto-Floorplan (AFP) 2021 Internship project within RMX group.
+Code for the Auto-Floorplan (AFP) 2021 Internship project within RMX group.
 
 Author: John Lambert
 
@@ -17,7 +17,7 @@ Code is organized under the `afp` directory as follows:
 
 
 # Installation
-Run:
+To install the Auto-Floorplan (`afp`) library, run:
 ```
 pip install -e .
 ```
@@ -33,7 +33,7 @@ or on Mac
 conda env create -f environment_mac.yml
 ```
 
-We use the `GTSAM` library for back-end SLAM/rotation graph optimization, and pose graph alignment. Pre-built python wheels for `GTSAM` are available for download [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1035308319) on Github under "Artifacts" (there is no need to build GTSAM from scratch). The `pypi` GTSAM libraries are out of date. You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
+We use the `GTSAM` library for back-end SLAM/rotation graph optimization, and pose graph alignment. Pre-built python wheels for `GTSAM` are available for download [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1126472520) on Github under "Artifacts" (there is no need to build GTSAM from scratch). The GTSAM libraries on `pypi` are out of date. You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
 
 Then, install the Python wheel for GTSAM via 
 ```
