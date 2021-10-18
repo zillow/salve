@@ -15,24 +15,22 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import gtsfm.utils.graph as graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-import gtsfm.utils.graph as graph_utils
 
 import afp.algorithms.cycle_consistency as cycle_utils
 import afp.algorithms.rotation_averaging as rotation_averaging
+import afp.utils.pr_utils as pr_utils
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
 from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
 from afp.algorithms.cluster_merging import EdgeWDOPair
 from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
 from afp.utils.graph_rendering_utils import draw_multigraph, draw_graph_topology
-from afp.utils.pr_utils import assign_tp_fp_fn_tn
 from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rotmat2theta_deg
 
 from visualize_edge_classifications import get_edge_classifications_from_serialized_preds, EdgeClassification
-
-from typing import NamedTuple
 
 
 @dataclass(frozen=True)
@@ -191,7 +189,7 @@ def run_incremental_reconstruction(
             probs = np.array([m.prob for m in measurements])
             y_true_array = np.array([m.y_true for m in measurements])
             y_hat_array = np.array([m.y_hat for m in measurements])
-            is_TP, is_FP, is_FN, is_TN = assign_tp_fp_fn_tn(y_true_array, y_hat_array)
+            is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true_array, y_hat_array)
 
             plt.subplot(2,2,1)
             plt.hist(probs[is_TP], bins=15)
@@ -289,6 +287,7 @@ def run_incremental_reconstruction(
 
         median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Median over all tours, {error_metric} = {median_val:.2f}")
+
 
 def cycles_SE2_spanning_tree(
     building_id: str,
@@ -417,7 +416,6 @@ def growing_consensus(
             # unused_triplets.remove(triplet)
 
     
-
 def build_filtered_spanning_tree(
     building_id: str,
     floor_id: str,
