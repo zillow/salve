@@ -23,6 +23,11 @@ We used to name ego-normalized the room CS and world-normalized the floor CS
 
 there is a reflection between one of these coordinate systems
 (specifically between ego-normalized and world-normalized.
+
+See for reference: 
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py#L3853:31
+https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/master/evaluate_horizonnet_output.py#L734
 """
 
 import math
@@ -40,7 +45,6 @@ def zind_intersect_cartesian_with_floor_plane(cartesian_coordinates: np.ndarray,
     get unit-norm rays, then scale so that y has unit norm
     """
     return cartesian_coordinates * camera_height / cartesian_coordinates[:, 1].reshape(-1, 1)
-
 
 
 def zind_cartesian_to_sphere(points_cart: np.ndarray) -> np.ndarray:
@@ -313,13 +317,5 @@ def convert_points_px_to_worldmetric(points_px: np.ndarray, image_width: int, ca
     points_worldmetric = zind_intersect_cartesian_with_floor_plane(points_cartesian, camera_height_m)
     return points_worldmetric
 
-
-
-"""
-See for reference: 
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py#L3853:31
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/master/evaluate_horizonnet_output.py#L734
-"""
 
     
