@@ -35,6 +35,7 @@ def test_map_old_zind_ids_to_new_ids() -> None:
 
 # August test set
 OLD_HOME_ID_TEST_SET = ["1635", "1584", "1583", "1578", "1530", "1490", "1442", "1626", "1427", "1394"]
+# New IDs should be ['0767', '0712', '0711', '0706', '0654', '0613', '0560', '0757', '0544']
 NEW_HOME_ID_TEST_SET = map_old_zind_ids_to_new_ids(OLD_HOME_ID_TEST_SET)
 
 
