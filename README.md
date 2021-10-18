@@ -33,9 +33,15 @@ or on Mac
 conda env create -f environment_mac.yml
 ```
 
-Then, install the Python wheel for GTSAM via `pip install /path/to/wheel/file.whl`. Wheels are available [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1035308319) under "Artifacts". You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
+We use the `GTSAM` library for back-end SLAM/rotation graph optimization, and pose graph alignment. Pre-built python wheels for `GTSAM` are available for download [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1035308319) on Github under "Artifacts" (there is no need to build GTSAM from scratch). The `pypi` GTSAM libraries are out of date. You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
+
+Then, install the Python wheel for GTSAM via 
+```
+pip install /path/to/wheel/file.whl
+```
 
 Next, clone the `HoHoNet` repo.
 
 - We use Facebook's `hydra` library for configuration files.
-- We use GTSAM for back-end SLAM/rotation graph optimization, and pose graph alignment.
+- We use the [`rdp`](https://github.com/fhirschmann/rdp) library for polygon simplification.
+
