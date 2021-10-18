@@ -1,5 +1,42 @@
 
+from pathlib import Path
+from typing import List
+
+import afp.utils.csv_utils as csv_utils
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
 """Splits are ordered from 0000 to 1574. There are 1575 tours"""
+
+
+def map_old_zind_ids_to_new_ids(old_ids: List[str]) -> List[str]:
+    """New ZinD IDs are 4-digit strings."""
+    tsv_fpath = REPO_ROOT / "ZInD_Re-processing.tsv"
+    tsv_rows = csv_utils.read_csv(tsv_fpath, delimiter="\t")
+    oldid_to_newid_mapping = {row["old_home_id"]: row["new_home_id"] for row in tsv_rows}
+    new_ids = []
+    for old_id in old_ids:
+        new_id = oldid_to_newid_mapping.get(old_id, None)
+        if new_id is not None:
+            new_id = new_id.zfill(4)
+            new_ids.append(new_id)
+        else:
+            print(f"ZinD old ID {old_id} not present in final release.")
+    return new_ids
+
+
+def test_map_old_zind_ids_to_new_ids() -> None:
+    """ """
+    old_ids = ["1635"]
+    new_ids_expected = ["0767"]
+    new_ids = map_old_zind_ids_to_new_ids(old_ids)
+    assert new_ids == new_ids_expected
+
+# August test set
+OLD_HOME_ID_TEST_SET = ["1635", "1584", "1583", "1578", "1530", "1490", "1442", "1626", "1427", "1394"]
+NEW_HOME_ID_TEST_SET = map_old_zind_ids_to_new_ids(OLD_HOME_ID_TEST_SET)
+
 
 DATASET_SPLITS = {
     "train": [
