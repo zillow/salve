@@ -28,14 +28,13 @@ from shapely.geometry import LineString
 import afp.utils.logger_utils as logger_utils
 import afp.utils.overlap_utils as overlap_utils
 import afp.utils.rotation_utils as rotation_utils
-import afp.utils.sim3_align_dw as sim3_align_dw # TODO: rename module to more informative name
+import afp.utils.sim3_align_dw as sim3_align_dw  # TODO: rename module to more informative name
 from afp.common.pano_data import FloorData, PanoData, WDO
 
 
 # could increase to 10
-ALIGNMENT_ANGLE_TOLERANCE = 7.0 # set to 5.0 for GT
-ALIGNMENT_TRANSLATION_TOLERANCE = 0.35 # was set to 0.2 for GT
-
+ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
+ALIGNMENT_TRANSLATION_TOLERANCE = 0.35  # was set to 0.2 for GT
 
 
 logger = logger_utils.get_logger()
@@ -113,33 +112,33 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     return True
 
 
-def test_obj_almost_equal():
+def test_obj_almost_equal() -> None:
     """ """
+    # fmt: off
     i2Ti1_pred = Sim2(
         R=np.array(
             [
-                [-0.99928814,  0.03772511],
+                [-0.99928814, 0.03772511],
                 [-0.03772511, -0.99928814]
             ], dtype=np.float32
         ),
         t=np.array([-3.0711207, -0.5683456], dtype=np.float32),
-        s=1.0
+        s=1.0,
     )
 
     i2Ti1_gt = Sim2(
         R=np.array(
             [
-                [-0.9999569 , -0.00928213],
-                [ 0.00928213, -0.9999569 ]
+                [-0.9999569, -0.00928213],
+                [0.00928213, -0.9999569]
             ], dtype=np.float32
         ),
         t=np.array([-3.0890038, -0.5540818], dtype=np.float32),
-        s=0.9999999999999999
+        s=0.9999999999999999,
     )
-    import pdb; pdb.set_trace()
+    # fmt: on
     assert obj_almost_equal(i2Ti1_pred, i2Ti1_gt)
     assert obj_almost_equal(i2Ti1_gt, i2Ti1_pred)
-
 
 
 def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]) -> List[AlignmentHypothesis]:
@@ -329,7 +328,7 @@ def get_relative_angle(vec1: np.ndarray, vec2: np.ndarray) -> float:
 #                 [ 2.67399906, -0.25016098],
 #                 [ 2.54252291,  1.44010577],
 #                 [-0.93330008,  1.16974146]
-#             ]), 
+#             ]),
 #         image_path='panos/floor_01_partial_room_05_pano_8.jpg',
 #         label='living room',
 #         doors=[],
@@ -360,11 +359,9 @@ def get_relative_angle(vec1: np.ndarray, vec2: np.ndarray) -> float:
 
 
 def plot_room_walls(
-    pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, color = None, linewidth: float = 2.0, alpha: float = 0.5
+    pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, color=None, linewidth: float = 2.0, alpha: float = 0.5
 ) -> None:
-    """
-
-    """
+    """ """
     room_vertices = pano_obj.room_vertices_local_2d
     if i2Ti1:
         room_vertices = i2Ti1.transform_from(room_vertices)
@@ -428,7 +425,11 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 
 
 def align_rooms_by_wd(
-    pano1_obj: PanoData, pano2_obj: PanoData, transform_type: str = "SE2", use_inferred_wdos_layout: bool = True, visualize: bool = False
+    pano1_obj: PanoData,
+    pano2_obj: PanoData,
+    transform_type: str = "SE2",
+    use_inferred_wdos_layout: bool = True,
+    visualize: bool = False,
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
@@ -569,10 +570,10 @@ def align_rooms_by_wd(
                     if use_inferred_wdos_layout:
                         # overlap isn't reliable anymore?
                         # TODO: write new code that considers whether we are beyond an opening? in which case invalid?
-                        
+
                         # Check to see if relative width ratio is within the range [0.5, 2]
                         width_ratio = pano1_wd.width / pano2_wd_.width
-                        
+
                         if width_ratio < 0.5 or width_ratio > 2.0:
                             # infeasible!
                             is_valid = False
@@ -580,11 +581,20 @@ def align_rooms_by_wd(
                             is_valid = True
 
                         if verbose:
-                            print(f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}")
+                            print(
+                                f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}"
+                            )
 
                     else:
                         is_valid = overlap_utils.determine_invalid_wall_overlap(
-                            pano1_id, pano2_id, i, j, pano1_room_vertices, pano2_room_vertices, shrink_factor=0.1, visualize=False
+                            pano1_id,
+                            pano2_id,
+                            i,
+                            j,
+                            pano1_room_vertices,
+                            pano2_room_vertices,
+                            shrink_factor=0.1,
+                            visualize=False,
                         )
                     # logger.error("Pano1 room verts: %s", str(pano1_room_vertices))
                     # logger.error("Pano2 room verts: %s", str(pano2_room_vertices))
@@ -655,7 +665,10 @@ def export_single_building_wdo_alignment_hypotheses(
     use_inferred_wdos_layout = True
     if use_inferred_wdos_layout:
         from read_prod_predictions import load_inferred_floor_pose_graphs
-        floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
+
+        floor_pose_graphs = load_inferred_floor_pose_graphs(
+            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+        )
         if floor_pose_graphs is None:
             # cannot compute putative alignments if prediction files are missing.
             return
@@ -713,7 +726,9 @@ def export_single_building_wdo_alignment_hypotheses(
                 try:
                     if use_inferred_wdos_layout:
                         possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
-                            pano_dict_inferred[i1], pano_dict_inferred[i2], use_inferred_wdos_layout=use_inferred_wdos_layout
+                            pano_dict_inferred[i1],
+                            pano_dict_inferred[i2],
+                            use_inferred_wdos_layout=use_inferred_wdos_layout,
                         )
                     else:
                         possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
@@ -734,7 +749,9 @@ def export_single_building_wdo_alignment_hypotheses(
                     expected = i2Ti1_gt.rotation.T @ i2Ti1_gt.rotation
                     # print("Identity? ", np.round(expected, 1))
                     if not np.allclose(expected, np.eye(2), atol=1e-6):
-                        import pdb; pdb.set_trace()
+                        import pdb
+
+                        pdb.set_trace()
 
                 # TODO: estimate how often an inferred opening can provide the correct relative pose.
                 # TODO: make sure wide door cannot fid narrow door (e.g. 2x width not allowed)
@@ -838,9 +855,9 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
     # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
-    #raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
-    
-    #raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+
+    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
@@ -851,10 +868,10 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
 
     num_processes = 30
