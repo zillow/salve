@@ -1,4 +1,3 @@
-
 """
 Another translation-based filtering step is 1dsfm projection directions:
 https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_relative_translation.cc
@@ -45,7 +44,7 @@ def get_conf_thresholded_edges(
     hypotheses_save_root: str,
     confidence_threshold: float,
     building_id: str,
-    floor_id: str
+    floor_id: str,
 ):
     """
     Args:
@@ -95,9 +94,9 @@ def get_conf_thresholded_edges(
             m.i1 = i1
             m.i2 = i2
 
-        most_confident_edge_dict[(m.i1,m.i2)] += [m]
+        most_confident_edge_dict[(m.i1, m.i2)] += [m]
 
-    per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair] = {}
+    per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair] = {}
 
     most_confident_was_correct = []
     for (i1, i2), measurements in most_confident_edge_dict.items():
@@ -113,7 +112,7 @@ def get_conf_thresholded_edges(
             f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
         )
 
-        per_edge_wdo_dict[(i1,i2)] = EdgeWDOPair(i1=i1, i2=i2, wdo_pair_uuid=m.wdo_pair_uuid)
+        per_edge_wdo_dict[(i1, i2)] = EdgeWDOPair(i1=i1, i2=i2, wdo_pair_uuid=m.wdo_pair_uuid)
 
         # label_dirname = "gt_alignment_exact"
         # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
@@ -151,7 +150,6 @@ def get_conf_thresholded_edges(
     return i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, per_edge_wdo_dict
 
 
-
 def run_incremental_reconstruction(
     hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
 ) -> None:
@@ -160,10 +158,12 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    method = "spanning_tree" # "SE2_cycles" # # "growing_consensus"
-    confidence_threshold = 0.98 # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    method = "spanning_tree"  # "SE2_cycles" # # "growing_consensus"
+    confidence_threshold = 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
-    plot_save_dir = f"2021_07_29_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
+    plot_save_dir = (
+        f"2021_07_29_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
+    )
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
@@ -191,19 +191,19 @@ def run_incremental_reconstruction(
             y_hat_array = np.array([m.y_hat for m in measurements])
             is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true_array, y_hat_array)
 
-            plt.subplot(2,2,1)
+            plt.subplot(2, 2, 1)
             plt.hist(probs[is_TP], bins=15)
             plt.title("TP")
 
-            plt.subplot(2,2,2)
+            plt.subplot(2, 2, 2)
             plt.hist(probs[is_FP], bins=15)
             plt.title("FP")
 
-            plt.subplot(2,2,3)
+            plt.subplot(2, 2, 3)
             plt.hist(probs[is_FN], bins=15)
             plt.title("FN")
 
-            plt.subplot(2,2,4)
+            plt.subplot(2, 2, 4)
             plt.hist(probs[is_TN], bins=15)
             plt.title("TN")
 
@@ -214,18 +214,16 @@ def run_incremental_reconstruction(
             draw_multigraph(measurements, gt_floor_pose_graph)
 
         i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _ = get_conf_thresholded_edges(
-            measurements,
-            hypotheses_save_root,
-            confidence_threshold,
-            building_id,
-            floor_id
+            measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id
         )
 
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
 
         cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
-        print(f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
+        print(
+            f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
+        )
 
         if method == "spanning_tree":
             est_floor_pose_graph, i2Si1_dict_consistent, report = build_filtered_spanning_tree(
@@ -237,7 +235,7 @@ def run_incremental_reconstruction(
                 gt_edges,
                 two_view_reports_dict,
                 gt_floor_pose_graph,
-                plot_save_dir
+                plot_save_dir,
             )
             reconstruction_reports.append(report)
 
@@ -250,7 +248,6 @@ def run_incremental_reconstruction(
             # )
             # from afp.algorithms.cluster_merging import merge_clusters
             # est_pose_graph = merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floor_pose_graph, two_view_reports_dict)
-
 
         elif method == "growing_consensus":
             growing_consensus(
@@ -302,7 +299,9 @@ def cycles_SE2_spanning_tree(
     """ """
     i2Si1_dict_consistent = cycle_utils.filter_to_SE2_cycle_consistent_edges(i2Si1_dict, two_view_reports_dict)
 
-    filtered_edge_acc = get_edge_accuracy(edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict)
+    filtered_edge_acc = get_edge_accuracy(
+        edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
+    )
     print(f"\tFiltered by SE(2) cycles Edge Acc = {filtered_edge_acc:.2f}")
 
     wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
@@ -327,7 +326,9 @@ def cycles_SE2_spanning_tree(
         wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
     )
 
-    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(
+        gt_floor_pg=gt_floor_pose_graph
+    )
     print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
     est_floor_pose_graph.render_estimated_layout()
 
@@ -335,14 +336,14 @@ def cycles_SE2_spanning_tree(
     print()
 
 
-def find_max_degree_vertex(i2Ti1_dict: Dict[Tuple[int,int], Any]) -> int:
+def find_max_degree_vertex(i2Ti1_dict: Dict[Tuple[int, int], Any]) -> int:
     """Find the node inside of a graph G=(V,E) with highest degree.
 
     Args:
         i2Ti1_dict: edges E of a graph G=(V,E)
 
     Returns:
-        seed_node: integer id of 
+        seed_node: integer id of
     """
     # find the seed (vertex with highest degree)
     adj_list = cycle_utils.create_adjacency_list(i2Ti1_dict)
@@ -370,10 +371,10 @@ def growing_consensus(
 
     Reference:
     https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Son_Solving_Small-Piece_Jigsaw_CVPR_2016_paper.pdf
-    
+
     Args:
     """
-    i2Ri1_dict = { (i1,i2): i2Si1.rotation for (i1,i2), i2Si1 in i2Si1_dict.items()}
+    i2Ri1_dict = {(i1, i2): i2Si1.rotation for (i1, i2), i2Si1 in i2Si1_dict.items()}
 
     seed_node = find_max_degree_vertex(i2Si1_dict)
     unused_triplets = cycle_utils.extract_triplets(i2Si1_dict)
@@ -385,13 +386,15 @@ def growing_consensus(
     for triplet in connected_triplets:
         cycle_error, _, _ = cycle_utils.compute_rot_cycle_error(
             i2Ri1_dict,
-            cycle_nodes = triplet,
+            cycle_nodes=triplet,
             two_view_reports_dict=two_view_reports_dict,
-            verbose = True,
+            verbose=True,
         )
         seed_cycle_errors.append(cycle_error)
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
 
     min_error_triplet_idx = np.argmin(np.array(seed_cycle_errors))
     seed_triplet = connected_triplets[min_error_triplet_idx]
@@ -399,7 +402,7 @@ def growing_consensus(
 
     unused_triplets.remove(seed_triplet)
 
-    edges = [(i0,i1), (i1,i2), (i0,i2)]
+    edges = [(i0, i1), (i1, i2), (i0, i2)]
 
     i2Si1_dict_consensus = {edge: i2Si1_dict[edge] for edge in edges}
 
@@ -407,15 +410,17 @@ def growing_consensus(
         candidate_consensus = copy.deepcopy(i2Si1_dict_consensus)
 
         for triplet in unused_triplets:
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
 
         # can we do this? i3Ui3 = i3Ri2 * i2Ui3 = i2Ri1 * i1Ui3 (cycle is 3->1->2)
 
         # compute all cycle errors with these new edges added
         # if all errors are low, then:
-            # unused_triplets.remove(triplet)
+        # unused_triplets.remove(triplet)
 
-    
+
 def build_filtered_spanning_tree(
     building_id: str,
     floor_id: str,
@@ -425,7 +430,7 @@ def build_filtered_spanning_tree(
     gt_edges,
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
     gt_floor_pose_graph: PoseGraph2d,
-    plot_save_dir: str
+    plot_save_dir: str,
 ) -> None:
     """ """
     draw_graph_topology(
@@ -434,7 +439,7 @@ def build_filtered_spanning_tree(
         two_view_reports_dict=two_view_reports_dict,
         title=f"Building {building_id} {floor_id}: topology after CNN prediction of positives",
         show_plot=False,
-        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_CNN_predicted_positives.jpg"
+        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_CNN_predicted_positives.jpg",
     )
 
     i2Ri1_dict, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
@@ -446,14 +451,16 @@ def build_filtered_spanning_tree(
         two_view_reports_dict=two_view_reports_dict,
         title=f"Building {building_id} {floor_id}: topology after rot. cycle consistency filtering",
         show_plot=False,
-        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_rot_cycle_consistency.jpg"
+        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_rot_cycle_consistency.jpg",
     )
 
     filtered_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
     print(f"\tFiltered by rot cycles Edge Acc = {filtered_edge_acc:.2f}")
 
     cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
-    print(f"After triplet rot cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
+    print(
+        f"After triplet rot cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
+    )
 
     # # could count how many nodes or edges never appeared in any triplet
     # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
@@ -467,9 +474,7 @@ def build_filtered_spanning_tree(
         print()
 
         report = FloorReconstructionReport(
-            avg_abs_rot_err = np.nan,
-            avg_abs_trans_err = np.nan,
-            percent_panos_localized = 0.0
+            avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
         )
         return None, None, report
     # TODO: measure the error in rotations
@@ -484,11 +489,13 @@ def build_filtered_spanning_tree(
         two_view_reports_dict=two_view_reports_dict,
         title=f"Building {building_id} {floor_id}: topology after filtering relative by global",
         show_plot=False,
-        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_relative_by_global.jpg"
+        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_relative_by_global.jpg",
     )
 
     cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
-    print(f"After filtering by rel. vs. composed abs., the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
+    print(
+        f"After filtering by rel. vs. composed abs., the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
+    )
 
     consistent_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
     print(f"\tFiltered relative by abs. rotation deviation Edge Acc = {consistent_edge_acc:.2f}")
@@ -514,11 +521,13 @@ def build_filtered_spanning_tree(
         two_view_reports_dict=two_view_reports_dict,
         title=f"Building {building_id} {floor_id}: topology after filtering by translations",
         show_plot=False,
-        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_translations.jpg"
+        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_translations.jpg",
     )
 
     cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
-    print(f"After triplet trans. cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos .")
+    print(
+        f"After triplet trans. cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
+    )
 
     filtered_edge_acc = get_edge_accuracy(
         edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
@@ -537,18 +546,14 @@ def build_filtered_spanning_tree(
         print()
 
         report = FloorReconstructionReport(
-            avg_abs_rot_err = np.nan,
-            avg_abs_trans_err = np.nan,
-            percent_panos_localized = 0.0
+            avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
         )
         return None, None, report
 
     num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
     num_floor_panos = len(gt_floor_pose_graph.nodes)
-    percent_panos_localized = num_localized_panos / num_floor_panos*100
-    print(
-        f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}"
-    )
+    percent_panos_localized = num_localized_panos / num_floor_panos * 100
+    print(f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
 
     # TODO: try spanning tree version, vs. Shonan version
     wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
@@ -558,22 +563,21 @@ def build_filtered_spanning_tree(
         wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
     )
 
-    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(
+        gt_floor_pg=gt_floor_pose_graph
+    )
     print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
     est_floor_pose_graph.render_estimated_layout(
-        show_plot=False,
-        save_plot=True,
-        plot_save_dir=plot_save_dir,
-        gt_floor_pg=gt_floor_pose_graph
+        show_plot=False, save_plot=True, plot_save_dir=plot_save_dir, gt_floor_pg=gt_floor_pose_graph
     )
 
     print()
     print()
 
     report = FloorReconstructionReport(
-        avg_abs_rot_err = mean_abs_rot_err,
-        avg_abs_trans_err = mean_abs_trans_err,
-        percent_panos_localized = percent_panos_localized
+        avg_abs_rot_err=mean_abs_rot_err,
+        avg_abs_trans_err=mean_abs_trans_err,
+        percent_panos_localized=percent_panos_localized,
     )
     return est_floor_pose_graph, i2Si1_dict_consistent, report
 
@@ -584,7 +588,7 @@ def filter_measurements_to_absolute_rotations(
     max_allowed_deviation: float = 5.0,
     verbose: bool = False,
     two_view_reports_dict=None,
-    visualize: bool = False
+    visualize: bool = False,
 ) -> Dict[Tuple[int, int], np.ndarray]:
     """
     Simulate the relative pose measurement, given the global rotations:
@@ -596,7 +600,7 @@ def filter_measurements_to_absolute_rotations(
 
     Theia also uses a 5 degree threshold:
     https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/reconstruction_estimator_options.h#L122
-    
+
     Args:
         wRi_list:
         i2Ri1_dict:
@@ -674,7 +678,7 @@ def filter_measurements_to_absolute_rotations(
 def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
     """ """
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_save_root}/*")]
-    
+
     for building_id in building_ids:
 
         floor_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_save_root}/{building_id}/*")]
@@ -685,8 +689,12 @@ def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
 
                 for i2 in range(200):
 
-                    correct_Sim2_fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx/{i1}_{i2}_*.json")
-                    incorrect_Sim2_fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment/{i1}_{i2}_*.json")
+                    correct_Sim2_fpaths = glob.glob(
+                        f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx/{i1}_{i2}_*.json"
+                    )
+                    incorrect_Sim2_fpaths = glob.glob(
+                        f"{hypotheses_save_root}/{building_id}/{floor_id}/incorrect_alignment/{i1}_{i2}_*.json"
+                    )
 
                     if len(incorrect_Sim2_fpaths) == 0 or len(correct_Sim2_fpaths) == 0:
                         continue
@@ -698,8 +706,9 @@ def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
                         incorrect_Sim2 = Sim2.from_json(incorrect_Sim2_fpath)
 
                         if np.isclose(correct_Sim2.theta_deg, incorrect_Sim2.theta_deg, atol=0.1):
-                            print(f"{building_id} {floor_id}: Correct {correct_Sim2.theta_deg:.1f} vs {incorrect_Sim2.theta_deg:.1f}, Correct {np.round(correct_Sim2.translation,2)} vs {np.round(incorrect_Sim2.translation,2)}")
-
+                            print(
+                                f"{building_id} {floor_id}: Correct {correct_Sim2.theta_deg:.1f} vs {incorrect_Sim2.theta_deg:.1f}, Correct {np.round(correct_Sim2.translation,2)} vs {np.round(incorrect_Sim2.translation,2)}"
+                            )
 
                     print()
                     print()
@@ -720,7 +729,6 @@ def get_edge_accuracy(
     return acc
 
 
-
 if __name__ == "__main__":
 
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
@@ -737,8 +745,3 @@ if __name__ == "__main__":
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
-
-
-
-
-
