@@ -127,13 +127,14 @@ def infer_depth_over_all_zind_tours(
 
 if __name__ == "__main__":
     """ """
-    num_processes = 10
+    num_processes = 2
 
     #depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    ## depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    depth_save_root = "/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps" # on se1-rmx-gpu-002
+    depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    # depth_save_root = "/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps" # on se1-rmx-gpu-002
 
-    raw_dataset_dir = "/data/johnlam/zind_bridgeapi_2021_10_05"
+    #raw_dataset_dir = "/data/johnlam/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     infer_depth_over_all_zind_tours(
