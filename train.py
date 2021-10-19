@@ -286,5 +286,4 @@ if __name__ == "__main__":
     print("Using GPUs ", args.gpu_ids)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
 
-    import pdb; pdb.set_trace()
     main(args)
