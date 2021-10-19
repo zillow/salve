@@ -32,6 +32,7 @@ def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]):
     Args:
         args: must contain variable `building_depth_save_dir`
     """
+    import pdb; pdb.set_trace()
 
     update_config(config, args)
     device = 'cuda' # if config.cuda else 'cpu'
@@ -48,7 +49,7 @@ def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]):
         for path in tqdm(image_fpaths):
 
             fname_stem = Path(path).stem
-            if Path(f"{args.building_depth_save_dir}/{fname_stem}.depth.png").exists():
+            if Path(f"{args.out}/{fname_stem}.depth.png").exists():
                 return
 
             rgb = imageio.imread(path)
@@ -121,7 +122,6 @@ def infer_depth_over_all_zind_tours(
         with Pool(num_processes) as p:
             p.starmap(infer_depth_over_single_zind_tour, args)
     else:
-        import pdb; pdb.set_trace()
         for single_call_args in args:
             infer_depth_over_single_zind_tour(*single_call_args)
 
