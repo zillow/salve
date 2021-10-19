@@ -14,11 +14,10 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from argoverse.utils.json_utils import read_json_file
 
-from infer_depth import infer_depth
-
 import afp.algorithms.spanning_tree as spanning_tree
 import afp.common.posegraph2d as posegraph2d
 import afp.utils.csv_utils as csv_utils
+import afp.utils.hohonet_inference as hohonet_inference_utils
 from afp.common.posegraph2d import PoseGraph2d
 from afp.dataset.zind_partition import OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
 from afp.utils.bev_rendering_utils import (
@@ -30,10 +29,6 @@ from afp.utils.bev_rendering_utils import (
 )
 
 
-HOHONET_CONFIG_FPATH = "config/mp3d_depth/HOHO_depth_dct_efficienthc_TransEn1_hardnet.yaml"
-HOHONET_CKPT_FPATH = "ckpt/mp3d_depth_HOHO_depth_dct_efficienthc_TransEn1_hardnet/ep60.pth"
-
-
 """
 Nasty depth map estimation failure cases: (from complete_07_10 version)
     # (building, pano_ids)
@@ -42,27 +37,6 @@ Nasty depth map estimation failure cases: (from complete_07_10 version)
     "006": [10],
     "981": [5, 7, 14, 11, 16, 17, 28],  # 11 is a bit inaccurate
 """
-
-
-def infer_depth_if_nonexistent(depth_save_root: str, building_id: str, img_fpath: str) -> None:
-    """ """
-    fname_stem = Path(img_fpath).stem
-    building_depth_save_dir = f"{depth_save_root}/{building_id}"
-    if Path(f"{building_depth_save_dir}/{fname_stem}.depth.png").exists():
-        return
-
-    os.makedirs(building_depth_save_dir, exist_ok=True)
-
-    args = SimpleNamespace(
-        **{
-            "cfg": HOHONET_CONFIG_FPATH,
-            "pth": HOHONET_CKPT_FPATH,
-            "out": building_depth_save_dir,
-            "inp": img_fpath,
-            "opts": [],
-        }
-    )
-    infer_depth(args)
 
 
 def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
@@ -77,7 +51,7 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
         if "_14.jpg" not in img_fpath:  # 13
             continue
 
-        infer_depth_if_nonexistent(depth_save_root, building_id, img_fpath)
+        hohonet_inference_utils.infer_depth_if_nonexistent(depth_save_root, building_id, img_fpath)
 
         is_semantics = False
         semantic_img_fpath = f"/Users/johnlam/Downloads/MSeg_output/{Path(img_fpath).stem}_gray.jpg"
@@ -201,10 +175,10 @@ def render_building_floor_pairs(
 
                 if "rgb_texture" in render_modalities:
                     print(f"On {i1},{i2}")
-                    infer_depth_if_nonexistent(
+                    hohonet_inference_utils.infer_depth_if_nonexistent(
                         depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
                     )
-                    infer_depth_if_nonexistent(
+                    hohonet_inference_utils.infer_depth_if_nonexistent(
                         depth_save_root=depth_save_root, building_id=building_id, img_fpath=img2_fpath
                     )
                     args = SimpleNamespace(
@@ -326,10 +300,10 @@ def render_floor_texture(
                 img1_fpath = img_fpaths_dict[i1]
                 img2_fpath = img_fpaths_dict[i2]
 
-                infer_depth_if_nonexistent(
+                hohonet_inference_utils.infer_depth_if_nonexistent(
                     depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
                 )
-                infer_depth_if_nonexistent(
+                hohonet_inference_utils.infer_depth_if_nonexistent(
                     depth_save_root=depth_save_root, building_id=building_id, img_fpath=img2_fpath
                 )
 
@@ -393,8 +367,8 @@ def render_pairs(
     for building_id in building_ids:
 
         # # already rendered
-        if building_id not in NEW_HOME_ID_TEST_SET:
-            continue
+        # if building_id not in NEW_HOME_ID_TEST_SET:
+        #     continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         if not Path(json_annot_fpath).exists():
@@ -432,7 +406,7 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 10
+    num_processes = 1
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
@@ -475,6 +449,7 @@ if __name__ == "__main__":
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
     # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
     bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_17"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
     # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
