@@ -192,7 +192,7 @@ def make_dataset(split: str, data_root: str, args: TrainingConfig) -> List[Union
     # TODO: search from both folders instead
     available_building_ids = get_available_building_ids(dataset_root=f"{data_root}/gt_alignment_approx")
 
-    custom_splits = False
+    custom_splits = True
     if custom_splits:
         val_building_ids = NEW_HOME_ID_TEST_SET
         train_building_ids = set(available_building_ids) - set(val_building_ids)
@@ -232,6 +232,9 @@ def make_dataset(split: str, data_root: str, args: TrainingConfig) -> List[Union
                 fpaths = glob.glob(f"{data_root}/{label_name}/{building_id}/pair_*___*_rgb_{floor_id}_*.jpg")
                 # here, pair_id will be unique
 
+                if len(fpaths) == 0:
+                    continue
+                import pdb; pdb.set_trace()
                 tuples = get_tuples_from_fpath_list(fpaths, label_idx, args)
                 if len(tuples) == 0:
                     continue
