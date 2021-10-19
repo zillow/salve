@@ -61,10 +61,10 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
     # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
     
     # path to batch of unzipped prediction files, from Yuguang
-    #data_root = "/Users/johnlam/Downloads/zind2_john"
+    # data_root = "/Users/johnlam/Downloads/zind2_john"
     data_root = "/mnt/data/johnlam/zind2_john"
 
-    #pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    # pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     pano_mapping_rows = csv_utils.read_csv(pano_mapping_tsv_fpath, delimiter=",")
 
@@ -246,8 +246,10 @@ def main() -> None:
     rendering_save_dir = "ZinD_Inferred_GT_bridgeapi_2021_10_05_rendered_2021_10_14"
     model_name = "rmx-madori-v1_predictions"
 
+    NUM_ZIND_BUILDINGS = 1575
+
     # Generate all possible building IDs for ZinD.
-    building_ids = [str(v).zfill(4) for v in range(1575)]
+    building_ids = [str(v).zfill(4) for v in range(NUM_ZIND_BUILDINGS)]
 
     for building_id in building_ids:
         floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
