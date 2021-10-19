@@ -5,6 +5,7 @@ channels:
   # supplies higher versions of packages like opencv compared to the defaults
   # channel.
   - pytorch
+  - nvidia
   - conda-forge
   - defaults
 dependencies:

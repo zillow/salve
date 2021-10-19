@@ -429,7 +429,7 @@ def align_rooms_by_wd(
     pano2_obj: PanoData,
     transform_type: str = "SE2",
     use_inferred_wdos_layout: bool = True,
-    visualize: bool = False,
+    visualize: bool = False
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
@@ -500,8 +500,8 @@ def align_rooms_by_wd(
                     plausible_configurations = ["identity", "rotated"]
 
                 for configuration in plausible_configurations:
-                    if verbose:
-                        logger.debug(f"\t{alignment_object} {i}/{j} {configuration}")
+                    # if verbose:
+                    #     logger.debug(f"\t{alignment_object} {i}/{j} {configuration}")
 
                     if configuration == "rotated":
                         pano2_wd_ = pano2_wd.get_rotated_version()
@@ -830,7 +830,7 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
         # if building_id in ["0003","0006","0034"]:
         #     continue
 
-        # if building_id not in ["0000"]: #, "001", "002"]: #'1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+        # if building_id not in ["0246"]: #, "001", "002"]: #'1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
         #     continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
@@ -857,8 +857,8 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
-    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    ##raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -870,11 +870,13 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
 
-    num_processes = 30
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
+    ##hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
+
+    num_processes = 1
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
