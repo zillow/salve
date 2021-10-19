@@ -10,7 +10,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import SimpleNamespace
+from types import SimpleNamespace
 
 import afp.utils.hohonet_inference as hohonet_inference_utils
 import imageio
