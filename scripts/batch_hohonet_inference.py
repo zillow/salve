@@ -32,8 +32,6 @@ def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]):
     Args:
         args: must contain variable `building_depth_save_dir`
     """
-    import pdb; pdb.set_trace()
-
     update_config(config, args)
     device = 'cuda' # if config.cuda else 'cpu'
 
@@ -128,7 +126,7 @@ def infer_depth_over_all_zind_tours(
 
 if __name__ == "__main__":
     """ """
-    num_processes = 1
+    num_processes = 10
 
     #depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     ## depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
