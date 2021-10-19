@@ -146,11 +146,11 @@ def run_epoch(
             x1, x2, is_match, fp0, fp1 = example
             x3, x4, x5, x6 = None, None, None, None
 
-        elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
+        elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
             x1, x2, x3, x4, is_match, fp0, fp1 = example
             x5, x6 = None, None
 
-        elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
+        elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
             x1, x2, x3, x4, x5, x6, is_match, fp0, fp1 = example
 
         n = x1.size(0)
