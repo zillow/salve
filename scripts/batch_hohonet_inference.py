@@ -99,7 +99,7 @@ def infer_depth_over_single_zind_tour(
         }
     )
 
-    infer_depth_over_image_list(args, image_list=img_fpaths)
+    infer_depth_over_image_list(args, image_fpaths=img_fpaths)
 
 
 def infer_depth_over_all_zind_tours(
@@ -121,14 +121,13 @@ def infer_depth_over_all_zind_tours(
         with Pool(num_processes) as p:
             p.starmap(infer_depth_over_single_zind_tour, args)
     else:
+        import pdb; pdb.set_trace()
         for single_call_args in args:
             infer_depth_over_single_zind_tour(*single_call_args)
 
 
 if __name__ == "__main__":
     """ """
-
-    import pdb; pdb.set_trace()
     num_processes = 1
 
     #depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
