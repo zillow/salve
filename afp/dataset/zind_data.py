@@ -31,7 +31,6 @@ PathSixTuple = Tuple[str, str, str, str, str, str, int]
 TensorSixTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int, str, str]
 
 
-
 def pair_idx_from_fpath(fpath: str) -> int:
     """ """
     fname_stem = Path(fpath).stem
@@ -64,7 +63,9 @@ def test_pano_id_from_fpath() -> None:
     assert pano_id == 18
 
 
-def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args: TrainingConfig) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
+def get_tuples_from_fpath_list(
+    fpaths: List[str], label_idx: int, args: TrainingConfig
+) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
     """Given paths for a single floor of single building, extract training/test metadata from the filepaths.
 
     Note: pair_idx is unique for a (building, floor) but not for a building.
@@ -84,6 +85,7 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args: Training
         pair_idx = pair_idx_from_fpath(fpath)
         pairidx_to_fpath_dict[pair_idx] += [fpath]
 
+    import pdb; pdb.set_trace()
     tuples = []
     # extract the valid values -- must be a 4-tuple
     for pair_idx, pair_fpaths in pairidx_to_fpath_dict.items():
@@ -133,7 +135,7 @@ def get_tuples_from_fpath_list(fpaths: List[str], label_idx: int, args: Training
 
             assert f"_pano_{pano1_id}.jpg" in Path(fp1f).name
             assert f"_pano_{pano2_id}.jpg" in Path(fp2f).name
-            
+
             if "layout" in args.modalities:
                 # look up in other directory
                 fp1l = fp1f.replace(args.data_root, args.layout_data_root)
@@ -179,7 +181,9 @@ def get_available_building_ids(dataset_root: str) -> List[str]:
     return building_ids
 
 
-def make_dataset(split: str, data_root: str, args: TrainingConfig) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
+def make_dataset(
+    split: str, data_root: str, args: TrainingConfig
+) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
     """
     Note: is_match = 1 means True.
     """
@@ -234,7 +238,7 @@ def make_dataset(split: str, data_root: str, args: TrainingConfig) -> List[Union
 
                 if len(fpaths) == 0:
                     continue
-                import pdb; pdb.set_trace()
+                
                 tuples = get_tuples_from_fpath_list(fpaths, label_idx, args)
                 if len(tuples) == 0:
                     continue
@@ -267,7 +271,9 @@ class ZindData(Dataset):
         """Fetch number of examples within a data split."""
         return len(self.data_list)
 
-    def __getitem__(self, index: int) -> Union[TensorTwoTupleWithPaths, TensorFourTupleWithPaths, TensorSixTupleWithPaths]:
+    def __getitem__(
+        self, index: int
+    ) -> Union[TensorTwoTupleWithPaths, TensorFourTupleWithPaths, TensorSixTupleWithPaths]:
         """
         Note: is_match = 1 means True.
         """
