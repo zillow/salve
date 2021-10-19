@@ -11,6 +11,7 @@ import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
+from typing import List
 
 import afp.utils.hohonet_inference as hohonet_inference_utils
 import imageio
