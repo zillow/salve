@@ -57,7 +57,7 @@ def print_time_remaining(batch_time: AverageMeter, current_iter: int, max_iter: 
     logging.info(f"\tRemain {remain_time}")
 
 
-def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: float = 0.9):
+def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: float = 0.9) -> float:
     """poly learning rate policy"""
     lr = base_lr * (1 - float(curr_iter) / max_iter) ** power
     return lr

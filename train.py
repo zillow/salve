@@ -18,27 +18,27 @@ import hydra
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
-from argoverse.utils.datetime_utils import generate_datetime_string
-from argoverse.utils.json_utils import save_json_dict
+import argoverse.utils.datetime_utils as datetime_utils
+import argoverse.utils.json_utils as json_utils
 from hydra.utils import instantiate
 from mseg_semantic.utils.avg_meter import AverageMeter, SegmentationAverageMeter
 
+import afp.utils.logger_utils as logger_utils
+import train_utils as train_utils
 from train_utils import (
     poly_learning_rate,
     get_optimizer,
     get_dataloader,
     get_model,
-    cross_entropy_forward,
     print_time_remaining,
     load_model_checkpoint,
 )
-from afp.utils.logger_utils import get_logger, setup_file_logger
 
-# logger = get_logger()
+# logger = logger_utils.get_logger()
 
 #home_dir = "/Users/johnlam/Downloads"
 home_dir = "/mnt/data/johnlam"
-setup_file_logger(home_dir, program_name="training")
+logger_utils.setup_file_logger(home_dir, program_name="training")
 
 
 def check_mkdir(dirpath: str) -> None:
@@ -66,7 +66,7 @@ def main(args) -> None:
     # )
 
     cfg_stem = args.cfg_stem
-    exp_start_time = generate_datetime_string()
+    exp_start_time = datetime_utils.generate_datetime_string()
 
     results_dict = defaultdict(list)
 
@@ -115,7 +115,7 @@ def main(args) -> None:
             )
 
         results_json_fpath = f"{results_dir}/results-{exp_start_time}-{cfg_stem}.json"
-        save_json_dict(results_json_fpath, results_dict)
+        json_utils.save_json_dict(results_json_fpath, results_dict)
         shutil.copyfile(f"afp/configs/{args.cfg_stem}.yaml", f"{results_dir}/{args.cfg_stem}.yaml")
 
         logging.info("Results on crit stat: " + str([f"{v:.3f}" for v in results_dict[crit_acc_stat]]))
@@ -206,7 +206,7 @@ def run_epoch(
         else:
             gt_is_match = is_match
 
-        is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match)
+        is_match_probs, loss = train_utils.cross_entropy_forward(model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match)
 
         sam.update_metrics_cpu(
             pred=torch.argmax(is_match_probs, dim=1).cpu().numpy(),
