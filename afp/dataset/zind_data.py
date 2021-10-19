@@ -85,7 +85,6 @@ def get_tuples_from_fpath_list(
         pair_idx = pair_idx_from_fpath(fpath)
         pairidx_to_fpath_dict[pair_idx] += [fpath]
 
-    import pdb; pdb.set_trace()
     tuples = []
     # extract the valid values -- must be a 4-tuple
     for pair_idx, pair_fpaths in pairidx_to_fpath_dict.items():
