@@ -6,8 +6,10 @@ from imageio import imread, imwrite
 import torch
 import numpy as np
 
-from lib.config import config, update_config
-
+try:
+    from lib.config import config, update_config
+except:
+    print("HoHoNet's lib could not be loaded, skipping...")
 
 
 def infer_depth(args):
