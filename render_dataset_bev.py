@@ -406,13 +406,14 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 1
+    num_processes = 40
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
     # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    #depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    depth_save_root = "/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
@@ -426,7 +427,8 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
+    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
+    hypotheses_save_root = "/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
@@ -436,7 +438,8 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
+    #raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
@@ -448,8 +451,9 @@ if __name__ == "__main__":
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
     # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
-    bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
+    #bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_17"
+    bev_save_root = "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
     # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
