@@ -9,6 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import List
 
+import cv2
 import imageio
 import numpy as np
 from argoverse.utils.sim2 import Sim2
@@ -92,6 +93,21 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
 def panoid_from_fpath(fpath: str) -> int:
     """Derive panorama's id from its filename."""
     return int(Path(fpath).stem.split("_")[-1])
+
+
+
+def resize_image(image: np.ndarray, h: int, w: int) -> np.ndarray:
+    """
+    Args:
+        image: array of shape (H,W,3)
+        h: desired height of output image, in pixels.
+        w: desired width of output image, in pixels.
+
+    Returns:
+        image: array pf shape (h,w,3)
+    """
+    image = cv2.resize(image, (w,h), interpolation=cv2.INTER_LINEAR)
+    return image
 
 
 def render_building_floor_pairs(
@@ -203,6 +219,9 @@ def render_building_floor_pairs(
 
                     if bev_img1 is None or bev_img2 is None:
                         continue
+
+                    # bev_img1 = resize_image(bev_img1, h=500, w=500)
+                    # bev_img2 = resize_image(bev_img2, h=500, w=500)
 
                     imageio.imwrite(bev_fpath1, bev_img1)
                     imageio.imwrite(bev_fpath2, bev_img2)
@@ -367,8 +386,8 @@ def render_pairs(
     for building_id in building_ids:
 
         # # already rendered
-        # if building_id not in NEW_HOME_ID_TEST_SET:
-        #     continue
+        if building_id not in ["0003"]: # NEW_HOME_ID_TEST_SET:
+            continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         if not Path(json_annot_fpath).exists():
@@ -406,14 +425,14 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 40
+    num_processes = 1
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
-    # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     #depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    depth_save_root = "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    # depth_save_root = "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
@@ -425,10 +444,10 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     #hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
-    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
+    # hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
@@ -437,9 +456,9 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
-    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     #raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
+    # raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
@@ -452,8 +471,8 @@ if __name__ == "__main__":
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
     # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
     #bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_17"
-    bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
+    bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
+    # bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
     # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
