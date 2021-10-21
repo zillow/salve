@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 
 from argoverse.utils.mesh_grid import get_mesh_grid_as_point_cloud
-from scipy.interpolate import griddata  # not quite the same as `matplotlib.mlab.griddata`
+import scipy.interpolate # not quite the same as `matplotlib.mlab.griddata`
 
 
 # DEFAULT_KERNEL_SZ = 41
@@ -27,7 +27,7 @@ def interp_dense_grid_from_sparse(
     """
     grid_coords = get_mesh_grid_as_point_cloud(min_x=0, max_x=grid_w - 1, min_y=0, max_y=grid_h - 1)
     # Note: `xi` -- Points at which to interpolate data.
-    interp_rgb_vals = griddata(
+    interp_rgb_vals = scipy.interpolate.griddata(
         points=points[:, :2], values=rgb_values, xi=grid_coords, method="nearest" if is_semantics else "linear"
     )  # ) # # or method='linear', method='cubic'
 

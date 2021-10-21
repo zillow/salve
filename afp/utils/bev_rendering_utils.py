@@ -36,13 +36,13 @@ BLUE = [0, 0, 255]
 WDO_COLOR_DICT_CV2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
-# DEFAULT_BEV_IMG_H_PX = 2000
-# DEFAULT_BEV_IMG_W_PX = 2000
-# DEFAULT_METERS_PER_PX = 0.005
+DEFAULT_BEV_IMG_H_PX = 2000
+DEFAULT_BEV_IMG_W_PX = 2000
+DEFAULT_METERS_PER_PX = 0.005
 
-DEFAULT_BEV_IMG_H_PX = 500
-DEFAULT_BEV_IMG_W_PX = 500
-DEFAULT_METERS_PER_PX = 0.02
+# DEFAULT_BEV_IMG_H_PX = 500
+# DEFAULT_BEV_IMG_W_PX = 500
+# DEFAULT_METERS_PER_PX = 0.02
 
 
 def prune_to_2d_bbox(
@@ -342,6 +342,7 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     interp_bev_img = np.zeros((img_h, img_w, 3), dtype=np.uint8)
 
+    import pdb; pdb.set_trace()
     # now, apply interpolation to it
     interp_bev_img = interp_dense_grid_from_sparse(
         interp_bev_img, img_xy, rgb, grid_h=img_h, grid_w=img_w, is_semantics=is_semantics
@@ -515,12 +516,9 @@ def render_bev_pair(
         i2Ti1
         is_semantics:
     """
-
     xyzrgb1 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i1, rgb_fpath=args.img_i1, is_semantics=is_semantics)
     xyzrgb2 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i2, rgb_fpath=args.img_i2, is_semantics=is_semantics)
 
-    # floor_map_json['scale_meters_per_coordinate']
-    scale_meters_per_coordinate = 3.7066488344243465
     print(i2Ti1)
 
     # HoHoNet center of pano is to -x, but in ZinD center of pano is +y
@@ -531,10 +529,7 @@ def render_bev_pair(
 
     HOHO_S_ZIND_SCALE_FACTOR = 1.5
 
-    xyzrgb1[:, :2] = (xyzrgb1[:, :2] @ i2Ti1.rotation.T) + (
-        i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR
-    )  # * scale_meters_per_coordinate # * np.array([-1,1]))
-    # xyzrgb1[:,:2] = i2Ti1.transform_from(xyzrgb1[:,:2]) #
+    xyzrgb1[:, :2] = (xyzrgb1[:, :2] @ i2Ti1.rotation.T) + (i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR)
 
     bev_params = BEVParams()
     img1 = render_bev_image(bev_params, xyzrgb1, is_semantics=is_semantics)
