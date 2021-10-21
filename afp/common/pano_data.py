@@ -35,6 +35,11 @@ class WDO:
     type: str
 
     @property
+    def centroid(self) -> np.ndarray:
+        """Compute centroid of WDO 2d line segment"""
+        return np.array([self.pt1,self.pt2]).mean(axis=0)
+
+    @property
     def width(self) -> float:
         """Determine the width of the WDO.
 

@@ -17,3 +17,7 @@ building 0003
 building 0006
 pose for 7 and 8 stated as same
 but pose for 7 is wrong (should be on the opposite side)
+
+
+building 0544
+pano 12? (5 and 12 dont match up)

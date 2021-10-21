@@ -16,6 +16,7 @@ from argoverse.utils.json_utils import read_json_file
 
 import afp.algorithms.spanning_tree as spanning_tree
 import afp.common.posegraph2d as posegraph2d
+import afp.utils.bev_rendering_utils as bev_rendering_utils
 import afp.utils.csv_utils as csv_utils
 import afp.utils.hohonet_inference as hohonet_inference_utils
 from afp.common.posegraph2d import PoseGraph2d
@@ -24,7 +25,6 @@ from afp.utils.bev_rendering_utils import (
     get_bev_pair_xyzrgb,
     vis_depth,
     vis_depth_and_render,
-    render_bev_pair,
     rasterize_room_layout_pair,
 )
 
@@ -199,7 +199,7 @@ def render_building_floor_pairs(
                         print("Both BEV images already exist, skipping...")
                         continue
 
-                    bev_img1, bev_img2 = render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
+                    bev_img1, bev_img2 = bev_rendering_utils.render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
 
                     if bev_img1 is None or bev_img2 is None:
                         continue

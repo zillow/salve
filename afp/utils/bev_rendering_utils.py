@@ -1,4 +1,3 @@
-
 """
 """
 
@@ -37,6 +36,15 @@ BLUE = [0, 0, 255]
 WDO_COLOR_DICT_CV2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
+# DEFAULT_BEV_IMG_H_PX = 2000
+# DEFAULT_BEV_IMG_W_PX = 2000
+# DEFAULT_METERS_PER_PX = 0.005
+
+DEFAULT_BEV_IMG_H_PX = 500
+DEFAULT_BEV_IMG_W_PX = 500
+DEFAULT_METERS_PER_PX = 0.02
+
+
 def prune_to_2d_bbox(
     pts: np.ndarray, rgb: np.ndarray, xmin: float, ymin: float, xmax: float, ymax: float
 ) -> np.ndarray:
@@ -62,7 +70,10 @@ def test_prune_to_2d_bbox():
 
 class BEVParams:
     def __init__(
-        self, img_h: int = 2000, img_w: int = 2000, meters_per_px: float = 0.005, accumulate_sweeps: bool = True
+        self,
+        img_h: int = DEFAULT_BEV_IMG_H_PX,
+        img_w: int = DEFAULT_BEV_IMG_W_PX,
+        meters_per_px: float = DEFAULT_METERS_PER_PX,
     ) -> None:
         """meters_per_px is resolution
 
@@ -71,7 +82,6 @@ class BEVParams:
         self.img_h = img_h
         self.img_w = img_w
         self.meters_per_px = meters_per_px
-        self.accumulate_sweeps = accumulate_sweeps
 
         # num px in horizontal direction
         h_px = img_w / 2
@@ -144,7 +154,9 @@ def rasterize_room_layout_pair(
     return img1, img2
 
 
-def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wdo_objs: List[WDO], render_mask: bool = True ) -> np.ndarray:
+def rasterize_single_layout(
+    bev_params: BEVParams, room_vertices: np.ndarray, wdo_objs: List[WDO], render_mask: bool = True
+) -> np.ndarray:
     """Render single room layout, with room boundary in white, and windows, doors, and openings marked in unique colors.
     TODO: render as mask, or as polyline
 
@@ -152,6 +164,7 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
         bev_params:
         room_vertices:
         wdo_objs:
+        render_mask
 
     Returns:
         bev_img:
@@ -200,7 +213,9 @@ def rasterize_single_layout(bev_params: BEVParams, room_vertices: np.ndarray, wd
     return bev_img
 
 
-def rasterize_polygon(polygon_xy: np.ndarray, bev_img: np.ndarray, bevimg_Sim2_world: Sim2, color: Tuple[int, int, int]) -> np.ndarray:
+def rasterize_polygon(
+    polygon_xy: np.ndarray, bev_img: np.ndarray, bevimg_Sim2_world: Sim2, color: Tuple[int, int, int]
+) -> np.ndarray:
     """ """
     img_h, img_w, _ = bev_img.shape
 
@@ -208,9 +223,9 @@ def rasterize_polygon(polygon_xy: np.ndarray, bev_img: np.ndarray, bevimg_Sim2_w
     img_xy = np.round(img_xy).astype(np.int64)
 
     from argoverse.utils.cv2_plotting_utils import draw_polygon_cv2
+
     bev_img = draw_polygon_cv2(points=img_xy, image=bev_img, color=color)
     return bev_img
-
 
 
 def rasterize_polyline(
@@ -254,7 +269,7 @@ def draw_polyline_cv2(
         color: Tuple of shape (3,) with a BGR format color
         im_h: Image height in pixels
         im_w: Image width in pixels
-        thickness: 
+        thickness:
     """
     for i in range(line_segments_arr.shape[0] - 1):
         x1 = line_segments_arr[i][0]
@@ -262,10 +277,10 @@ def draw_polyline_cv2(
         x2 = line_segments_arr[i + 1][0]
         y2 = line_segments_arr[i + 1][1]
 
-        #x_in_range = (x1 >= 0) and (x2 >= 0) and (y1 >= 0) and (y2 >= 0)
-        #y_in_range = (x1 < im_w) and (x2 < im_w) and (y1 < im_h) and (y2 < im_h)
+        # x_in_range = (x1 >= 0) and (x2 >= 0) and (y1 >= 0) and (y2 >= 0)
+        # y_in_range = (x1 < im_w) and (x2 < im_w) and (y1 < im_h) and (y2 < im_h)
 
-        #if x_in_range and y_in_range:
+        # if x_in_range and y_in_range:
         # Use anti-aliasing (AA) for curves
         image = cv2.line(image, (x1, y1), (x2, y2), color, thickness=thickness, lineType=cv2.LINE_AA)
 
