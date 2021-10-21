@@ -74,14 +74,14 @@ class PoseGraph2d(NamedTuple):
         cam_height_egonormalized = 1.0
         camera_height_m = worldmetric_s_egonormalized * cam_height_egonormalized
 
-        print(f"Camera height (meters): {camera_height_m:.2f}")
+        #print(f"Camera height (meters): {camera_height_m:.2f}")
         return camera_height_m
 
 
     @classmethod
     def from_floor_data(cls, building_id: str, fd: FloorData, scale_meters_per_coordinate: float) -> "PoseGraph2d":
         """ """
-        print(f"scale_meters_per_coordinate: {scale_meters_per_coordinate:.2f}")
+        #print(f"scale_meters_per_coordinate: {scale_meters_per_coordinate:.2f}")
         return cls(
             building_id=building_id,
             floor_id=fd.floor_id,
