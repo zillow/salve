@@ -61,11 +61,11 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
     # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
     
     # path to batch of unzipped prediction files, from Yuguang
-    # data_root = "/Users/johnlam/Downloads/zind2_john"
-    data_root = "/mnt/data/johnlam/zind2_john"
+    data_root = "/Users/johnlam/Downloads/zind2_john"
+    # data_root = "/mnt/data/johnlam/zind2_john"
 
-    # pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-    pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    # pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     pano_mapping_rows = csv_utils.read_csv(pano_mapping_tsv_fpath, delimiter=",")
 
     # Note: pano_guid is unique across the entire dataset.
@@ -103,6 +103,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
         ]
         if len(pano_guids) == 0:
             # e.g. building '0258' is missing predictions.
+            print(f"No Pano GUIDs provided for {building_guid} (ZinD Building {zind_building_id}).")
             return None
 
         floor_map_json_fpath = f"{data_root}/{building_guid}/floor_map.json"
@@ -150,44 +151,44 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
                     scale_meters_per_coordinate=gt_pose_graph.scale_meters_per_coordinate,
                 )
 
-            model_names = ["rmx-madori-v1_predictions"]
+            model_name = "rmx-madori-v1_predictions"
             # plot the image in question
-            for model_name in model_names:
-                print(f"\tLoaded {model_name} prediction for Pano {i}")
-                model_prediction_fpath = (
-                    f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
+            #for model_name in model_names:
+            print(f"\tLoaded {model_name} prediction for Pano {i}")
+            model_prediction_fpath = (
+                f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
+            )
+            if not Path(model_prediction_fpath).exists():
+                print(
+                    "Home too old, no Madori predictions currently available for this building id (Yuguang will re-compute later).",
+                    building_guid,
+                    zind_building_id,
                 )
-                if not Path(model_prediction_fpath).exists():
-                    print(
-                        "Home too old, no Madori predictions currently available for this building id (Yuguang will re-compute later).",
-                        building_guid,
-                        zind_building_id,
-                    )
-                    # skip this building.
-                    return None
+                # skip this building.
+                return None
 
-                prediction_data = json_utils.read_json_file(model_prediction_fpath)
+            prediction_data = json_utils.read_json_file(model_prediction_fpath)
 
-                if model_name == "rmx-madori-v1_predictions":
-                    pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
-                    if pred_obj is None:  # malformatted pred for some reason
-                        continue
-                    # 
-                    pano_data = pred_obj.convert_to_pano_data(
-                        img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph, img_fpath=img_fpath
-                    )
-                    floor_pose_graphs[floor_id].nodes[i] = pano_data
-
-                elif model_name == "rmx-dwo-rcnn_predictions":
-                    pred_obj = PanoStructurePredictionRmxDwoRCNN.from_json(prediction_data["predictions"])
-                    # if not prediction_data["predictions"] == prediction_data["raw_predictions"]:
-                    #     import pdb; pdb.set_trace()
-                    # print("\tDWO RCNN: ", pred_obj)
-                elif model_name == "rmx-tg-manh-v1_predictions":
-                    pred_obj = PanoStructurePredictionRmxTgManhV1.from_json(prediction_data[0]["predictions"])
-                    pred_obj.render_layout_on_pano(img_h, img_w)
-                else:
+            if model_name == "rmx-madori-v1_predictions":
+                pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
+                if pred_obj is None:  # malformatted pred for some reason
                     continue
+                # 
+                pano_data = pred_obj.convert_to_pano_data(
+                    img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph, img_fpath=img_fpath
+                )
+                floor_pose_graphs[floor_id].nodes[i] = pano_data
+
+            elif model_name == "rmx-dwo-rcnn_predictions":
+                pred_obj = PanoStructurePredictionRmxDwoRCNN.from_json(prediction_data["predictions"])
+                # if not prediction_data["predictions"] == prediction_data["raw_predictions"]:
+                #     import pdb; pdb.set_trace()
+                # print("\tDWO RCNN: ", pred_obj)
+            elif model_name == "rmx-tg-manh-v1_predictions":
+                pred_obj = PanoStructurePredictionRmxTgManhV1.from_json(prediction_data[0]["predictions"])
+                pred_obj.render_layout_on_pano(img_h, img_w)
+            else:
+                continue
 
             render_on_pano = False
             if render_on_pano:
