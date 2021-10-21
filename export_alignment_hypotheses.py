@@ -1005,8 +1005,9 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     ##raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -1021,10 +1022,11 @@ if __name__ == "__main__":
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
 
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_cosine_uncertainty"
+    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_cosine_uncertainty"
     ##hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
+    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
 
-    num_processes = 1
+    num_processes = 40
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
 
