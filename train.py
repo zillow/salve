@@ -14,25 +14,18 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict
 
+import argoverse.utils.datetime_utils as datetime_utils
+import argoverse.utils.json_utils as json_utils
 import hydra
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
-import argoverse.utils.datetime_utils as datetime_utils
-import argoverse.utils.json_utils as json_utils
 from hydra.utils import instantiate
 from mseg_semantic.utils.avg_meter import AverageMeter, SegmentationAverageMeter
 
 import afp.utils.logger_utils as logger_utils
 import train_utils as train_utils
-from train_utils import (
-    poly_learning_rate,
-    get_optimizer,
-    get_dataloader,
-    get_model,
-    print_time_remaining,
-    load_model_checkpoint,
-)
+from train_utils import load_model_checkpoint
 
 # logger = logger_utils.get_logger()
 
@@ -53,11 +46,11 @@ def main(args) -> None:
 
     logging.info(str(args))
 
-    train_loader = get_dataloader(args, split="train")
-    val_loader = get_dataloader(args, split="val")
+    train_loader = train_utils.get_dataloader(args, split="train")
+    val_loader = train_utils.get_dataloader(args, split="val")
 
-    model = get_model(args)
-    optimizer = get_optimizer(args, model)
+    model = train_utils.get_model(args)
+    optimizer = train_utils.get_optimizer(args, model)
 
     # model = load_model_checkpoint(
     #     ckpt_fpath="/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/train_ckpt.pth",
@@ -224,7 +217,7 @@ def run_epoch(
 
             if split == "train" and args.lr_annealing_strategy == "poly":
                 # decay learning rate only during training
-                current_lr = poly_learning_rate(args.base_lr, current_iter, max_iter, power=args.poly_lr_power)
+                current_lr = train_utils.poly_learning_rate(args.base_lr, current_iter, max_iter, power=args.poly_lr_power)
 
                 if iter % args.print_every == 0:
                     logging.info(
@@ -247,7 +240,7 @@ def run_epoch(
                 logging.info(
                     f"\t{split} result at iter [{iter+1}/{len(data_loader)}] {args.num_ce_classes}-CE mAcc {avg_mAcc:.4f}"
                 )
-                print_time_remaining(batch_time, current_iter, max_iter)
+                train_utils.print_time_remaining(batch_time, current_iter, max_iter)
 
     _, accs, _, avg_mAcc, _ = sam.get_metrics()
     logging.info(f"{split} result at epoch [{epoch+1}/{args.num_epochs}]: mAcc{avg_mAcc:.4f}")
