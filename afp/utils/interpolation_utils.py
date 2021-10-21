@@ -12,6 +12,7 @@ import scipy.interpolate # not quite the same as `matplotlib.mlab.griddata`
 
 
 # DEFAULT_KERNEL_SZ = 41
+# DEFAULT_KERNEL_SZ = 21
 DEFAULT_KERNEL_SZ = 11
 
 
