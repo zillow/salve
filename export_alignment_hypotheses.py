@@ -10,10 +10,11 @@ conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=10
 No shared texture between (0,75) -- yet doors align it (garage to kitchen)
 """
 
-import collections
 import glob
 import json
 import os
+from collections import defaultdict
+from dataclasses import dataclass
 from enum import Enum
 from multiprocessing import Pool
 from pathlib import Path
@@ -32,8 +33,13 @@ import afp.utils.sim3_align_dw as sim3_align_dw  # TODO: rename module to more i
 from afp.common.pano_data import FloorData, PanoData, WDO
 
 
-# could increase to 10
-ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
+# See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
+HEADER = '\033[95m'
+OKGREEN = '\033[92m'
+
+# could increase to 10. I found 9.5 to 12 degrees let in false positives.
+OPENING_ALIGNMENT_ANGLE_TOLERANCE = 9.0
+DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
 ALIGNMENT_TRANSLATION_TOLERANCE = 0.35  # was set to 0.2 for GT
 
 
@@ -61,6 +67,12 @@ class AlignmentHypothesis(NamedTuple):
     i1_wdo_idx: int  # this is the WDO index for Pano i1 (known as i)
     i2_wdo_idx: int  # this is the WDO index for Pano i2 (known as j)
     configuration: str  # either identity or rotated
+
+
+@dataclass
+class AlignmentGenerationReport:
+    floor_alignment_infeasibility_dict = Dict[str, Tuple[int, int]]
+
 
 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
@@ -91,7 +103,7 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     return False
 
 
-def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
+def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2, wdo_alignment_object: str) -> bool:
     """ """
     angle1 = i2Ti1.theta_deg
     angle2 = i2Ti1_.theta_deg
@@ -106,7 +118,16 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2) -> bool:
     if not np.isclose(i2Ti1.scale, i2Ti1_.scale, atol=0.35):
         return False
 
-    if not rotation_utils.angle_is_equal(angle1, angle2, atol=ALIGNMENT_ANGLE_TOLERANCE):
+    if wdo_alignment_object in ["door", "window"]:
+        alignment_angle_tolerance = DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE
+
+    elif wdo_alignment_object == "opening":
+        alignment_angle_tolerance = OPENING_ALIGNMENT_ANGLE_TOLERANCE
+
+    else:
+        raise RuntimeError
+
+    if not rotation_utils.angle_is_equal(angle1, angle2, atol=alignment_angle_tolerance):
         return False
 
     return True
@@ -572,17 +593,20 @@ def align_rooms_by_wd(
                         # TODO: write new code that considers whether we are beyond an opening? in which case invalid?
 
                         # Check to see if relative width ratio is within the range [0.5, 2]
-                        width_ratio = pano1_wd.width / pano2_wd_.width
+                        min_width = min(pano1_wd.width, pano2_wd_.width)
+                        max_width = max(pano1_wd.width, pano2_wd_.width)
+                        width_ratio = min_width / max_width
 
-                        if width_ratio < 0.5 or width_ratio > 2.0:
-                            # infeasible!
-                            is_valid = False
-                        else:
-                            is_valid = True
+                        # pano1_uncertainty_factor = compute_width_uncertainty(pano1_wd)
+                        # pano2_uncertainty_factor = compute_width_uncertainty(pano2_wd)
+
+                        is_valid = width_ratio >= 0.65 # should be in [0.5, 1.0]
 
                         if verbose:
+                            # (i1) pink, (i2) orange
                             print(
-                                f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}"
+                                f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}" \
+                                + "" # f", Uncertainty: {pano1_uncertainty_factor:.2f}, {pano2_uncertainty_factor:.2f}"
                             )
 
                     else:
@@ -642,6 +666,121 @@ def align_rooms_by_wd(
     return possible_alignment_info, num_invalid_configurations
 
 
+def compute_width_uncertainty(pano_wd: WDO) -> float:
+    """Compute uncertainty scaling factor on measurement.
+
+    Note: accurate only for a orthographic camera (subject to depth and focal length for a perspective camera).
+    """
+    cam_center = np.zeros(2)
+    ray_to_camera = cam_center - pano_wd.centroid
+
+    # pointing CW from pt 1 to pt2
+    wdo_normal = -pano_wd.get_wd_normal_2d()
+
+    theta_deg = compute_relative_angle(ray_to_camera, wdo_normal)
+    uncertainty_factor = 1 / np.cos(np.deg2rad(theta_deg))
+    return np.absolute(uncertainty_factor)
+
+
+def test_compute_width_uncertainty_no_uncertainty1():
+    """Fronto parallel, towards (0,1)."""
+    pano_wd = WDO(
+        global_Sim2_local=None,
+        pt1=(-2,4),
+        pt2=(2,4),
+        bottom_z=-np.nan,
+        top_z=np.nan,
+        type="opening"
+    )
+    uncertainty_factor = compute_width_uncertainty(pano_wd)
+    assert np.isclose(uncertainty_factor, 1.0)
+
+
+def test_compute_width_uncertainty_no_uncertainty2():
+    """Fronto parallel, but towards (1,1)."""
+    pano_wd = WDO(
+        global_Sim2_local=None,
+        pt1=(2,3),
+        pt2=(3,2),
+        bottom_z=-np.nan,
+        top_z=np.nan,
+        type="opening"
+    )
+    uncertainty_factor = compute_width_uncertainty(pano_wd)
+    assert np.isclose(uncertainty_factor, 1.0)
+
+
+def test_compute_width_uncertainty_some_uncertainty():
+    """Fronto parallel, but towards (1,1)."""
+    pano_wd = WDO(
+        global_Sim2_local=None,
+        pt1=(-3,2),
+        pt2=(-3,3),
+        bottom_z=-np.nan,
+        top_z=np.nan,
+        type="opening"
+    )
+    uncertainty_factor = compute_width_uncertainty(pano_wd)
+    assert np.isclose(uncertainty_factor, 1.3017, atol=1e-3)
+
+    # now, provide slightly less tilt on the WDO
+    pano_wd = WDO(
+        global_Sim2_local=None,
+        pt1=(-3.0,2),
+        pt2=(-2.9,3),
+        bottom_z=-np.nan,
+        top_z=np.nan,
+        type="opening"
+    )
+    uncertainty_factor = compute_width_uncertainty(pano_wd)
+    # should be slightly less uncertainty now
+    assert np.isclose(uncertainty_factor, 1.2144, atol=1e-3)
+
+
+def compute_relative_angle(v1: np.ndarray, v2: np.ndarray) -> float:
+    """Returns angle in degrees between two 2d vectors"""
+    v1 /= np.linalg.norm(v1)
+    v2 /= np.linalg.norm(v2)
+
+    dot_product = np.dot(v1, v2)
+    angle_rad = np.arccos(dot_product)
+    angle_deg = np.rad2deg(angle_rad)
+    return angle_deg
+
+
+def test_compute_relative_angle() -> None:
+    """ """
+    v1 = np.array([1.,1])
+    v2 = np.array([1.,0])
+    angle_deg = compute_relative_angle(v1, v2)
+    assert np.isclose(angle_deg, 45)
+
+    v1 = np.array([1.,-1])
+    v2 = np.array([1.,0])
+    angle_deg = compute_relative_angle(v1, v2)
+    assert np.isclose(angle_deg, 45)
+
+    v1 = np.array([0,1.])
+    v2 = np.array([1,0.])
+    angle_deg = compute_relative_angle(v1, v2)
+    assert np.isclose(angle_deg, 90)
+
+    v1 = np.array([0,-1.])
+    v2 = np.array([1,0.])
+    angle_deg = compute_relative_angle(v1, v2)
+    assert np.isclose(angle_deg, 90)
+
+    v1 = np.array([ 1.,0])
+    v2 = np.array([-1.,0])
+    angle_deg = compute_relative_angle(v1, v2)
+    assert np.isclose(angle_deg, 180)
+
+    v1 = np.array([1.,0])
+    v2 = np.array([1.,0])
+    angle_deg = compute_relative_angle(v1, v2)
+    assert np.isclose(angle_deg, 0)
+
+
 def export_single_building_wdo_alignment_hypotheses(
     hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str, raw_dataset_dir: str
 ) -> None:
@@ -680,6 +819,8 @@ def export_single_building_wdo_alignment_hypotheses(
         return
 
     merger_data = floor_map_json["merger"]
+
+    floor_gt_is_valid_report_dict = defaultdict(list)
 
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
@@ -763,7 +904,7 @@ def export_single_building_wdo_alignment_hypotheses(
                 # loop over the alignment hypotheses
                 for k, ah in enumerate(pruned_possible_alignment_info):
 
-                    if obj_almost_equal(ah.i2Ti1, i2Ti1_gt):
+                    if obj_almost_equal(ah.i2Ti1, i2Ti1_gt, ah.wdo_alignment_object):
                         label = "aligned"
                         save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx"
                     else:
@@ -794,13 +935,20 @@ def export_single_building_wdo_alignment_hypotheses(
 
                 # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
                 if not GT_valid:
-                    logger.warning(
-                        f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2}): {i2Ti1_gt} vs. {[i1Ti1 for i1Ti1 in pruned_possible_alignment_info]}"
-                    )
+                    # logger.warning(
+                    #     f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2}): {i2Ti1_gt} vs. {[i1Ti1 for i1Ti1 in pruned_possible_alignment_info]}"
+                    # )
+                    pass
+                floor_gt_is_valid_report_dict[floor_id] += [GT_valid]
 
         logger.info(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
         logger.info(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
 
+
+    print(f"{OKGREEN} Building {building_id}: ")
+    for floor_id, gt_is_valid_arr in floor_gt_is_valid_report_dict.items():
+        print(f"{OKGREEN} {floor_id}: {np.mean(gt_is_valid_arr):.2f} over {len(gt_is_valid_arr)} alignment pairs.")
+    print(HEADER)
 
 def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str) -> None:
     """
@@ -830,7 +978,7 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
         # if building_id in ["0003","0006","0034"]:
         #     continue
 
-        # if building_id not in ["0246"]: #, "001", "002"]: #'1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
+        # if building_id not in ['0767', '0712', '0711', '0706', '0613',  '0757']:#, '0654', '0560', '0544']:#, '0654', '0613', '0560', '0757', '0544']: #0246"]: #, "001", "002"]: #'1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
         #     continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
@@ -873,7 +1021,7 @@ if __name__ == "__main__":
     #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
 
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_cosine_uncertainty"
     ##hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
 
     num_processes = 1
