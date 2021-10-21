@@ -38,6 +38,42 @@ def interp_dense_grid_from_sparse(
     return bev_img
 
 
+def test_interp_dense_grid_from_sparse() -> None:
+	""" """
+	RED = [255,0,0]
+	GREEN = [0,255,0]
+	BLUE = [0,0,255]
+	bev_img = np.zeros((4, 4, 3))
+
+	# provided as (x,y) tuples
+	points = np.array(
+		[
+			[0,0], 
+			[0,3],
+			[3,3],
+			[3,0]
+		]
+	)
+	rgb_values = np.array([
+		RED,
+		GREEN,
+		BLUE,
+		RED
+		]
+	)
+	grid_h = 4
+	grid_w = 4
+
+	dense_grid = interp_dense_grid_from_sparse(
+    	bev_img, points, rgb_values, grid_h, grid_w, is_semantics=False
+	)
+	assert isinstance(dense_grid, np.ndarray)
+	assert dense_grid.shape == (4,4,3)
+	# import matplotlib.pyplot as plt
+	# plt.imshow(dense_grid)
+	# plt.show()
+
+
 def remove_hallucinated_content(
     sparse_bev_img: np.ndarray, interp_bev_img: np.ndarray, K: int = DEFAULT_KERNEL_SZ
 ) -> np.ndarray:
