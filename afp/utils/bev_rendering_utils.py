@@ -22,11 +22,11 @@ from imageio import imread
 # from vis_zind_annotations import rotmat2d
 
 import afp.utils.hohonet_pano_utils as hohonet_pano_utils
+import afp.utils.interpolation_utils as interpolation_utils
 import afp.utils.zorder_utils as zorder_utils
 from afp.common.pano_data import WDO
 from afp.common.posegraph2d import PoseGraph2d
 from afp.utils.colormap import colormap
-from afp.utils.interpolation_utils import remove_hallucinated_content, interp_dense_grid_from_sparse
 from afp.utils.rotation_utils import rotmat2d
 
 
@@ -344,12 +344,12 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     import pdb; pdb.set_trace()
     # now, apply interpolation to it
-    interp_bev_img = interp_dense_grid_from_sparse(
+    interp_bev_img = interpolation_utils.interp_dense_grid_from_sparse(
         interp_bev_img, img_xy, rgb, grid_h=img_h, grid_w=img_w, is_semantics=is_semantics
     )
 
     # apply filter to it, to remove hallicuniated parts in all black regions
-    bev_img = remove_hallucinated_content(sparse_bev_img, interp_bev_img)
+    bev_img = interpolation_utils.remove_hallucinated_content(sparse_bev_img, interp_bev_img)
     bev_img = np.flipud(bev_img)
 
     visualize = False
