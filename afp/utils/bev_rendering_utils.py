@@ -36,13 +36,13 @@ BLUE = [0, 0, 255]
 WDO_COLOR_DICT_CV2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
-DEFAULT_BEV_IMG_H_PX = 2000
-DEFAULT_BEV_IMG_W_PX = 2000
-DEFAULT_METERS_PER_PX = 0.005
+# DEFAULT_BEV_IMG_H_PX = 2000
+# DEFAULT_BEV_IMG_W_PX = 2000
+# DEFAULT_METERS_PER_PX = 0.005
 
-# DEFAULT_BEV_IMG_H_PX = 500
-# DEFAULT_BEV_IMG_W_PX = 500
-# DEFAULT_METERS_PER_PX = 0.02
+DEFAULT_BEV_IMG_H_PX = 500
+DEFAULT_BEV_IMG_W_PX = 500
+DEFAULT_METERS_PER_PX = 0.02
 
 
 def prune_to_2d_bbox(
@@ -286,14 +286,16 @@ def draw_polyline_cv2(
 
 
 def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bool) -> Optional[np.ndarray]:
-    """
+    """Given a colored point cloud, render it as a 2d texture map. Use sparse to dense interpolation.
+
     Args:
         bev_params: parameters for rendering
-        xyzrgb: should be inside the world coordinate frame
-        is_semantics
+        xyzrgb: array of shape (N,6) representing (x,y,z) coordinates and (r,g,b) values.
+           Note: (x,y,z) coordinates should be inside the world coordinate frame
+        is_semantics: whether to treat RGB data as semantic data (nearest neighbor interpolation instead of linear)
 
     Returns:
-        bev_img
+        bev_img: array of shape (H,W,3) representing a dense texture map
     """
     xyz = xyzrgb[:, :3]
     rgb = xyzrgb[:, 3:] * 255
@@ -342,7 +344,6 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     interp_bev_img = np.zeros((img_h, img_w, 3), dtype=np.uint8)
 
-    import pdb; pdb.set_trace()
     # now, apply interpolation to it
     interp_bev_img = interpolation_utils.interp_dense_grid_from_sparse(
         interp_bev_img, img_xy, rgb, grid_h=img_h, grid_w=img_w, is_semantics=is_semantics
