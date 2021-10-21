@@ -156,7 +156,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
             model_name = "rmx-madori-v1_predictions"
             # plot the image in question
             #for model_name in model_names:
-            print(f"\tLoaded {model_name} prediction for Pano {i}")
+            #print(f"\tLoaded {model_name} prediction for Pano {i}")
             model_prediction_fpath = (
                 f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
             )
