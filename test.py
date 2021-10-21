@@ -5,8 +5,10 @@
 import argparse
 import glob
 import os
+from pathlib import Path
 from typing import Any, Dict, Tuple
 
+import argoverse.utils.json_utils as json_utils
 import hydra
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -14,17 +16,17 @@ import numpy as np
 import seaborn as sns
 import torch
 import torch.backends.cudnn as cudnn
-from argoverse.utils.json_utils import read_json_file, save_json_dict
 from hydra.utils import instantiate
 from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
 from mseg_semantic.utils.avg_meter import SegmentationAverageMeter
-from pathlib import Path
 from torch import nn
 
-from train_utils import get_dataloader, get_model, cross_entropy_forward, unnormalize_img, load_model_checkpoint
+import afp.utils.pr_utils as pr_utils
+import train_utils as train_utils
+from train_utils import load_model_checkpoint
 from afp.training_config import TrainingConfig
 from afp.utils.logger_utils import get_logger
-from afp.utils.pr_utils import compute_precision_recall
+
 
 logger = get_logger()
 
@@ -65,7 +67,7 @@ def run_test_epoch(
         else:
             gt_is_match = is_match
 
-        is_match_probs, loss = cross_entropy_forward(model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match)
+        is_match_probs, loss = train_utils.cross_entropy_forward(model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match)
 
         y_hat = torch.argmax(is_match_probs, dim=1)
 
@@ -136,7 +138,7 @@ class PrecisionRecallMeter:
 
     def get_metrics(self) -> Tuple[float, float, float]:
         """ """
-        prec, rec, mAcc = compute_precision_recall(y_true=self.all_y_true, y_pred=self.all_y_hat)
+        prec, rec, mAcc = pr_utils.compute_precision_recall(y_true=self.all_y_true, y_pred=self.all_y_hat)
         return prec, rec, mAcc
 
 
@@ -159,7 +161,7 @@ def save_edge_classifications_to_disk(
         "fp1": fp1,
     }
     os.makedirs(serialization_save_dir, exist_ok=True)
-    save_json_dict(f"{serialization_save_dir}/batch_{batch_idx}.json", save_dict)
+    json_utils.save_json_dict(f"{serialization_save_dir}/batch_{batch_idx}.json", save_dict)
 
 
 def visualize_examples(
@@ -187,7 +189,15 @@ def visualize_examples(
 
     for j in range(n):
 
-        mean, std = get_imagenet_mean_std()
+        pred_label_idx = y_hat[j].cpu().numpy().item()
+        true_label_idx = y_true[j].cpu().numpy().item()
+
+        save_fps_only = True
+        if save_fps_only:
+            is_fp = pred_label_idx == 1 and true_label_idx == 0
+            if not is_fp:
+                plt.close("all")
+                continue
 
         fig = plt.figure(figsize=(10, 5))
         # gs1 = gridspec.GridSpec(ncols=2, nrows=2)
@@ -195,7 +205,7 @@ def visualize_examples(
         mean, std = get_imagenet_mean_std()
 
         for i, x in zip(range(4), [x1, x2, x3, x4]):
-            unnormalize_img(x[j], mean, std)
+            train_utils.unnormalize_img(x[j], mean, std)
 
             # ax = plt.subplot(gs1[i])
             plt.subplot(2, 2, i + 1)
@@ -206,16 +216,6 @@ def visualize_examples(
         # print(fp0[j])
         # print(fp1[j])
         # print()
-
-        pred_label_idx = y_hat[j].cpu().numpy().item()
-        true_label_idx = y_true[j].cpu().numpy().item()
-
-        save_fps_only = True
-        if save_fps_only:
-            is_fp = pred_label_idx == 1 and true_label_idx == 0
-            if not is_fp:
-                plt.close("all")
-                continue
 
         title = f"Pred class {pred_label_idx}, GT Class (is_match?): {true_label_idx}"
         title += f"w/ prob {probs[j, pred_label_idx].cpu().numpy():.2f}"
@@ -240,8 +240,8 @@ def evaluate_model(serialization_save_dir: str, ckpt_fpath: str, args: TrainingC
     """ """
     cudnn.benchmark = True
 
-    data_loader = get_dataloader(args, split=split)
-    model = get_model(args)
+    data_loader = train_utils.get_dataloader(args, split=split)
+    model = train_utils.get_model(args)
     model = load_model_checkpoint(ckpt_fpath, model, args)
 
     model.eval()
@@ -252,7 +252,7 @@ def evaluate_model(serialization_save_dir: str, ckpt_fpath: str, args: TrainingC
 
 def plot_metrics(json_fpath: str) -> None:
     """ """
-    json_data = read_json_file(json_fpath)
+    json_data = json_utils.read_json_file(json_fpath)
 
     fig = plt.figure(dpi=200, facecolor="white")
     plt.style.use("ggplot")
@@ -329,7 +329,7 @@ if __name__ == "__main__":
     save_viz = True
     evaluate_model(serialization_save_dir, ckpt_fpath, args, split, save_viz)
 
-    train_results_json = read_json_file(train_results_fpath)
+    train_results_json = json_utils.read_json_file(train_results_fpath)
     val_mAccs = train_results_json["val_mAcc"]
     print("Val accs: ", val_mAccs)
     print("Num epochs trained", len(val_mAccs))
