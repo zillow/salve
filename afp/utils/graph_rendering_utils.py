@@ -8,9 +8,9 @@ from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from afp.common.posegraph2d import PoseGraph2d
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
-from visualize_edge_classifications import EdgeClassification
+from afp.common.edge_classification import EdgeClassification
+from afp.common.posegraph2d import PoseGraph2d
 
 
 def draw_graph_topology(
