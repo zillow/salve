@@ -16,8 +16,9 @@ from afp.utils.pr_utils import assign_tp_fp_fn_tn
 
 @dataclass(frozen=False)
 class EdgeClassification:
-    """
-    i1 and i2 are panorama id's
+    """Represents a model prediction for a particular alignment hypothesis between Panorama i1 and Panorama i2.
+
+    Note: i1 and i2 are panorama id's
     """
 
     i1: int
