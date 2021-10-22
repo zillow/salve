@@ -209,6 +209,8 @@ def make_dataset(
             raise RuntimeError
 
     else:
+        # TODO: never split off random. Use official ZinD splits.
+
         # split into train and val now --> keep 85% of building_id's in train
         split_idx = int(len(available_building_ids) * TRAIN_SPLIT_FRACTION)
         trainval_building_ids = available_building_ids
