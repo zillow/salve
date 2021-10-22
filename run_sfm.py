@@ -45,14 +45,29 @@ def get_conf_thresholded_edges(
     confidence_threshold: float,
     building_id: str,
     floor_id: str,
-):
+) -> Tuple[
+    Dict[Tuple[int, int], Sim2],
+    Dict[Tuple[int, int], np.ndarray],
+    Dict[Tuple[int, int], np.ndarray],
+    Dict[Tuple[int, int], TwoViewEstimationReport],
+    List[Tuple[int, int]],
+    Dict[Tuple[int, int], EdgeWDOPair],
+]:
     """
     Args:
         measurements
         hypotheses_save_root
+        confidence_threshold
+        building_id
+        floor_id
 
     Returns:
-
+        i2Si1_dict
+        i2Ri1_dict
+        i2Ui1_dict
+        two_view_reports_dict
+        gt_edges
+        per_edge_wdo_dict
     """
     # for each edge, choose the most confident prediction over all WDO pair alignments
     most_confident_edge_dict = defaultdict(list)
@@ -155,6 +170,11 @@ def run_incremental_reconstruction(
 ) -> None:
     """
     Can get multi-graph out of classification model.
+
+    Args:
+        hypotheses_save_root
+        serialized_preds_json_dir
+        raw_dataset_dir
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
@@ -731,17 +751,23 @@ def get_edge_accuracy(
 
 if __name__ == "__main__":
 
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
-    serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
+    # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
+    # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
 
-    # training, v2
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_28_serialized_edge_classifications"
+    # # training, v2
+    # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_28_serialized_edge_classifications"
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
+    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    # # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    # # vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
 
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
+
+
+    # 186 tours, low-res, RGB only floor and ceiling.
+    serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    hypotheses_save_root = "ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
