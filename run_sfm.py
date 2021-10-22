@@ -165,147 +165,6 @@ def get_conf_thresholded_edges(
     return i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, per_edge_wdo_dict
 
 
-def run_incremental_reconstruction(
-    hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
-) -> None:
-    """
-    Can get multi-graph out of classification model.
-
-    Args:
-        hypotheses_save_root
-        serialized_preds_json_dir
-        raw_dataset_dir
-    """
-    # TODO: determine why some FPs have zero cycle error? why so close to GT?
-
-    method = "spanning_tree"  # "SE2_cycles" # # "growing_consensus"
-    confidence_threshold = 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
-
-    plot_save_dir = (
-        f"2021_07_29_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
-    )
-    os.makedirs(plot_save_dir, exist_ok=True)
-
-    floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
-
-    # import pdb; pdb.set_trace()
-
-    reconstruction_reports = []
-
-    # loop over each building and floor
-    # for each building/floor tuple
-    for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
-
-        # if not (building_id == "1635" and floor_id == "floor_02"):
-        #     continue
-
-        gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
-        print(f"On building {building_id}, {floor_id}")
-
-        # continue
-
-        visualize_confidence_histograms = False
-        if visualize_confidence_histograms:
-            probs = np.array([m.prob for m in measurements])
-            y_true_array = np.array([m.y_true for m in measurements])
-            y_hat_array = np.array([m.y_hat for m in measurements])
-            is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true_array, y_hat_array)
-
-            plt.subplot(2, 2, 1)
-            plt.hist(probs[is_TP], bins=15)
-            plt.title("TP")
-
-            plt.subplot(2, 2, 2)
-            plt.hist(probs[is_FP], bins=15)
-            plt.title("FP")
-
-            plt.subplot(2, 2, 3)
-            plt.hist(probs[is_FN], bins=15)
-            plt.title("FN")
-
-            plt.subplot(2, 2, 4)
-            plt.hist(probs[is_TN], bins=15)
-            plt.title("TN")
-
-            plt.show()
-
-        render_multigraph = False
-        if render_multigraph:
-            draw_multigraph(measurements, gt_floor_pose_graph)
-
-        i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _ = get_conf_thresholded_edges(
-            measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id
-        )
-
-        unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
-        print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
-
-        cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
-        print(
-            f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
-        )
-
-        if method == "spanning_tree":
-            est_floor_pose_graph, i2Si1_dict_consistent, report = build_filtered_spanning_tree(
-                building_id,
-                floor_id,
-                i2Si1_dict,
-                i2Ri1_dict,
-                i2Ui1_dict,
-                gt_edges,
-                two_view_reports_dict,
-                gt_floor_pose_graph,
-                plot_save_dir,
-            )
-            reconstruction_reports.append(report)
-
-            # i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, _, per_edge_wdo_dict = get_conf_thresholded_edges(
-            #     measurements,
-            #     hypotheses_save_root,
-            #     confidence_threshold=0.5,
-            #     building_id=building_id,
-            #     floor_id=floor_id
-            # )
-            # from afp.algorithms.cluster_merging import merge_clusters
-            # est_pose_graph = merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floor_pose_graph, two_view_reports_dict)
-
-        elif method == "growing_consensus":
-            growing_consensus(
-                building_id,
-                floor_id,
-                i2Si1_dict,
-                i2Ri1_dict,
-                i2Ui1_dict,
-                gt_edges,
-                two_view_reports_dict,
-                gt_floor_pose_graph,
-            )
-        elif method == "SE2_cycles":
-            cycles_SE2_spanning_tree(
-                building_id,
-                floor_id,
-                i2Si1_dict,
-                i2Ri1_dict,
-                i2Ui1_dict,
-                gt_edges,
-                two_view_reports_dict,
-                gt_floor_pose_graph,
-            )
-        else:
-            raise RuntimeError("Unknown method.")
-
-    print()
-    print()
-    print(f"Test set contained {len(reconstruction_reports)} total floors.")
-    error_metrics = reconstruction_reports[0].__dict__.keys()
-    for error_metric in error_metrics:
-        avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
-        print(f"Averaged over all tours, {error_metric} = {avg_val:.2f}")
-
-        median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
-        print(f"Median over all tours, {error_metric} = {median_val:.2f}")
-
-
 def cycles_SE2_spanning_tree(
     building_id: str,
     floor_id: str,
@@ -747,6 +606,147 @@ def get_edge_accuracy(
 
     acc = np.mean(preds)
     return acc
+
+
+def run_incremental_reconstruction(
+    hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
+) -> None:
+    """
+    Can get multi-graph out of classification model.
+
+    Args:
+        hypotheses_save_root
+        serialized_preds_json_dir
+        raw_dataset_dir
+    """
+    # TODO: determine why some FPs have zero cycle error? why so close to GT?
+
+    method = "spanning_tree"  # "SE2_cycles" # # "growing_consensus"
+    confidence_threshold = 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+
+    plot_save_dir = (
+        f"2021_07_29_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
+    )
+    os.makedirs(plot_save_dir, exist_ok=True)
+
+    floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
+
+    # import pdb; pdb.set_trace()
+
+    reconstruction_reports = []
+
+    # loop over each building and floor
+    # for each building/floor tuple
+    for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
+
+        # if not (building_id == "1635" and floor_id == "floor_02"):
+        #     continue
+
+        gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+        print(f"On building {building_id}, {floor_id}")
+
+        # continue
+
+        visualize_confidence_histograms = False
+        if visualize_confidence_histograms:
+            probs = np.array([m.prob for m in measurements])
+            y_true_array = np.array([m.y_true for m in measurements])
+            y_hat_array = np.array([m.y_hat for m in measurements])
+            is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true_array, y_hat_array)
+
+            plt.subplot(2, 2, 1)
+            plt.hist(probs[is_TP], bins=15)
+            plt.title("TP")
+
+            plt.subplot(2, 2, 2)
+            plt.hist(probs[is_FP], bins=15)
+            plt.title("FP")
+
+            plt.subplot(2, 2, 3)
+            plt.hist(probs[is_FN], bins=15)
+            plt.title("FN")
+
+            plt.subplot(2, 2, 4)
+            plt.hist(probs[is_TN], bins=15)
+            plt.title("TN")
+
+            plt.show()
+
+        render_multigraph = False
+        if render_multigraph:
+            draw_multigraph(measurements, gt_floor_pose_graph)
+
+        i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _ = get_conf_thresholded_edges(
+            measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id
+        )
+
+        unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
+        print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
+
+        cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
+        print(
+            f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
+        )
+
+        if method == "spanning_tree":
+            est_floor_pose_graph, i2Si1_dict_consistent, report = build_filtered_spanning_tree(
+                building_id,
+                floor_id,
+                i2Si1_dict,
+                i2Ri1_dict,
+                i2Ui1_dict,
+                gt_edges,
+                two_view_reports_dict,
+                gt_floor_pose_graph,
+                plot_save_dir,
+            )
+            reconstruction_reports.append(report)
+
+            # i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, _, per_edge_wdo_dict = get_conf_thresholded_edges(
+            #     measurements,
+            #     hypotheses_save_root,
+            #     confidence_threshold=0.5,
+            #     building_id=building_id,
+            #     floor_id=floor_id
+            # )
+            # from afp.algorithms.cluster_merging import merge_clusters
+            # est_pose_graph = merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floor_pose_graph, two_view_reports_dict)
+
+        elif method == "growing_consensus":
+            growing_consensus(
+                building_id,
+                floor_id,
+                i2Si1_dict,
+                i2Ri1_dict,
+                i2Ui1_dict,
+                gt_edges,
+                two_view_reports_dict,
+                gt_floor_pose_graph,
+            )
+        elif method == "SE2_cycles":
+            cycles_SE2_spanning_tree(
+                building_id,
+                floor_id,
+                i2Si1_dict,
+                i2Ri1_dict,
+                i2Ui1_dict,
+                gt_edges,
+                two_view_reports_dict,
+                gt_floor_pose_graph,
+            )
+        else:
+            raise RuntimeError("Unknown method.")
+
+    print()
+    print()
+    print(f"Test set contained {len(reconstruction_reports)} total floors.")
+    error_metrics = reconstruction_reports[0].__dict__.keys()
+    for error_metric in error_metrics:
+        avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
+        print(f"Averaged over all tours, {error_metric} = {avg_val:.2f}")
+
+        median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
+        print(f"Median over all tours, {error_metric} = {median_val:.2f}")
 
 
 if __name__ == "__main__":
