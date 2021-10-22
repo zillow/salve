@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import argoverse.utils.json_utils as json_utils
 import numpy as np
-from argoverse.utils.json_utils import read_json_file
 
-from afp.common.posegraph2d import get_gt_pose_graph
-from afp.utils.pr_utils import assign_tp_fp_fn_tn
+import afp.common.posegraph2d as posegraph2d
+import afp.utils.pr_utils as pr_utils
 
 
 @dataclass(frozen=False)
@@ -34,20 +34,20 @@ class EdgeClassification:
 def get_edge_classifications_from_serialized_preds(
     serialized_preds_json_dir: str,
 ) -> Dict[Tuple[str, str], List[EdgeClassification]]:
-    """
+    """Given a directory of JSON files containing model predictions into predictions per ZinD building and per floor.
 
     Args:
-        serialized_preds_json_dir:
+        serialized_preds_json_dir: path to directory where model predictions (per edge) have been serialized as JSON.
 
     Returns:
-        floor_edgeclassifications_dict
+        floor_edgeclassifications_dict: a mapping from (building_id, floor_id) to corresponding edge measurements.
     """
     floor_edgeclassifications_dict = defaultdict(list)
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
     for json_fpath in json_fpaths:
 
-        json_data = read_json_file(json_fpath)
+        json_data = json_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
         y_true_list = json_data["y_true"]
         y_hat_prob_list = json_data["y_hat_probs"]
@@ -55,11 +55,12 @@ def get_edge_classifications_from_serialized_preds(
         fp1_list = json_data["fp1"]
 
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
+            # Note: not guaranteed that i1 < i2
             i1 = int(Path(fp0).stem.split("_")[-1])
             i2 = int(Path(fp1).stem.split("_")[-1])
             building_id = Path(fp0).parent.stem
 
-            s = Path(fp0).stem.find("floor_")
+            s = Path(fp0).stem.find("floor_0")
             e = Path(fp0).stem.find("_partial")
             floor_id = Path(fp0).stem[s:e]
 
@@ -68,9 +69,9 @@ def get_edge_classifications_from_serialized_preds(
             is_identity = "identity" in Path(fp0).stem
             configuration = "identity" if is_identity else "rotated"
 
+            # Rip out the WDO indices (`wdo_pair_uuid`), given `pair_3905___door_3_0_identity_floor_rgb_floor_01_partial_room_02_pano_38.jpg`
             k = Path(fp0).stem.split("___")[1].find(f"_{configuration}")
             assert k != -1
-
             wdo_pair_uuid = Path(fp0).stem.split("___")[1][:k]
             assert any([wdo_type in wdo_pair_uuid for wdo_type in ["door", "window", "opening"]])
 
@@ -90,7 +91,12 @@ def get_edge_classifications_from_serialized_preds(
 
 
 def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
-    """ """
+    """
+
+    Args:
+        serialized_preds_json_dir
+        raw_dataset_dir: path to directory where the full ZinD dataset is stored (in raw form as downloaded from Bridge API).
+    """
     floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
     color_dict = {"TP": "green", "FP": "red", "FN": "orange", "TN": "blue"}
@@ -102,14 +108,14 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
         # 	continue
 
         print(f"On building {building_id}, {floor_id}")
-        gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+        gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
         # gather all of the edge classifications
         y_hat = np.array([m.y_hat for m in measurements])
         y_true = np.array([m.y_true for m in measurements])
 
         # classify into TPs, FPs, FNs, TNs
-        is_TP, is_FP, is_FN, is_TN = assign_tp_fp_fn_tn(y_true, y_pred=y_hat)
+        is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true, y_pred=y_hat)
         for m, is_tp, is_fp, is_fn, is_tn in zip(measurements, is_TP, is_FP, is_FN, is_TN):
 
             # then render the edges
@@ -134,7 +140,7 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
 
         # import pdb; pdb.set_trace()
         # render the pose graph first
-        gt_floor_pose_graph.render_estimated_layout()
+        gt_floor_pose_graph.render_estimated_layout(show_plot=True)
         # continue
 
 
@@ -142,12 +148,12 @@ if __name__ == "__main__":
     """ """
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
-    serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
+    #serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    
+    serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+
     vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
-
-
-
-
