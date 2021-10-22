@@ -117,7 +117,9 @@ class PoseGraph2d(NamedTuple):
                 openings=None,
             )
 
-        return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
+        # just use the average scale over ZinD, when it is unknown.
+        return cls(building_id=building_id, floor_id=floor_id, nodes=nodes, scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE)
+
 
     def as_3d_pose_graph(self) -> List[Optional[Pose3]]:
         """
@@ -187,7 +189,8 @@ class PoseGraph2d(NamedTuple):
                 openings=openings,
             )
 
-        return cls(building_id=building_id, floor_id=floor_id, nodes=nodes)
+        # when scale is unknown, use average value over ZinD.
+        return cls(building_id=building_id, floor_id=floor_id, nodes=nodes, scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE)
 
     def as_json(self, json_fpath: str) -> None:
         """ """
