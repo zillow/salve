@@ -301,9 +301,14 @@ if __name__ == "__main__":
     #serialization_save_dir = "2021_07_15_serialized_edge_classifications_v2"
 
     # ResNet-50, floor and ceiling, RGB-only, more tours
-    model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_07_24/2021_07_26_14_42_49"
-    config_fpath = "afp/configs/2021_07_24_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    serialization_save_dir = "2021_07_28_serialized_edge_classifications"
+    # model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_07_24/2021_07_26_14_42_49"
+    # config_fpath = "afp/configs/2021_07_24_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # serialization_save_dir = "2021_07_28_serialized_edge_classifications"
+
+    # ResNet-50, floor and ceiling, RGB only, 186 tours, but low-res
+    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20"
+    config_fpath = "afp/configs/2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    serialization_save_dir = "/data/johnlam/2021_10_22_serialized_edge_classifications"
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
@@ -322,8 +327,8 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 128
-    args.workers = 6
+    args.batch_size = 512
+    args.workers = 30
 
     split = "val"
     save_viz = True
