@@ -21,15 +21,15 @@ from argoverse.utils.sim2 import Sim2
 
 import afp.algorithms.cycle_consistency as cycle_utils
 import afp.algorithms.rotation_averaging as rotation_averaging
+import afp.common.edge_classification as edge_classification
 import afp.utils.pr_utils as pr_utils
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
 from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
 from afp.algorithms.cluster_merging import EdgeWDOPair
 from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
+from afp.common.edge_classification import EdgeClassification
 from afp.utils.graph_rendering_utils import draw_multigraph, draw_graph_topology
 from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rotmat2theta_deg
-
-from visualize_edge_classifications import get_edge_classifications_from_serialized_preds, EdgeClassification
 
 
 @dataclass(frozen=True)
@@ -54,12 +54,14 @@ def get_conf_thresholded_edges(
     Dict[Tuple[int, int], EdgeWDOPair],
 ]:
     """
+    We select the most confident prediction for each edge.
+
     Args:
-        measurements
-        hypotheses_save_root
-        confidence_threshold
-        building_id
-        floor_id
+        measurements: list containing the model's prediction for each edge.
+        hypotheses_save_root: path to directory where alignment hypotheses are saved as JSON files.
+        confidence_threshold: minimum confidence to treat a model's prediction as a positive.
+        building_id: unique ID for ZinD building.
+        floor_id: unique ID for floor of a ZinD building.
 
     Returns:
         i2Si1_dict
@@ -102,6 +104,7 @@ def get_conf_thresholded_edges(
             continue
 
         # TODO: this should never happen bc sorted, figure out why it occurs
+        # (happens because we sort by partial room, not by i1, i2 in dataloader?)
         if m.i1 >= m.i2:
             i2 = m.i1
             i1 = m.i2
@@ -113,6 +116,7 @@ def get_conf_thresholded_edges(
 
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair] = {}
 
+    # keep track of how often the most confident prediction per edge was the correct one.
     most_confident_was_correct = []
     for (i1, i2), measurements in most_confident_edge_dict.items():
 
@@ -615,9 +619,9 @@ def run_incremental_reconstruction(
     Can get multi-graph out of classification model.
 
     Args:
-        hypotheses_save_root
-        serialized_preds_json_dir
-        raw_dataset_dir
+        hypotheses_save_root: path to directory where alignment hypotheses are saved as JSON files.
+        serialized_preds_json_dir: path to directory where model predictions (per edge) have been serialized as JSON.
+        raw_dataset_dir: path to directory where the full ZinD dataset is stored (in raw form as downloaded from Bridge API).
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
@@ -625,13 +629,13 @@ def run_incremental_reconstruction(
     confidence_threshold = 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
     plot_save_dir = (
-        f"2021_07_29_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
+        f"2021_10_22_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
     )
     os.makedirs(plot_save_dir, exist_ok=True)
 
-    floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
+    floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
 
-    # import pdb; pdb.set_trace()
+    
 
     reconstruction_reports = []
 
@@ -647,7 +651,7 @@ def run_incremental_reconstruction(
 
         # continue
 
-        visualize_confidence_histograms = False
+        visualize_confidence_histograms = True # False
         if visualize_confidence_histograms:
             probs = np.array([m.prob for m in measurements])
             y_true_array = np.array([m.y_true for m in measurements])
@@ -655,26 +659,30 @@ def run_incremental_reconstruction(
             is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true_array, y_hat_array)
 
             plt.subplot(2, 2, 1)
-            plt.hist(probs[is_TP], bins=15)
+            plt.hist(probs[is_TP], bins=30) # 15 bins are too few, to see 98%-99% confidence bin
             plt.title("TP")
 
             plt.subplot(2, 2, 2)
-            plt.hist(probs[is_FP], bins=15)
+            plt.hist(probs[is_FP], bins=30)
             plt.title("FP")
 
             plt.subplot(2, 2, 3)
-            plt.hist(probs[is_FN], bins=15)
+            plt.hist(probs[is_FN], bins=30)
             plt.title("FN")
 
             plt.subplot(2, 2, 4)
-            plt.hist(probs[is_TN], bins=15)
+            plt.hist(probs[is_TN], bins=30)
             plt.title("TN")
 
             plt.show()
 
-        render_multigraph = False
+        import pdb; pdb.set_trace()
+
+        render_multigraph = True
         if render_multigraph:
             draw_multigraph(measurements, gt_floor_pose_graph)
+
+        import pdb; pdb.set_trace()
 
         i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _ = get_conf_thresholded_edges(
             measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id
