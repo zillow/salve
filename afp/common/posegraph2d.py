@@ -697,15 +697,17 @@ def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
 
 
 def compute_pose_errors(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]) -> Tuple[float, float]:
-    """
+    """Compute average pose errors over all cameras (separately in rotation and translation).
+
+    Note: pose graphs must already be aligned.
 
     Args:
-        aTi_list_gt
+        aTi_list_gt: ground truth 2d pose graph.
         aligned_bTi_list_est:
 
     Returns:
-        mean_rot_err
-        mean_trans_err
+        mean_rot_err: mean rotation error per camera, in degrees.
+        mean_trans_err: mean translation error per camera.
     """
     rotation_errors = []
     translation_errors = []
