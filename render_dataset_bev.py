@@ -41,15 +41,20 @@ Nasty depth map estimation failure cases: (from complete_07_10 version)
 
 
 def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
-    """ """
-    building_id = "000"  # "981"  #
+    """
+    Render point clouds one by one.
+    """
+    #building_id = "000"  # "981"  #
     # building_id = "004"
+    building_id = "0544"
+
+    import pdb; pdb.set_trace()
 
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
 
     for img_fpath in img_fpaths:
 
-        if "_14.jpg" not in img_fpath:  # 13
+        if "_18.jpg" not in img_fpath:  # 13
             continue
 
         hohonet_inference_utils.infer_depth_if_nonexistent(depth_save_root, building_id, img_fpath)
@@ -60,7 +65,7 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
         if is_semantics:
             crop_z_range = [-float("inf"), 2]
         else:
-            crop_z_range = [-float("inf"), -1.0]  # [0.5, float('inf')] #  # 2.0 # -1.0
+            crop_z_range = [-float("inf"), float('inf')] #-1.0]  # [0.5, float('inf')] #  # 2.0 # -1.0
 
         args = SimpleNamespace(
             **{
@@ -68,13 +73,11 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
                 "depth": f"{depth_save_root}/{building_id}/{Path(img_fpath).stem}.depth.png",
                 "scale": 0.001,
                 "crop_ratio": 80 / 512,  # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-                # "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
-                "crop_z_above": 2,
+                "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
+                #"crop_z_above": 2,
             }
         )
-        import pdb
-
-        pdb.set_trace()
+        
         bev_img = vis_depth_and_render(args, is_semantics=False)
 
         vis_depth(args)
@@ -430,7 +433,7 @@ if __name__ == "__main__":
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
-    #depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     #depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     depth_save_root = "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
 
@@ -474,6 +477,7 @@ if __name__ == "__main__":
     #bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
     #bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
     bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_23_debug"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
     # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
