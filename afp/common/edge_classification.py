@@ -92,6 +92,7 @@ def get_edge_classifications_from_serialized_preds(
 
 def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
     """
+    TODO: this function may need to be deleted (possibly deprecated and not used anywhere).
 
     Args:
         serialized_preds_json_dir

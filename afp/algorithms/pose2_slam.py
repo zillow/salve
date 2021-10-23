@@ -1,4 +1,3 @@
-
 """
 A 2D Pose SLAM example that reads input from g2o, and solve the Pose2 problem
 using LAGO (Linear Approximation for Graph Optimization).
@@ -12,57 +11,62 @@ L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
 for graph-based simultaneous localization and mapping, RSS, 2011.
 """
 
-import argparse
-from argparse import Namespace
+from typing import Dict, List, Tuple
 
 import numpy as np
 
 import gtsam
-from gtsam import Pose2, PriorFactorPose2, Values
+from gtsam import Rot2, Point3, Pose2, PriorFactorPose2, Values
+from gtsam.symbol_shorthand import X, L
 
 
-def vector3(x: float, y: float, z: float) -> np.ndarray:
-    """Create 3d double numpy array."""
-    return np.array([x, y, z], dtype=float)
+# Create noise models
+PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1])) # np.array([1e-6, 1e-6, 1e-8])
+ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
+MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
 
 
-def run(args: Namespace) -> None:
-    """Run LAGO on input data stored in g2o file."""
-    g2oFile = gtsam.findExampleDataFile("noisyToyGraph.txt") if args.input is None else args.input
+def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]:
+    """Does not require an initial estimate.
+
+    Can also estimate over landmarks if we can solve data association (s & e for shared door).
+
+    We add factors as load2D (https://github.com/borglab/gtsam/blob/develop/gtsam/slam/dataset.cpp#L500) does.
+    """
 
     graph = gtsam.NonlinearFactorGraph()
-    graph, initial = gtsam.readG2o(g2oFile)
 
-    # Add prior on the pose having index (key) = 0
-    priorModel = gtsam.noiseModel.Diagonal.Variances(vector3(1e-6, 1e-6, 1e-8))
-    graph.add(PriorFactorPose2(0, Pose2(), priorModel))
-    graph.print()
+    # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model
+    graph.add(gtsam.PriorFactorPose2(X(0), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
+
+    for (i1, i2), i2Ti1 in i2Ti1_dict.items():
+        # Add odometry factors between X1,X2 and X2,X3, respectively
+        graph.add(gtsam.BetweenFactorPose2(X(i1), X(i2), i2Ti1, ODOMETRY_NOISE))
+
+    print(graph)
+
+    import pdb; pdb.set_trace()
 
     print("Computing LAGO estimate")
-    estimateLago: Values = lago.initialize(graph)
-    print("done!")
-
-    if args.output is None:
-        estimateLago.print("estimateLago")
-    else:
-        outputFile = args.output
-        print("Writing results to file: ", outputFile)
-        graphNoKernel = gtsam.NonlinearFactorGraph()
-        graphNoKernel, initial2 = gtsam.readG2o(g2oFile)
-        gtsam.writeG2o(graphNoKernel, estimateLago, outputFile)
-        print("Done! ")
+    estimate_lago: Values = gtsam.lago.initialize(graph)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="A 2D Pose SLAM example that reads input from g2o, "
-        "converts it to a factor graph and does the optimization. "
-        "Output is written on a file, in g2o format"
-    )
-    parser.add_argument("-i", "--input", help="input file g2o format")
-    parser.add_argument("-o", "--output", help="the path to the output file with optimized graph")
-    run(args)
+def test_estimate_poses_lago() -> None:
+    """ " """
 
+    wTi_list = [
+        Pose2(Rot2(), np.array([2, 0])),
+        Pose2(Rot2(), np.array([2, 2])),
+        Pose2(Rot2(), np.array([0, 2])),
+        Pose2(Rot2(), np.array([0, 0])),
+    ]
+    i2Ti1_dict = {
+        (0, 1): wTi_list[1].between(wTi_list[0]),
+        (1, 2): wTi_list[2].between(wTi_list[1]),
+        (2, 3): wTi_list[3].between(wTi_list[2]),
+    }
+
+    wTi_list_computed = estimate_poses_lago(i2Ti1_dict)
 
 
 def pose2slam():
