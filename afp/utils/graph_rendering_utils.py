@@ -26,12 +26,12 @@ def draw_graph_topology(
     False positive edges are colored red, and true positive edges are colored green.
 
     Args:
-        edges: List of (i1,i2) pairs
-        gt_floor_pose_graph
-        two_view_reports_dict
-        title
-        show_plot
-        save_fpath
+        edges: List of (i1,i2) pairs.
+        gt_floor_pose_graph: ground truth 2d pose graph for this floor.
+        two_view_reports_dict:
+        title: desired title of figure.
+        show_plot: whether to show the plot in the matplotlib GUI.
+        save_fpath: file path where plot should be saved to disk (if None, will not be saved to disk).
     """
     plt.figure(figsize=(16, 10))
     G = nx.Graph()
