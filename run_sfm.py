@@ -21,19 +21,21 @@ from argoverse.utils.sim2 import Sim2
 
 import afp.algorithms.cycle_consistency as cycle_utils
 import afp.algorithms.rotation_averaging as rotation_averaging
+import afp.algorithms.spanning_tree as spanning_tree
 import afp.common.edge_classification as edge_classification
+import afp.common.posegraph2d as posegraph2d
+import afp.utils.graph_rendering_utils as graph_rendering_utils
 import afp.utils.pr_utils as pr_utils
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
-from afp.algorithms.spanning_tree import greedily_construct_st_Sim2
 from afp.algorithms.cluster_merging import EdgeWDOPair
-from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
+from afp.common.posegraph2d import PoseGraph2d
 from afp.common.edge_classification import EdgeClassification
-from afp.utils.graph_rendering_utils import draw_multigraph, draw_graph_topology
 from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rotmat2theta_deg
 
 
 @dataclass(frozen=True)
 class FloorReconstructionReport:
+    """Summary statistics about the reconstructed floorplan."""
     avg_abs_rot_err: float
     avg_abs_trans_err: float
     percent_panos_localized: float
@@ -53,8 +55,10 @@ def get_conf_thresholded_edges(
     List[Tuple[int, int]],
     Dict[Tuple[int, int], EdgeWDOPair],
 ]:
-    """
-    We select the most confident prediction for each edge.
+    """Among all model predictions for a particular floor of a home, select only the positive predictions
+    with sufficiently high confidence.
+
+    Note: We select the most confident prediction for each edge.
 
     Args:
         measurements: list containing the model's prediction for each edge.
@@ -64,12 +68,12 @@ def get_conf_thresholded_edges(
         floor_id: unique ID for floor of a ZinD building.
 
     Returns:
-        i2Si1_dict
-        i2Ri1_dict
-        i2Ui1_dict
-        two_view_reports_dict
-        gt_edges
-        per_edge_wdo_dict
+        i2Si1_dict: Similarity(2) for each edge.
+        i2Ri1_dict: 2d relative rotation for each edge
+        i2Ui1_dict:
+        two_view_reports_dict:
+        gt_edges:
+        per_edge_wdo_dict:
     """
     # for each edge, choose the most confident prediction over all WDO pair alignments
     most_confident_edge_dict = defaultdict(list)
@@ -112,6 +116,8 @@ def get_conf_thresholded_edges(
             m.i1 = i1
             m.i2 = i2
 
+        print(m)
+
         most_confident_edge_dict[(m.i1, m.i2)] += [m]
 
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair] = {}
@@ -137,9 +143,7 @@ def get_conf_thresholded_edges(
         # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
 
         if not len(fpaths) == 1:
-            import pdb
-
-            pdb.set_trace()
+            import pdb; pdb.set_trace()
         i2Si1 = Sim2.from_json(fpaths[0])
 
         # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
@@ -187,7 +191,7 @@ def cycles_SE2_spanning_tree(
     )
     print(f"\tFiltered by SE(2) cycles Edge Acc = {filtered_edge_acc:.2f}")
 
-    wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
+    wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
 
     if wSi_list is None:
         print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
@@ -275,9 +279,7 @@ def growing_consensus(
         )
         seed_cycle_errors.append(cycle_error)
 
-    import pdb
-
-    pdb.set_trace()
+    import pdb; pdb.set_trace()
 
     min_error_triplet_idx = np.argmin(np.array(seed_cycle_errors))
     seed_triplet = connected_triplets[min_error_triplet_idx]
@@ -316,24 +318,24 @@ def build_filtered_spanning_tree(
     plot_save_dir: str,
 ) -> None:
     """ """
-    draw_graph_topology(
+    graph_rendering_utils.draw_graph_topology(
         edges=list(i2Ri1_dict.keys()),
         gt_floor_pose_graph=gt_floor_pose_graph,
         two_view_reports_dict=two_view_reports_dict,
         title=f"Building {building_id} {floor_id}: topology after CNN prediction of positives",
-        show_plot=False,
+        show_plot=True,
         save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_CNN_predicted_positives.jpg",
     )
 
     i2Ri1_dict, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
         i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
     )
-    draw_graph_topology(
+    graph_rendering_utils.draw_graph_topology(
         edges=list(i2Ri1_dict.keys()),
         gt_floor_pose_graph=gt_floor_pose_graph,
         two_view_reports_dict=two_view_reports_dict,
         title=f"Building {building_id} {floor_id}: topology after rot. cycle consistency filtering",
-        show_plot=False,
+        show_plot=True,
         save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_rot_cycle_consistency.jpg",
     )
 
@@ -366,12 +368,12 @@ def build_filtered_spanning_tree(
     i2Ri1_dict = filter_measurements_to_absolute_rotations(
         wRi_list, i2Ri1_dict, max_allowed_deviation=5, two_view_reports_dict=two_view_reports_dict
     )
-    draw_graph_topology(
+    graph_rendering_utils.draw_graph_topology(
         edges=list(i2Ri1_dict.keys()),
         gt_floor_pose_graph=gt_floor_pose_graph,
         two_view_reports_dict=two_view_reports_dict,
         title=f"Building {building_id} {floor_id}: topology after filtering relative by global",
-        show_plot=False,
+        show_plot=True,
         save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_relative_by_global.jpg",
     )
 
@@ -398,12 +400,12 @@ def build_filtered_spanning_tree(
         wRi_list, i2Si1_dict, translation_cycle_thresh=0.25, two_view_reports_dict=two_view_reports_dict
     )
 
-    draw_graph_topology(
+    graph_rendering_utils.draw_graph_topology(
         edges=list(i2Si1_dict_consistent.keys()),
         gt_floor_pose_graph=gt_floor_pose_graph,
         two_view_reports_dict=two_view_reports_dict,
         title=f"Building {building_id} {floor_id}: topology after filtering by translations",
-        show_plot=False,
+        show_plot=True,
         save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_translations.jpg",
     )
 
@@ -421,7 +423,7 @@ def build_filtered_spanning_tree(
     num_fps_for_st = (labels == 0).sum()
     print(f"{num_fps_for_st} FPs were fed to spanning tree.")
 
-    wSi_list = greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
+    wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
 
     if wSi_list is None:
         print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
@@ -600,8 +602,9 @@ def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
 def get_edge_accuracy(
     edges: List[Tuple[int, int]], two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport]
 ) -> float:
-    """
-    Check GT for each predicted (i.e. allowed) edge.
+    """Compute the average accuracy per-edge (as classified by GT supervision).
+
+    We check the GT for each predicted (i.e. allowed) edge.
     """
     preds = []
     # what is the purity of what comes out?
@@ -626,7 +629,7 @@ def run_incremental_reconstruction(
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     method = "spanning_tree"  # "SE2_cycles" # # "growing_consensus"
-    confidence_threshold = 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    confidence_threshold = 0.98 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
     plot_save_dir = (
         f"2021_10_22_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
@@ -646,7 +649,7 @@ def run_incremental_reconstruction(
         # if not (building_id == "1635" and floor_id == "floor_02"):
         #     continue
 
-        gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+        gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
 
         # continue
@@ -676,17 +679,15 @@ def run_incremental_reconstruction(
 
             plt.show()
 
-        import pdb; pdb.set_trace()
-
         render_multigraph = True
         if render_multigraph:
-            draw_multigraph(measurements, gt_floor_pose_graph)
-
-        import pdb; pdb.set_trace()
+            graph_rendering_utils.draw_multigraph(measurements, gt_floor_pose_graph)
 
         i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _ = get_conf_thresholded_edges(
             measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id
         )
+
+        import pdb; pdb.set_trace()
 
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
