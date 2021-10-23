@@ -33,6 +33,9 @@ def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]
 
     We add factors as load2D (https://github.com/borglab/gtsam/blob/develop/gtsam/slam/dataset.cpp#L500) does.
     """
+    initial_estimate = Values()
+    initial_estimate.insert(1, gtsam.Pose2(0.5, 0.0, 0.2))
+
 
     graph = gtsam.NonlinearFactorGraph()
 
@@ -50,10 +53,13 @@ def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]
     print("Computing LAGO estimate")
     estimate_lago: Values = gtsam.lago.initialize(graph)
 
+    max_frame_id = max([max(i1,i2) for (i1,i2) in i2Ti1_dict.keys()]) + 1
+    for i in range(max_frame_id):
+        wTi_list.append(estimate_lago.atPose2(i))
+
 
 def test_estimate_poses_lago() -> None:
-    """ " """
-
+    """Ensure pose graph is correctly estimated for simple 4-pose scenario."""
     wTi_list = [
         Pose2(Rot2(), np.array([2, 0])),
         Pose2(Rot2(), np.array([2, 2])),
@@ -64,6 +70,7 @@ def test_estimate_poses_lago() -> None:
         (0, 1): wTi_list[1].between(wTi_list[0]),
         (1, 2): wTi_list[2].between(wTi_list[1]),
         (2, 3): wTi_list[3].between(wTi_list[2]),
+        (0, 3): wTi_list[3].between(wTi_list[0])
     }
 
     wTi_list_computed = estimate_poses_lago(i2Ti1_dict)
