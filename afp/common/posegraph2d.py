@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Rot3, Pose3
-from gtsfm.utils.geometry_comparisons import align_poses_sim3_ignore_missing
+import gtsfm.utils.geometry_comparisons as gtsfm_geometry_comparisons
 
 from afp.common.pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
 from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg
@@ -222,7 +222,7 @@ class PoseGraph2d(NamedTuple):
         bTi_list_est.extend([None] * pad_len)
 
         # align the pose graphs
-        aligned_bTi_list_est = align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
+        aligned_bTi_list_est, _ = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
         mean_rot_err, mean_trans_err = compute_pose_errors(aTi_list_gt, aligned_bTi_list_est)
         return mean_rot_err, mean_trans_err
