@@ -21,14 +21,14 @@ class EdgeClassification:
     Note: i1 and i2 are panorama id's
     """
 
-    i1: int
-    i2: int
+    i1: int # ID of panorama 1
+    i2: int # ID of panorama 2
     prob: float
-    y_hat: int
-    y_true: int
+    y_hat: int # predicted category
+    y_true: int # true category
     pair_idx: int
     wdo_pair_uuid: str
-    configuration: str
+    configuration: str # identity or rotated
 
 
 def get_edge_classifications_from_serialized_preds(
