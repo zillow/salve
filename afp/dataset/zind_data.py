@@ -12,7 +12,7 @@ import imageio
 from torch.utils.data import Dataset
 from torch import Tensor
 
-from afp.dataset.zind_partition import OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
+from afp.dataset.zind_partition import DATASET_SPLITS, OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
 from afp.training_config import TrainingConfig
 
 
@@ -195,7 +195,7 @@ def make_dataset(
     # TODO: search from both folders instead
     available_building_ids = get_available_building_ids(dataset_root=f"{data_root}/gt_alignment_approx")
 
-    custom_splits = True
+    custom_splits = False
     if custom_splits:
         val_building_ids = NEW_HOME_ID_TEST_SET
         train_building_ids = set(available_building_ids) - set(val_building_ids)
@@ -209,18 +209,8 @@ def make_dataset(
             raise RuntimeError
 
     else:
-        # TODO: never split off random. Use official ZinD splits.
-
-        # split into train and val now --> keep 85% of building_id's in train
-        split_idx = int(len(available_building_ids) * TRAIN_SPLIT_FRACTION)
-        trainval_building_ids = available_building_ids
-
-        if split == "train":
-            split_building_ids = trainval_building_ids[:split_idx]
-        elif split in "val":
-            split_building_ids = trainval_building_ids[split_idx:]
-        elif split == "test":
-            raise RuntimeError
+        # We never split off at random. We use official ZinD splits.
+        split_building_ids = list(set(DATASET_SPLITS[split]).intersection(set(available_building_ids)))
 
     logging.info(f"{split} split building ids: {split_building_ids}")
 
