@@ -18,7 +18,7 @@ from gtsam import Point3, Rot3, Pose3
 import gtsfm.utils.geometry_comparisons as gtsfm_geometry_comparisons
 
 from afp.common.pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
-from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg
+from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rot2x2_to_Rot3
 
 REDTEXT = "\033[91m"
 ENDCOLOR = "\033[0m"
@@ -295,6 +295,8 @@ class PoseGraph2d(NamedTuple):
         print_str = f"Mean relative rot. error: {mean_err:.1f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos"
         print_str += f", estimated {len(errs)} / {len(gt_edges)} GT edges"
         print(REDTEXT + print_str + ENDCOLOR)
+
+        print(REDTEXT + "Rotation Errors: " + str(np.round(errs,1)) + ENDCOLOR)
 
         return mean_err
 
@@ -685,15 +687,6 @@ def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> 
     json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
     floor_pg_dict = get_single_building_pose_graphs(building_id, pano_dir, json_annot_fpath)
     return floor_pg_dict[floor_id]
-
-
-def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
-    """
-    2x2 rotation matrix to Rot3 object
-    """
-    R_Rot3 = np.eye(3)
-    R_Rot3[:2, :2] = R
-    return Rot3(R_Rot3)
 
 
 def compute_pose_errors(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]) -> Tuple[float, float]:

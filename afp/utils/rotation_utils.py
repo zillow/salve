@@ -1,6 +1,18 @@
 
+"""
+Utilities for working with 2d and 3d rotation matrices.
+"""
 
 import numpy as np
+from gtsam import Rot3
+
+def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
+    """
+    2x2 rotation matrix to Rot3 object
+    """
+    R_Rot3 = np.eye(3)
+    R_Rot3[:2, :2] = R
+    return Rot3(R_Rot3)
 
 
 def rotmat2d(theta_deg: float) -> np.ndarray:
