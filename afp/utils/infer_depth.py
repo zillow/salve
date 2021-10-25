@@ -8,8 +8,9 @@ import numpy as np
 
 try:
     from lib.config import config, update_config
-except:
+except Exception as e:
     print("HoHoNet's lib could not be loaded, skipping...")
+    print("Exception: ", e)
 
 
 def infer_depth(args):
