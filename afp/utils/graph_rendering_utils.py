@@ -92,7 +92,7 @@ def draw_multigraph(
 
         edge_color = "g" if m.y_true == 1 else "r"
         weight = m.prob
-        weight = 10 if m.y_true == 1 else 1
+        weight = 5 if m.y_true == 1 else 1
         G.add_edge(m.i1, m.i2, color=edge_color, weight=weight)
 
     edges = G.edges()
