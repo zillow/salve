@@ -182,6 +182,9 @@ def planar_slam(
 
     Args:
         wTi_list_init:
+        i2Ti1_dict
+        landmark_positions_init
+        landmark_measurements
 
     Returns:
         wTi_list:
