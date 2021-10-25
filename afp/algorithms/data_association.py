@@ -1,6 +1,6 @@
 
 
-
+from dataclasses import dataclass
 from typing import Dict, List, NamedTuple, Tuple
 
 import gtsam
@@ -15,15 +15,13 @@ class SlamMeasurement(NamedTuple):
     wdo_idx: int  # 2d measurement
 
 
+@dataclass
 class SlamFeatureTrack2d:
-	slam_measurements: List[SlamMeasurement]
+    slam_measurements: List[SlamMeasurement]
 
 
     @staticmethod
-    def generate_tracks_from_pairwise_matches(
-        matches_dict: Dict[Tuple[int, int], np.ndarray],
-        keypoints_list: List[Keypoints],
-    ) -> List["SlamFeatureTrack2d"]:
+    def generate_tracks_from_pairwise_matches(matches_dict: Dict[Tuple[int, int], np.ndarray]) -> List["SlamFeatureTrack2d"]:
         """Factory function that creates a list of tracks from 2d point correspondences.
         Creates a disjoint-set forest (DSF) and 2d tracks from pairwise matches. We create a singleton for union-find
         set elements from camera index of a detection and the index of that detection in that camera's keypoint list,
@@ -66,12 +64,20 @@ class SlamFeatureTrack2d:
             track_2d = SlamFeatureTrack2d(track_measurements)
             track_2d_list += [track_2d]
 
-    	return track_2d_list
+        return track_2d_list
 
 
 def test_generate_tracks_from_pairwise_matches() -> None:
-	""" """
-	
+    """Set up correspondences for each (i1,i2) pair. There should be 4 tracks, since we get one chained track as
+    (i=0, k=0) -> (i=1, k=2) -> (i=2,k=3).
+    """
+    dummy_matches_dict = {
+        (0, 1): np.array([[0, 2]]),
+        (1, 2): np.array([[2, 3], [4, 5], [7, 9]]),
+        (0, 2): np.array([[1, 8]]),
+    }
 
+    tracks_2d = SlamFeatureTrack2d.generate_tracks_from_pairwise_matches(dummy_matches_dict)
+    import pdb; pdb.set_trace()
 
 
