@@ -68,10 +68,11 @@ def perform_data_association(measurements: List[EdgeClassification], pano_dict_i
     """Perform union-find data association.
 
     Args:
-        measurements
+        measurements:
+        pano_dict_inferred:
 
     Returns:
-        tracks_2d
+        tracks_2d: feature/landmark tracks for landmark-based SLAM.
     """
     num_panos = max(pano_dict_inferred.keys()) + 1
 
@@ -88,7 +89,8 @@ def perform_data_association(measurements: List[EdgeClassification], pano_dict_i
                 keypoints.append(s)
                 keypoints.append(e)
 
-        keypoints_list[i] = Keypoints(coordinates=np.array(keypoints))
+        # must be 2-dimensional array for SfmTrack's union-find to not reject it.
+        keypoints_list[i] = Keypoints(coordinates=np.array(keypoints).reshape(-1,2)) 
 
     matches_dict = defaultdict(list)
 
