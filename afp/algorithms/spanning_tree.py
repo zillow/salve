@@ -19,6 +19,7 @@ from gtsam import Point3, Rot2, Rot3, Unit3
 
 from afp.algorithms.rotation_averaging import globalaveraging2d
 from afp.utils.rotation_utils import rotmat2d, rotmat2theta_deg
+from afp.common.edge_classification import EdgeClassification
 
 
 logger = logger_utils.get_logger()
@@ -256,3 +257,50 @@ def test_greedily_construct_st2():
     # wRi_list_euler_deg_est = [ np.rad2deg(wRi.xyz()).tolist() for wRi in wRi_list_greedy]
     wRi_list_euler_deg_est = [rotmat2theta_deg(wRi) for wRi in wRi_list_greedy]
     assert wRi_list_euler_deg_exp == wRi_list_euler_deg_est
+
+
+def ransac_spanning_trees(high_conf_measurements: List[EdgeClassification]) -> List[Optional[Sim2]]:
+    """
+    Generate random spanning trees
+    https://arxiv.org/pdf/1611.07451.pdf
+
+    Args:
+        high_conf_measurements
+    """
+    K = len(high_conf_measurements)
+
+    avg_error_best = float("inf")
+    best_wSi_list = None
+
+    # generate random hypotheses
+    hypotheses = np.random.choice(K)
+
+    #for each hypothesis
+    for h_idxs in hypotheses:
+
+        hypothesis_measurements = [m for k, m in enumerate(high_conf_measurements) if k in h_idxs]
+
+        # create the i2Si1_dict
+        # generate a spanning tree greedily
+        wSi_list = greedily_construct_st_Sim2(i2Si1_dict, verbose=True)
+
+        #count the number of inliers / error
+        avg_error = np.nan
+        
+        #if most inliers so far, set as best hypothesis
+        if avg_error < avg_error_best:
+            avg_error_best = avg_error
+            best_wSi_list = wSi_list
+
+    return best_wSi_list
+
+
+def test_ransac_spanning_trees() -> None:
+    """ """
+
+    # toy scenario with 3 edges.
+
+    high_conf_measurements = []
+    wSi_list = ransac_spanning_trees(high_conf_measurements)
+
+
