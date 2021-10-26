@@ -16,8 +16,11 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 import gtsam
+from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point2, Point3, Pose2, PriorFactorPose2, Values
 from gtsam.symbol_shorthand import X, L
+
+from afp.common.floor_reconstruction_report import FloorReconstructionReport
 
 
 # Create noise models
@@ -168,12 +171,20 @@ class BearingRangeMeasurement:
     range: float
 
 
+@dataclass
+class OdometryMeasurement:
+    i1: int
+    i2: int
+    i2Ti1: Pose2
+
+
 def planar_slam(
     wTi_list_init: List[Optional[Pose2]],
-    i2Ti1_dict: List[Pose2],
+    i2Ti1_measurements: List[Pose2],
     landmark_positions_init: Dict[int, Point2],
     landmark_measurements: List[BearingRangeMeasurement],
-) -> List[Optional[Pose2]]:
+    optimize_poses_only: bool = False
+) -> Tuple[List[Optional[Pose2]], Dict[int, Point2]]:
     """
 
     See https://github.com/borglab/gtsam/blob/develop/python/gtsam/examples/PlanarSLAMExample.py
@@ -182,7 +193,7 @@ def planar_slam(
 
     Args:
         wTi_list_init:
-        i2Ti1_dict
+        i2Ti1_measurement: odometry measurements
         landmark_positions_init
         landmark_measurements
 
@@ -197,7 +208,12 @@ def planar_slam(
     # Create noise models
     PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))
     ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
-    MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
+    # MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
+    MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([1.0, 1.0]))
+
+    PRIOR_NOISE = gtsam.noiseModel.Robust(gtsam.noiseModel.mEstimator.Huber(1.345), PRIOR_NOISE)
+    ODOMETRY_NOISE = gtsam.noiseModel.Robust(gtsam.noiseModel.mEstimator.Huber(1.345), ODOMETRY_NOISE)
+    MEASUREMENT_NOISE = gtsam.noiseModel.Robust(gtsam.noiseModel.mEstimator.Huber(1.345), MEASUREMENT_NOISE)
 
     # Create an empty nonlinear factor graph
     graph = gtsam.NonlinearFactorGraph()
@@ -210,19 +226,31 @@ def planar_slam(
     graph.add(gtsam.PriorFactorPose2(X(origin_pano_id), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
 
     # Add odometry factors between poses
-    for (i1, i2), i2Ti1 in i2Ti1_dict.items():
-        graph.add(gtsam.BetweenFactorPose2(X(i1), X(i2), i2Ti1_dict[(i1, i2)], ODOMETRY_NOISE))
+    for om in i2Ti1_measurements:
+        # for unestimated pose, cannot use this odometry measurement
+        if wTi_list_init[om.i1] is None:
+            continue
 
-    # Add Bearing, Range measurements to two different landmarks L1 and L2
-    for lm in landmark_measurements:
-        graph.add(
-            gtsam.BearingRangeFactor2D(
-                X(lm.pano_id), L(lm.l_idx), Rot2.fromDegrees(lm.bearing_deg), lm.range, MEASUREMENT_NOISE
+        if wTi_list_init[om.i2] is None:
+            continue
+
+        graph.add(gtsam.BetweenFactorPose2(X(om.i2), X(om.i1), om.i2Ti1, ODOMETRY_NOISE))
+
+    if not optimize_poses_only:
+        # Add Bearing, Range measurements to two different landmarks L1 and L2
+        for lm in landmark_measurements:
+            # unestimated pose, cannot use this bearing-range landmark measurement
+            if wTi_list_init[lm.pano_id] is None:
+                continue
+
+            graph.add(
+                gtsam.BearingRangeFactor2D(
+                    X(lm.pano_id), L(lm.l_idx), Rot2.fromDegrees(lm.bearing_deg), lm.range, MEASUREMENT_NOISE
+                )
             )
-        )
 
     # Print graph
-    print("Factor Graph:\n{}".format(graph))
+    # print("Factor Graph:\n{}".format(graph))
 
     # Create initial estimate
     initial_estimate = gtsam.Values()
@@ -232,10 +260,11 @@ def planar_slam(
             continue
         initial_estimate.insert(X(i), wTi)
 
-    for l, wTl in landmark_positions_init.items():
-        initial_estimate.insert(L(l), landmark_positions_init[l])
+    if not optimize_poses_only:
+        for l, wTl in landmark_positions_init.items():
+            initial_estimate.insert(L(l), landmark_positions_init[l])
 
-    print("Initial Estimate:\n{}".format(initial_estimate))
+    # print("Initial Estimate:\n{}".format(initial_estimate))
 
     # Optimize using Levenberg-Marquardt optimization. The optimizer
     # accepts an optional set of configuration parameters, controlling
@@ -246,7 +275,7 @@ def planar_slam(
     params = gtsam.LevenbergMarquardtParams()
     optimizer = gtsam.LevenbergMarquardtOptimizer(graph, initial_estimate, params)
     result = optimizer.optimize()
-    print("\nFinal Result:\n{}".format(result))
+    # print("\nFinal Result:\n{}".format(result))
 
     # # Calculate and print marginal covariances for all variables
     # marginals = gtsam.Marginals(graph, result)
@@ -261,8 +290,9 @@ def planar_slam(
         wTi_list[i] = result.atPose2(X(i))
 
     landmark_positions = {}
-    for lkey in landmark_positions_init.keys():
-        landmark_positions[lkey] = result.atPoint2(L(lkey))
+    if not optimize_poses_only:
+        for lkey in landmark_positions_init.keys():
+            landmark_positions[lkey] = result.atPoint2(L(lkey))
 
     return wTi_list, landmark_positions
 
@@ -287,10 +317,10 @@ def test_planar_slam() -> None:
         Pose2(4.10, 0.10, 0.10)
     ]
     # # as (x,y,theta)
-    i2Ti1_dict = {
-        (1, 2): Pose2(2.0, 0.0, 0.0),
-        (2, 3): Pose2(2.0, 0.0, 0.0)
-    }
+    i2Ti1_measurements = [
+        OdometryMeasurement(i1=1, i2=2, i2Ti1=Pose2(-2.0, 0.0, 0.0)),
+        OdometryMeasurement(i1=2, i2=3, i2Ti1=Pose2(-2.0, 0.0, 0.0))
+    ]
     landmark_positions_init = {
         1: Point2(1.80, 2.10),
         2: Point2(4.10, 1.80)
@@ -303,7 +333,7 @@ def test_planar_slam() -> None:
         BearingRangeMeasurement(pano_id=2, l_idx=1, bearing_deg=90, range=2),
         BearingRangeMeasurement(pano_id=3, l_idx=2, bearing_deg=90, range=2),
     ]
-    wTi_list, landmark_positions = planar_slam(wTi_list_init, i2Ti1_dict, landmark_positions_init, landmark_measurements)
+    wTi_list, landmark_positions = planar_slam(wTi_list_init, i2Ti1_measurements, landmark_positions_init, landmark_measurements)
 
     # as (x,y,theta)
     expected_wTi_list = [
@@ -312,6 +342,7 @@ def test_planar_slam() -> None:
         Pose2(2.0, 0.0, 0.0),
         Pose2(4.0, 0.0, 0.0)
     ]
+    import pdb; pdb.set_trace()
 
     expected_landmark_positions = {
         1: Point2(2,2),
@@ -330,117 +361,112 @@ def test_planar_slam() -> None:
             assert np.isclose(wTi_list[i].y(), expected_wTi_list[i].y())
 
 
+
+def execute_planar_slam(
+    measurements: List[EdgeClassification],
+    gt_floor_pg: "PoseGraph2d",
+    hypotheses_save_root: str,
+    building_id: str,
+    floor_id: str,
+    wSi_list: List[Sim2],
+    verbose: bool = True
+) -> None:
+    """Gather odometry and landmark measurements for planar Pose(2) SLAM.
+
+    Args:
+
+    Returns:
+
+    """
+    # load up the 3d point locations for each WDO.
+    from read_prod_predictions import load_inferred_floor_pose_graphs
+
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    floor_pose_graphs = load_inferred_floor_pose_graphs(
+        query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+    )
+    pano_dict_inferred = floor_pose_graphs[floor_id].nodes
+
+    wTi_list_init = [ Pose2(Rot2.fromDegrees(wSi.theta_deg), wSi.translation) if wSi is not None else None for wSi in wSi_list]
+
+    # # as (x,y,theta). We don't use a dict, as we may have multiple measurements for each pair of poses.
+    i2Ti1_measurements = []
+    for m in measurements:
+        i2Si1 = get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+        theta_rad = np.deg2rad(i2Si1.theta_deg)
+        x, y = i2Si1.translation
+        om = OdometryMeasurement(m.i1, m.i2, Pose2(x, y, theta_rad))
+        i2Ti1_measurements.append(om)
+    
+    # Add Bearing-Range measurements to different landmarks
+    # angle to reach landmark, from given pose.
+    # for each (s,e)
+
+    tracks_2d = data_association.perform_data_association(measurements, pano_dict_inferred)
+
+    landmark_measurements = []
+    landmark_positions_init = {}
+    for j, track_2d in enumerate(tracks_2d):
+        color = np.random.rand(3)
+        for k, m in enumerate(track_2d.measurements):
+
+            if wTi_list_init[m.i] is None:
+                continue
+
+            if j not in landmark_positions_init:
+                # TODO: initialize the landmark positions by using the spanning tree poses
+                landmark_positions_init[j] = wTi_list_init[m.i].transformFrom(m.uv)
+
+            # an abuse of "uv",this really just means "xy"
+            bearing_deg, range = bearing_range_from_vertex(m.uv)
+            landmark_measurements += [BearingRangeMeasurement(pano_id=m.i, l_idx=j, bearing_deg=bearing_deg, range=range)]
+
+            pt_w = wTi_list_init[m.i].transformFrom(m.uv)
+            plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker='+')
+            plt.text(pt_w[0], pt_w[1], f"j={j},i={m.i}", color=color)
+
+            draw_coordinate_frame(wTi_list_init[m.i], text=str(m.i))
+
+    plt.axis("equal")
+    plt.show()
+
+    wTi_list, landmark_positions = pose2_slam.planar_slam(
+        wTi_list_init, i2Ti1_measurements, landmark_positions_init, landmark_measurements
+    )
+
+    wSi_list = [None] * len(wTi_list)
+    for i, wTi in enumerate(wTi_list):
+        if wTi is None:
+            continue
+        wSi_list[i] = Sim2(R=wTi.rotation().matrix(), t=wTi.translation(), s=1.0)
+
+    report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pg, plot_save_dir="BLAH")
+    return report
+
+
+def draw_coordinate_frame(wTi: Pose2, text: str) -> None:
+    """Draw a 2d coordinate frame using matplotlib."""
+    # camera center
+    cc = wTi.translation()
+    plt.text(cc[0], cc[1], text)
+
+    # loop over the x-axis and then y-axis
+    for a, color in zip(range(2), ["r", "g"]):
+        axis = np.zeros(2)
+        axis[a] = 1
+        w_axis = wTi.transformFrom(axis)
+        plt.plot([cc[0],w_axis[0]], [cc[1], w_axis[1]], c=color)
+
+
+def bearing_range_from_vertex(v: Tuple[float,float]) -> float:
+    """Return bearing in degrees and range."""
+    x, y = v
+    bearing_rad = np.arctan2(y, x)
+    range = np.linalg.norm(v)
+    return np.rad2deg(bearing_rad), range
+
+
+
 if __name__ == "__main__":
     test_planar_slam()
 
-
-"""
-
-Factor Graph:
-NonlinearFactorGraph: size: 6
-
-Factor 0: PriorFactor on x1
-  prior mean:  (0, 0, 0)
-  noise model: diagonal sigmas[0.3; 0.3; 0.1];
-
-Factor 1: BetweenFactor(x1,x2)
-  measured:  (2, 0, 0)
-  noise model: diagonal sigmas[0.2; 0.2; 0.1];
-
-Factor 2: BetweenFactor(x2,x3)
-  measured:  (2, 0, 0)
-  noise model: diagonal sigmas[0.2; 0.2; 0.1];
-
-Factor 3: BearingRangeFactor
-Factor 3:   keys = { x1 l4 }
-  noise model: diagonal sigmas[0.1; 0.2];
-ExpressionFactor with measurement: bearing : 0.785398163
-range  2.82842712
-
-Factor 4: BearingRangeFactor
-Factor 4:   keys = { x2 l4 }
-  noise model: diagonal sigmas[0.1; 0.2];
-ExpressionFactor with measurement: bearing : 1.57079633
-range  2
-
-Factor 5: BearingRangeFactor
-Factor 5:   keys = { x3 l5 }
-  noise model: diagonal sigmas[0.1; 0.2];
-ExpressionFactor with measurement: bearing : 1.57079633
-range  2
-
-
-Initial Estimate:
-Values with 5 values:
-Value l4: (Eigen::Matrix<double, -1, 1, 0, -1, 1>)
-[
-    1.8;
-    2.1
-]
-
-Value l5: (Eigen::Matrix<double, -1, 1, 0, -1, 1>)
-[
-    4.1;
-    1.8
-]
-
-Value x1: (gtsam::Pose2)
-(-0.25, 0.2, 0.15)
-
-Value x2: (gtsam::Pose2)
-(2.3, 0.1, -0.2)
-
-Value x3: (gtsam::Pose2)
-(4.1, 0.1, 0.1)
-
-
-
-Final Result:
-Values with 5 values:
-Value l4: (Eigen::Matrix<double, -1, 1, 0, -1, 1>)
-[
-    2;
-    2
-]
-
-Value l5: (Eigen::Matrix<double, -1, 1, 0, -1, 1>)
-[
-    4;
-    2
-]
-
-Value x1: (gtsam::Pose2)
-(-5.7215144e-16, -2.6221051e-16, -8.93526351e-17)
-
-Value x2: (gtsam::Pose2)
-(2, -5.83119211e-15, -6.88595057e-16)
-
-Value x3: (gtsam::Pose2)
-(4, -1.06874764e-14, -6.47787984e-16)
-
-
-X1 covariance:
-[[ 9.00000000e-02 -1.43884904e-17 -9.59232693e-18]
- [-1.43884904e-17  9.00000000e-02  2.55795385e-17]
- [-9.59232693e-18  2.55795385e-17  1.00000000e-02]]
-
-X2 covariance:
-[[ 0.12096774 -0.00129032  0.00451613]
- [-0.00129032  0.1583871   0.02064516]
- [ 0.00451613  0.02064516  0.01774194]]
-
-X3 covariance:
-[[0.16096774 0.00774194 0.00451613]
- [0.00774194 0.35193548 0.05612903]
- [0.00451613 0.05612903 0.02774194]]
-
-L1 covariance:
-[[ 0.16870968 -0.04774194]
- [-0.04774194  0.16354839]]
-
-L2 covariance:
-[[ 0.29387097 -0.10451613]
- [-0.10451613  0.39193548]]
-
-
-"""
