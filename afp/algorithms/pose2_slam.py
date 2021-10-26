@@ -20,6 +20,7 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point2, Point3, Pose2, PriorFactorPose2, Values
 from gtsam.symbol_shorthand import X, L
 
+from afp.common.edge_classification import EdgeClassification
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
 
 
@@ -80,79 +81,6 @@ def test_estimate_poses_lago() -> None:
     wTi_list_computed = estimate_poses_lago(i2Ti1_dict)
 
 
-def pose2slam():
-    """
-    Pose-graph optimization only (no landmarks)
-
-    Requires an initial estimate.
-    Based off of https://github.com/borglab/gtsam/blob/develop/python/gtsam/examples/Pose2SLAMExample.py
-    """
-
-    # Create noise models
-    PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(vector3(0.3, 0.3, 0.1))
-    ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(vector3(0.2, 0.2, 0.1))
-
-    # 1. Create a factor graph container and add factors to it
-    graph = gtsam.NonlinearFactorGraph()
-
-    # 2a. Add a prior on the first pose, setting it to the origin
-    # A prior factor consists of a mean and a noise ODOMETRY_NOISE (covariance matrix)
-    graph.add(gtsam.PriorFactorPose2(1, gtsam.Pose2(0, 0, 0), PRIOR_NOISE))
-
-    # 2b. Add odometry factors
-    # Create odometry (Between) factors between consecutive poses
-    graph.add(gtsam.BetweenFactorPose2(1, 2, gtsam.Pose2(2, 0, 0), ODOMETRY_NOISE))
-    graph.add(gtsam.BetweenFactorPose2(2, 3, gtsam.Pose2(2, 0, math.pi / 2), ODOMETRY_NOISE))
-    graph.add(gtsam.BetweenFactorPose2(3, 4, gtsam.Pose2(2, 0, math.pi / 2), ODOMETRY_NOISE))
-    graph.add(gtsam.BetweenFactorPose2(4, 5, gtsam.Pose2(2, 0, math.pi / 2), ODOMETRY_NOISE))
-
-    # 2c. Add the loop closure constraint
-    # This factor encodes the fact that we have returned to the same pose. In real
-    # systems, these constraints may be identified in many ways, such as appearance-based
-    # techniques with camera images. We will use another Between Factor to enforce this constraint:
-    graph.add(gtsam.BetweenFactorPose2(5, 2, gtsam.Pose2(2, 0, math.pi / 2), ODOMETRY_NOISE))
-    print("\nFactor Graph:\n{}".format(graph))  # print
-
-    # 3. Create the data structure to hold the initial_estimate estimate to the
-    # solution. For illustrative purposes, these have been deliberately set to incorrect values
-    initial_estimate = gtsam.Values()
-    initial_estimate.insert(1, gtsam.Pose2(0.5, 0.0, 0.2))
-    initial_estimate.insert(2, gtsam.Pose2(2.3, 0.1, -0.2))
-    initial_estimate.insert(3, gtsam.Pose2(4.1, 0.1, math.pi / 2))
-    initial_estimate.insert(4, gtsam.Pose2(4.0, 2.0, math.pi))
-    initial_estimate.insert(5, gtsam.Pose2(2.1, 2.1, -math.pi / 2))
-    print("\nInitial Estimate:\n{}".format(initial_estimate))  # print
-
-    # 4. Optimize the initial values using a Gauss-Newton nonlinear optimizer
-    # The optimizer accepts an optional set of configuration parameters,
-    # controlling things like convergence criteria, the type of linear
-    # system solver to use, and the amount of information displayed during
-    # optimization. We will set a few parameters as a demonstration.
-    parameters = gtsam.GaussNewtonParams()
-
-    # Stop iterating once the change in error between steps is less than this value
-    parameters.setRelativeErrorTol(1e-5)
-    # Do not perform more than N iteration steps
-    parameters.setMaxIterations(100)
-    # Create the optimizer ...
-    optimizer = gtsam.GaussNewtonOptimizer(graph, initial_estimate, parameters)
-    # ... and optimize
-    result = optimizer.optimize()
-    print("Final Result:\n{}".format(result))
-
-    # 5. Calculate and print marginal covariances for all variables
-    marginals = gtsam.Marginals(graph, result)
-    for i in range(1, 6):
-        print("X{} covariance:\n{}\n".format(i, marginals.marginalCovariance(i)))
-
-    fig = plt.figure(0)
-    for i in range(1, 6):
-        gtsam_plot.plot_pose2(0, result.atPose2(i), 0.5, marginals.marginalCovariance(i))
-
-    plt.axis("equal")
-    plt.show()
-
-
 from gtsam.symbol_shorthand import L, X
 from dataclasses import dataclass
 
@@ -183,7 +111,8 @@ def planar_slam(
     i2Ti1_measurements: List[Pose2],
     landmark_positions_init: Dict[int, Point2],
     landmark_measurements: List[BearingRangeMeasurement],
-    optimize_poses_only: bool = False
+    optimize_poses_only: bool,
+    use_robust: bool = True
 ) -> Tuple[List[Optional[Pose2]], Dict[int, Point2]]:
     """
 
@@ -208,12 +137,14 @@ def planar_slam(
     # Create noise models
     PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))
     ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
-    # MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
-    MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([1.0, 1.0]))
+    MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
+    # MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([1.0, 1.0]))
 
-    PRIOR_NOISE = gtsam.noiseModel.Robust(gtsam.noiseModel.mEstimator.Huber(1.345), PRIOR_NOISE)
-    ODOMETRY_NOISE = gtsam.noiseModel.Robust(gtsam.noiseModel.mEstimator.Huber(1.345), ODOMETRY_NOISE)
-    MEASUREMENT_NOISE = gtsam.noiseModel.Robust(gtsam.noiseModel.mEstimator.Huber(1.345), MEASUREMENT_NOISE)
+    if use_robust:
+        huber_loss = gtsam.noiseModel.mEstimator.Huber(1.345)
+        PRIOR_NOISE = gtsam.noiseModel.Robust(huber_loss, PRIOR_NOISE)
+        ODOMETRY_NOISE = gtsam.noiseModel.Robust(huber_loss, ODOMETRY_NOISE)
+        MEASUREMENT_NOISE = gtsam.noiseModel.Robust(huber_loss, MEASUREMENT_NOISE)
 
     # Create an empty nonlinear factor graph
     graph = gtsam.NonlinearFactorGraph()
@@ -297,71 +228,6 @@ def planar_slam(
     return wTi_list, landmark_positions
 
 
-def test_planar_slam() -> None:
-    """
-
-    Scenario: (with O as pose and X as landmark)
-       .    X    X
-       . /  |    |
-       ./   |    |
-    ...O....O....O...
-       .
-       .
-    """
-    # fmt: off
-    # Create (deliberately inaccurate) initial estimate
-    wTi_list_init = [
-        None,
-        Pose2(-0.25, 0.20, 0.15),
-        Pose2(2.30, 0.10, -0.20),
-        Pose2(4.10, 0.10, 0.10)
-    ]
-    # # as (x,y,theta)
-    i2Ti1_measurements = [
-        OdometryMeasurement(i1=1, i2=2, i2Ti1=Pose2(-2.0, 0.0, 0.0)),
-        OdometryMeasurement(i1=2, i2=3, i2Ti1=Pose2(-2.0, 0.0, 0.0))
-    ]
-    landmark_positions_init = {
-        1: Point2(1.80, 2.10),
-        2: Point2(4.10, 1.80)
-    }
-    # fmt: on
-    # Add Bearing-Range measurements to two different landmarks L1 and L2
-    # angle to reach landmark, from given pose.
-    landmark_measurements = [
-        BearingRangeMeasurement(pano_id=1, l_idx=1, bearing_deg=45, range=np.sqrt(4.0 + 4.0)),
-        BearingRangeMeasurement(pano_id=2, l_idx=1, bearing_deg=90, range=2),
-        BearingRangeMeasurement(pano_id=3, l_idx=2, bearing_deg=90, range=2),
-    ]
-    wTi_list, landmark_positions = planar_slam(wTi_list_init, i2Ti1_measurements, landmark_positions_init, landmark_measurements)
-
-    # as (x,y,theta)
-    expected_wTi_list = [
-        None,
-        Pose2(0.0, 0.0, 0.0),
-        Pose2(2.0, 0.0, 0.0),
-        Pose2(4.0, 0.0, 0.0)
-    ]
-    import pdb; pdb.set_trace()
-
-    expected_landmark_positions = {
-        1: Point2(2,2),
-        2: Point2(4,2)
-    }
-
-    for lkey in expected_landmark_positions.keys():
-        assert np.allclose(expected_landmark_positions[lkey], landmark_positions[lkey])
-
-    for i, wTi in enumerate(expected_wTi_list):
-        if wTi is None:
-            assert wTi_list[i] is None
-        else:
-            assert np.isclose(wTi_list[i].theta(), expected_wTi_list[i].theta())
-            assert np.isclose(wTi_list[i].x(), expected_wTi_list[i].x())
-            assert np.isclose(wTi_list[i].y(), expected_wTi_list[i].y())
-
-
-
 def execute_planar_slam(
     measurements: List[EdgeClassification],
     gt_floor_pg: "PoseGraph2d",
@@ -369,7 +235,8 @@ def execute_planar_slam(
     building_id: str,
     floor_id: str,
     wSi_list: List[Sim2],
-    verbose: bool = True
+    optimize_poses_only: bool = False,
+    verbose: bool = True,
 ) -> None:
     """Gather odometry and landmark measurements for planar Pose(2) SLAM.
 
@@ -382,12 +249,12 @@ def execute_planar_slam(
     from read_prod_predictions import load_inferred_floor_pose_graphs
 
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    floor_pose_graphs = load_inferred_floor_pose_graphs(
-        query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
-    )
+    floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
     pano_dict_inferred = floor_pose_graphs[floor_id].nodes
 
-    wTi_list_init = [ Pose2(Rot2.fromDegrees(wSi.theta_deg), wSi.translation) if wSi is not None else None for wSi in wSi_list]
+    wTi_list_init = [
+        Pose2(Rot2.fromDegrees(wSi.theta_deg), wSi.translation) if wSi is not None else None for wSi in wSi_list
+    ]
 
     # # as (x,y,theta). We don't use a dict, as we may have multiple measurements for each pair of poses.
     i2Ti1_measurements = []
@@ -397,7 +264,7 @@ def execute_planar_slam(
         x, y = i2Si1.translation
         om = OdometryMeasurement(m.i1, m.i2, Pose2(x, y, theta_rad))
         i2Ti1_measurements.append(om)
-    
+
     # Add Bearing-Range measurements to different landmarks
     # angle to reach landmark, from given pose.
     # for each (s,e)
@@ -419,10 +286,12 @@ def execute_planar_slam(
 
             # an abuse of "uv",this really just means "xy"
             bearing_deg, range = bearing_range_from_vertex(m.uv)
-            landmark_measurements += [BearingRangeMeasurement(pano_id=m.i, l_idx=j, bearing_deg=bearing_deg, range=range)]
+            landmark_measurements += [
+                BearingRangeMeasurement(pano_id=m.i, l_idx=j, bearing_deg=bearing_deg, range=range)
+            ]
 
             pt_w = wTi_list_init[m.i].transformFrom(m.uv)
-            plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker='+')
+            plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker="+")
             plt.text(pt_w[0], pt_w[1], f"j={j},i={m.i}", color=color)
 
             draw_coordinate_frame(wTi_list_init[m.i], text=str(m.i))
@@ -431,7 +300,7 @@ def execute_planar_slam(
     plt.show()
 
     wTi_list, landmark_positions = pose2_slam.planar_slam(
-        wTi_list_init, i2Ti1_measurements, landmark_positions_init, landmark_measurements
+        wTi_list_init, i2Ti1_measurements, landmark_positions_init, landmark_measurements, optimize_poses_only
     )
 
     wSi_list = [None] * len(wTi_list)
@@ -440,7 +309,9 @@ def execute_planar_slam(
             continue
         wSi_list[i] = Sim2(R=wTi.rotation().matrix(), t=wTi.translation(), s=1.0)
 
-    report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pg, plot_save_dir="BLAH")
+    report = FloorReconstructionReport.from_wSi_list(
+        wSi_list, gt_floor_pg, plot_save_dir=f"pose_graph_slam__posesonly{optimize_poses_only}_huber"
+    )
     return report
 
 
@@ -455,10 +326,10 @@ def draw_coordinate_frame(wTi: Pose2, text: str) -> None:
         axis = np.zeros(2)
         axis[a] = 1
         w_axis = wTi.transformFrom(axis)
-        plt.plot([cc[0],w_axis[0]], [cc[1], w_axis[1]], c=color)
+        plt.plot([cc[0], w_axis[0]], [cc[1], w_axis[1]], c=color)
 
 
-def bearing_range_from_vertex(v: Tuple[float,float]) -> float:
+def bearing_range_from_vertex(v: Tuple[float, float]) -> float:
     """Return bearing in degrees and range."""
     x, y = v
     bearing_rad = np.arctan2(y, x)
@@ -466,7 +337,4 @@ def bearing_range_from_vertex(v: Tuple[float,float]) -> float:
     return np.rad2deg(bearing_rad), range
 
 
-
-if __name__ == "__main__":
-    test_planar_slam()
 
