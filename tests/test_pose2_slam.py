@@ -17,6 +17,16 @@ def test_planar_slam_pgo_only() -> None:
     # Create noise models
     PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(vector3(0.3, 0.3, 0.1))
     ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(vector3(0.2, 0.2, 0.1))
+
+              5       4
+              O-- . --O
+              |       |
+      .
+      .
+      |       |       |
+    . O-- . . O-- . --O .
+      .1      2       3
+      .
     """
     wTi_list_init = [
         None,
