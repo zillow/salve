@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import argoverse.utils.json_utils as json_utils
 import numpy as np
+from argoverse.utils.sim2 import Sim2
 
 import afp.common.posegraph2d as posegraph2d
 import afp.utils.pr_utils as pr_utils
@@ -90,6 +91,33 @@ def get_edge_classifications_from_serialized_preds(
     return floor_edgeclassifications_dict
 
 
+def get_alignment_hypothesis_for_measurement(
+    m: EdgeClassification, hypotheses_save_root: str, building_id: str, floor_id: str
+) -> Sim2:
+    """
+    Args:
+        m: 
+        hypotheses_save_root:
+        building_id:
+        floor_id:
+
+    Returns:
+        i2Si1
+    """
+    # label_dirname = "gt_alignment_exact"
+    # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
+
+    # look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
+    label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
+    fpaths = glob.glob(
+        f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
+    )
+    if not len(fpaths) == 1:
+        import pdb; pdb.set_trace()
+    i2Si1 = Sim2.from_json(fpaths[0])
+    return i2Si1
+
+
 def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
     """
     TODO: this function may need to be deleted (possibly deprecated and not used anywhere).
@@ -143,6 +171,10 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
         # render the pose graph first
         gt_floor_pose_graph.render_estimated_layout(show_plot=True)
         # continue
+
+
+
+
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ Stores information about a floorplan reconstruction.
 from dataclasses import dataclass
 from typing import List, Optional
 
+import numpy as np
 from argoverse.utils.sim2 import Sim2
 
 from afp.common.posegraph2d import PoseGraph2d
@@ -32,9 +33,7 @@ class FloorReconstructionReport:
         wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
         wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
 
-        est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
-            wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
-        )
+        est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph)
 
         mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(
             gt_floor_pg=gt_floor_pose_graph

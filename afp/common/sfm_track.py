@@ -164,6 +164,8 @@ class SfmTrack2d(NamedTuple):
 
             track_2d = SfmTrack2d(track_measurements)
 
+            # FIGURE OUT WHY THIS OCCURS.
+
             # Skip erroneous track that had repeated measurements within the same image
             # This is an expected result from an incorrect correspondence slipping through
             # if track_2d.validate_unique_cameras():

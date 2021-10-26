@@ -3,8 +3,6 @@ Another translation-based filtering step is 1dsfm projection directions:
 https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_relative_translation.cc
 Must happen after rotation averaging.
 
-2d SLAM baseline: https://github.com/borglab/gtsam/blob/develop/examples/Pose2SLAMExample_lago.cpp
-
 Can also try RANSAC over Spanning Trees (See Moulon, Govindu)
 """
 
@@ -22,8 +20,8 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Pose2
 
 import afp.algorithms.cycle_consistency as cycle_utils
-import afp.algorithms.data_association as data_association
 import afp.algorithms.mfas as mfas
+import afp.algorithms.pose2_slam as pose2_slam
 import afp.algorithms.rotation_averaging as rotation_averaging
 import afp.algorithms.spanning_tree as spanning_tree
 import afp.common.edge_classification as edge_classification
@@ -37,33 +35,6 @@ from afp.common.edge_classification import EdgeClassification
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
 from afp.common.pano_data import PanoData
 from afp.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
-
-
-def get_alignment_hypothesis_for_measurement(
-    m: EdgeClassification, hypotheses_save_root: str, building_id: str, floor_id: str
-) -> Sim2:
-    """
-    Args:
-        m: 
-        hypotheses_save_root:
-        building_id:
-        floor_id:
-
-    Returns:
-        i2Si1
-    """
-    # label_dirname = "gt_alignment_exact"
-    # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
-
-    # look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
-    label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
-    fpaths = glob.glob(
-        f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
-    )
-    if not len(fpaths) == 1:
-        import pdb; pdb.set_trace()
-    i2Si1 = Sim2.from_json(fpaths[0])
-    return i2Si1
 
 
 def get_conf_thresholded_edges(
@@ -180,7 +151,7 @@ def get_conf_thresholded_edges(
 
         # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
         # use model confidence
-        i2Si1 = get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+        i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
         i2Si1_dict[(m.i1, m.i2)] = i2Si1
 
         i2Ri1_dict[(m.i1, m.i2)] = i2Si1.rotation
@@ -243,7 +214,7 @@ def measure_avg_relative_pose_errors(measurements: List[EdgeClassification], gt_
         i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
 
         # technically it is i2Si1, but scale will always be 1 with inferred WDO.
-        i2Ti1 = get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+        i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
 
         theta_deg_est = i2Ti1.theta_deg
         theta_deg_gt = i2Ti1_gt.theta_deg
@@ -304,9 +275,7 @@ def cycles_SE2_spanning_tree(
     wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
     wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
 
-    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
-        wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
-    )
+    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph)
 
     mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(
         gt_floor_pg=gt_floor_pose_graph
@@ -698,17 +667,22 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    method = "spanning_tree"  # "SE2_cycles" # # "growing_consensus"
+    # method = "spanning_tree" 
+    # method = "SE2_cycles"
+    # method = "growing_consensus"
+    # method = "filtered_spanning_tree"
+    # method = "random_spanning_trees"
+    # method = "pose2_slam"
+    method = "pgo"
+
     confidence_threshold = 0.97 #8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
     plot_save_dir = (
-        f"2021_10_22_{method}_floorplans_with_gt_conf_{confidence_threshold}_mostconfident_edge_trainingv1_old"
+        f"2021_10_26_{method}_floorplans_with_gt_conf_{confidence_threshold}"
     )
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
-
-    
 
     reconstruction_reports = []
 
@@ -756,9 +730,6 @@ def run_incremental_reconstruction(
         i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _, high_conf_measurements = get_conf_thresholded_edges(
             measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id, gt_floor_pose_graph
         )
-
-        #import pdb; pdb.set_trace()
-
         # TODO: edge accuracy doesn't mean anything (too many FPs). Use average error on each edge, instead.
 
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
@@ -769,21 +740,41 @@ def run_incremental_reconstruction(
             f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
         )
 
-        # TODO: apply axis alignment pre-processing (or post-processing)
+        # TODO: apply axis alignment pre-processing (or post-processing) before evaluation
 
         if method == "spanning_tree":
-
-
-        elif method == "pose2_slam":
-            graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
-
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
-            execute_planar_slam(high_conf_measurements, gt_floor_pose_graph,
-                hypotheses_save_root,
-                building_id,
-                floor_id,
-                wSi_list
+            report = FloorReconstructionReport.from_wSi_list(
+                wSi_list, gt_floor_pose_graph, plot_save_dir=f"raw_spanning_tree_only_{confidence_threshold}"
             )
+            reconstruction_reports.append(report)
+
+        elif method in ["pose2_slam", "pgo"]:
+            graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
+            wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
+            report = pose2_slam.execute_planar_slam(
+                measurements=high_conf_measurements,
+                gt_floor_pg=gt_floor_pose_graph,
+                hypotheses_save_root=hypotheses_save_root,
+                building_id=building_id,
+                floor_id=floor_id,
+                wSi_list=wSi_list,
+                plot_save_dir=plot_save_dir,
+                optimize_poses_only="pgo"==method
+            )
+            reconstruction_reports.append(report)
+
+            # TODO: build better unit tests.
+
+        elif method == "random_spanning_trees":
+            import pdb; pdb.set_trace()
+
+            # V. M. Govindu. Robustness in motion averaging. In ACCV, 2006.
+            # count the number of relative motions (i.e. edges) that fall within this distance from the global motion.
+            # C. Olsson and O. Enqvist. Stable structure from motion for unordered image collections. In SCIA, 2011. LNCS 6688.
+
+            # generate 100 spanning trees.
+
 
         elif method == "filtered_spanning_tree":
             # filtered by cycle consistency.
@@ -821,6 +812,7 @@ def run_incremental_reconstruction(
                 two_view_reports_dict,
                 gt_floor_pose_graph,
             )
+
         elif method == "SE2_cycles":
             cycles_SE2_spanning_tree(
                 building_id,

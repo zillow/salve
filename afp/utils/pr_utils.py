@@ -254,5 +254,8 @@ def test_compute_prec_recall_curve() -> None:
 if __name__ == '__main__':
     test_compute_prec_recall_curve()
 
-
+    # test_compute_precision_recall_1()
+    # test_compute_precision_recall_2()
+    # #test_compute_precision_recall_3()
+    # test_compute_precision_recall_4()
 

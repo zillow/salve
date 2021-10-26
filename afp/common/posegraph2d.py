@@ -152,9 +152,7 @@ class PoseGraph2d(NamedTuple):
         cls,
         wRi_list: List[np.ndarray],
         wti_list: List[np.ndarray],
-        gt_floor_pg: "PoseGraph2d",
-        building_id: str,
-        floor_id: str,
+        gt_floor_pg: "PoseGraph2d"
     ) -> "PoseGraph2d":
         """
         2x2
@@ -162,6 +160,9 @@ class PoseGraph2d(NamedTuple):
 
         Fill other pano metadata with values from the ground truth pose graph.
         """
+        building_id = gt_floor_pg.building_id
+        floor_id = gt_floor_pg.floor_id
+
         nodes = {}
         for i, (wRi, wti) in enumerate(zip(wRi_list, wti_list)):
             if wRi is None or wti is None:
