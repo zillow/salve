@@ -306,9 +306,13 @@ if __name__ == "__main__":
     # serialization_save_dir = "2021_07_28_serialized_edge_classifications"
 
     # ResNet-50, floor and ceiling, RGB only, 186 tours, but low-res
-    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20"
-    config_fpath = "afp/configs/2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    serialization_save_dir = "/data/johnlam/2021_10_22_serialized_edge_classifications"
+    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20"
+    # config_fpath = "afp/configs/2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # serialization_save_dir = "/data/johnlam/2021_10_22_serialized_edge_classifications"
+
+    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_25_14_31_23"
+    config_fpath = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_25_14_31_23/2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    serialization_save_dir = "/data/johnlam/2021_10_26_serialized_edge_classifications"
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
@@ -327,11 +331,11 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 512
-    args.workers = 30
+    args.batch_size = 64
+    args.workers = 10
 
-    split = "val"
-    save_viz = True
+    split = "test"
+    save_viz = False
     evaluate_model(serialization_save_dir, ckpt_fpath, args, split, save_viz)
 
     train_results_json = json_utils.read_json_file(train_results_fpath)
@@ -340,8 +344,5 @@ if __name__ == "__main__":
     print("Num epochs trained", len(val_mAccs))
     print("Max val mAcc", max(val_mAccs))
 
-    # test_compute_precision_recall_1()
-    # test_compute_precision_recall_2()
-    # #test_compute_precision_recall_3()
-    # test_compute_precision_recall_4()
+
     # quit()
