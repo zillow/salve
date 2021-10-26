@@ -27,7 +27,12 @@ def get_vanilla_resnet_model(num_layers: int, pretrained: bool) -> nn.Module:
         resnet = models.resnet34(pretrained=pretrained)
     elif num_layers == 50:
         resnet = models.resnet50(pretrained=pretrained)
+    elif num_layers == 152:
+        resnet = models.resnet152(pretrained=pretrained)
     else:
         raise RuntimeError("num layers not supported")
 
     return resnet
+
+
+# TODO: try torchvision.models.efficientnet_b6(pretrained: bool = False, progress: bool = True)
