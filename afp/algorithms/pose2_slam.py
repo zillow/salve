@@ -13,13 +13,12 @@ for graph-based simultaneous localization and mapping, RSS, 2011.
 
 from typing import Dict, List, Optional, Tuple
 
-import numpy as np
-
 import gtsam
+import matplotlib.pyplot as plt
+import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point2, Point3, Pose2, PriorFactorPose2, Values
 from gtsam.symbol_shorthand import X, L
-
 
 import afp.algorithms.data_association as data_association
 import afp.common.edge_classification as edge_classification
@@ -128,6 +127,8 @@ def planar_slam(
         i2Ti1_measurement: odometry measurements
         landmark_positions_init
         landmark_measurements
+        optimize_poses_only: whether to ignore landmarks and perform pose-graph optimization only.
+        use_robust: whether to use robust optimization (Huber loss).
 
     Returns:
         wTi_list:
@@ -183,9 +184,6 @@ def planar_slam(
                 )
             )
 
-    # Print graph
-    # print("Factor Graph:\n{}".format(graph))
-
     # Create initial estimate
     initial_estimate = gtsam.Values()
 
@@ -197,8 +195,6 @@ def planar_slam(
     if not optimize_poses_only:
         for l, wTl in landmark_positions_init.items():
             initial_estimate.insert(L(l), landmark_positions_init[l])
-
-    # print("Initial Estimate:\n{}".format(initial_estimate))
 
     # Optimize using Levenberg-Marquardt optimization. The optimizer
     # accepts an optional set of configuration parameters, controlling
@@ -245,9 +241,18 @@ def execute_planar_slam(
     """Gather odometry and landmark measurements for planar Pose(2) SLAM.
 
     Args:
+        measurements: 
+        gt_floor_pg: ground truth 2d pose graph for this ZinD building floor.
+        hypotheses_save_root:
+        building_id:
+        floor_id:
+        wSi_list:
+        plot_save_dir:
+        optimize_poses_only:
+        verbose:
 
     Returns:
-
+        report
     """
     wTi_list_init = [
         Pose2(Rot2.fromDegrees(wSi.theta_deg), wSi.translation) if wSi is not None else None for wSi in wSi_list
@@ -295,13 +300,13 @@ def execute_planar_slam(
                 ]
 
                 pt_w = wTi_list_init[m.i].transformFrom(m.uv)
-                plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker="+")
-                plt.text(pt_w[0], pt_w[1], f"j={j},i={m.i}", color=color)
+                # plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker="+")
+                # plt.text(pt_w[0], pt_w[1], f"j={j},i={m.i}", color=color)
 
-                draw_coordinate_frame(wTi_list_init[m.i], text=str(m.i))
+        #         draw_coordinate_frame(wTi_list_init[m.i], text=str(m.i))
 
-        plt.axis("equal")
-        plt.show()
+        # plt.axis("equal")
+        # plt.show()
 
     wTi_list, landmark_positions = planar_slam(
         wTi_list_init, i2Ti1_measurements, landmark_positions_init, landmark_measurements, optimize_poses_only
