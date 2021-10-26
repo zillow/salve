@@ -12,7 +12,6 @@ import copy
 import glob
 import os
 from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -35,16 +34,9 @@ import afp.utils.pr_utils as pr_utils
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
 from afp.algorithms.cluster_merging import EdgeWDOPair
 from afp.common.edge_classification import EdgeClassification
+from afp.common.floor_reconstruction_report import FloorReconstructionReport
 from afp.common.pano_data import PanoData
 from afp.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
-
-
-@dataclass(frozen=True)
-class FloorReconstructionReport:
-    """Summary statistics about the reconstructed floorplan."""
-    avg_abs_rot_err: float
-    avg_abs_trans_err: float
-    percent_panos_localized: float
 
 
 def get_alignment_hypothesis_for_measurement(
@@ -540,36 +532,9 @@ def build_filtered_spanning_tree(
         )
         return None, None, report
 
-    num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
-    num_floor_panos = len(gt_floor_pose_graph.nodes)
-    percent_panos_localized = num_localized_panos / num_floor_panos * 100
-    print(f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
 
-    # TODO: try spanning tree version, vs. Shonan version
-    wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
-    wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
-
-    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
-        wRi_list, wti_list, gt_floor_pose_graph, building_id, floor_id
-    )
-
-    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(
-        gt_floor_pg=gt_floor_pose_graph
-    )
-    print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
-    est_floor_pose_graph.render_estimated_layout(
-        show_plot=False, save_plot=True, plot_save_dir=plot_save_dir, gt_floor_pg=gt_floor_pose_graph
-    )
-
-    print()
-    print()
-
-    report = FloorReconstructionReport(
-        avg_abs_rot_err=mean_abs_rot_err,
-        avg_abs_trans_err=mean_abs_trans_err,
-        percent_panos_localized=percent_panos_localized,
-    )
-    return est_floor_pose_graph, i2Si1_dict_consistent, report
+    report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
+    return i2Si1_dict_consistent, report
 
 
 def filter_measurements_to_absolute_rotations(
@@ -822,7 +787,7 @@ def run_incremental_reconstruction(
 
         elif method == "filtered_spanning_tree":
             # filtered by cycle consistency.
-            est_floor_pose_graph, i2Si1_dict_consistent, report = build_filtered_spanning_tree(
+            i2Si1_dict_consistent, report = build_filtered_spanning_tree(
                 building_id,
                 floor_id,
                 i2Si1_dict,
