@@ -20,6 +20,9 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point2, Point3, Pose2, PriorFactorPose2, Values
 from gtsam.symbol_shorthand import X, L
 
+
+import afp.algorithms.data_association as data_association
+import afp.common.edge_classification as edge_classification
 from afp.common.edge_classification import EdgeClassification
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
 
@@ -235,6 +238,7 @@ def execute_planar_slam(
     building_id: str,
     floor_id: str,
     wSi_list: List[Sim2],
+    plot_save_dir: str,
     optimize_poses_only: bool = False,
     verbose: bool = True,
 ) -> None:
@@ -245,13 +249,6 @@ def execute_planar_slam(
     Returns:
 
     """
-    # load up the 3d point locations for each WDO.
-    from read_prod_predictions import load_inferred_floor_pose_graphs
-
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
-    pano_dict_inferred = floor_pose_graphs[floor_id].nodes
-
     wTi_list_init = [
         Pose2(Rot2.fromDegrees(wSi.theta_deg), wSi.translation) if wSi is not None else None for wSi in wSi_list
     ]
@@ -259,7 +256,7 @@ def execute_planar_slam(
     # # as (x,y,theta). We don't use a dict, as we may have multiple measurements for each pair of poses.
     i2Ti1_measurements = []
     for m in measurements:
-        i2Si1 = get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+        i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
         theta_rad = np.deg2rad(i2Si1.theta_deg)
         x, y = i2Si1.translation
         om = OdometryMeasurement(m.i1, m.i2, Pose2(x, y, theta_rad))
@@ -269,37 +266,44 @@ def execute_planar_slam(
     # angle to reach landmark, from given pose.
     # for each (s,e)
 
-    tracks_2d = data_association.perform_data_association(measurements, pano_dict_inferred)
-
     landmark_measurements = []
     landmark_positions_init = {}
-    for j, track_2d in enumerate(tracks_2d):
-        color = np.random.rand(3)
-        for k, m in enumerate(track_2d.measurements):
 
-            if wTi_list_init[m.i] is None:
-                continue
+    if not optimize_poses_only:
+        # load up the 3d point locations for each WDO.
+        from read_prod_predictions import load_inferred_floor_pose_graphs
+        raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
-            if j not in landmark_positions_init:
-                # TODO: initialize the landmark positions by using the spanning tree poses
-                landmark_positions_init[j] = wTi_list_init[m.i].transformFrom(m.uv)
+        floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
+        pano_dict_inferred = floor_pose_graphs[floor_id].nodes
+        tracks_2d = data_association.perform_data_association(measurements, pano_dict_inferred)
+        for j, track_2d in enumerate(tracks_2d):
+            color = np.random.rand(3)
+            for k, m in enumerate(track_2d.measurements):
 
-            # an abuse of "uv",this really just means "xy"
-            bearing_deg, range = bearing_range_from_vertex(m.uv)
-            landmark_measurements += [
-                BearingRangeMeasurement(pano_id=m.i, l_idx=j, bearing_deg=bearing_deg, range=range)
-            ]
+                if wTi_list_init[m.i] is None:
+                    continue
 
-            pt_w = wTi_list_init[m.i].transformFrom(m.uv)
-            plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker="+")
-            plt.text(pt_w[0], pt_w[1], f"j={j},i={m.i}", color=color)
+                if j not in landmark_positions_init:
+                    # TODO: initialize the landmark positions by using the spanning tree poses
+                    landmark_positions_init[j] = wTi_list_init[m.i].transformFrom(m.uv)
 
-            draw_coordinate_frame(wTi_list_init[m.i], text=str(m.i))
+                # an abuse of "uv",this really just means "xy"
+                bearing_deg, range = bearing_range_from_vertex(m.uv)
+                landmark_measurements += [
+                    BearingRangeMeasurement(pano_id=m.i, l_idx=j, bearing_deg=bearing_deg, range=range)
+                ]
 
-    plt.axis("equal")
-    plt.show()
+                pt_w = wTi_list_init[m.i].transformFrom(m.uv)
+                plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker="+")
+                plt.text(pt_w[0], pt_w[1], f"j={j},i={m.i}", color=color)
 
-    wTi_list, landmark_positions = pose2_slam.planar_slam(
+                draw_coordinate_frame(wTi_list_init[m.i], text=str(m.i))
+
+        plt.axis("equal")
+        plt.show()
+
+    wTi_list, landmark_positions = planar_slam(
         wTi_list_init, i2Ti1_measurements, landmark_positions_init, landmark_measurements, optimize_poses_only
     )
 
@@ -310,7 +314,7 @@ def execute_planar_slam(
         wSi_list[i] = Sim2(R=wTi.rotation().matrix(), t=wTi.translation(), s=1.0)
 
     report = FloorReconstructionReport.from_wSi_list(
-        wSi_list, gt_floor_pg, plot_save_dir=f"pose_graph_slam__posesonly{optimize_poses_only}_huber"
+        wSi_list, gt_floor_pg, plot_save_dir=plot_save_dir
     )
     return report
 
