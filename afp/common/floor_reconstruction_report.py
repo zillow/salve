@@ -1,5 +1,3 @@
-
-
 """
 Stores information about a floorplan reconstruction.
 """
@@ -15,12 +13,15 @@ from afp.common.posegraph2d import PoseGraph2d
 @dataclass(frozen=True)
 class FloorReconstructionReport:
     """Summary statistics about the reconstructed floorplan."""
+
     avg_abs_rot_err: float
     avg_abs_trans_err: float
     percent_panos_localized: float
 
     @classmethod
-    def from_wSi_list(cls, wSi_list: List[Optional[Sim2]], gt_floor_pose_graph: PoseGraph2d, plot_save_dir: str) -> "FloorReconstructionReport":
+    def from_wSi_list(
+        cls, wSi_list: List[Optional[Sim2]], gt_floor_pose_graph: PoseGraph2d, plot_save_dir: str
+    ) -> "FloorReconstructionReport":
         """ """
         num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
         num_floor_panos = len(gt_floor_pose_graph.nodes)
