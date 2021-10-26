@@ -47,12 +47,11 @@ class PoseGraph2d(NamedTuple):
         """ """
         return f"Graph has {len(self.nodes.keys())} nodes in Building {self.building_id}, {self.floor_id}: {self.nodes.keys()}"
 
-
     def get_camera_height_m(self, pano_id: int) -> float:
         """Obtain the actual height of a RICOH Theta camera, from the saved ZinD dataset information.
 
         Args:
-            pano_id: 
+            pano_id:
             TODO: this is same for every pano on a floor, argument is unnecessary (can be removed)
                but programmatically verify this first.
 
@@ -61,7 +60,9 @@ class PoseGraph2d(NamedTuple):
         """
         if pano_id not in self.nodes:
             print(f"Pano id {pano_id} not found among {self.nodes.keys()}")
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
 
         # from zillow_floor_map["scale_meters_per_coordinate"][floor_id]
         worldmetric_s_worldnormalized = self.scale_meters_per_coordinate
@@ -74,14 +75,13 @@ class PoseGraph2d(NamedTuple):
         cam_height_egonormalized = 1.0
         camera_height_m = worldmetric_s_egonormalized * cam_height_egonormalized
 
-        #print(f"Camera height (meters): {camera_height_m:.2f}")
+        # print(f"Camera height (meters): {camera_height_m:.2f}")
         return camera_height_m
-
 
     @classmethod
     def from_floor_data(cls, building_id: str, fd: FloorData, scale_meters_per_coordinate: float) -> "PoseGraph2d":
         """ """
-        #print(f"scale_meters_per_coordinate: {scale_meters_per_coordinate:.2f}")
+        # print(f"scale_meters_per_coordinate: {scale_meters_per_coordinate:.2f}")
         return cls(
             building_id=building_id,
             floor_id=fd.floor_id,
@@ -118,8 +118,12 @@ class PoseGraph2d(NamedTuple):
             )
 
         # just use the average scale over ZinD, when it is unknown.
-        return cls(building_id=building_id, floor_id=floor_id, nodes=nodes, scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE)
-
+        return cls(
+            building_id=building_id,
+            floor_id=floor_id,
+            nodes=nodes,
+            scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE,
+        )
 
     def as_3d_pose_graph(self) -> List[Optional[Pose3]]:
         """
@@ -190,7 +194,12 @@ class PoseGraph2d(NamedTuple):
             )
 
         # when scale is unknown, use average value over ZinD.
-        return cls(building_id=building_id, floor_id=floor_id, nodes=nodes, scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE)
+        return cls(
+            building_id=building_id,
+            floor_id=floor_id,
+            nodes=nodes,
+            scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE,
+        )
 
     def as_json(self, json_fpath: str) -> None:
         """ """
@@ -296,7 +305,7 @@ class PoseGraph2d(NamedTuple):
         print_str += f", estimated {len(errs)} / {len(gt_edges)} GT edges"
         print(REDTEXT + print_str + ENDCOLOR)
 
-        print(REDTEXT + "Rotation Errors: " + str(np.round(errs,1)) + ENDCOLOR)
+        print(REDTEXT + "Rotation Errors: " + str(np.round(errs, 1)) + ENDCOLOR)
 
         return mean_err
 
@@ -361,8 +370,8 @@ class PoseGraph2d(NamedTuple):
 
         floor_merger_dict = {}
         # for each complete room: "complete_room_{complete_room_id}"
-            # for each partial room "partial_room_{partial_room_id}"
-                # for each pano "pano_{pano_id}"
+        # for each partial room "partial_room_{partial_room_id}"
+        # for each pano "pano_{pano_id}"
 
         for pano_id, pano_data in self.nodes.items():
 
@@ -381,19 +390,19 @@ class PoseGraph2d(NamedTuple):
             for d in pano_data.doors:
                 doors.append(d.pt1)
                 doors.append(d.pt2)
-                doors.append((-DUMMY_VAL_INF,DUMMY_VAL_INF))
+                doors.append((-DUMMY_VAL_INF, DUMMY_VAL_INF))
 
             windows = []
             for w in pano_data.windows:
                 windows.append(w.pt1)
                 windows.append(w.pt2)
-                windows.append((-DUMMY_VAL_INF,DUMMY_VAL_INF))
+                windows.append((-DUMMY_VAL_INF, DUMMY_VAL_INF))
 
             openings = []
             for o in pano_data.openings:
                 openings.append(o.pt1)
                 openings.append(o.pt2)
-                openings.append((-DUMMY_VAL_INF,DUMMY_VAL_INF))
+                openings.append((-DUMMY_VAL_INF, DUMMY_VAL_INF))
 
             v = pano_data.room_vertices_local_2d
 
@@ -426,40 +435,39 @@ class PoseGraph2d(NamedTuple):
             # plt.xlim([xmin - 1,xmax + 1])
             # plt.ylim([ymin - 1,ymax + 1])
             # plt.tight_layout()
-            
+
             # plt.show()
             # plt.close("all")
 
             vertices = np.round(pano_data.room_vertices_local_2d, 3).tolist()
 
-
             pano_dict = {
-                'is_primary': None,
-                'is_inside': None,
-                'layout_complete': None,
-                'camera_height': 1.0,
-                'floor_number': None,
-                'label': pano_data.label,
-                'floor_plan_transformation': {"rotation": None, "translation": None, "scale": None},
+                "is_primary": None,
+                "is_inside": None,
+                "layout_complete": None,
+                "camera_height": 1.0,
+                "floor_number": None,
+                "label": pano_data.label,
+                "floor_plan_transformation": {"rotation": None, "translation": None, "scale": None},
                 # raw layout consists of 2-tuples
-                'layout_raw': {'doors': doors, 'vertices': vertices, 'windows': windows, 'openings': openings},
-                'is_ceiling_flat': None,
-                'image_path': pano_data.image_path,
-                'layout_visible': None,
-                'checksum': None,
-                'ceiling_height': None
+                "layout_raw": {"doors": doors, "vertices": vertices, "windows": windows, "openings": openings},
+                "is_ceiling_flat": None,
+                "image_path": pano_data.image_path,
+                "layout_visible": None,
+                "checksum": None,
+                "ceiling_height": None,
             }
-            partialroom_pano_dict[partial_room_id] += [ pano_dict ]
+            partialroom_pano_dict[partial_room_id] += [pano_dict]
 
         # dummy ID for complete room ID
         floor_merger_dict = {"complete_room_99999": partialroom_pano_dict}
 
         # this is the dictionary that will be serialized to disk.
         save_dict = {
-            'redraw': {},
-            'floorplan_to_redraw_transformation': {}, # not needed for SfM.
-            'scale_meters_per_coordinate': {self.floor_id: self.scale_meters_per_coordinate},
-            'merger': {self.floor_id: floor_merger_dict}
+            "redraw": {},
+            "floorplan_to_redraw_transformation": {},  # not needed for SfM.
+            "scale_meters_per_coordinate": {self.floor_id: self.scale_meters_per_coordinate},
+            "merger": {self.floor_id: floor_merger_dict},
         }
         json_utils.save_json_dict(save_fpath, save_dict)
 
