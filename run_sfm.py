@@ -2,8 +2,6 @@
 Another translation-based filtering step is 1dsfm projection directions:
 https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_relative_translation.cc
 Must happen after rotation averaging.
-
-Can also try RANSAC over Spanning Trees (See Moulon, Govindu)
 """
 
 import copy
@@ -416,10 +414,10 @@ def build_filtered_spanning_tree(
         f"After triplet rot cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
     )
 
-    # could count how many nodes or edges never appeared in any triplet
-    triplets = cycle_utils.extract_triplets(i2Ri1_dict)
-    dropped_edges = set(i2Ri1_dict.keys()) - set(i2Ri1_dict_consistent.keys())
-    print("Dropped ")
+    # # could count how many nodes or edges never appeared in any triplet
+    # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
+    # dropped_edges = set(i2Ri1_dict.keys()) - set(i2Ri1_dict_consistent.keys())
+    # print("Dropped ")
 
     wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict)
     if wRi_list is None:
@@ -430,7 +428,7 @@ def build_filtered_spanning_tree(
         report = FloorReconstructionReport(
             avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
         )
-        return None, None, report
+        return None,  report
     # TODO: measure the error in rotations
 
     # filter to rotations that are consistent with global
@@ -502,7 +500,7 @@ def build_filtered_spanning_tree(
         report = FloorReconstructionReport(
             avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
         )
-        return None, None, report
+        return None, report
 
 
     report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
@@ -673,9 +671,9 @@ def run_incremental_reconstruction(
     #method = "spanning_tree" 
     # method = "SE2_cycles"
     # method = "growing_consensus"
-    method = "filtered_spanning_tree"
+    # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
-    # method = "pose2_slam"
+    method = "pose2_slam"
     # method = "pgo"
 
     confidence_threshold = 0.97 #8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
