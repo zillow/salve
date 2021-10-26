@@ -15,7 +15,7 @@ import networkx as nx
 import numpy as np
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
-from gtsam import Point3, Rot2, Rot3, Unit3
+from gtsam import Point3, Pose2, Rot2, Rot3, Unit3
 
 from afp.algorithms.rotation_averaging import globalaveraging2d
 from afp.utils.rotation_utils import rotmat2d, rotmat2theta_deg
@@ -259,7 +259,9 @@ def test_greedily_construct_st2():
     assert wRi_list_euler_deg_exp == wRi_list_euler_deg_est
 
 
-def ransac_spanning_trees(high_conf_measurements: List[EdgeClassification]) -> List[Optional[Sim2]]:
+def ransac_spanning_trees(
+    high_conf_measurements: List[EdgeClassification], min_num_edges_for_hypothesis: int = 20
+) -> List[Optional[Sim2]]:
     """
     Generate random spanning trees
     https://arxiv.org/pdf/1611.07451.pdf
@@ -267,13 +269,17 @@ def ransac_spanning_trees(high_conf_measurements: List[EdgeClassification]) -> L
     Args:
         high_conf_measurements
     """
+    import pdb; pdb.set_trace()
     K = len(high_conf_measurements)
 
     avg_error_best = float("inf")
     best_wSi_list = None
 
+    if min_num_edges_for_hypothesis is None:
+        min_num_edges_for_hypothesis = 20 # or 2 * number of unique nodes, or 80% of total, etc.
+
     # generate random hypotheses
-    hypotheses = np.random.choice(K)
+    hypotheses = np.random.choice(a=K, size=min_num_edges_for_hypothesis)
 
     #for each hypothesis
     for h_idxs in hypotheses:
@@ -296,11 +302,28 @@ def ransac_spanning_trees(high_conf_measurements: List[EdgeClassification]) -> L
 
 
 def test_ransac_spanning_trees() -> None:
-    """ """
+    """Toy scenario with 3 nodes (3 accurate edges, and 1 noisy edge)."""
 
-    # toy scenario with 3 edges.
+    wT0 = Pose2(Rot2(), np.array([0,0]))
+    wT1 = Pose2(Rot2(), np.array([2,0]))
+    wT2 = Pose2(Rot2(), np.array([2,2]))
 
-    high_conf_measurements = []
-    wSi_list = ransac_spanning_trees(high_conf_measurements)
+    wT2_noisy = Pose2(Rot2(), np.array([3,3]))
+
+    i1Ti0 = wT1.between(wT0)
+    i2Ti1 = wT2.between(wT1)
+    i2Ti0 = wT2.between(wT0)
+
+    i2Ti0_noisy = wT2_noisy.between(wT0)
+
+    # fmt: off
+    high_conf_measurements = [
+        i1Ti0,
+        i2Ti1,
+        i2Ti0,
+        i2Ti0_noisy
+    ]
+    # fmt: on
+    wSi_list = ransac_spanning_trees(high_conf_measurements,  min_num_edges_for_hypothesis=3)
 
 
