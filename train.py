@@ -266,7 +266,10 @@ if __name__ == "__main__":
     #config_name = "2021_08_03_resnet50_ceiling_floor_layout.yaml"
     #config_name = "2021_08_06_resnet50_ceiling_floor_layout.yaml"
     #config_name = "2021_10_18_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    #config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+
+    # try ResNet-152
+    config_name = "2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
 
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the afp module
