@@ -668,15 +668,17 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    #method = "spanning_tree" 
+    method = "spanning_tree" 
     # method = "SE2_cycles"
     # method = "growing_consensus"
     # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
-    method = "pose2_slam"
+    # method = "pose2_slam"
     # method = "pgo"
 
-    confidence_threshold = 0.97 #8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    # TODO: add axis alignment.
+
+    confidence_threshold =  0.97 # 0.97 #8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
     plot_save_dir = (
         f"2021_10_26_testsplit_morerendered_{method}_floorplans_with_gt_conf_{confidence_threshold}"
@@ -781,14 +783,22 @@ def run_incremental_reconstruction(
             # TODO: build better unit tests.
 
         elif method == "random_spanning_trees":
-            import pdb; pdb.set_trace()
-
             # V. M. Govindu. Robustness in motion averaging. In ACCV, 2006.
             # count the number of relative motions (i.e. edges) that fall within this distance from the global motion.
             # C. Olsson and O. Enqvist. Stable structure from motion for unordered image collections. In SCIA, 2011. LNCS 6688.
 
             # generate 100 spanning trees.
+            from afp.algorithms.spanning_tree import RelativePoseMeasurement
+            high_conf_measurements_rel = []
+            for m in high_conf_measurements:
+                i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+                high_conf_measurements_rel.append(RelativePoseMeasurement(i1=m.i1, i2=m.i2, i2Si1=i2Si1))
 
+            wSi_list = spanning_tree.ransac_spanning_trees(high_conf_measurements_rel, num_hypotheses=100, min_num_edges_for_hypothesis=None)
+            report = FloorReconstructionReport.from_wSi_list(
+                wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir
+            )
+            reconstruction_reports.append(report)
 
         elif method == "filtered_spanning_tree":
             # filtered by cycle consistency.
