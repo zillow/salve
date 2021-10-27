@@ -5,6 +5,8 @@ a single connected component.
 """
 
 import copy
+import math
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
@@ -13,14 +15,16 @@ import gtsfm.utils.graph as graph_utils
 import gtsfm.utils.logger as logger_utils
 import networkx as nx
 import numpy as np
+import scipy
 from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Pose2, Rot2, Rot3, Unit3
 
+import afp.utils.rotation_utils as rotation_utils
 from afp.algorithms.rotation_averaging import globalaveraging2d
 from afp.utils.rotation_utils import rotmat2d, rotmat2theta_deg
 from afp.common.edge_classification import EdgeClassification
-
+from afp.common.posegraph2d import REDTEXT, ENDCOLOR
 
 logger = logger_utils.get_logger()
 
@@ -259,8 +263,16 @@ def test_greedily_construct_st2():
     assert wRi_list_euler_deg_exp == wRi_list_euler_deg_est
 
 
+@dataclass
+class RelativePoseMeasurement:
+    i1: int
+    i2: int
+    i2Si1: Sim2
+
+
+
 def ransac_spanning_trees(
-    high_conf_measurements: List[EdgeClassification], min_num_edges_for_hypothesis: int = 20
+    high_conf_measurements: List[RelativePoseMeasurement], num_hypotheses: int = 10, min_num_edges_for_hypothesis: int = 20
 ) -> List[Optional[Sim2]]:
     """
     Generate random spanning trees
@@ -269,40 +281,106 @@ def ransac_spanning_trees(
     Args:
         high_conf_measurements
     """
-    import pdb; pdb.set_trace()
     K = len(high_conf_measurements)
 
-    avg_error_best = float("inf")
+    avg_rot_error_best = float("inf")
+    avg_trans_error_best = float("inf")
     best_wSi_list = None
 
+    SAMPLING_FRAC = 0.95  # 0.8
+
     if min_num_edges_for_hypothesis is None:
-        min_num_edges_for_hypothesis = 20 # or 2 * number of unique nodes, or 80% of total, etc.
+        min_num_edges_for_hypothesis = int(math.ceil(SAMPLING_FRAC * K)) # or 2 * number of unique nodes, or 80% of total, etc.
+
+    max_unique_hypotheses = int(scipy.special.binom(K, min_num_edges_for_hypothesis)) # {n choose k}
+    num_hypotheses = min(max_unique_hypotheses, num_hypotheses)
 
     # generate random hypotheses
-    hypotheses = np.random.choice(a=K, size=min_num_edges_for_hypothesis)
+    hypotheses = [np.random.choice(a=K, size=min_num_edges_for_hypothesis, replace=False) for _ in range(num_hypotheses)]
 
     #for each hypothesis
-    for h_idxs in hypotheses:
+    for h_counter, h_idxs in enumerate(hypotheses):
 
         hypothesis_measurements = [m for k, m in enumerate(high_conf_measurements) if k in h_idxs]
 
+        i2Si1_dict = {}
+        # randomly overwrite by order
+        for m in hypothesis_measurements:
+            i2Si1_dict[(m.i1,m.i2)] = m.i2Si1
+
         # create the i2Si1_dict
         # generate a spanning tree greedily
-        wSi_list = greedily_construct_st_Sim2(i2Si1_dict, verbose=True)
+        wSi_list = greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
 
-        #count the number of inliers / error
-        avg_error = np.nan
+        if wSi_list is None:
+            import pdb; pdb.set_trace()
+
+        avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(high_conf_measurements, wSi_list)
+
+        print(
+            f"Hypothesis {h_counter} had Rot errors {avg_rot_error:.1f}(mean) {med_rot_error:.1f} (med), Trans errors {avg_trans_error:.2f}(mean) {med_trans_error:.2f} (med)"
+        )
         
+        # TODO: or could use MEDIAN instead
         #if most inliers so far, set as best hypothesis
-        if avg_error < avg_error_best:
-            avg_error_best = avg_error
+        if avg_rot_error <= avg_rot_error_best and avg_trans_error <= avg_trans_error_best:
+            avg_rot_error_best = avg_rot_error
+            avg_trans_error_best = avg_trans_error
             best_wSi_list = wSi_list
 
+    avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(high_conf_measurements, best_wSi_list)
+    print(REDTEXT + f"Chose hypothesis with {avg_rot_error:.1f}, {med_rot_error:.1f}, {avg_trans_error:.2f}, {med_trans_error:.2f} " + ENDCOLOR)
     return best_wSi_list
+
+
+def compute_hypothesis_errors(
+    high_conf_measurements: List[RelativePoseMeasurement], wSi_list: List[Optional[Sim2]]
+) -> Tuple[float, float, float, float]:
+    """ """
+    rot_errors = []
+    trans_errors = []
+    #count the number of inliers / error against ALL measurements now.
+    # Can use just rotation error, or just translation error, or both
+    for m in high_conf_measurements:
+
+        if m.i1 >= len(wSi_list) or m.i2 >= len(wSi_list):
+            # or set some standard penalty on a less complete graph?
+            continue
+
+        wSi1 = wSi_list[m.i1]
+        wSi2 = wSi_list[m.i2]
+
+        if wSi1 is None or wSi2 is None:
+            # or set some standard penalty on a less complete graph?
+            continue
+
+        i2Si1_simulated = wSi2.inverse().compose(wSi1)
+
+        rot_error_deg = rotation_utils.wrap_angle_deg(angle1=i2Si1_simulated.theta_deg, angle2=m.i2Si1.theta_deg)
+        trans_error = np.linalg.norm(i2Si1_simulated.translation - m.i2Si1.translation)
+
+        rot_errors.append(rot_error_deg)
+        trans_errors.append(trans_error)
+    
+    avg_rot_error = np.mean(rot_errors) 
+    med_rot_error = np.median(rot_errors)
+
+    avg_trans_error = np.mean(trans_errors)
+    med_trans_error = np.median(trans_errors)
+
+    return avg_rot_error, med_rot_error, avg_trans_error, med_trans_error
+
+
+
+def convert_Pose2_to_Sim2(i2Ti1: Pose2) -> Sim2:
+    """ """
+    return Sim2(R=i2Ti1.rotation().matrix(), t=i2Ti1.translation(), s=1.0)
 
 
 def test_ransac_spanning_trees() -> None:
     """Toy scenario with 3 nodes (3 accurate edges, and 1 noisy edge)."""
+
+    np.random.seed(0)
 
     wT0 = Pose2(Rot2(), np.array([0,0]))
     wT1 = Pose2(Rot2(), np.array([2,0]))
@@ -316,14 +394,26 @@ def test_ransac_spanning_trees() -> None:
 
     i2Ti0_noisy = wT2_noisy.between(wT0)
 
+    i1Si0 = convert_Pose2_to_Sim2(i1Ti0)
+    i2Si1 = convert_Pose2_to_Sim2(i2Ti1)
+    i2Si0 = convert_Pose2_to_Sim2(i2Ti0)
+    i2Si0_noisy = convert_Pose2_to_Sim2(i2Ti0_noisy)
+
     # fmt: off
     high_conf_measurements = [
-        i1Ti0,
-        i2Ti1,
-        i2Ti0,
-        i2Ti0_noisy
+        RelativePoseMeasurement(i1=0, i2=1, i2Si1=i1Si0),
+        RelativePoseMeasurement(i1=1, i2=2, i2Si1=i2Si1),
+        RelativePoseMeasurement(i1=0, i2=2, i2Si1=i2Si0),
+        RelativePoseMeasurement(i1=0, i2=2, i2Si1=i2Si0_noisy)
     ]
     # fmt: on
-    wSi_list = ransac_spanning_trees(high_conf_measurements,  min_num_edges_for_hypothesis=3)
+    wSi_list = ransac_spanning_trees(high_conf_measurements, num_hypotheses=10, min_num_edges_for_hypothesis=3)
+
+    assert len(wSi_list) == 3
+    assert wSi_list[0] == convert_Pose2_to_Sim2(wT0)
+    assert wSi_list[1] == convert_Pose2_to_Sim2(wT1)
+    assert wSi_list[2] == convert_Pose2_to_Sim2(wT2)
 
 
+if __name__ == "__main__":
+    test_ransac_spanning_trees()
