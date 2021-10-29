@@ -15,17 +15,30 @@ import scipy.interpolate # not quite the same as `matplotlib.mlab.griddata`
 # DEFAULT_KERNEL_SZ = 21
 DEFAULT_KERNEL_SZ = 11
 
+# minimum number of points required by QHull to construct an initial simplex, for interpolation.
+MIN_REQUIRED_POINTS_SIMPLEX = 4
+
 
 def interp_dense_grid_from_sparse(
     bev_img: np.ndarray, points: np.ndarray, rgb_values: np.ndarray, grid_h: int, grid_w: int, is_semantics: bool
 ) -> np.ndarray:
     """
     Args:
-        points: (N,2) or (N,3) array of (x,y,z) or (x,y)
+        bev_img: dense grid of shape (grid_h, grid_w, 3) to be populated with interpolated values
+        points: (N,2) or (N,3) array of (x,y,z) or (x,y) coordinates
+        rgb_values:
+        grid_h:
+        grid_w:
+        is_semantics: whether or not the input RGB values represent a semantic colormap, in which case
+            only `nearest` interpolation makes sense.
 
     Returns:
-        bev_img
+        bev_img: dense grid of shape (grid_h, grid_w, 3) populated with interpolated values
     """
+    if points.shape[0] < MIN_REQUIRED_POINTS_SIMPLEX:
+        # return the empty grid, since we can't interpolate.
+        return bev_img
+
     grid_coords = get_mesh_grid_as_point_cloud(min_x=0, max_x=grid_w - 1, min_y=0, max_y=grid_h - 1)
     # Note: `xi` -- Points at which to interpolate data.
     interp_rgb_vals = scipy.interpolate.griddata(
@@ -37,6 +50,27 @@ def interp_dense_grid_from_sparse(
     X = grid_coords[:, 0].astype(np.int32)
     bev_img[Y, X, :] = interp_rgb_vals
     return bev_img
+
+
+def test_interp_dense_grid_from_sparse_insufficient_points_simplex() -> None:
+    """Try to interpolate a dense grid using an insufficient number of samples.
+
+    We reproduce:
+    scipy.spatial.qhull.QhullError: QH6214 qhull input error: not enough points(2) to construct initial simplex (need 4)
+    """
+    RED = [255,0,0]
+    GREEN = [0,255,0]
+
+    bev_img = np.zeros((10,10,3))
+    points = np.array([[1,1], [5,5]])
+    rgb_values = np.array([RED,GREEN])
+    grid_h = 10
+    grid_w = 10
+
+    dense_grid = interp_dense_grid_from_sparse(
+        bev_img=bev_img, points=points, rgb_values=rgb_values, grid_h=grid_h, grid_w=grid_w, is_semantics=False
+    )
+    assert np.allclose(dense_grid, bev_img)
 
 
 def test_interp_dense_grid_from_sparse() -> None:
