@@ -41,6 +41,15 @@ logger = get_logger()
 def get_opensfm_T_zillow() -> Pose3:
     """Transform OpenSfM spherical camera to ZinD spherical camera.
 
+    The upright axis for poses in the world-metric frame for ZinD is +z,
+    as the floor sits in the xy plane.
+
+    However, for OpenSfM, +y is the upright axis. OpenSfM does not use
+    a right-handed system.
+
+    So we revert to a left-handed system, and treat -z axis for ZinD
+    as the upright axis. Then the following transformation works.
+
     See https://github.com/mapillary/OpenSfM/issues/794
     """
     # in radians
@@ -54,6 +63,15 @@ def get_opensfm_T_zillow() -> Pose3:
 
 def get_openmvg_T_zillow() -> Pose3:
     """Transform OpenMVG spherical camera to ZinD spherical camera.
+
+    The upright axis for poses in the world-metric frame for ZinD is +z,
+    as the floor sits in the xy plane.
+
+    However, for OpenMVG, +y is the upright axis. OpenMVG does not use
+    a right-handed system.
+
+    So we revert to a left-handed system, and treat -z axis for ZinD
+    as the upright axis. Then the following transformation works.
 
     See: https://github.com/openMVG/openMVG/issues/1938
 
