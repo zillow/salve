@@ -29,3 +29,5 @@ class TrainingConfig:
     layout_data_root: str
     model_save_dirpath: str
     gpu_ids: str = None
+
+    # TODO: make a rendering config with resolution, spatial extent stored in it.
