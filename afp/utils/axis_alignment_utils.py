@@ -65,7 +65,7 @@ def determine_rotation_angle(poly: np.ndarray) -> Tuple[Optional[float], Optiona
     if angle > 45:
         angle = 90 - angle
     else:
-        angle = -angle
+        angle = angle
     angle_fraction = len(angles) / len(poly)
 
     return angle, angle_fraction
@@ -160,7 +160,7 @@ def test_determine_rotation_angle_approx_square2() -> None:
     )
     # fmt: on
     dominant_angle, angle_frac = determine_rotation_angle(poly)
-    assert np.isclose(dominant_angle, -0.955, atol=3) # angle in degrees
+    assert np.isclose(dominant_angle, 0.955, atol=3) # angle in degrees
     assert np.isclose(angle_frac, 1.0)
 
 
