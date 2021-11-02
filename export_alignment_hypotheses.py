@@ -42,6 +42,9 @@ OPENING_ALIGNMENT_ANGLE_TOLERANCE = 9.0
 DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
 ALIGNMENT_TRANSLATION_TOLERANCE = 0.35  # was set to 0.2 for GT
 
+# (smaller width) / (larger width) must be greater than 0.65 / 1.0.
+MIN_ALLOWED_WDO_WIDTH_RATIO = 0.65
+
 
 logger = logger_utils.get_logger()
 
@@ -600,7 +603,7 @@ def align_rooms_by_wd(
                         # pano1_uncertainty_factor = compute_width_uncertainty(pano1_wd)
                         # pano2_uncertainty_factor = compute_width_uncertainty(pano2_wd)
 
-                        is_valid = width_ratio >= 0.65 # should be in [0.5, 1.0]
+                        is_valid = width_ratio >= MIN_ALLOWED_WDO_WIDTH_RATIO # should be in [0.5, 1.0]
 
                         if verbose:
                             # (i1) pink, (i2) orange
