@@ -87,10 +87,10 @@ class BEVParams:
         self.img_w = img_w
         self.meters_per_px = meters_per_px
 
-        # num px in horizontal direction
+        # num px in horizontal direction from center
         h_px = img_w / 2
 
-        # num px in vertical direction
+        # num px in vertical direction from center
         v_px = img_h / 2
 
         # get grid boundaries in meters
