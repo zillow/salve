@@ -337,7 +337,7 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 128
+    args.batch_size = 64
     args.workers = 10
 
     split = "test"
