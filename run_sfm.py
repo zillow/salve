@@ -9,8 +9,11 @@ import glob
 import os
 from collections import defaultdict
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple
 
+import argoverse.utils.json_utils as json_utils
+import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.graph as graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,7 +27,9 @@ import afp.algorithms.rotation_averaging as rotation_averaging
 import afp.algorithms.spanning_tree as spanning_tree
 import afp.common.edge_classification as edge_classification
 import afp.common.posegraph2d as posegraph2d
+import afp.utils.axis_alignment_utils as axis_alignment_utils
 import afp.utils.graph_rendering_utils as graph_rendering_utils
+import afp.utils.iou_utils as iou_utils
 import afp.utils.rotation_utils as rotation_utils
 import afp.utils.pr_utils as pr_utils
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
@@ -740,9 +745,9 @@ def run_incremental_reconstruction(
         for wdo_type, percent in wdo_type_counter.items():
             averaged_wdo_type_counter[wdo_type].append(percent)
 
-        print("On average, over all tours:")
+        print("On average, over all tours, WDO types used were:")
         for wdo_type, percents in averaged_wdo_type_counter.items():
-            print(REDTEXT + f"For {wdo_type}, {np.mean(percents):.2f}" + ENDCOLOR)
+            print(REDTEXT + f"For {wdo_type}, {np.mean(percents)*100:.1f}%" + ENDCOLOR)
 
         if len(high_conf_measurements) == 0:
             print(f"Skip Building {building_id}, {floor_id} -> no high conf measurements from {len(measurements)} measurements.")
@@ -759,6 +764,9 @@ def run_incremental_reconstruction(
         # TODO: apply axis alignment pre-processing (or post-processing) before evaluation
 
         if method == "spanning_tree":
+
+            # i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
+
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = FloorReconstructionReport.from_wSi_list(
                 wSi_list, gt_floor_pose_graph, plot_save_dir=f"raw_spanning_tree_only_{confidence_threshold}"
@@ -863,6 +871,230 @@ def run_incremental_reconstruction(
         print(f"Median over all tours, {error_metric} = {median_val:.2f}")
 
 
+def align_pairs_by_vanishing_angle(
+    i2Si1_dict: Dict[Tuple[int,int], Sim2], gt_floor_pose_graph: PoseGraph2d, visualize: bool = True
+) -> Dict[Tuple[int,int], Sim2]:
+    """ """
+
+    for (i1,i2), i2Si1 in i2Si1_dict.items():
+
+        verts_i1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
+        verts_i2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+        
+        if visualize:
+            plt.subplot(1,2,1)
+            draw_polygon(verts_i1, color='r', linewidth=5)
+            draw_polygon(verts_i2, color='g', linewidth=1)
+            plt.axis("equal")
+
+        dominant_angle_deg1, angle_frac1 = axis_alignment_utils.determine_rotation_angle(verts_i1)
+        dominant_angle_deg2, angle_frac2 = axis_alignment_utils.determine_rotation_angle(verts_i2)
+
+        # Below: using the oracle.
+        # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
+        # wSi2 = gt_floor_pose_graph.nodes[i2].global_Sim2_local
+        # wSi1 = i2Si1_dict[i1]
+        # wSi2 = i2Si1_dict[i2]
+        # i2Si1 = wSi2.inverse().compose(wSi1)
+
+        # import pdb; pdb.set_trace()
+        i2Ri1_dominant = rotation_utils.rotmat2d(theta_deg=dominant_angle_deg2 - dominant_angle_deg1)
+        i2Si1_dominant = Sim2(R=i2Ri1_dominant, t=np.zeros(2), s=1.0)
+        # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
+
+
+        # method = "rotate_about_origin_first"
+        # method = "rotate_about_origin_last"
+        #method = "rotate_about_centroid_first"
+        method = "none"
+        
+        # i1a and i2a represent the aligned frames.
+        if method == "rotate_about_origin_first":
+            # apply rotation first (delta pose)
+            i1Si1a = i2Si1_dominant
+            i2Si1a = i2Si1.compose(i1Si1a)
+            verts_i1_ = i2Si1a.transform_from(verts_i1)
+
+        elif method == "rotate_about_origin_last":
+            # apply rotation second (much worse)
+            i2aSi2 = i2Si1_dominant
+            i2aSi1 = i2aSi2.compose(i2Si1)
+            verts_i1_ = i2aSi1.transform_from(verts_i1)
+
+        elif method == "rotate_about_centroid_first":
+
+            import pdb; pdb.set_trace()
+            verts_i1_ = geometry_utils.rotate_polygon_about_pt(
+                verts_i1, rotmat=i2Ri1_dominant, center_pt=np.mean(verts_i1, axis=0)
+            )
+            verts_i1_ = i2Si1.transform_from(verts_i1_)
+            # TODO: compute new translation that will accomplish this via Pose2.align()
+
+        elif method == "none":
+
+            # TODO: wrong, since layouts need to be expressed in the body frame.
+            verts_i1_ = i2Si1.transform_from(verts_i1)
+
+
+        if visualize:
+            plt.subplot(1,2,2)
+            draw_polygon(verts_i1_, color='r', linewidth=5)
+            draw_polygon(verts_i2, color='g', linewidth=1)
+            plt.axis("equal")
+            plt.show()
+
+        import pdb; pdb.set_trace()
+
+    return i2Si1_dict
+
+
+def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
+    """ """
+    verts = np.vstack([poly, poly[0]]) # allow connection between the last and first vertex
+
+    plt.plot(verts[:,0], verts[:,1], color=color, linewidth=linewidth)
+    plt.scatter(verts[:,0], verts[:,1], 10, color=color, marker='.')
+
+
+
+def test_align_pairs_by_vanishing_angle() -> None:
+    """Ensure we can use vanishing angles to make small corrections to rotations, with perfect layouts (no noise)."""
+    
+    # cameras are at the center of each room. doorway is at (0,1.5)
+    wTi1 = Pose2(Rot2(), np.array([1.5,1.5]))
+    wTi2 = Pose2(Rot2(), np.array([-1.5,1.5]))
+
+    i2Ri1 = wTi2.between(wTi1).rotation().matrix() # 2x2 identity matrix.
+    i2ti1 = wTi2.between(wTi1).translation()
+
+    i2Ri1_noisy = rotation_utils.rotmat2d(theta_deg=30)
+
+    # simulate noisy rotation, but correct translation
+    i2Si1_dict = {(1,2): Sim2(R=i2Ri1, t=i2ti1, s=1.0)}
+
+    # We cannot specify these layouts in the world coordinate frame. They must be in the local body frame.
+    # fmt: off
+    # Note: this is provided in i1's frame.
+    layout1_w = np.array(
+        [
+            [0,0],
+            [3,0],
+            [3,3],
+            [0,3]
+        ]
+    ).astype(np.float32)
+    # TODO: figure out how to undo the effect on the translation, as well!
+
+    #(align at WDO only! and then recompute!)
+    # Note: this is provided in i2's frame.
+    #layout2 = (layout1 - np.array([3,0])) @ i2Ri1_noisy.T
+    # layout2 = (layout1 @ i2Ri1_noisy.T) - np.array([3,0])
+    layout2_w = geometry_utils.rotate_polygon_about_pt(layout1_w - np.array([3.,0]), rotmat=i2Ri1_noisy, center_pt=np.array([-1.5,1.5]))
+    # fmt: on
+
+    draw_polygon(layout1_w, color='r', linewidth=5)
+    draw_polygon(layout2_w, color='g', linewidth=1)
+    plt.axis("equal")
+    plt.show()
+
+    def transform_point_cloud(pts_w: np.ndarray, iTw: Pose2) -> np.ndarray:
+        """Transfer from world frame to camera i's frame."""
+        return np.vstack([iTw.transformFrom(pt_w) for pt_w in pts_w])
+
+    layout1_i1 = transform_point_cloud(layout1_w, iTw=wTi1.inverse())
+    layout2_i2 = transform_point_cloud(layout2_w, iTw=wTi2.inverse())
+
+    pano_data_1 = SimpleNamespace(**{"room_vertices_local_2d": layout1_i1})
+    pano_data_2 = SimpleNamespace(**{"room_vertices_local_2d": layout2_i2})
+
+    # use square and rotated square
+    gt_floor_pose_graph = SimpleNamespace(**{"nodes": {1: pano_data_1, 2: pano_data_2}})
+
+    import pdb; pdb.set_trace()
+    # ensure delta pose is accounted for properly.
+    i2Si1_dict_aligned = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
+
+
+def test_align_pairs_by_vanishing_angle_noisy() -> None:
+    """Ensure delta pose is accounted for properly, with dominant rotation directions computed from noisy layouts.
+
+    Using noisy contours, using Douglas-Peucker to capture the rough manhattanization.
+
+    """
+    assert False
+    i2Ri1 = None
+    i2ti1 = None
+
+    # simulate noisy rotation, but correct translation
+    i2Si1_dict = {(0,1): Sim2(R=i2Ri1, t=i2ti1, s=1.0)}
+
+    layout0 = np.array([[]])
+    layout1 = np.array([[]])
+
+    pano_data_0 = SimpleNamespace(**{"room_vertices_local_2d": layout0})
+    pano_data_1 = SimpleNamespace(**{"room_vertices_local_2d": layout1})
+
+    # use square and rotated square
+    gt_floor_pose_graph = SimpleNamespace(**{"nodes": {0: pano_data_0, 1: pano_data_1}})
+
+    i2Si1_dict_aligned = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
+
+
+
+def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
+    """
+    ONLY FOR POSITIVE EXAMPLES! DOES IT MAKE SENSE TO EVALUTE THIS FOR NEGATIVE EXAMPLES?
+    """
+    import pdb; pdb.set_trace()
+    import imageio
+
+    pairs = []
+
+    json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
+    for json_fpath in json_fpaths:
+
+        json_data = json_utils.read_json_file(json_fpath)
+        y_hat_list = json_data["y_hat"]
+        y_true_list = json_data["y_true"]
+        y_hat_prob_list = json_data["y_hat_probs"]
+        fp0_list = json_data["fp0"]
+        fp1_list = json_data["fp1"]
+
+         # for each GT positive
+        for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
+            # Note: not guaranteed that i1 < i2
+            i1 = int(Path(fp0).stem.split("_")[-1])
+            i2 = int(Path(fp1).stem.split("_")[-1])
+            building_id = Path(fp0).parent.stem
+
+            if y_true != 1:
+                continue
+       
+            # maybe interesting to also check histograms at different confidence thresholds
+            # if y_hat_prob < confidence_threshold:
+            #     continue            
+
+            f1 = imageio.imread(f1)
+            f2 = imageio.imread(f2)
+            floor_iou = iou_utils.texture_map_iou(f1, f2)
+
+            pairs += [(floor_iou, m.y_hat)]
+
+    bin_edges = np.linspace(0,1,11)
+    counts = np.zeros(10)
+    iou_bins = np.zeros(10)
+
+    for (iou, y_pred) in pairs:
+
+        bin_idx = np.digitize(iou, bins=bin_edges)
+        # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
+        iou_bins[bin_idx - 1] += y_pred
+
+    normalized_iou_bins = np.divide(iou_bins, counts)
+
+    # bar chart.
+
+
 if __name__ == "__main__":
 
     # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
@@ -886,8 +1118,23 @@ if __name__ == "__main__":
 
     # 373 training tours, low-res, RGB only floor and ceiling, true ZinD train/val/test split
     #serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications"
-    serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications_v2_more_rendered"
+    #serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications_v2_more_rendered"
+    
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
 
-    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
+    #run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
+
+    #test_align_pairs_by_vanishing_angle()
+
+    serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    measure_acc_vs_visual_overlap(serialized_preds_json_dir)
+
+
+    # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
+
+
