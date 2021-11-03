@@ -1091,6 +1091,14 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
 
             i1 = int(Path(fp0).stem.split("_")[-1])
             i2 = int(Path(fp1).stem.split("_")[-1])
+
+            if i1 >= i2:
+                temp_i2 = i1
+                temp_i1 = i2
+
+                i1 = temp_i1
+                i2 = temp_i2
+
             building_id = Path(fp0).parent.stem
 
             s = Path(fp0).stem.find("floor_0")
