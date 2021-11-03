@@ -2,6 +2,7 @@
 Analyze visibility between two panoramas, as captured by the BEV overlap of texture maps.
 """
 import glob
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Optional
 
@@ -24,7 +25,7 @@ def main() -> None:
         **{"data_root": "", "layout_data_root": "", "modalities": ["ceiling_rgb_texture", "floor_rgb_texture"]}
     )
 
-    label_dict = {"gt_alignment_approx": 1}  # , "incorrect_alignment": 0}  # is_match = True
+    label_dict = {"gt_alignment_approx": 1, "incorrect_alignment": 0}  # is_match = True
 
     floor_ious = []
 
@@ -41,7 +42,11 @@ def main() -> None:
 
     for label_name, label_idx in label_dict.items():
         for b, building_id in enumerate(split_building_ids):
-            print(f"Building {building_id}")
+
+            if b > 10:
+                continue
+
+            print(f"Building {building_id}: {b}/{len(split_building_ids)}")
             for floor_id in ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04"]:
                 fpaths = glob.glob(f"{data_root}/{label_name}/{building_id}/pair_*_rgb_{floor_id}_*.jpg")
                 # here, pair_id will be unique
@@ -66,10 +71,47 @@ def main() -> None:
                     #     c2 = imageio.imread(fp2c)
                     #     show_quadruplet(c1, c2, f1, f2, title=f"IoU: {floor_iou:.2f}")
 
+        classname = "Positive" if label_name == "gt_alignment_approx" else "incorrect_alignment"
+
         plt.hist(floor_ious, bins=20)
         plt.xlabel("BEV Floor-Floor IoU")
         plt.ylabel("Image Pair Counts")
-        plt.show()
+        plt.savefig(f"{Path(data_root).name}__{classname}_20bin_histogram.pdf", dpi=500)
+        plt.close("all")
+
+        bin_edges = np.linspace(0,1,11)
+        counts = np.zeros(10)
+        iou_bins = np.zeros(10)
+
+        # running computation of the mean.
+        for (iou, y_pred, rot_err, trans_err) in tuples:
+
+            bin_idx = np.digitize(iou, bins=bin_edges)
+            # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
+            iou_bins[bin_idx - 1] += y_pred
+            counts[bin_idx - 1] += 1
+
+        counts = counts.astype(np.float32)
+        normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts)
+
+        avg_rot_err_bins = np.divide(rot_err_bins, counts)
+        avg_trans_err_bins = np.divide(trans_err_bins, counts)
+
+        def format_bar_chart() -> None:
+            """ """
+            xtick_labels = []
+            for i in range(len(bin_edges)-1):
+                xtick_labels += [ f"[{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f})" ]
+            plt.xticks(ticks=np.arange(10), labels=xtick_labels, rotation=20)
+            plt.tight_layout()
+
+        # bar chart.
+        plt.bar(np.arange(10), normalized_iou_bins)
+        plt.xlabel("Floor-Floor Texture Map IoU")
+        plt.ylabel(f"Percent of {classname} Image Pairs")
+        format_bar_chart()
+
+        plt.savefig(f"{Path(data_root).name}__{classname}_10bin_histogram.pdf", dpi=500)
         plt.close("all")
 
 
