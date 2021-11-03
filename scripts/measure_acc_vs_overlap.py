@@ -42,6 +42,9 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
     # import random
     # random.shuffle(json_fpaths)
+
+    import pdb; pdb.set_trace()
+
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
@@ -196,6 +199,8 @@ def test_measure_acc_vs_visual_overlap() -> None:
 	serialized_preds_json_dir = ""
 	hypotheses_save_root = ""
 	raw_dataset_dir = ""
+
+    # choose just 4 pairs with known poses.
 	
 	measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
 	assert False
