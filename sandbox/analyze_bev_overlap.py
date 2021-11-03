@@ -15,7 +15,8 @@ import afp.utils.iou_utils as iou_utils
 
 def main() -> None:
     """Analyze data generated with Sim(3) alignments."""
-    data_root = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25"
+    #data_root = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25"
+    data_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
 
     split_building_ids = zind_data.get_available_building_ids(dataset_root=f"{data_root}/gt_alignment_approx")
 
@@ -27,7 +28,7 @@ def main() -> None:
 
     floor_ious = []
 
-    plot_range = [0.0, 0.1]
+    # plot_range = [0.0, 0.1]
     # plot_range = [0.1, 0.2]
     # plot_range = [0.2, 0.3]
     # plot_range = [0.3, 0.4]
@@ -67,7 +68,7 @@ def main() -> None:
 
         plt.hist(floor_ious, bins=20)
         plt.xlabel("BEV Floor-Floor IoU")
-        plt.ylabel("Counts")
+        plt.ylabel("Image Pair Counts")
         plt.show()
         plt.close("all")
 
