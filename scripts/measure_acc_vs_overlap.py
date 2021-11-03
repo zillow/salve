@@ -30,14 +30,17 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
 
+    gt_class = 1
+    classname_str "positives_only" if gt_class == 1 else "negatives_only"
+
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
     # import random
     # random.shuffle(json_fpaths)
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
-        # if json_idx > 300:
-        #     continue
+        if json_idx > 30:
+            continue
 
         json_data = json_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
@@ -49,7 +52,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
          # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
 
-            if y_true != 1:
+            if y_true != gt_class:
                 continue
        
             # if y_true != 0:
@@ -122,27 +125,28 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
             # need to wrap around at 360
             rot_err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
             trans_err = np.linalg.norm(i2Ti1_gt.translation - i2Ti1.translation)
-            tuples += [(floor_iou, y_hat, rot_err, trans_err)]
+            tuples += [(floor_iou, y_hat, y_true, rot_err, trans_err)]
 
 
     bin_edges = np.linspace(0,1,11)
     counts = np.zeros(10)
-    iou_bins = np.zeros(10)
+    acc_bins = np.zeros(10)
     rot_err_bins = np.zeros(10)
     trans_err_bins = np.zeros(10)
 
     # running computation of the mean.
-    for (iou, y_pred, rot_err, trans_err) in tuples:
+    for (iou, y_pred, y_true, rot_err, trans_err) in tuples:
 
         bin_idx = np.digitize(iou, bins=bin_edges)
         # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
-        iou_bins[bin_idx - 1] += y_pred
+        acc = y_pred == y_true
+        acc_bins[bin_idx - 1] += acc
         rot_err_bins[bin_idx - 1] += rot_err
         trans_err_bins[bin_idx - 1] += trans_err
         counts[bin_idx - 1] += 1
 
     counts = counts.astype(np.float32)
-    normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts)
+    mean_acc_bins = np.divide(acc_bins.astype(np.float32), counts) * 100
 
     avg_rot_err_bins = np.divide(rot_err_bins, counts)
     avg_trans_err_bins = np.divide(trans_err_bins, counts)
@@ -156,12 +160,12 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
         plt.tight_layout()
 
     # bar chart.
-    # plt.bar(np.arange(10), normalized_iou_bins)
-    # plt.xlabel("Floor-Floor Texture Map IoU")
-    # plt.ylabel("Mean Accuracy")
-
-    # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
-    # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_negatives_only__confthresh{confidence_threshold}.jpg", dpi=500)
+    plt.bar(np.arange(10), mean_acc_bins)
+    plt.xlabel("Floor-Floor Texture Map IoU")
+    plt.ylabel("Mean Accuracy (\%)")
+    format_bar_chart()
+    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_{classname_str}__confthresh{confidence_threshold}.jpg", dpi=500)
+    plt.close("all")
     # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_allexamples__confthresh{confidence_threshold}.jpg", dpi=500)
 
     plt.bar(np.arange(10), avg_rot_err_bins)
