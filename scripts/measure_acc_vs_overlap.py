@@ -64,6 +64,12 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
             if y_true != gt_class:
                 continue
 
+            if not (
+                fp0 == '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_05_pano_55.jpg' \
+                and fp1 == '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_08_pano_58.jpg'
+            ):
+                continue
+
             import pdb; pdb.set_trace()
        
             # if y_true != 0:
@@ -201,6 +207,46 @@ def test_measure_acc_vs_visual_overlap() -> None:
 	serialized_preds_json_dir = ""
 	hypotheses_save_root = ""
 	raw_dataset_dir = ""
+
+
+    # first 3 entries from '/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02/batch_126.json'
+    # Example 0 -- IoU 0.709, Rot Error 1.43 deg, Trans Error 0.01
+    # Example 1 -- IoU 0.528, Rot Error 0.71 deg, Trans Error 0.055
+    # Example 2 -- IoU 0.153, Rot Error 6.19 deg, Trans Error 0.2964
+    batch126a_dict = {
+        "y_hat": [1, 1, 1],
+        "y_true": [1, 1, 1],
+        "y_hat_probs": [0.9995661377906799, 0.9970742464065552, 0.6184548735618591],
+        "fp0": [
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_54___door_0_0_identity_floor_rgb_floor_02_partial_room_01_pano_48.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_102___door_1_1_rotated_floor_rgb_floor_02_partial_room_02_pano_60.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_48___door_0_1_rotated_floor_rgb_floor_02_partial_room_03_pano_47.jpg'
+        ],
+        "fp1": [
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_54___door_0_0_identity_floor_rgb_floor_02_partial_room_01_pano_51.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_102___door_1_1_rotated_floor_rgb_floor_02_partial_room_08_pano_57.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_48___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_54.jpg'
+        ]
+    }
+
+    # last 4 entries from batch 126
+    batch126b_dict = {
+        "y_hat": [0, 1, 0, 1],
+        "y_true": [1, 1, 1, 1],
+        "y_hat_probs": [0.8956580758094788, 0.7106943726539612, 0.573124885559082, 0.7701843976974487],
+        "fp0": [
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_05_pano_55.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_31___door_1_1_rotated_floor_rgb_floor_02_partial_room_02_pano_45.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_65.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_03_pano_47.jpg'
+        ],
+        "fp1": [
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_08_pano_58.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_31___door_1_1_rotated_floor_rgb_floor_02_partial_room_08_pano_57.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_68.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_52.jpg'
+        ]
+    }
 
     # choose just 4 pairs with known poses.
 	
