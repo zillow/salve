@@ -1058,7 +1058,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
-        if json_idx > 300:
+        if json_idx > 30:
             continue
 
         json_data = json_utils.read_json_file(json_fpath)
@@ -1101,7 +1101,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     import pdb; pdb.set_trace()
     normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts.astype(np.float32))
 
-    plt.bar(np.arange(10), normalized_iou_bins)
+    plt.bar(np.linspace(0,1,11), normalized_iou_bins)
     plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
 
     # bar chart.
