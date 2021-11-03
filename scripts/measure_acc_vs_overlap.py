@@ -49,11 +49,11 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
          # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
 
-            # if y_true != 1:
-            #     continue
-       
-            if y_true != 0:
+            if y_true != 1:
                 continue
+       
+            # if y_true != 0:
+            #     continue
 
             if y_hat_prob < confidence_threshold:
                 continue
@@ -179,6 +179,16 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     plt.close("all")
 
     # TODO: write a unit test for this function.
+
+
+def test_measure_acc_vs_visual_overlap() -> None:
+	""" """
+	serialized_preds_json_dir = ""
+	hypotheses_save_root = ""
+	raw_dataset_dir = ""
+	
+	measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
+	assert False
 
 
 if __name__ == "__main__":
