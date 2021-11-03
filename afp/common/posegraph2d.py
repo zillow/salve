@@ -14,11 +14,12 @@ import gtsfm.utils.geometry_comparisons as geometry_comparisons
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-from gtsam import Point3, Rot3, Pose3
+from gtsam import Point3, Pose3
 import gtsfm.utils.geometry_comparisons as gtsfm_geometry_comparisons
 
-from afp.common.pano_data import FloorData, PanoData, generate_Sim2_from_floorplan_transform
-from afp.utils.rotation_utils import rotmat2d, wrap_angle_deg, rot2x2_to_Rot3
+import afp.utils.rotation_utils as rotation_utils
+from afp.common.pano_data import FloorData, PanoData
+
 
 REDTEXT = "\033[91m"
 ENDCOLOR = "\033[0m"
@@ -45,7 +46,8 @@ class PoseGraph2d(NamedTuple):
 
     def __repr__(self) -> str:
         """ """
-        return f"Graph has {len(self.nodes.keys())} nodes in Building {self.building_id}, {self.floor_id}: {self.nodes.keys()}"
+        n_nodes = len(self.nodes.keys())
+        return f"Graph has {n_nodes} nodes in Building {self.building_id}, {self.floor_id}: {self.nodes.keys()}"
 
     def get_camera_height_m(self, pano_id: int) -> float:
         """Obtain the actual height of a RICOH Theta camera, from the saved ZinD dataset information.
@@ -139,7 +141,7 @@ class PoseGraph2d(NamedTuple):
             wRi = pano_obj.global_Sim2_local.rotation
             wti = pano_obj.global_Sim2_local.translation
             wti = np.array([wti[0], wti[1], 0.0])
-            wRi = rot2x2_to_Rot3(wRi)
+            wRi = rotation_utils.rot2x2_to_Rot3(wRi)
 
             wTi = Pose3(wRi, Point3(wti))
 
@@ -260,7 +262,7 @@ class PoseGraph2d(NamedTuple):
             print(f"\tPano {pano_id}: GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}")
 
             # need to wrap around at 360
-            err = wrap_angle_deg(theta_deg_gt, theta_deg_est)
+            err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
             errs.append(err)
 
         mean_err = np.mean(errs)
@@ -298,11 +300,12 @@ class PoseGraph2d(NamedTuple):
                 print(f"\tPano pair ({i1},{i2}): GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}")
 
             # need to wrap around at 360
-            err = wrap_angle_deg(theta_deg_gt, theta_deg_est)
+            err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
             errs.append(err)
 
         mean_err = np.mean(errs)
-        print_str = f"Mean relative rot. error: {mean_err:.1f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos"
+        print_str = f"Mean relative rot. error: {mean_err:.1f}. "
+        print_str += f"Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos"
         print_str += f", estimated {len(errs)} / {len(gt_edges)} GT edges"
         print(REDTEXT + print_str + ENDCOLOR)
 
@@ -504,12 +507,12 @@ def test_measure_abs_pose_error_shifted() -> None:
     building_id = "000"
     floor_id = "floor_01"
 
-    wRi_list = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
+    wRi_list = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
     wti_list = [np.array([-1, 0]), np.array([-1, 4]), np.array([3, 0])]
 
     est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, building_id, floor_id)
 
-    wRi_list_gt = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
+    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
     wti_list_gt = [np.array([0, 0]), np.array([0, 4]), np.array([4, 0])]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list_gt, wti_list, building_id, floor_id)
 
@@ -539,11 +542,11 @@ def test_measure_avg_abs_rotation_err() -> None:
     building_id = "000"
     floor_id = "floor_01"
 
-    wRi_list = [rotmat2d(-5), rotmat2d(-95), rotmat2d(0)]
+    wRi_list = [rotation_utils.rotmat2d(-5), rotation_utils.rotmat2d(-95), rotation_utils.rotmat2d(0)]
 
     est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
 
-    wRi_list_gt = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
+    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
 
     mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
@@ -571,10 +574,10 @@ def test_measure_avg_rel_rotation_err() -> None:
     building_id = "000"
     floor_id = "floor_01"
 
-    wRi_list = [rotmat2d(-5), rotmat2d(-95), rotmat2d(0)]
+    wRi_list = [rotation_utils.rotmat2d(-5), rotation_utils.rotmat2d(-95), rotation_utils.rotmat2d(0)]
     est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
 
-    wRi_list_gt = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
+    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
 
     gt_edges = [(0, 1)]
@@ -613,10 +616,10 @@ def test_measure_avg_rel_rotation_err_unestimated() -> None:
     floor_id = "floor_01"
 
     # only 1 edge can be measured for correctness
-    wRi_list = [rotmat2d(-5), rotmat2d(-90), None]
+    wRi_list = [rotation_utils.rotmat2d(-5), rotation_utils.rotmat2d(-90), None]
     est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
 
-    wRi_list_gt = [rotmat2d(0), rotmat2d(-90), rotmat2d(0)]
+    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
 
     gt_edges = [(0, 1), (1, 2), (0, 2)]
