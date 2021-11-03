@@ -36,14 +36,14 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
 
-    gt_class = 0
+    gt_class = 1
     classname_str = "positives_only" if gt_class == 1 else "negatives_only"
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
     # import random
     # random.shuffle(json_fpaths)
 
-    import pdb; pdb.set_trace()
+    
 
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
@@ -63,6 +63,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
 
             if y_true != gt_class:
                 continue
+
+            import pdb; pdb.set_trace()
        
             # if y_true != 0:
             #     continue
