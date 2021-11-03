@@ -1155,7 +1155,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     trans_err_bins = np.zeros(10)
 
     # running computation of the mean.
-    for (iou, y_pred, rot_err, trans_err) in pairs:
+    for (iou, y_pred, rot_err, trans_err) in tuples:
 
         bin_idx = np.digitize(iou, bins=bin_edges)
         # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
