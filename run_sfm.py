@@ -1074,11 +1074,11 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
             # if y_hat_prob < confidence_threshold:
             #     continue            
 
-            f1 = imageio.imread(f1)
-            f2 = imageio.imread(f2)
+            f1 = imageio.imread(fp0)
+            f2 = imageio.imread(fp1)
             floor_iou = iou_utils.texture_map_iou(f1, f2)
 
-            pairs += [(floor_iou, m.y_hat)]
+            pairs += [(floor_iou, y_hat)]
 
     bin_edges = np.linspace(0,1,11)
     counts = np.zeros(10)
@@ -1090,7 +1090,10 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
         # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
         iou_bins[bin_idx - 1] += y_pred
 
-    normalized_iou_bins = np.divide(iou_bins, counts)
+    normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts.astype(np.float32))
+
+    plt.bar(np.arange(10), normalized_iou_bins)
+    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only.jpg", dpi=500)
 
     # bar chart.
 
