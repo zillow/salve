@@ -1096,6 +1096,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
         bin_idx = np.digitize(iou, bins=bin_edges)
         # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
         iou_bins[bin_idx - 1] += y_pred
+        counts[bin_idx - 1] += 1
 
     import pdb; pdb.set_trace()
     normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts.astype(np.float32))
