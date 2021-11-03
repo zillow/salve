@@ -1,4 +1,3 @@
-
 """
 Measure how the amount of visual overlap affects the trained verifier model's accuracy.
 """
@@ -21,14 +20,16 @@ import afp.utils.rotation_utils as rotation_utils
 from afp.common.edge_classification import EdgeClassification
 
 
-def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str) -> None:
+def measure_acc_vs_visual_overlap(
+    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str
+) -> None:
     """
     Count separately for negative and positive examples.
     """
 
-    #fig = plt.figure(dpi=200, facecolor='white')
-    plt.style.use('ggplot')
-    sns.set_style({'font.family': 'Times New Roman'})
+    # fig = plt.figure(dpi=200, facecolor='white')
+    plt.style.use("ggplot")
+    sns.set_style({"font.family": "Times New Roman"})
 
     tuples = []
     gt_floor_pg_dict = {}
@@ -43,8 +44,6 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     # import random
     # random.shuffle(json_fpaths)
 
-    
-
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
@@ -58,20 +57,24 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
         fp0_list = json_data["fp0"]
         fp1_list = json_data["fp1"]
 
-         # for each GT positive
+        # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
 
             if y_true != gt_class:
                 continue
 
             if not (
-                fp0 == '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_05_pano_55.jpg' \
-                and fp1 == '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_08_pano_58.jpg'
+                fp0
+                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_05_pano_55.jpg"
+                and fp1
+                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_08_pano_58.jpg"
             ):
                 continue
 
-            import pdb; pdb.set_trace()
-       
+            import pdb
+
+            pdb.set_trace()
+
             # if y_true != 0:
             #     continue
 
@@ -124,17 +127,21 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
                 configuration=configuration,
             )
 
-            if (building_id,floor_id) not in gt_floor_pg_dict:
-                gt_floor_pg_dict[(building_id,floor_id)] = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+            if (building_id, floor_id) not in gt_floor_pg_dict:
+                gt_floor_pg_dict[(building_id, floor_id)] = posegraph2d.get_gt_pose_graph(
+                    building_id, floor_id, raw_dataset_dir
+                )
 
-            gt_floor_pg = gt_floor_pg_dict[(building_id,floor_id)]
+            gt_floor_pg = gt_floor_pg_dict[(building_id, floor_id)]
 
             wTi1_gt = gt_floor_pg.nodes[i1].global_Sim2_local
             wTi2_gt = gt_floor_pg.nodes[i2].global_Sim2_local
             i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
 
             # # technically it is i2Si1, but scale will always be 1 with inferred WDO.
-            i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+            i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(
+                m, hypotheses_save_root, building_id, floor_id
+            )
 
             theta_deg_est = i2Ti1.theta_deg
             theta_deg_gt = i2Ti1_gt.theta_deg
@@ -144,8 +151,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
             trans_err = np.linalg.norm(i2Ti1_gt.translation - i2Ti1.translation)
             tuples += [(floor_iou, y_hat, y_true, rot_err, trans_err)]
 
-
-    bin_edges = np.linspace(0,1,11)
+    bin_edges = np.linspace(0, 1, 11)
     counts = np.zeros(10)
     acc_bins = np.zeros(10)
     rot_err_bins = np.zeros(10)
@@ -171,8 +177,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     def format_bar_chart() -> None:
         """ """
         xtick_labels = []
-        for i in range(len(bin_edges)-1):
-            xtick_labels += [ f"[{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f})" ]
+        for i in range(len(bin_edges) - 1):
+            xtick_labels += [f"[{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f})"]
         plt.xticks(ticks=np.arange(10), labels=xtick_labels, rotation=20)
         plt.tight_layout()
 
@@ -181,7 +187,10 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     plt.xlabel("Floor-Floor Texture Map IoU")
     plt.ylabel("Mean Accuracy (%)")
     format_bar_chart()
-    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_{classname_str}__confthresh{confidence_threshold}.pdf", dpi=500)
+    plt.savefig(
+        f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
+        dpi=500,
+    )
     plt.close("all")
     # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_allexamples__confthresh{confidence_threshold}.jpg", dpi=500)
 
@@ -189,25 +198,30 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     plt.xlabel("Floor-Floor Texture Map IoU")
     plt.ylabel("Rotation Error (degrees)")
     format_bar_chart()
-    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_rot_error_iou_positives_only__confthresh{confidence_threshold}.pdf", dpi=500)
+    plt.savefig(
+        f"{Path(serialized_preds_json_dir).stem}___bar_chart_rot_error_iou_positives_only__confthresh{confidence_threshold}.pdf",
+        dpi=500,
+    )
     plt.close("all")
 
     plt.bar(np.arange(10), avg_trans_err_bins)
     plt.xlabel("Floor-Floor Texture Map IoU")
     plt.ylabel("Translation Error")
     format_bar_chart()
-    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_positives_only__confthresh{confidence_threshold}.pdf", dpi=500)
+    plt.savefig(
+        f"{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_positives_only__confthresh{confidence_threshold}.pdf",
+        dpi=500,
+    )
     plt.close("all")
 
     # TODO: write a unit test for this function.
 
 
 def test_measure_acc_vs_visual_overlap() -> None:
-	""" """
-	serialized_preds_json_dir = ""
-	hypotheses_save_root = ""
-	raw_dataset_dir = ""
-
+    """ """
+    serialized_preds_json_dir = ""
+    hypotheses_save_root = ""
+    raw_dataset_dir = ""
 
     # first 3 entries from '/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02/batch_126.json'
     # Example 0 -- IoU 0.709, Rot Error 1.43 deg, Trans Error 0.01
@@ -218,15 +232,15 @@ def test_measure_acc_vs_visual_overlap() -> None:
         "y_true": [1, 1, 1],
         "y_hat_probs": [0.9995661377906799, 0.9970742464065552, 0.6184548735618591],
         "fp0": [
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_54___door_0_0_identity_floor_rgb_floor_02_partial_room_01_pano_48.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_102___door_1_1_rotated_floor_rgb_floor_02_partial_room_02_pano_60.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_48___door_0_1_rotated_floor_rgb_floor_02_partial_room_03_pano_47.jpg'
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_54___door_0_0_identity_floor_rgb_floor_02_partial_room_01_pano_48.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_102___door_1_1_rotated_floor_rgb_floor_02_partial_room_02_pano_60.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_48___door_0_1_rotated_floor_rgb_floor_02_partial_room_03_pano_47.jpg",
         ],
         "fp1": [
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_54___door_0_0_identity_floor_rgb_floor_02_partial_room_01_pano_51.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_102___door_1_1_rotated_floor_rgb_floor_02_partial_room_08_pano_57.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_48___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_54.jpg'
-        ]
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_54___door_0_0_identity_floor_rgb_floor_02_partial_room_01_pano_51.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_102___door_1_1_rotated_floor_rgb_floor_02_partial_room_08_pano_57.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_48___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_54.jpg",
+        ],
     }
 
     # last 4 entries from batch 126
@@ -235,32 +249,34 @@ def test_measure_acc_vs_visual_overlap() -> None:
         "y_true": [1, 1, 1, 1],
         "y_hat_probs": [0.8956580758094788, 0.7106943726539612, 0.573124885559082, 0.7701843976974487],
         "fp0": [
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_05_pano_55.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_31___door_1_1_rotated_floor_rgb_floor_02_partial_room_02_pano_45.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_65.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_03_pano_47.jpg'
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_05_pano_55.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_31___door_1_1_rotated_floor_rgb_floor_02_partial_room_02_pano_45.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_65.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_03_pano_47.jpg",
         ],
         "fp1": [
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_08_pano_58.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_31___door_1_1_rotated_floor_rgb_floor_02_partial_room_08_pano_57.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_68.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_52.jpg'
-        ]
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_08_pano_58.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_31___door_1_1_rotated_floor_rgb_floor_02_partial_room_08_pano_57.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_68.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_52.jpg",
+        ],
     }
 
     # choose just 4 pairs with known poses.
-	
-	measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
-	assert False
+
+    measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
+    assert False
 
 
 if __name__ == "__main__":
 
-    serialized_preds_json_dir = "/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    serialized_preds_json_dir = (
+        "/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    )
     # serialized_preds_json_dir = "/home/johnlam/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
     # serialized_preds_json_dir = "/home/johnlam/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
     raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
-    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    hypotheses_save_root = (
+        "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    )
     measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
-
-
