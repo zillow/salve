@@ -1051,7 +1051,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     pairs = []
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
-    for json_fpath in json_fpaths:
+    for json_idx, json_fpath in enumerate(json_fpaths):
+        print(f"On {json_idx}/{len(json_fpaths)}")
 
         json_data = json_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
