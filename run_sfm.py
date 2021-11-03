@@ -1059,8 +1059,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
-        # if json_idx > 300:
-        #     continue
+        if json_idx > 30:
+            continue
 
         json_data = json_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
@@ -1151,6 +1151,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     bin_edges = np.linspace(0,1,11)
     counts = np.zeros(10)
     iou_bins = np.zeros(10)
+    rot_err_bins = np.zeros(10)
+    trans_err_bins = np.zeros(10)
 
     # running computation of the mean.
     for (iou, y_pred, rot_err, trans_err) in pairs:
@@ -1158,26 +1160,47 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
         bin_idx = np.digitize(iou, bins=bin_edges)
         # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
         iou_bins[bin_idx - 1] += y_pred
+        rot_err_bins[bin_idx - 1] += rot_err
+        trans_err_bins[bin_idx - 1] += trans_err
         counts[bin_idx - 1] += 1
 
-    normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts.astype(np.float32))
+    counts = counts.astype(np.float32)
+    normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts)
+
+    avg_rot_err_bins = np.divide(rot_err_bins, counts)
+    avg_trans_err_bins = np.divide(trans_err_bins, counts)
+
+    def format_bar_chart() -> None:
+        """ """
+        xtick_labels = []
+        for i in range(len(bin_edges)-1):
+            xtick_labels += [ f"[{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f})" ]
+        plt.xticks(ticks=np.arange(10), labels=xtick_labels, rotation=20)
+        plt.tight_layout()
 
     # bar chart.
-    plt.bar(np.arange(10), normalized_iou_bins)
-    plt.xlabel("Floor-Floor Texture Map IoU")
-    plt.ylabel("Mean Accuracy")
-
-    xtick_labels = []
-    for i in range(len(bin_edges)-1):
-        xtick_labels += [ f"[{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f})" ]
-    plt.xticks(ticks=np.arange(10), labels=xtick_labels, rotation=20)
-    plt.tight_layout()
+    # plt.bar(np.arange(10), normalized_iou_bins)
+    # plt.xlabel("Floor-Floor Texture Map IoU")
+    # plt.ylabel("Mean Accuracy")
 
     # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
-    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_negatives_only__confthresh{confidence_threshold}.jpg", dpi=500)
+    # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_negatives_only__confthresh{confidence_threshold}.jpg", dpi=500)
     # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_allexamples__confthresh{confidence_threshold}.jpg", dpi=500)
 
-    
+    plt.bar(np.arange(10), avg_rot_err_bins)
+    format_bar_chart()
+    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_rot_error_iou_positives_only__confthresh{confidence_threshold}.pdf", dpi=500)
+    plt.close("all")
+
+    plt.bar(np.arange(10), avg_trans_err_bins)
+    format_bar_chart()
+    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_positives_only__confthresh{confidence_threshold}.pdf", dpi=500)
+    plt.close("all")
+
+    # TODO: write a unit test for this function.
+
+
+
 
 
 if __name__ == "__main__":
