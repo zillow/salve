@@ -65,11 +65,19 @@ def measure_acc_vs_visual_overlap(
 
             if not (
                 fp0
-                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_05_pano_55.jpg"
+                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_31___door_1_1_rotated_floor_rgb_floor_02_partial_room_02_pano_45.jpg"
                 and fp1
-                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_95___opening_0_0_rotated_floor_rgb_floor_02_partial_room_08_pano_58.jpg"
+                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_31___door_1_1_rotated_floor_rgb_floor_02_partial_room_08_pano_57.jpg"
             ):
                 continue
+            
+            # "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_65.jpg",
+            # "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_03_pano_47.jpg",
+
+            
+            # "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_68.jpg",
+            # "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_52.jpg",
+
 
             import pdb
 
@@ -244,6 +252,10 @@ def test_measure_acc_vs_visual_overlap() -> None:
     }
 
     # last 4 entries from batch 126
+    # Example 0 -- IoU 0.381, Rot Error 2.325, Trans Error 0.057
+    # Example 1 -- IoU , Rot Error, Trans Error
+    # Example 2 -- IoU , Rot Error, Trans Error
+    # Example 3 -- IoU , Rot Error, Trans Error
     batch126b_dict = {
         "y_hat": [0, 1, 0, 1],
         "y_true": [1, 1, 1, 1],
