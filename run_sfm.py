@@ -1071,11 +1071,11 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
          # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
 
-            if y_true != 1:
-                continue
-       
-            # if y_true != 0:
+            # if y_true != 1:
             #     continue
+       
+            if y_true != 0:
+                continue
 
             if y_hat_prob < confidence_threshold:
                 continue            
@@ -1133,8 +1133,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     plt.xticks(ticks=np.arange(10), labels=xtick_labels, rotation=20)
     plt.tight_layout()
 
-    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
-    # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_negatives_only__confthresh{confidence_threshold}.jpg", dpi=500)
+    # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
+    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_negatives_only__confthresh{confidence_threshold}.jpg", dpi=500)
     # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_allexamples__confthresh{confidence_threshold}.jpg", dpi=500)
 
     
