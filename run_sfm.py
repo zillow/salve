@@ -1104,7 +1104,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
 
     xtick_labels = []
     for i in range(len(bin_edges)-1):
-        xtick_labels += [ f"[{bin_edges[i]}-{bin_edges[i+1]})" ]
+        xtick_labels += [ f"[{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f})" ]
     plt.xticks(ticks=np.arange(10), labels=xtick_labels, rotation=20)
 
 
