@@ -1048,6 +1048,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     import imageio
 
     tuples = []
+    gt_floor_pg_dict = {}
 
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
