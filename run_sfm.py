@@ -1041,13 +1041,13 @@ def test_align_pairs_by_vanishing_angle_noisy() -> None:
 
 
 
-def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
+def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str) -> None:
     """
-    ONLY FOR POSITIVE EXAMPLES! DOES IT MAKE SENSE TO EVALUTE THIS FOR NEGATIVE EXAMPLES?
+    Count separately for negative and positive examples.
     """
     import imageio
 
-    pairs = []
+    tuples = []
 
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
@@ -1084,28 +1084,55 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
             f2 = imageio.imread(fp1)
             floor_iou = iou_utils.texture_map_iou(f1, f2)
 
-            pairs += [(floor_iou, y_hat)]
+            i1 = int(Path(fp0).stem.split("_")[-1])
+            i2 = int(Path(fp1).stem.split("_")[-1])
+            building_id = Path(fp0).parent.stem
 
+            s = Path(fp0).stem.find("floor_0")
+            e = Path(fp0).stem.find("_partial")
+            floor_id = Path(fp0).stem[s:e]
 
-            # i1 = m.i1
-            # i2 = m.i2
+            pair_idx = Path(fp0).stem.split("_")[1]
 
-            # wTi1_gt = gt_floor_pg.nodes[i1].global_Sim2_local
-            # wTi2_gt = gt_floor_pg.nodes[i2].global_Sim2_local
-            # i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
+            is_identity = "identity" in Path(fp0).stem
+            configuration = "identity" if is_identity else "rotated"
+
+            # Rip out the WDO indices (`wdo_pair_uuid`), given `pair_3905___door_3_0_identity_floor_rgb_floor_01_partial_room_02_pano_38.jpg`
+            k = Path(fp0).stem.split("___")[1].find(f"_{configuration}")
+            assert k != -1
+            wdo_pair_uuid = Path(fp0).stem.split("___")[1][:k]
+            assert any([wdo_type in wdo_pair_uuid for wdo_type in ["door", "window", "opening"]])
+
+            m = EdgeClassification(
+                i1=i1,
+                i2=i2,
+                prob=y_hat_prob,
+                y_hat=y_hat,
+                y_true=y_true,
+                pair_idx=pair_idx,
+                wdo_pair_uuid=wdo_pair_uuid,
+                configuration=configuration,
+            )
+
+            if (building_id,floor_id) not in gt_floor_pg_dict:
+                gt_floor_pg_dict[(building_id,floor_id)] = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+
+            gt_floor_pg = gt_floor_pg_dict[(building_id,floor_id)]
+
+            wTi1_gt = gt_floor_pg.nodes[i1].global_Sim2_local
+            wTi2_gt = gt_floor_pg.nodes[i2].global_Sim2_local
+            i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
 
             # # technically it is i2Si1, but scale will always be 1 with inferred WDO.
-            # i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+            i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
 
-            # theta_deg_est = i2Ti1.theta_deg
-            # theta_deg_gt = i2Ti1_gt.theta_deg
+            theta_deg_est = i2Ti1.theta_deg
+            theta_deg_gt = i2Ti1_gt.theta_deg
 
-            # # need to wrap around at 360
-            # rot_err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
-            # rot_errs.append(rot_err)
-
-            # trans_err = np.linalg.norm(i2Ti1_gt.translation - i2Ti1.translation)
-            # trans_errs.append(trans_err)
+            # need to wrap around at 360
+            rot_err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
+            trans_err = np.linalg.norm(i2Ti1_gt.translation - i2Ti1.translation)
+            tuples += [(floor_iou, y_hat, rot_err, trans_err)]
 
 
     bin_edges = np.linspace(0,1,11)
@@ -1113,7 +1140,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     iou_bins = np.zeros(10)
 
     # running computation of the mean.
-    for (iou, y_pred) in pairs:
+    for (iou, y_pred, rot_err, trans_err) in pairs:
 
         bin_idx = np.digitize(iou, bins=bin_edges)
         # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
@@ -1179,7 +1206,7 @@ if __name__ == "__main__":
     # serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
     # serialized_preds_json_dir = "/data/johnlam/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
     serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
-    measure_acc_vs_visual_overlap(serialized_preds_json_dir)
+    measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
 
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
