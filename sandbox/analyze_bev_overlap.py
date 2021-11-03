@@ -80,22 +80,15 @@ def main() -> None:
         plt.close("all")
 
         bin_edges = np.linspace(0,1,11)
-        counts = np.zeros(10)
         iou_bins = np.zeros(10)
 
-        # running computation of the mean.
-        for (iou, y_pred, rot_err, trans_err) in tuples:
+        import pdb; pdb.set_trace()
 
-            bin_idx = np.digitize(iou, bins=bin_edges)
-            # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
-            iou_bins[bin_idx - 1] += y_pred
-            counts[bin_idx - 1] += 1
+        bin_idxs = np.digitize(floor_ious, bins=bin_edges)
+        iou_bins[bin_idxs] += 1
 
-        counts = counts.astype(np.float32)
-        normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts)
-
-        avg_rot_err_bins = np.divide(rot_err_bins, counts)
-        avg_trans_err_bins = np.divide(trans_err_bins, counts)
+        # convert to percent
+        normalized_iou_bins = iou_bins / len(floor_ious) * 100
 
         def format_bar_chart() -> None:
             """ """
@@ -106,7 +99,7 @@ def main() -> None:
             plt.tight_layout()
 
         # bar chart.
-        plt.bar(np.arange(10), normalized_iou_bins)
+        plt.bar(np.arange(10), normalized_iou_bins) # convert to percent
         plt.xlabel("Floor-Floor Texture Map IoU")
         plt.ylabel(f"Percent of {classname} Image Pairs")
         format_bar_chart()
