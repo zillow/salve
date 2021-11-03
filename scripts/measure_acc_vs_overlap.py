@@ -165,11 +165,15 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_allexamples__confthresh{confidence_threshold}.jpg", dpi=500)
 
     plt.bar(np.arange(10), avg_rot_err_bins)
+    plt.xlabel("Floor-Floor Texture Map IoU")
+    plt.ylabel("Rotation Error (degrees)")
     format_bar_chart()
     plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_rot_error_iou_positives_only__confthresh{confidence_threshold}.pdf", dpi=500)
     plt.close("all")
 
     plt.bar(np.arange(10), avg_trans_err_bins)
+    plt.xlabel("Floor-Floor Texture Map IoU")
+    plt.ylabel("Translation Error")
     format_bar_chart()
     plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_positives_only__confthresh{confidence_threshold}.pdf", dpi=500)
     plt.close("all")
