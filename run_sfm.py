@@ -1045,14 +1045,21 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     """
     ONLY FOR POSITIVE EXAMPLES! DOES IT MAKE SENSE TO EVALUTE THIS FOR NEGATIVE EXAMPLES?
     """
-    import pdb; pdb.set_trace()
     import imageio
 
     pairs = []
 
+    # maybe interesting to also check histograms at different confidence thresholds
+    confidence_threshold = 0.0
+
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
+    import random
+    random.shuffle(json_fpaths)
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
+
+        if json_idx > 30:
+            continue
 
         json_data = json_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
@@ -1071,9 +1078,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
             if y_true != 1:
                 continue
        
-            # maybe interesting to also check histograms at different confidence thresholds
-            # if y_hat_prob < confidence_threshold:
-            #     continue            
+            if y_hat_prob < confidence_threshold:
+                continue            
 
             f1 = imageio.imread(fp0)
             f2 = imageio.imread(fp1)
@@ -1091,10 +1097,11 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
         # digitize puts it into `bins[i-1] <= x < bins[i]` so we have to subtract 1
         iou_bins[bin_idx - 1] += y_pred
 
+    import pdb; pdb.set_trace()
     normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts.astype(np.float32))
 
     plt.bar(np.arange(10), normalized_iou_bins)
-    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only.jpg", dpi=500)
+    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
 
     # bar chart.
 
