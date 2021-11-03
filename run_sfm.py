@@ -1071,11 +1071,11 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
          # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
 
-            # if y_true != 1:
-            #     continue
-       
-            if y_true != 0:
+            if y_true != 1:
                 continue
+       
+            # if y_true != 0:
+            #     continue
 
             if y_hat_prob < confidence_threshold:
                 continue            
@@ -1085,6 +1085,28 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
             floor_iou = iou_utils.texture_map_iou(f1, f2)
 
             pairs += [(floor_iou, y_hat)]
+
+
+            # i1 = m.i1
+            # i2 = m.i2
+
+            # wTi1_gt = gt_floor_pg.nodes[i1].global_Sim2_local
+            # wTi2_gt = gt_floor_pg.nodes[i2].global_Sim2_local
+            # i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
+
+            # # technically it is i2Si1, but scale will always be 1 with inferred WDO.
+            # i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+
+            # theta_deg_est = i2Ti1.theta_deg
+            # theta_deg_gt = i2Ti1_gt.theta_deg
+
+            # # need to wrap around at 360
+            # rot_err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
+            # rot_errs.append(rot_err)
+
+            # trans_err = np.linalg.norm(i2Ti1_gt.translation - i2Ti1.translation)
+            # trans_errs.append(trans_err)
+
 
     bin_edges = np.linspace(0,1,11)
     counts = np.zeros(10)
@@ -1111,8 +1133,9 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     plt.xticks(ticks=np.arange(10), labels=xtick_labels, rotation=20)
     plt.tight_layout()
 
-    # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
-    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_negatives_only__confthresh{confidence_threshold}.jpg", dpi=500)
+    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
+    # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_negatives_only__confthresh{confidence_threshold}.jpg", dpi=500)
+    # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_allexamples__confthresh{confidence_threshold}.jpg", dpi=500)
 
     
 
@@ -1153,7 +1176,9 @@ if __name__ == "__main__":
 
     #test_align_pairs_by_vanishing_angle()
 
-    serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    # serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    # serialized_preds_json_dir = "/data/johnlam/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
+    serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
     measure_acc_vs_visual_overlap(serialized_preds_json_dir)
 
 
