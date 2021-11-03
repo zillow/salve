@@ -1106,7 +1106,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     for i in range(len(bin_edges)-1):
         xtick_labels += [ f"[{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f})" ]
     plt.xticks(ticks=np.arange(10), labels=xtick_labels, rotation=20)
-
+    plt.tight_layout()
 
     plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
 
