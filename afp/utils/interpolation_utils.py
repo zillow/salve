@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 
 from argoverse.utils.mesh_grid import get_mesh_grid_as_point_cloud
-import scipy.interpolate # not quite the same as `matplotlib.mlab.griddata`
+import scipy.interpolate  # not quite the same as `matplotlib.mlab.griddata`
 
 
 # DEFAULT_KERNEL_SZ = 41
@@ -58,12 +58,12 @@ def test_interp_dense_grid_from_sparse_insufficient_points_simplex() -> None:
     We reproduce:
     scipy.spatial.qhull.QhullError: QH6214 qhull input error: not enough points(2) to construct initial simplex (need 4)
     """
-    RED = [255,0,0]
-    GREEN = [0,255,0]
+    RED = [255, 0, 0]
+    GREEN = [0, 255, 0]
 
-    bev_img = np.zeros((10,10,3))
-    points = np.array([[1,1], [5,5]])
-    rgb_values = np.array([RED,GREEN])
+    bev_img = np.zeros((10, 10, 3))
+    points = np.array([[1, 1], [5, 5]])
+    rgb_values = np.array([RED, GREEN])
     grid_h = 10
     grid_w = 10
 
@@ -74,39 +74,24 @@ def test_interp_dense_grid_from_sparse_insufficient_points_simplex() -> None:
 
 
 def test_interp_dense_grid_from_sparse() -> None:
-	""" """
-	RED = [255,0,0]
-	GREEN = [0,255,0]
-	BLUE = [0,0,255]
-	bev_img = np.zeros((4, 4, 3))
+    """ """
+    RED = [255, 0, 0]
+    GREEN = [0, 255, 0]
+    BLUE = [0, 0, 255]
+    bev_img = np.zeros((4, 4, 3))
 
-	# provided as (x,y) tuples
-	points = np.array(
-		[
-			[0,0], 
-			[0,3],
-			[3,3],
-			[3,0]
-		]
-	)
-	rgb_values = np.array([
-		RED,
-		GREEN,
-		BLUE,
-		RED
-		]
-	)
-	grid_h = 4
-	grid_w = 4
+    # provided as (x,y) tuples
+    points = np.array([[0, 0], [0, 3], [3, 3], [3, 0]])
+    rgb_values = np.array([RED, GREEN, BLUE, RED])
+    grid_h = 4
+    grid_w = 4
 
-	dense_grid = interp_dense_grid_from_sparse(
-    	bev_img, points, rgb_values, grid_h, grid_w, is_semantics=False
-	)
-	assert isinstance(dense_grid, np.ndarray)
-	assert dense_grid.shape == (4,4,3)
-	# import matplotlib.pyplot as plt
-	# plt.imshow(dense_grid)
-	# plt.show()
+    dense_grid = interp_dense_grid_from_sparse(bev_img, points, rgb_values, grid_h, grid_w, is_semantics=False)
+    assert isinstance(dense_grid, np.ndarray)
+    assert dense_grid.shape == (4, 4, 3)
+    # import matplotlib.pyplot as plt
+    # plt.imshow(dense_grid)
+    # plt.show()
 
 
 def remove_hallucinated_content(
