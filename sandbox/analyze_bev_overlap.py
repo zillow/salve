@@ -15,9 +15,12 @@ import afp.utils.iou_utils as iou_utils
 
 
 def main() -> None:
-    """Analyze data generated with Sim(3) alignments."""
-    #data_root = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25"
-    data_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    """Analyze data generated with  alignments.
+    
+    Save 20-bin and 10-bin histograms showing distribution of visual overlap.
+    """
+    #data_root = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25" # Sim(3) alignments
+    data_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres" # SE(2) alignments
 
     split_building_ids = zind_data.get_available_building_ids(dataset_root=f"{data_root}/gt_alignment_approx")
 
@@ -43,7 +46,7 @@ def main() -> None:
     for label_name, label_idx in label_dict.items():
         for b, building_id in enumerate(split_building_ids):
 
-            if b > 10:
+            if b > 100:
                 continue
 
             print(f"Building {building_id}: {b}/{len(split_building_ids)}")
@@ -71,7 +74,7 @@ def main() -> None:
                     #     c2 = imageio.imread(fp2c)
                     #     show_quadruplet(c1, c2, f1, f2, title=f"IoU: {floor_iou:.2f}")
 
-        classname = "Positive" if label_name == "gt_alignment_approx" else "incorrect_alignment"
+        classname = "Positive" if label_name == "gt_alignment_approx" else "Negative"
 
         plt.hist(floor_ious, bins=20)
         plt.xlabel("BEV Floor-Floor IoU")
@@ -80,9 +83,6 @@ def main() -> None:
         plt.close("all")
 
         bin_edges = np.linspace(0,1,11)
-
-        import pdb; pdb.set_trace()
-
         bin_idxs = np.digitize(floor_ious, bins=bin_edges)
         iou_bins = np.bincount(bin_idxs - 1)
 
