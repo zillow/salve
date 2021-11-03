@@ -39,8 +39,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
-        if json_idx > 30:
-            continue
+        # if json_idx > 30:
+        #     continue
 
         json_data = json_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
