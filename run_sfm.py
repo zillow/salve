@@ -1058,8 +1058,8 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
-        # if json_idx > 30:
-        #     continue
+        if json_idx > 30:
+            continue
 
         json_data = json_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
@@ -1070,10 +1070,6 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
 
          # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
-            # Note: not guaranteed that i1 < i2
-            i1 = int(Path(fp0).stem.split("_")[-1])
-            i2 = int(Path(fp1).stem.split("_")[-1])
-            building_id = Path(fp0).parent.stem
 
             if y_true != 1:
                 continue
@@ -1091,6 +1087,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
     counts = np.zeros(10)
     iou_bins = np.zeros(10)
 
+    # running computation of the mean.
     for (iou, y_pred) in pairs:
 
         bin_idx = np.digitize(iou, bins=bin_edges)
@@ -1098,13 +1095,22 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str) -> None:
         iou_bins[bin_idx - 1] += y_pred
         counts[bin_idx - 1] += 1
 
-    # import pdb; pdb.set_trace()
     normalized_iou_bins = np.divide(iou_bins.astype(np.float32), counts.astype(np.float32))
 
+    # bar chart.
     plt.bar(np.arange(10), normalized_iou_bins)
+    plt.xlabel("Floor-Floor Texture Map IoU")
+    plt.ylabel("Mean Accuracy")
+
+    xtick_labels = []
+    for i in range(len(bin_edges)):
+        xtick_labels += [ f"[{bin_edges[i]}-{bin_edges[i+1]})"
+    plt.xticks(ticks=np.arange(10), labels=xtick_labels)
+
+
     plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_positives_only__confthresh{confidence_threshold}.jpg", dpi=500)
 
-    # bar chart.
+    
 
 
 if __name__ == "__main__":
