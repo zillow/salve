@@ -98,11 +98,11 @@ def get_alignment_hypothesis_for_measurement(
     Args:
         m: 
         hypotheses_save_root:
-        building_id:
-        floor_id:
+        building_id: unique ID for ZinD building.
+        floor_id: unique ID for floor of a ZinD building.
 
     Returns:
-        i2Si1
+        i2Si1: Similarity(2) transformation.
     """
     # label_dirname = "gt_alignment_exact"
     # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
