@@ -85,7 +85,7 @@ def main() -> None:
         import pdb; pdb.set_trace()
 
         bin_idxs = np.digitize(floor_ious, bins=bin_edges)
-        iou_bins[bin_idxs] += 1
+        iou_bins[bin_idxs-1] += 1
 
         # convert to percent
         normalized_iou_bins = iou_bins / len(floor_ious) * 100
