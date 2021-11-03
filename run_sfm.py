@@ -1079,7 +1079,11 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
                 continue
 
             if y_hat_prob < confidence_threshold:
-                continue            
+                continue
+
+            if "/data/johnlam" in fp0:
+                fp0 = fp0.replace("/data/johnlam", "/home/johnlam")
+                fp1 = fp1.replace("/data/johnlam", "/home/johnlam")
 
             f1 = imageio.imread(fp0)
             f2 = imageio.imread(fp1)
