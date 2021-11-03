@@ -31,7 +31,7 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     confidence_threshold = 0.0
 
     gt_class = 1
-    classname_str "positives_only" if gt_class == 1 else "negatives_only"
+    classname_str = "positives_only" if gt_class == 1 else "negatives_only"
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
     # import random
