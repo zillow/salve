@@ -11,6 +11,7 @@ import argoverse.utils.json_utils as json_utils
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 from argoverse.utils.sim2 import Sim2
 
 import afp.common.edge_classification as edge_classification
@@ -24,6 +25,11 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     """
     Count separately for negative and positive examples.
     """
+
+    #fig = plt.figure(dpi=200, facecolor='white')
+    plt.style.use('ggplot')
+    sns.set_style({'font.family': 'Times New Roman'})
+
     tuples = []
     gt_floor_pg_dict = {}
 
@@ -162,9 +168,9 @@ def measure_acc_vs_visual_overlap(serialized_preds_json_dir: str, hypotheses_sav
     # bar chart.
     plt.bar(np.arange(10), mean_acc_bins)
     plt.xlabel("Floor-Floor Texture Map IoU")
-    plt.ylabel("Mean Accuracy (\%)")
+    plt.ylabel("Mean Accuracy (%)")
     format_bar_chart()
-    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_{classname_str}__confthresh{confidence_threshold}.jpg", dpi=500)
+    plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_{classname_str}__confthresh{confidence_threshold}.pdf", dpi=500)
     plt.close("all")
     # plt.savefig(f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_allexamples__confthresh{confidence_threshold}.jpg", dpi=500)
 
