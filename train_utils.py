@@ -68,7 +68,17 @@ def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: flo
 
 
 def get_train_transform(args: TrainingConfig) -> Callable:
-    """ """
+    """
+    For a single modality, we will get a pair of images (two panoramas in the image pair).
+    For two modalities, we will get 2 images for each panorama in the image pair (4 images in total).
+    For three modalities, we will get 3 images for each panorama in the image pair (6 images in total).
+
+    Args:
+        args: training hyperparamaters.
+
+    Returns:
+        callable object with sequentially chained data transformations.
+    """
     if len(args.modalities) == 1:
         Resize = transform.ResizePair
         Crop = transform.CropPair
@@ -119,7 +129,6 @@ def get_train_transform(args: TrainingConfig) -> Callable:
     ])
     logging.info("Train transform_list: " + str(transform_list))
     return Compose(transform_list)
-
 
 
 def get_val_test_transform(args: TrainingConfig) -> Callable:
