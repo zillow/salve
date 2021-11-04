@@ -37,7 +37,7 @@ def measure_acc_vs_visual_overlap(
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
 
-    gt_class = 1
+    gt_class = 0
     classname_str = "positives_only" if gt_class == 1 else "negatives_only"
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
@@ -57,23 +57,13 @@ def measure_acc_vs_visual_overlap(
         fp0_list = json_data["fp0"]
         fp1_list = json_data["fp1"]
 
+        import pdb;pdb.set_trace()
+
         # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
 
             if y_true != gt_class:
                 continue
-
-            if not (
-                fp0
-                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_03_pano_47.jpg"
-                and fp1
-                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_52.jpg"
-            ):
-                continue
-
-            import pdb
-
-            pdb.set_trace()
 
             # if y_true != 0:
             #     continue
@@ -247,7 +237,7 @@ def test_measure_acc_vs_visual_overlap() -> None:
     # Example 0 -- IoU 0.381, Rot Error 2.325, Trans Error 0.057
     # Example 1 -- IoU 0.355, Rot Error 1.590, Trans Error 0.0665
     # Example 2 -- IoU 0.244, Rot Error 1.465, Trans Error 0.122
-    # Example 3 -- IoU , Rot Error, Trans Error
+    # Example 3 -- IoU 0.422, Rot Error 2.7, Trans Error 0.141
     batch126b_dict = {
         "y_hat": [0, 1, 0, 1],
         "y_true": [1, 1, 1, 1],
