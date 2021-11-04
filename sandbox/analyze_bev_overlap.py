@@ -9,6 +9,7 @@ from typing import Optional
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 import afp.dataset.zind_data as zind_data
 import afp.utils.iou_utils as iou_utils
@@ -19,6 +20,10 @@ def main() -> None:
     
     Save 20-bin and 10-bin histograms showing distribution of visual overlap.
     """
+
+    plt.style.use("ggplot")
+    sns.set_style({"font.family": "Times New Roman"})
+
     #data_root = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25" # Sim(3) alignments
     data_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres" # SE(2) alignments
 
