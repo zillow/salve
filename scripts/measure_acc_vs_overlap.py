@@ -21,7 +21,7 @@ from afp.common.edge_classification import EdgeClassification
 
 
 def measure_acc_vs_visual_overlap(
-    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class = 0
+    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class = 1
 ) -> None:
     """
     Count separately for negative and positive examples.
@@ -55,8 +55,6 @@ def measure_acc_vs_visual_overlap(
         y_hat_prob_list = json_data["y_hat_probs"]
         fp0_list = json_data["fp0"]
         fp1_list = json_data["fp1"]
-
-        
 
         # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
@@ -176,8 +174,12 @@ def measure_acc_vs_visual_overlap(
     plt.xlabel("Floor-Floor Texture Map IoU")
     plt.ylabel("Mean Accuracy (%)")
     format_bar_chart()
+
+    save_dir = "overlap_analysis_2021_11_03"
+    os.makedirs(save_dir, exist_ok=True)
+
     plt.savefig(
-        f"overlap_analysis/{Path(serialized_preds_json_dir).stem}___bar_chart_acc_{classname_str}__confthresh{confidence_threshold}.pdf",
+        f"{save_dir}/{Path(serialized_preds_json_dir).stem}___bar_chart_acc_{classname_str}__confthresh{confidence_threshold}.pdf",
         dpi=500,
     )
     plt.close("all")
@@ -188,7 +190,7 @@ def measure_acc_vs_visual_overlap(
     plt.ylabel("Rotation Error (degrees)")
     format_bar_chart()
     plt.savefig(
-        f"overlap_analysis/{Path(serialized_preds_json_dir).stem}___bar_chart_rot_error_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
+        f"{save_dir}/{Path(serialized_preds_json_dir).stem}___bar_chart_rot_error_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
         dpi=500,
     )
     plt.close("all")
@@ -198,7 +200,7 @@ def measure_acc_vs_visual_overlap(
     plt.ylabel("Translation Error")
     format_bar_chart()
     plt.savefig(
-        f"overlap_analysis/{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
+        f"{save_dir}_2021_11_03/{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
         dpi=500,
     )
     plt.close("all")
@@ -294,13 +296,12 @@ def test_measure_acc_vs_visual_overlap() -> None:
     mean_acc_bins, avg_rot_err_bins, avg_trans_err_bins = measure_acc_vs_visual_overlap(
         serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir, gt_class=0
     )
-    mean_acc_bins = np.array([ np.nan,  np.nan,  np.nan,  np.nan, 100.,  np.nan,  np.nan,  np.nan,   0.,  np.nan], dtype=np.float32)
-    avg_rot_err_bins = np.array([ np.nan, np.nan, np.nan, np.nan, 40.80807495, np.nan, np.nan, np.nan,  1.21432495, np.nan])
-    avg_trans_err_bins = np.array([ np.nan, np.nan, np.nan, np.nan, 8.61940479, np.nan, np.nan, np.nan, 0.621185  ,  np.nan])
+    expected_mean_acc_bins = np.array([ np.nan,  np.nan,  np.nan,  np.nan, 100.,  np.nan,  np.nan,  np.nan,   0.,  np.nan], dtype=np.float32)
+    expected_avg_rot_err_bins = np.array([ np.nan, np.nan, np.nan, np.nan, 40.80807495, np.nan, np.nan, np.nan,  1.21432495, np.nan])
+    expected_avg_trans_err_bins = np.array([ np.nan, np.nan, np.nan, np.nan, 8.61940479, np.nan, np.nan, np.nan, 0.621185  ,  np.nan])
     assert np.allclose(mean_acc_bins, expected_mean_acc_bins, equal_nan=True)
     assert np.allclose(avg_rot_err_bins, expected_avg_rot_err_bins, equal_nan=True)
     assert np.allclose(avg_trans_err_bins, expected_avg_trans_err_bins, equal_nan=True)
-
 
 
 if __name__ == "__main__":
