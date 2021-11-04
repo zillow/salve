@@ -178,7 +178,7 @@ def measure_acc_vs_visual_overlap(
     plt.ylabel("Mean Accuracy (%)")
     format_bar_chart()
     plt.savefig(
-        f"{Path(serialized_preds_json_dir).stem}___bar_chart_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
+        f"overlap_analysis/{Path(serialized_preds_json_dir).stem}___bar_chart_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
         dpi=500,
     )
     plt.close("all")
@@ -189,7 +189,7 @@ def measure_acc_vs_visual_overlap(
     plt.ylabel("Rotation Error (degrees)")
     format_bar_chart()
     plt.savefig(
-        f"{Path(serialized_preds_json_dir).stem}___bar_chart_rot_error_iou_positives_only__confthresh{confidence_threshold}.pdf",
+        f"overlap_analysis/{Path(serialized_preds_json_dir).stem}___bar_chart_rot_error_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
         dpi=500,
     )
     plt.close("all")
@@ -199,7 +199,7 @@ def measure_acc_vs_visual_overlap(
     plt.ylabel("Translation Error")
     format_bar_chart()
     plt.savefig(
-        f"{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_positives_only__confthresh{confidence_threshold}.pdf",
+        f"overlap_analysis/{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
         dpi=500,
     )
     plt.close("all")
