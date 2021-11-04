@@ -69,14 +69,11 @@ def measure_acc_vs_visual_overlap(
             #     continue
 
 
-
             if not (
-                fp0 == '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_01_pano_4.jpg' \
-                and fp1 =='/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_10_pano_10.jpg'
+                fp0 == '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_04_pano_74.jpg' \
+                and fp1 =='/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_10_pano_11.jpg'
             ):
                 continue
-            # '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_04_pano_74.jpg'
-            # '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_10_pano_11.jpg'
         
             import pdb;pdb.set_trace()
 
@@ -270,12 +267,12 @@ def test_measure_acc_vs_visual_overlap() -> None:
 
     # '/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02/batch_2451.json'
     # choose just 2 pairs with known poses.
-    # Example 0
-    # Example 1
+    # Example 0 -- IoU 0.817, Rot Error 1.214, Trans Error 0.621
+    # Example 1 -- IoU
     batch2451_dict = {
         "y_hat": [1, 0],
         "y_true": [0, 0],
-        "y_hat_probs": [],
+        "y_hat_probs": [0.8538389205932617, 0.9999430179595947],
         "fp0": [
             '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_01_pano_4.jpg',
             '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_04_pano_74.jpg'
