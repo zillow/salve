@@ -673,20 +673,20 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    method = "spanning_tree" 
+    # method = "spanning_tree" 
     # method = "SE2_cycles"
     # method = "growing_consensus"
     # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
     # method = "pose2_slam"
-    # method = "pgo"
+    method = "pgo"
 
     # TODO: add axis alignment.
 
-    confidence_threshold =  0.97 # 0.97 #8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    confidence_threshold = 0.93 #8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
     plot_save_dir = (
-        f"2021_10_26_testsplit_morerendered_{method}_floorplans_with_gt_conf_{confidence_threshold}"
+        f"{Path(serialized_preds_json_dir).name}___2021_11_03_{method}_floorplans_with_conf_{confidence_threshold}"
     )
     os.makedirs(plot_save_dir, exist_ok=True)
 
@@ -751,6 +751,13 @@ def run_incremental_reconstruction(
 
         if len(high_conf_measurements) == 0:
             print(f"Skip Building {building_id}, {floor_id} -> no high conf measurements from {len(measurements)} measurements.")
+            
+            report = FloorReconstructionReport(
+                avg_abs_rot_err=np.nan,
+                avg_abs_trans_err=np.nan,
+                percent_panos_localized=0.0
+            )
+            reconstruction_reports.append(report)
             continue
 
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
@@ -769,7 +776,7 @@ def run_incremental_reconstruction(
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = FloorReconstructionReport.from_wSi_list(
-                wSi_list, gt_floor_pose_graph, plot_save_dir=f"raw_spanning_tree_only_{confidence_threshold}"
+                wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir
             )
             reconstruction_reports.append(report)
 
@@ -1060,8 +1067,8 @@ if __name__ == "__main__":
 
     # 186 tours, low-res, RGB only floor and ceiling. custom hacky val split
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
 
     # 373 training tours, low-res, RGB only floor and ceiling, true ZinD train/val/test split
     #serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications"
@@ -1069,10 +1076,7 @@ if __name__ == "__main__":
     
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
-
-    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
 
