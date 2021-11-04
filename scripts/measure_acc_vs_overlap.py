@@ -67,7 +67,7 @@ def measure_acc_vs_visual_overlap(
                 fp0
                 == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_65.jpg"
                 and fp1
-                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_68.jpg",
+                == "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_122___door_0_0_identity_floor_rgb_floor_02_partial_room_07_pano_68.jpg"
             ):
                 continue
             
