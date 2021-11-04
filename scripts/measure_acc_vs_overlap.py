@@ -275,7 +275,7 @@ def test_measure_acc_vs_visual_overlap() -> None:
     batch2451_dict = {
         "y_hat": [1, 0],
         "y_true": [0, 0],
-        "y_hat_probs":
+        "y_hat_probs": [],
         "fp0": [
             '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_01_pano_4.jpg',
             '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_04_pano_74.jpg'
