@@ -21,10 +21,22 @@ from afp.common.edge_classification import EdgeClassification
 
 
 def measure_acc_vs_visual_overlap(
-    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class = 0
+    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class: int = 0
 ) -> None:
-    """
-    Count separately for negative and positive examples.
+    """Measure how the amount of visual overlap (IoU) affects accuracy, rotation error, and translation error.
+    
+    Note: Count separately for negative and positive examples.
+
+    Args:
+        serialized_preds_json_dir:
+        hypotheses_save_root: str,
+        raw_dataset_dir:
+        gt_class: ground truth category to consider. 1 for positives, and 0 for negatives.
+
+    Returns:
+        mean_acc_bins: array of shape (K,) representing accuracy within each IoU bin.
+        avg_rot_err_bins: array of shape (K,) representing average rotation error (degrees) within each IoU bin.
+        avg_trans_err_bins: array of shape (K,) representing average translation error within each IoU bin.
     """
 
     # fig = plt.figure(dpi=200, facecolor='white')
@@ -38,14 +50,12 @@ def measure_acc_vs_visual_overlap(
     confidence_threshold = 0.0
     
     classname_str = "positives_only" if gt_class == 1 else "negatives_only"
-
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
-    # import random
-    # random.shuffle(json_fpaths)
 
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
+        # for quick debug mode
         # if json_idx > 30:
         #     continue
 
@@ -61,9 +71,6 @@ def measure_acc_vs_visual_overlap(
 
             if y_true != gt_class:
                 continue
-
-            # if y_true != 0:
-            #     continue
 
             if y_hat_prob < confidence_threshold:
                 continue
