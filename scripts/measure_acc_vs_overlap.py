@@ -21,7 +21,7 @@ from afp.common.edge_classification import EdgeClassification
 
 
 def measure_acc_vs_visual_overlap(
-    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class = 1
+    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class = 0
 ) -> None:
     """
     Count separately for negative and positive examples.
