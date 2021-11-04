@@ -97,6 +97,9 @@ def get_tuples_from_fpath_list(
         if len(pair_fpaths) != expected_n_files:
             continue
 
+        use_ceiling_texture = set(["ceiling_rgb_texture"]).issubset(set(args.modalities))
+        use_floor_texture = set(["floor_rgb_texture"]).issubset(set(args.modalities))
+
         pair_fpaths.sort()
         if args.modalities == ["layout"]:
 
@@ -113,7 +116,7 @@ def get_tuples_from_fpath_list(
             assert f"_pano_{pano1_id}.jpg" in Path(fp1l).name
             assert f"_pano_{pano2_id}.jpg" in Path(fp2l).name
 
-        elif set(["ceiling_rgb_texture", "floor_rgb_texture"]).issubset(set(args.modalities)):
+        elif use_ceiling_texture or use_floor_texture:
 
             fp1c, fp2c, fp1f, fp2f = pair_fpaths
 
@@ -235,7 +238,7 @@ def make_dataset(
 
                 if len(fpaths) == 0:
                     continue
-                
+
                 tuples = get_tuples_from_fpath_list(fpaths, label_idx, args)
                 if len(tuples) == 0:
                     continue
