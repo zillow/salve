@@ -147,6 +147,12 @@ def get_tuples_from_fpath_list(
         if args.modalities == ["layout"]:
             tuples += [(fp1l, fp2l, label_idx)]
 
+        elif args.modalities == "ceiling_rgb_texture":
+            tuples += [(fp1c, fp2c, label_idx)]
+
+        elif args.modalities == "floor_rgb_texture":
+            tuples += [(fp1f, fp2f, label_idx)]
+
         elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
             tuples += [(fp1c, fp2c, fp1f, fp2f, label_idx)]
 
@@ -255,7 +261,6 @@ class ZindData(Dataset):
         logging.info(f"Base data root is {data_root} for {args.modalities}")
 
         self.data_list = make_dataset(split, data_root=data_root, args=args)
-
         self.modalities = args.modalities
 
     def __len__(self) -> int:
@@ -276,6 +281,20 @@ class ZindData(Dataset):
 
             x1l, x2l = self.transform(x1l, x2l)
             return x1l, x2l, is_match, x1l_fpath, x2l_fpath
+
+        elif self.modalities == "ceiling_rgb_texture":
+            x1c_fpath, x2c_fpath, is_match = self.data_list[index]
+            x1c = imageio.imread(x1c_fpath)
+            x2c = imageio.imread(x2c_fpath)
+            x1c, x2c = self.transform(x1c, x2c)
+            return x1c, x2c, is_match, x1c_fpath, x2c_fpath
+
+        elif self.modalities == "floor_rgb_texture":
+            x1f_fpath, x2f_fpath, is_match = self.data_list[index]
+            x1f = imageio.imread(x1f_fpath)
+            x2f = imageio.imread(x2f_fpath)
+            x1f, x2f = self.transform(x1f, x2f)
+            return x1f, x2f, is_match, x1f_fpath, x2f_fpath
 
         elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
             # floor, then ceiling
