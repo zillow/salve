@@ -1,4 +1,3 @@
-
 """
 Script to train CNN models.
 """
@@ -29,8 +28,8 @@ from train_utils import load_model_checkpoint
 
 # logger = logger_utils.get_logger()
 
-#home_dir = "/Users/johnlam/Downloads"
-#home_dir = "/mnt/data/johnlam"
+# home_dir = "/Users/johnlam/Downloads"
+# home_dir = "/mnt/data/johnlam"
 home_dir = "/data/johnlam"
 logger_utils.setup_file_logger(home_dir, program_name="training")
 
@@ -136,7 +135,11 @@ def run_epoch(
             logging.info(f"\tOn iter {iter}")
 
         # assume cross entropy loss only currently
-        if args.modalities == ["layout"]:
+        if (
+            args.modalities == ["layout"]
+            or args.modalities == ["ceiling_rgb_texture"]
+            or args.modalities == ["floor_rgb_texture"]
+        ):
             x1, x2, is_match, fp0, fp1 = example
             x3, x4, x5, x6 = None, None, None, None
 
@@ -200,7 +203,9 @@ def run_epoch(
         else:
             gt_is_match = is_match
 
-        is_match_probs, loss = train_utils.cross_entropy_forward(model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match)
+        is_match_probs, loss = train_utils.cross_entropy_forward(
+            model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match
+        )
 
         sam.update_metrics_cpu(
             pred=torch.argmax(is_match_probs, dim=1).cpu().numpy(),
@@ -218,7 +223,9 @@ def run_epoch(
 
             if split == "train" and args.lr_annealing_strategy == "poly":
                 # decay learning rate only during training
-                current_lr = train_utils.poly_learning_rate(args.base_lr, current_iter, max_iter, power=args.poly_lr_power)
+                current_lr = train_utils.poly_learning_rate(
+                    args.base_lr, current_iter, max_iter, power=args.poly_lr_power
+                )
 
                 if iter % args.print_every == 0:
                     logging.info(
@@ -261,15 +268,19 @@ if __name__ == "__main__":
     # config_name = "2021_06_26_08_38_09__resnet18_floor_ceiling_rgbonly.yaml"
     # config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly.yaml"
     # config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly_debug.yaml"
-    #config_name = "2021_07_23_resnet50_ceiling_floor_rgbonly_photometric_augment.yaml"
+    # config_name = "2021_07_23_resnet50_ceiling_floor_rgbonly_photometric_augment.yaml"
     # "2021_07_24_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    #config_name = "2021_08_03_resnet50_ceiling_floor_layout.yaml"
-    #config_name = "2021_08_06_resnet50_ceiling_floor_layout.yaml"
-    #config_name = "2021_10_18_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    #config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # config_name = "2021_08_03_resnet50_ceiling_floor_layout.yaml"
+    # config_name = "2021_08_06_resnet50_ceiling_floor_layout.yaml"
+    # config_name = "2021_10_18_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
 
     # try ResNet-152
     config_name = "2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+
+    # ResNet-152 with just a single modality.
+    # config_name = 2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml
+    # config_name = 2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml
 
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the afp module
