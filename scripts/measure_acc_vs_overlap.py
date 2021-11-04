@@ -37,7 +37,7 @@ def measure_acc_vs_visual_overlap(
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
 
-    gt_class = 1
+    gt_class = 0
     classname_str = "positives_only" if gt_class == 1 else "negatives_only"
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
