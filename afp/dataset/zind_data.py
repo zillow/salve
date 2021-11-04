@@ -97,6 +97,7 @@ def get_tuples_from_fpath_list(
         if len(pair_fpaths) != expected_n_files:
             continue
 
+        import pdb; pdb.set_trace()
         use_ceiling_texture = set(["ceiling_rgb_texture"]).issubset(set(args.modalities))
         use_floor_texture = set(["floor_rgb_texture"]).issubset(set(args.modalities))
 
