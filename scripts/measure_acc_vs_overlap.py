@@ -57,7 +57,7 @@ def measure_acc_vs_visual_overlap(
         fp0_list = json_data["fp0"]
         fp1_list = json_data["fp1"]
 
-        import pdb;pdb.set_trace()
+        
 
         # for each GT positive
         for y_hat, y_true, y_hat_prob, fp0, fp1 in zip(y_hat_list, y_true_list, y_hat_prob_list, fp0_list, fp1_list):
@@ -67,6 +67,18 @@ def measure_acc_vs_visual_overlap(
 
             # if y_true != 0:
             #     continue
+
+
+
+            if not (
+                fp0 == '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_01_pano_4.jpg' \
+                and fp1 =='/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_10_pano_10.jpg'
+            ):
+                continue
+            # '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_04_pano_74.jpg'
+            # '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_10_pano_11.jpg'
+        
+            import pdb;pdb.set_trace()
 
             if y_hat_prob < confidence_threshold:
                 continue
@@ -256,7 +268,23 @@ def test_measure_acc_vs_visual_overlap() -> None:
         ],
     }
 
-    # choose just 4 pairs with known poses.
+    # '/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02/batch_2451.json'
+    # choose just 2 pairs with known poses.
+    # Example 0
+    # Example 1
+    batch2451_dict = {
+        "y_hat": [1, 0],
+        "y_true": [0, 0],
+        "y_hat_probs":
+        "fp0": [
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_01_pano_4.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_04_pano_74.jpg'
+        ],
+        "fp1": [
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_10_pano_10.jpg',
+            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_10_pano_11.jpg'
+        ]
+    }
 
     measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
     assert False
