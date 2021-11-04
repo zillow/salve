@@ -28,5 +28,5 @@ TrainingConfig:
     data_root: /data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres
     layout_data_root: 
     #model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
-    model_save_dirpath: /data/johnlam/ZinD_trained_models_2021_10_22
+    model_save_dirpath: /data/johnlam/ZinD_trained_models_2021_11_04
     gpu_ids:
