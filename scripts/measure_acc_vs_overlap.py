@@ -21,7 +21,7 @@ from afp.common.edge_classification import EdgeClassification
 
 
 def measure_acc_vs_visual_overlap(
-    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str
+    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class = 0
 ) -> None:
     """
     Count separately for negative and positive examples.
@@ -36,8 +36,7 @@ def measure_acc_vs_visual_overlap(
 
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
-
-    gt_class = 1
+    
     classname_str = "positives_only" if gt_class == 1 else "negatives_only"
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
@@ -279,7 +278,22 @@ def test_measure_acc_vs_visual_overlap() -> None:
     hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
     raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
 
-    mean_acc_bins, avg_rot_err_bins, avg_trans_err_bins = measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
+    mean_acc_bins, avg_rot_err_bins, avg_trans_err_bins = measure_acc_vs_visual_overlap(
+        serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir, gt_class=1
+    )
+
+    # for gt class 1 (positives only)
+    expected_mean_acc_bins = np.array([ np.nan, 100.,   0.,  50., 100., 100., np.nan, 100., np.nan, np.nan], dtype=float32)
+    expected_avg_rot_err_bins = np.array([ np.nan, 6.19468689, 1.4648056 , 1.95754623, 2.70051575, 0.7142812 , np.nan, 1.43321174, np.nan, np.nan])
+    expected_avg_trans_err_bins = np.array([ np.nan, 0.29635385, 0.12153608, 0.06152817, 0.14050719, 0.0551777 , np.nan, 0.01080585, np.nan, np.nan])
+
+    assert np.allclose(mean_acc_bins, expected_mean_acc_bins)
+    assert np.allclose(avg_rot_err_bins, expected_avg_rot_err_bins)
+    assert np.allclose(avg_trans_err_bins, expected_avg_trans_err_bins)
+
+    mean_acc_bins, avg_rot_err_bins, avg_trans_err_bins = measure_acc_vs_visual_overlap(
+        serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir, gt_class=0
+    )
     import pdb; pdb.set_trace()
 
 
