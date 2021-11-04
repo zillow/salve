@@ -37,7 +37,7 @@ def measure_acc_vs_visual_overlap(
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
 
-    gt_class = 0
+    gt_class = 1
     classname_str = "positives_only" if gt_class == 1 else "negatives_only"
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
@@ -178,7 +178,7 @@ def measure_acc_vs_visual_overlap(
     plt.ylabel("Mean Accuracy (%)")
     format_bar_chart()
     plt.savefig(
-        f"overlap_analysis/{Path(serialized_preds_json_dir).stem}___bar_chart_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
+        f"overlap_analysis/{Path(serialized_preds_json_dir).stem}___bar_chart_acc_{classname_str}__confthresh{confidence_threshold}.pdf",
         dpi=500,
     )
     plt.close("all")
@@ -204,7 +204,7 @@ def measure_acc_vs_visual_overlap(
     )
     plt.close("all")
 
-    # TODO: write a unit test for this function.
+    return mean_acc_bins, avg_rot_err_bins, avg_trans_err_bins
 
 
 def test_measure_acc_vs_visual_overlap() -> None:
@@ -279,7 +279,8 @@ def test_measure_acc_vs_visual_overlap() -> None:
     hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
     raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
 
-    measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
+    mean_acc_bins, avg_rot_err_bins, avg_trans_err_bins = measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
+    import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":
