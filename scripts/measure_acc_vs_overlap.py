@@ -21,7 +21,7 @@ from afp.common.edge_classification import EdgeClassification
 
 
 def measure_acc_vs_visual_overlap(
-    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class = 0
+    serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class = 1
 ) -> None:
     """
     Count separately for negative and positive examples.
@@ -200,7 +200,7 @@ def measure_acc_vs_visual_overlap(
     plt.ylabel("Translation Error")
     format_bar_chart()
     plt.savefig(
-        f"{save_dir}_2021_11_03/{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
+        f"{save_dir}/{Path(serialized_preds_json_dir).stem}___bar_chart_trans_error_iou_{classname_str}__confthresh{confidence_threshold}.pdf",
         dpi=500,
     )
     plt.close("all")
