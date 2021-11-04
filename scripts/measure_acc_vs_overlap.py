@@ -283,7 +283,7 @@ def test_measure_acc_vs_visual_overlap() -> None:
     )
 
     # for gt class 1 (positives only)
-    expected_mean_acc_bins = np.array([ np.nan, 100.,   0.,  50., 100., 100., np.nan, 100., np.nan, np.nan], dtype=float32)
+    expected_mean_acc_bins = np.array([ np.nan, 100.,   0.,  50., 100., 100., np.nan, 100., np.nan, np.nan], dtype=np.float32)
     expected_avg_rot_err_bins = np.array([ np.nan, 6.19468689, 1.4648056 , 1.95754623, 2.70051575, 0.7142812 , np.nan, 1.43321174, np.nan, np.nan])
     expected_avg_trans_err_bins = np.array([ np.nan, 0.29635385, 0.12153608, 0.06152817, 0.14050719, 0.0551777 , np.nan, 0.01080585, np.nan, np.nan])
 
