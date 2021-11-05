@@ -23,7 +23,6 @@ from torch import nn
 
 import afp.utils.pr_utils as pr_utils
 import train_utils as train_utils
-from train_utils import load_model_checkpoint
 from afp.training_config import TrainingConfig
 from afp.utils.logger_utils import get_logger
 
@@ -242,7 +241,7 @@ def evaluate_model(serialization_save_dir: str, ckpt_fpath: str, args: TrainingC
 
     data_loader = train_utils.get_dataloader(args, split=split)
     model = train_utils.get_model(args)
-    model = load_model_checkpoint(ckpt_fpath, model, args)
+    model = train_utils.load_model_checkpoint(ckpt_fpath, model, args)
 
     model.eval()
 
@@ -305,10 +304,10 @@ if __name__ == "__main__":
     # config_fpath = "afp/configs/2021_07_24_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
     # serialization_save_dir = "2021_07_28_serialized_edge_classifications"
 
-    # ResNet-50, floor and ceiling, RGB only, 186 tours, but low-res (predicted WDO)
-    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20"
-    config_fpath = "afp/configs/2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    serialization_save_dir = "/data/johnlam/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
+    # # ResNet-50, floor and ceiling, RGB only, 186 tours, but low-res (predicted WDO)
+    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20"
+    # config_fpath = "afp/configs/2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # serialization_save_dir = "/data/johnlam/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
 
     # # ResNet-50, floor and ceiling, RGB only, 373 tours, but (predicted WDO), low-res
     # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_25_14_31_23"
@@ -319,6 +318,11 @@ if __name__ == "__main__":
     # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16"
     # config_fpath = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16/2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
     # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+
+    # ResNet-152, ceiling only, RGB only, 587 tours, (predicted-WDO), low-res
+    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06"
+    config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06/2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
+    serialization_save_dir = "/data/johnlam/2021_11_04__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_05"
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
@@ -337,7 +341,7 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 128
+    args.batch_size = 64 # 128
     args.workers = 10
 
     split = "test"
