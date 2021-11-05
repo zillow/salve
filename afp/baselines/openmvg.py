@@ -16,12 +16,15 @@ import numpy as np
 from gtsam import Rot3, Pose3
 
 from afp.baselines.sfm_reconstruction import SfmReconstruction
+from afp.common.posegraph2d import REDTEXT, ENDCOLOR
 from afp.utils.function_timeout import timeout
+
 
 OPENMVG_SFM_BIN = "/Users/johnlam/Downloads/openMVG_Build/Darwin-x86_64-RELEASE"
 
 # OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING"
 OPENMVG_DEMO_ROOT = "/Users/johnlam/Downloads/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR"
+
 
 def panoid_from_key(key: str) -> int:
     """Extract panorama id from panorama image file name.
@@ -35,8 +38,8 @@ def load_openmvg_reconstructions_from_json(building_id: str, floor_id: str) -> L
     """Read OpenMVG-specific format ("sfm_data.json") to AutoFloorPlan generic types.
 
     Args:
-        building_id
-        floor_id
+        building_id: unique ID for ZinD building.
+        floor_id: unique ID for floor of a ZinD building.
 
     Returns:
         reconstructions
@@ -197,8 +200,6 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
 def run_openmvg_all_tours() -> None:
     """Run OpenMVG in spherical geometry mode, over all tours inside ZinD."""
 
-    # should have a CC with 45 cameras in "1183_floor_01.json"
-
     raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
@@ -219,20 +220,14 @@ def run_openmvg_all_tours() -> None:
             matches_dirpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
             reconstruction_json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
             if Path(reconstruction_json_fpath).exists() or Path(matches_dirpath).exists():
-                print(f"Results already exists for Building {building_id}, {floor_id}, skipping...")
+                print(f"\tResults already exists for Building {building_id}, {floor_id}, skipping...")
                 continue
-
-            # building_id = "1183"
-            # floor_id = "floor_01"
-
-            # building_id = "1363"
-            # floor_id = "floor_01"
 
             src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
             pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
 
             if len(pano_fpaths) == 0:
-                print(f"\tFloor {floor_id} does not exist for building {building_id}, skipping")
+                print(REDTEXT + f"\tFloor {floor_id} does not exist for building {building_id}, skipping" + ENDCOLOR)
                 continue
 
             FLOOR_OPENMVG_DATADIR = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21"
