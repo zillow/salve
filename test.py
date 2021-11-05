@@ -1,4 +1,3 @@
-
 """
 """
 
@@ -40,7 +39,11 @@ def run_test_epoch(
     for i, test_example in enumerate(data_loader):
 
         # assume cross entropy loss only currently
-        if args.modalities == ["layout"]:
+        if (
+            args.modalities == ["layout"]
+            or args.modalities == ["ceiling_rgb_texture"]
+            or args.modalities == ["floor_rgb_texture"]
+        ):
             x1, x2, is_match, fp0, fp1 = test_example
             x3, x4, x5, x6 = None, None, None, None
 
@@ -66,7 +69,9 @@ def run_test_epoch(
         else:
             gt_is_match = is_match
 
-        is_match_probs, loss = train_utils.cross_entropy_forward(model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match)
+        is_match_probs, loss = train_utils.cross_entropy_forward(
+            model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match
+        )
 
         y_hat = torch.argmax(is_match_probs, dim=1)
 
@@ -235,7 +240,9 @@ def check_mkdir(dirpath: str) -> None:
     os.makedirs(dirpath, exist_ok=True)
 
 
-def evaluate_model(serialization_save_dir: str, ckpt_fpath: str, args: TrainingConfig, split: str, save_viz: bool) -> None:
+def evaluate_model(
+    serialization_save_dir: str, ckpt_fpath: str, args: TrainingConfig, split: str, save_viz: bool
+) -> None:
     """ """
     cudnn.benchmark = True
 
@@ -295,9 +302,9 @@ if __name__ == "__main__":
     # model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
 
     # ResNet-50, floor and ceiling, RGB-only
-    #model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26"
+    # model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26"
     # config_fpath = "afp/configs/2021_07_15_resnet50_ceiling_floor_rgbonly_test_set_inference.yaml"
-    #serialization_save_dir = "2021_07_15_serialized_edge_classifications_v2"
+    # serialization_save_dir = "2021_07_15_serialized_edge_classifications_v2"
 
     # ResNet-50, floor and ceiling, RGB-only, more tours (GT WDO)
     # model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_07_24/2021_07_26_14_42_49"
@@ -322,7 +329,9 @@ if __name__ == "__main__":
     # ResNet-152, ceiling only, RGB only, 587 tours, (predicted-WDO), low-res
     model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06"
     config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06/2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
-    serialization_save_dir = "/data/johnlam/2021_11_04__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_05"
+    serialization_save_dir = (
+        "/data/johnlam/2021_11_04__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_05"
+    )
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
@@ -341,7 +350,7 @@ if __name__ == "__main__":
     # # use single-GPU for inference?
     # args.dataparallel = False
 
-    args.batch_size = 64 # 128
+    args.batch_size = 64  # 128
     args.workers = 10
 
     split = "test"
@@ -353,6 +362,5 @@ if __name__ == "__main__":
     print("Val accs: ", val_mAccs)
     print("Num epochs trained", len(val_mAccs))
     print("Max val mAcc", max(val_mAccs))
-
 
     # quit()
