@@ -1,5 +1,8 @@
 """
 Class to represent 2d pose graphs, render them, and compute error between two of them.
+
+TODO: transformFrom() operation on Similarity(2) needs to be patched from current hacky solution.
+Can use Pose2 instead of Similarity(2) from the get-go.
 """
 
 import copy
@@ -269,7 +272,9 @@ class PoseGraph2d(NamedTuple):
             pano_data_i = aligned_est_pose_graph.nodes[i]
 
             b_Sim2_i = aligned_est_pose_graph.nodes[i].global_Sim2_local
-            pano_data_i.global_Sim2_local = a_Sim2_b.compose(b_Sim2_i)
+            a_Sim2_i = a_Sim2_b.compose(b_Sim2_i)
+            # equivalent of `transformFrom()` on Pose2 object.
+            pano_data_i.global_Sim2_local = Sim2(R=a_Sim2_i.rotation, t=a_Sim2_i.translation * a_Sim2_i.scale, s=1.0)
 
             for j in range(len(pano_data_i.windows)):
                 pano_data_i.windows[j] = pano_data_i.windows[j].apply_Sim2(a_Sim2_b)
@@ -545,160 +550,8 @@ def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
     if np.absolute(atb[2]) > MAX_ALLOWED_TZ_DEG:
         import pdb; pdb.set_trace()
 
-    a_Sim2_b = Sim2(R=a_Rot2_b, t=atb[:2], s=1.0)
+    a_Sim2_b = Sim2(R=a_Rot2_b, t=atb[:2], s=a_Sim3_b.scale())
     return a_Sim2_b
-
-def test_measure_abs_pose_error_shifted() -> None:
-    """Pose graph is shifted to the left by 1 meter, but Sim(3) alignment should fix this. Should have zero error.
-
-    TODO: fix rotations to be +90
-
-    GT pose graph:
-
-       | pano 1 = (0,4)
-     --o
-       | .
-       .   .
-       .     .
-       |       |
-       o-- ... o--
-    pano 0          pano 2 = (4,0)
-      (0,0)
-
-    Estimated PG:
-       | pano 1 = (-1,4)
-     --o
-       | .
-       .   .
-       .     .
-       |       |
-       o-- ... o--
-    pano 0          pano 2 = (3,0)
-      (-1,0)
-    """
-    building_id = "000"
-    floor_id = "floor_01"
-
-    wRi_list = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
-    wti_list = [np.array([-1, 0]), np.array([-1, 4]), np.array([3, 0])]
-
-    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, building_id, floor_id)
-
-    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
-    wti_list_gt = [np.array([0, 0]), np.array([0, 4]), np.array([4, 0])]
-    gt_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list_gt, wti_list, building_id, floor_id)
-
-    avg_rot_error, avg_trans_error = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
-
-    assert np.isclose(avg_rot_error, 0.0, atol=1e-3)
-    assert np.isclose(avg_trans_error, 0.0, atol=1e-3)
-
-
-def test_measure_avg_abs_rotation_err() -> None:
-    """
-    Create a dummy scenario, to make sure absolute rotation errors are evaluated properly.
-
-    TODO: fix rotations to be +90
-
-    GT rotation graph:
-
-      | 1
-    --o
-      | .
-      .   .
-      .     .
-      |       |
-      o-- ... o--
-    0          2
-    """
-    building_id = "000"
-    floor_id = "floor_01"
-
-    wRi_list = [rotation_utils.rotmat2d(-5), rotation_utils.rotmat2d(-95), rotation_utils.rotmat2d(0)]
-
-    est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
-
-    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
-    gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
-
-    mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
-
-    assert np.isclose(mean_abs_rot_err, 10 / 3, atol=1e-3)
-
-
-def test_measure_avg_rel_rotation_err() -> None:
-    """
-    Create a dummy scenario, to make sure relative rotation errors are evaluated properly.
-
-    TODO: fix rotations to be +90
-
-    GT rotation graph:
-
-      | 1
-    --o
-      | .
-      .   .
-      .     .
-      |       |
-      o-- ... o--
-    0          2
-    """
-    building_id = "000"
-    floor_id = "floor_01"
-
-    wRi_list = [rotation_utils.rotmat2d(-5), rotation_utils.rotmat2d(-95), rotation_utils.rotmat2d(0)]
-    est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
-
-    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
-    gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
-
-    gt_edges = [(0, 1)]
-    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
-        gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges
-    )
-    # both are incorrect by the same amount, cancelling out to zero error
-    assert mean_rel_rot_err == 0
-
-    gt_edges = [(0, 1), (1, 2), (0, 2)]
-    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
-        gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges
-    )
-    assert np.isclose(mean_rel_rot_err, 10 / 3, atol=1e-3)
-
-
-def test_measure_avg_rel_rotation_err_unestimated() -> None:
-    """Estimate average relative pose (rotation) error when some nodes are unestimated.
-
-    Create a dummy scenario, to make sure relative rotation errors are evaluated properly.
-
-    TODO: fix rotations to be +90
-
-    GT rotation graph:
-
-      | 1
-    --o
-      | .
-      .   .
-      .     .
-      |       |
-      o-- ... o--
-    0          2
-    """
-    building_id = "000"
-    floor_id = "floor_01"
-
-    # only 1 edge can be measured for correctness
-    wRi_list = [rotation_utils.rotmat2d(-5), rotation_utils.rotmat2d(-90), None]
-    est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
-
-    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
-    gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
-
-    gt_edges = [(0, 1), (1, 2), (0, 2)]
-    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
-        gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges
-    )
-    assert mean_rel_rot_err == 5.0
 
 
 def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_fpath: str) -> Dict[str, PoseGraph2d]:
@@ -786,6 +639,9 @@ def compute_pose_errors_3d(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[
         mean_rot_err: mean rotation error per camera, in degrees.
         mean_trans_err: mean translation error per camera.
     """
+    #print("aTi_list_gt: ", aTi_list_gt)
+    #print("aligned_bTi_list_est",  aligned_bTi_list_est)
+
     rotation_errors = []
     translation_errors = []
     for (aTi, aTi_) in zip(aTi_list_gt, aligned_bTi_list_est):
@@ -797,6 +653,8 @@ def compute_pose_errors_3d(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[
         rotation_errors.append(rot_err)
         translation_errors.append(trans_err)
 
+    #print("Rotation Errors: ", np.round(rotation_errors,1))
+    #print("Translation Errors: ", np.round(translation_errors,1))
     mean_rot_err = np.mean(rotation_errors)
     mean_trans_err = np.mean(translation_errors)
     print(f"Mean translation error: {mean_trans_err:.1f}, Mean rotation error: {mean_rot_err:.1f}")
