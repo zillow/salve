@@ -10,12 +10,12 @@ from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import argoverse.utils.json_utils as json_utils
-import gtsfm.utils.geometry_comparisons as geometry_comparisons
+import gtsfm.utils.geometry_comparisons as gtsfm_geometry_comparisons
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-from gtsam import Point3, Pose3
-import gtsfm.utils.geometry_comparisons as gtsfm_geometry_comparisons
+from gtsam import Point3, Pose3, Similarity3
+from scipy.spatial.transform import Rotation
 
 import afp.utils.rotation_utils as rotation_utils
 from afp.common.pano_data import FloorData, PanoData
@@ -34,7 +34,7 @@ class PoseGraph2d(NamedTuple):
     Note: edges are not included here, since there are different types of adjacency (spatial vs. visible)
 
     Args:
-        building_id
+        building_id: unique ID for ZinD building ID.
         floor_id
         nodes:
     """
@@ -213,7 +213,7 @@ class PoseGraph2d(NamedTuple):
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
         bTi_list_est = self.as_3d_pose_graph()
 
-        mean_rot_err, mean_trans_err = compute_pose_errors(aTi_list_gt, bTi_list_est)
+        mean_rot_err, mean_trans_err = compute_pose_errors_3d(aTi_list_gt, bTi_list_est)
         return mean_rot_err, mean_trans_err
 
     def measure_unaligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float]:
@@ -226,18 +226,50 @@ class PoseGraph2d(NamedTuple):
             mean_rot_err
             mean_trans_err
         """
+
+        # get the new aligned estimated pose graph
+        aligned_est_pose_graph, aligned_bTi_list_est = self.align_by_Sim3_to_ref_pose_graph(ref_pose_graph=gt_floor_pg)
+
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
+
+        mean_rot_err, mean_trans_err = compute_pose_errors_3d(aTi_list_gt, aligned_bTi_list_est)
+        return mean_rot_err, mean_trans_err
+
+
+    def align_by_Sim3_to_ref_pose_graph(self, ref_pose_graph: "PoseGraph2d") -> "PoseGraph2d":
+        """
+        TODO: should it be a class method?
+        """
+
+        aTi_list_ref = ref_pose_graph.as_3d_pose_graph()  # reference
         bTi_list_est = self.as_3d_pose_graph()
 
         # if the estimate pose graph is missing a few nodes, pad it up to the GT list length
-        pad_len = len(aTi_list_gt) - len(bTi_list_est)
+        pad_len = len(aTi_list_ref) - len(bTi_list_est)
         bTi_list_est.extend([None] * pad_len)
 
         # align the pose graphs
-        aligned_bTi_list_est, _ = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
+        aligned_bTi_list_est, aSb = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
+        aligned_est_pose_graph = self.apply_Sim3(a_Sim3_b = aSb)
+        return aligned_est_pose_graph, aligned_bTi_list_est
 
-        mean_rot_err, mean_trans_err = compute_pose_errors(aTi_list_gt, aligned_bTi_list_est)
-        return mean_rot_err, mean_trans_err
+
+    def apply_Sim3(self, a_Sim3_b: Similarity3) -> "PoseGraph2d":
+        """Create a new pose instance of the entire pose graph, after applying a Similarity(2) transform to every pose.
+
+        The Similarity(2) transformation is computed by projecting a Similarity(3) transformation to 2d.
+        """
+        aligned_est_pose_graph = copy.deepcopy(self)
+
+        a_Sim2_b = convert_Sim3_to_Sim2(a_Sim3_b)
+
+        # for each pano, just update it's pose only
+        for i in self.nodes.keys():
+            b_Sim2_i = aligned_est_pose_graph.nodes[i].global_Sim2_local
+            aligned_est_pose_graph.nodes[i].global_Sim2_local = a_Sim2_b.compose(b_Sim2_i)
+
+        return aligned_est_pose_graph
+
 
     def measure_avg_abs_rotation_err(self, gt_floor_pg: "PoseGraph2d") -> float:
         """Measure how the absolute poses satisfy the individual binary measurement constraints.
@@ -476,6 +508,31 @@ class PoseGraph2d(NamedTuple):
         json_utils.save_json_dict(save_fpath, save_dict)
 
 
+def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
+    """Convert a Similarity(3) object to a Similarity(2) object by.
+    
+    """
+    # we only care about the rotation about the upright Z axis
+    a_Rot2_b = a_Sim3_b.rotation().matrix()[:2,:2]
+    theta_deg = rotation_utils.rotmat2theta_deg(a_Rot2_b)
+
+    rx, ry, rz = Rotation.from_matrix(a_Sim3_b.rotation().matrix()).as_euler("xyz", degrees=True)
+
+    MAX_ALLOWED_RX_DEV = 0.1
+    MAX_ALLOWED_RY_DEV = 0.1
+    if np.absolute(rx) > MAX_ALLOWED_RX_DEV or np.absolute(ry) > MAX_ALLOWED_RY_DEV:
+        import pdb; pdb.set_trace()
+
+    assert np.isclose(rz, theta_deg, atol=0.1)
+
+    atb = a_Sim3_b.translation()
+    MAX_ALLOWED_TZ_DEG = 0.1
+    if np.absolute(atb[2]) > MAX_ALLOWED_TZ_DEG:
+        import pdb; pdb.set_trace()
+
+    a_Sim2_b = Sim2(R=a_Rot2_b, t=atb[:2], s=1.0)
+    return a_Sim2_b
+
 def test_measure_abs_pose_error_shifted() -> None:
     """Pose graph is shifted to the left by 1 meter, but Sim(3) alignment should fix this. Should have zero error.
 
@@ -701,7 +758,7 @@ def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> 
     return floor_pg_dict[floor_id]
 
 
-def compute_pose_errors(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]) -> Tuple[float, float]:
+def compute_pose_errors_3d(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]) -> Tuple[float, float]:
     """Compute average pose errors over all cameras (separately in rotation and translation).
 
     Note: pose graphs must already be aligned.
@@ -719,7 +776,7 @@ def compute_pose_errors(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Opt
     for (aTi, aTi_) in zip(aTi_list_gt, aligned_bTi_list_est):
         if aTi is None or aTi_ is None:
             continue
-        rot_err = geometry_comparisons.compute_relative_rotation_angle(aTi.rotation(), aTi_.rotation())
+        rot_err = gtsfm_geometry_comparisons.compute_relative_rotation_angle(aTi.rotation(), aTi_.rotation())
         trans_err = np.linalg.norm(aTi.translation() - aTi_.translation())
 
         rotation_errors.append(rot_err)
