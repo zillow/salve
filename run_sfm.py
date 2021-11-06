@@ -700,7 +700,7 @@ def run_incremental_reconstruction(
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-        # if not (building_id == "1635" and floor_id == "floor_02"):
+        # if not (building_id == "1210" and floor_id == "floor_02"):
         #     continue
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
