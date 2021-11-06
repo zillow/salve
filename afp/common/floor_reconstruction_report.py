@@ -37,10 +37,14 @@ class FloorReconstructionReport:
 
         aligned_est_floor_pose_graph, _ = est_floor_pose_graph.align_by_Sim3_to_ref_pose_graph(ref_pose_graph=gt_floor_pose_graph)
         mean_abs_rot_err, mean_abs_trans_err = aligned_est_floor_pose_graph.measure_aligned_abs_pose_error(
+
+        # mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(
             gt_floor_pg=gt_floor_pose_graph
         )
         print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
+
         aligned_est_floor_pose_graph.render_estimated_layout(
+        #est_floor_pose_graph.render_estimated_layout(
             show_plot=False, save_plot=True, plot_save_dir=plot_save_dir, gt_floor_pg=gt_floor_pose_graph
         )
 
