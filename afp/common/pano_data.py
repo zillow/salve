@@ -3,6 +3,7 @@ Transformation (R,t) followed by a reflection over the x-axis is equivalent to
 Transformation by (R^T,-t) followed by no reflection.
 """
 
+import copy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
@@ -143,6 +144,19 @@ class WDO:
         )
         return self_transformed
 
+    def apply_Sim2(self, a_Sim2_b: Sim2) -> "WDO":
+        """Convert the WDO's pose to a new global reference frame `a` for Sim(3) alignment.
+        Previous was in global frame `b`.
+
+        Consider this WDO to be the j'th WDO in some list/set.
+        """
+        aligned_self = copy.deepcopy(self)
+
+        b_Sim_j = self.global_Sim2_local
+        a_Sim_j = a_Sim2_b.compose(b_Sim_j)
+
+        aligned_self.global_Sim2_local = a_Sim_j
+        return aligned_self
 
 
 def test_get_wd_normal_2d() -> None:

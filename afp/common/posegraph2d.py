@@ -265,8 +265,23 @@ class PoseGraph2d(NamedTuple):
 
         # for each pano, just update it's pose only
         for i in self.nodes.keys():
+
+            pano_data_i = aligned_est_pose_graph.nodes[i]
+
             b_Sim2_i = aligned_est_pose_graph.nodes[i].global_Sim2_local
-            aligned_est_pose_graph.nodes[i].global_Sim2_local = a_Sim2_b.compose(b_Sim2_i)
+            pano_data_i.global_Sim2_local = a_Sim2_b.compose(b_Sim2_i)
+
+            for j in range(len(pano_data_i.windows)):
+                pano_data_i.windows[j] = pano_data_i.windows[j].apply_Sim2(a_Sim2_b)
+
+            for j in range(len(pano_data_i.openings)):
+                pano_data_i.openings[j] = pano_data_i.openings[j].apply_Sim2(a_Sim2_b)
+
+            for j in range(len(pano_data_i.doors)):
+                pano_data_i.doors[j] = pano_data_i.doors[j].apply_Sim2(a_Sim2_b)
+
+            # replace this PanoData with the new aligned version.
+            aligned_est_pose_graph.nodes[i] = pano_data_i
 
         return aligned_est_pose_graph
 
@@ -510,7 +525,7 @@ class PoseGraph2d(NamedTuple):
 
 def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
     """Convert a Similarity(3) object to a Similarity(2) object by.
-    
+
     """
     # we only care about the rotation about the upright Z axis
     a_Rot2_b = a_Sim3_b.rotation().matrix()[:2,:2]
