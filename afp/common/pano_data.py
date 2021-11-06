@@ -165,7 +165,8 @@ def test_get_wd_normal_2d() -> None:
     assert np.allclose(n2, gt_n2)
 
 
-class PanoData(NamedTuple):
+@dataclass(frozen=False)
+class PanoData:
     """Container for ground truth relevant to a single panorama."""
 
     id: int
