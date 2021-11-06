@@ -1,4 +1,12 @@
+
+"""Ensures that pose graph evaluation is correct."""
+
+import numpy as np
+from argoverse.utils.sim2 import Sim2
+
+import afp.common.posegraph2d as posegraph2d
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
+
 
 """
 # aligned
@@ -26,7 +34,6 @@ Mean translation error: 0.1, Mean rotation error: 1.3
 
 
 # unaligned
-
 On building 1210, floor_02
 WDO Type Distribution:  defaultdict(<class 'float'>, {'door': 0.8918918918918912, 'window': 0.10810810810810811})
 Max rot error: 6.2, Max trans error: 0.3
@@ -46,7 +53,6 @@ Localized 68.42% of panos: 13 / 19
 [2021-11-05 23:48:12,718 INFO geometry_comparisons.py line 140 77617] Pose graph Sim(3) alignment complete.
 Mean translation error: 0.1, Mean rotation error: 1.3
 	Avg translation error: 0.05
-
 """
 
 
@@ -143,13 +149,20 @@ def test_from_wSi_list() -> None:
         None,
     ]
 
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    building_id = "1210"
+    floor_id = "floor_02"
     gt_floor_pg = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
     plot_save_dir = "dummy_dir"
 
     report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pg, plot_save_dir=plot_save_dir)
+    
+    #assert np.isclose(report.avg_abs_rot_err, 9999)
+    assert np.isclose(report.avg_abs_trans_err, 0.05, atol=1e-2)
+    #assert np.isclose(report.percent_panos_localized, 9999)
 
-    assert np.isclose(avg_abs_rot_err, 9999)
-    assert np.isclose(avg_abs_trans_err, 9999)
-    assert np.isclose(percent_panos_localized, 9999)
-    assert False
+
+if __name__ == "__main__":
+    test_from_wSi_list()
+
 
