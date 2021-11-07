@@ -152,10 +152,10 @@ class WDO:
         """
         aligned_self = copy.deepcopy(self)
 
-        b_Sim_j = self.global_Sim2_local
-        a_Sim_j = a_Sim2_b.compose(b_Sim_j)
-
-        aligned_self.global_Sim2_local = a_Sim_j
+        b_Sim2_j = self.global_Sim2_local
+        a_Sim2_j = a_Sim2_b.compose(b_Sim2_j)
+        # equivalent of `transformFrom()` on Pose2 object.
+        aligned_self.global_Sim2_local = Sim2(R=a_Sim2_j.rotation, t=a_Sim2_j.translation * a_Sim2_j.scale, s=1.0)
         return aligned_self
 
 
