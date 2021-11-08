@@ -107,7 +107,7 @@ class BEVParams:
 
 
 def rasterize_room_layout_pair(
-    i2Ti1: Sim2, gt_floor_pose_graph: PoseGraph2d, building_id: str, floor_id: str, i1: int, i2: int
+    i2Ti1: Sim2, floor_pose_graph: PoseGraph2d, building_id: str, floor_id: str, i1: int, i2: int
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Given a pose graph with room layouts and W/D/O locations, rasterize a BEV image of the scene.
 
@@ -116,7 +116,7 @@ def rasterize_room_layout_pair(
 
     Args:
         i2Ti1: relative pose between the two panoramas i1 and i2.
-        gt_floor_pose_graph: ground truth or inferred pose graph, containing layout polygons
+        floor_pose_graph: ground truth or inferred pose graph, containing layout polygons
             and locations of W/D/O objects.
         building_id: unique ID of ZinD building.
         floor_id: unique ID of floor of this ZinD building.
@@ -129,8 +129,8 @@ def rasterize_room_layout_pair(
     """
     bev_params = BEVParams()
 
-    i1_room_vertices = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
-    i2_room_vertices = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+    i1_room_vertices = floor_pose_graph.nodes[i1].room_vertices_local_2d
+    i2_room_vertices = floor_pose_graph.nodes[i2].room_vertices_local_2d
 
     # repeat first vertex as last vertex, so OpenCV polygon rendering will close the boundary.
     i1_room_vertices = np.vstack([i1_room_vertices, i1_room_vertices[0].reshape(-1, 2)])
@@ -142,17 +142,17 @@ def rasterize_room_layout_pair(
     # plt.plot(i2_room_vertices[:,0], i2_room_vertices[:,1], 10, color='b')
 
     i1_wdos = (
-        gt_floor_pose_graph.nodes[i1].doors
-        + gt_floor_pose_graph.nodes[i1].windows
-        + gt_floor_pose_graph.nodes[i1].openings
+        floor_pose_graph.nodes[i1].doors
+        + floor_pose_graph.nodes[i1].windows
+        + floor_pose_graph.nodes[i1].openings
     )
     i1_wdos = [i1_wdo.transform_from(i2Ti1) for i1_wdo in i1_wdos]
     img1 = rasterize_single_layout(bev_params, i1_room_vertices, wdo_objs=i1_wdos)
 
     i2_wdos = (
-        gt_floor_pose_graph.nodes[i2].doors
-        + gt_floor_pose_graph.nodes[i2].windows
-        + gt_floor_pose_graph.nodes[i2].openings
+        floor_pose_graph.nodes[i2].doors
+        + floor_pose_graph.nodes[i2].windows
+        + floor_pose_graph.nodes[i2].openings
     )
     # i2_wdos are already in frame i2, so they do not need to be transformed.
     img2 = rasterize_single_layout(bev_params, i2_room_vertices, wdo_objs=i2_wdos)
