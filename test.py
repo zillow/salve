@@ -330,8 +330,13 @@ if __name__ == "__main__":
     model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06"
     config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06/2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
     serialization_save_dir = (
-        "/data/johnlam/2021_11_04__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_08"
+        "/data/johnlam/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_08"
     )
+
+    # # ResNet-152, floor only, RGB only, 587 tours, (predicted-WDO), low-res
+    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/"
+    # config_fpath = ""
+    # serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_08"
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
