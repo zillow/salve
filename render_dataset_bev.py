@@ -9,11 +9,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import List
 
+import argoverse.utils.json_utils as json_utils
 import cv2
 import imageio
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-from argoverse.utils.json_utils import read_json_file
 
 import afp.algorithms.spanning_tree as spanning_tree
 import afp.common.posegraph2d as posegraph2d
@@ -22,12 +22,6 @@ import afp.utils.csv_utils as csv_utils
 import afp.utils.hohonet_inference as hohonet_inference_utils
 from afp.common.posegraph2d import PoseGraph2d
 from afp.dataset.zind_partition import OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
-from afp.utils.bev_rendering_utils import (
-    get_bev_pair_xyzrgb,
-    vis_depth,
-    vis_depth_and_render,
-    rasterize_room_layout_pair,
-)
 
 
 """
@@ -78,9 +72,9 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
             }
         )
         
-        bev_img = vis_depth_and_render(args, is_semantics=False)
+        bev_img = bev_rendering_utils.vis_depth_and_render(args, is_semantics=False)
 
-        vis_depth(args)
+        bev_rendering_utils.vis_depth(args)
 
         # save_dir = f"/Users/johnlam/Downloads/ZinD_BEV_crop_above_{args.crop_z_above}/{building_id}"
         building_bev_save_dir = f"{bev_save_root}/{label_type}/{building_id}"
@@ -123,7 +117,9 @@ def render_building_floor_pairs(
     layout_save_root: str,
     render_modalities: List[str] = ["rgb_texture"],  # , "layout"]
 ) -> None:
-    """
+    """Render BEV texture maps for a single floor of a single ZinD building.
+
+    Given a set of possible alignment hypotheses for the floor, render all possible BEV floor-ceiling image pairs.
 
     Args:
         depth_save_root: directory where depth maps should be saved.
@@ -212,7 +208,7 @@ def render_building_floor_pairs(
                             "crop_z_range": crop_z_range,  # 0.3 # -1.0 # -0.5 # 0.3 # 1.2
                         }
                     )
-                    # bev_img = vis_depth_and_render(args, is_semantics=False)
+                    # bev_img = bev_rendering_utils.vis_depth_and_render(args, is_semantics=False)
 
                     if Path(bev_fpath1).exists() and Path(bev_fpath2).exists():
                         print("Both BEV images already exist, skipping...")
@@ -245,123 +241,12 @@ def render_building_floor_pairs(
                         continue
 
                     # skip for ceiling, since would be duplicate.
-                    layoutimg1, layoutimg2 = rasterize_room_layout_pair(
+                    layoutimg1, layoutimg2 = bev_rendering_utils.rasterize_room_layout_pair(
                         i2Ti1, gt_floor_pose_graph, building_id, floor_id, i1, i2
                     )
 
                     imageio.imwrite(layout_fpath1, layoutimg1)
                     imageio.imwrite(layout_fpath2, layoutimg2)
-
-
-def render_floor_texture(
-    depth_save_root: str,
-    bev_save_root: str,
-    hypotheses_save_root: str,
-    raw_dataset_dir: str,
-    building_id: str,
-    floor_id: str,
-    layout_save_root: str,
-) -> None:
-    """On a single canvas, texture-map all panoramas onto a single space.
-
-    We generate global poses by using a spanning tree from the approximately generated relative
-    poses, using GT WDO locations.
-
-    Args:
-        depth_save_root:
-        bev_save_root:
-        hypotheses_save_root:
-        raw_dataset_dir:
-        building_id:
-        floor_id:
-    """
-    img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
-    img_fpaths_dict = {panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
-
-    floor_labels_dirpath = f"{hypotheses_save_root}/{building_id}/{floor_id}"
-
-    for label_type in ["gt_alignment_approx"]:
-        pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
-
-        for surface_type in ["floor", "ceiling"]:
-
-            i2Si1_dict = {}
-            for sim2_json_fpath in pairs:
-                i1, i2 = Path(sim2_json_fpath).stem.split("_")[:2]
-                i1, i2 = int(i1), int(i2)
-
-                i2Si1 = Sim2.from_json(json_fpath=sim2_json_fpath)
-                i2Si1_dict[(i1, i2)] = i2Si1
-
-            # find the minimal spanning tree, and the absolute poses from it
-            wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict)
-
-            xyzrgb = np.zeros((0, 6))
-            for pair_idx, pair_fpath in enumerate(pairs):
-
-                is_semantics = False
-                # if is_semantics:
-                #     crop_z_range = [-float('inf'), 2.0]
-                # else:
-
-                if surface_type == "floor":
-                    # everything 1 meter and below the camera
-                    crop_z_range = [-float("inf"), -1.0]
-
-                elif surface_type == "ceiling":
-                    # everything 50 cm and above camera
-                    crop_z_range = [0.5, float("inf")]
-
-                i2Ti1 = Sim2.from_json(json_fpath=pair_fpath)
-
-                i1, i2 = Path(pair_fpath).stem.split("_")[:2]
-                i1, i2 = int(i1), int(i2)
-
-                print(f"On {i1},{i2}")
-
-                img1_fpath = img_fpaths_dict[i1]
-                img2_fpath = img_fpaths_dict[i2]
-
-                hohonet_inference_utils.infer_depth_if_nonexistent(
-                    depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
-                )
-                hohonet_inference_utils.infer_depth_if_nonexistent(
-                    depth_save_root=depth_save_root, building_id=building_id, img_fpath=img2_fpath
-                )
-
-                args = SimpleNamespace(
-                    **{
-                        "img_i1": semantic_img1_fpath if is_semantics else img1_fpath,
-                        "img_i2": semantic_img2_fpath if is_semantics else img2_fpath,
-                        "depth_i1": f"{depth_save_root}/{building_id}/{Path(img1_fpath).stem}.depth.png",
-                        "depth_i2": f"{depth_save_root}/{building_id}/{Path(img2_fpath).stem}.depth.png",
-                        "scale": 0.001,
-                        # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-                        "crop_ratio": 80 / 512,
-                        "crop_z_range": crop_z_range,  # 0.3 # -1.0 # -0.5 # 0.3 # 1.2
-                    }
-                )
-
-                # will be in the frame of 2!
-                xyzrgb1, xyzrgb2 = get_bev_pair_xyzrgb(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
-
-                # import pdb; pdb.set_trace()
-                xyzrgb1[:, :2] = wSi_list[i2].transform_from(xyzrgb1[:, :2])
-                xyzrgb2[:, :2] = wSi_list[i2].transform_from(xyzrgb2[:, :2])
-
-                xyzrgb = np.vstack([xyzrgb, xyzrgb1])
-                xyzrgb = np.vstack([xyzrgb, xyzrgb2])
-
-                import matplotlib.pyplot as plt
-
-                plt.scatter(xyzrgb[:, 0], xyzrgb[:, 1], 10, c=xyzrgb[:, 3:], marker=".", alpha=0.1)
-                plt.title("")
-                plt.axis("equal")
-                save_fpath = f"texture_aggregation/{building_id}/{floor_id}/aggregated_{pair_idx}_pairs.jpg"
-                os.makedirs(Path(save_fpath).parent, exist_ok=True)
-                plt.savefig(save_fpath, dpi=500)
-                # plt.show()
-                plt.close("all")
 
 
 def render_pairs(
@@ -372,7 +257,10 @@ def render_pairs(
     hypotheses_save_root: str,
     layout_save_root: str,
 ) -> None:
-    """ """
+    """Render BEV texture maps for all floors of all ZinD buildings.
+
+    We do this 
+    """
 
     # building_id = "000"
     # floor_id = "floor_02" # "floor_01"
@@ -396,7 +284,7 @@ def render_pairs(
         if not Path(json_annot_fpath).exists():
             print(f"zind_data.json file missing for {building_id}")
 
-        floor_map_json = read_json_file(json_annot_fpath)
+        floor_map_json = json_utils.read_json_file(json_annot_fpath)
 
         if "merger" not in floor_map_json:
             print(f"No merger data in {building_id}: {json_annot_fpath}")
