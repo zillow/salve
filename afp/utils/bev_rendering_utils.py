@@ -109,18 +109,23 @@ class BEVParams:
 def rasterize_room_layout_pair(
     i2Ti1: Sim2, gt_floor_pose_graph: PoseGraph2d, building_id: str, floor_id: str, i1: int, i2: int
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """
+    """Given a pose graph with room layouts and W/D/O locations, rasterize a BEV image of the scene.
+
+    Note: the room layout and W/D/O locations may be inferred, or the ground truth (doesn't matter).
+    (Poses from the GT pose graph are not actually used during rasterization).
+
     Args:
-        i2Ti1:
-        gt_floor_pose_graph:
-        building_id:
-        floor_id:
-        i1:
-        i2:
+        i2Ti1: relative pose between the two panoramas i1 and i2.
+        gt_floor_pose_graph: ground truth or inferred pose graph, containing layout polygons
+            and locations of W/D/O objects.
+        building_id: unique ID of ZinD building.
+        floor_id: unique ID of floor of this ZinD building.
+        i1: panorama index for panorama 1.
+        i2: panorama index for panorama 2.
 
     Returns:
-        img1
-        img2
+        img1: BEV rasterization for panorama i1.
+        img2: BEV rasterization for panorama i2.
     """
     bev_params = BEVParams()
 
