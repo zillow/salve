@@ -330,7 +330,7 @@ if __name__ == "__main__":
     model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06"
     config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06/2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
     serialization_save_dir = (
-        "/data/johnlam/2021_11_04__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_05"
+        "/data/johnlam/2021_11_04__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_08"
     )
 
     # model_results_dir should have only these 3 files within it
