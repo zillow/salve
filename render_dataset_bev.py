@@ -133,12 +133,23 @@ def render_building_floor_pairs(
         layout_save_root:
         render_modalities: "rgb_texture", "layout"
     """
+    if "layout" in render_modalities:
+        # load the layouts, either inferred or GT.
+        use_inferred_wdos_layout = True
+        if use_inferred_wdos_layout:
+            from read_prod_predictions import load_inferred_floor_pose_graphs
+            floor_pose_graphs = load_inferred_floor_pose_graphs(
+                query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+            )
+            floor_pose_graph = floor_pose_graphs[floor_id]
+        else:
+            floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+
+
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
     img_fpaths_dict = {panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
 
     floor_labels_dirpath = f"{hypotheses_save_root}/{building_id}/{floor_id}"
-
-    gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
     for label_type in ["gt_alignment_approx", "incorrect_alignment"]:  # "gt_alignment_exact"
         pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
@@ -244,7 +255,7 @@ def render_building_floor_pairs(
 
                     # skip for ceiling, since would be duplicate.
                     layoutimg1, layoutimg2 = bev_rendering_utils.rasterize_room_layout_pair(
-                        i2Ti1, gt_floor_pose_graph, building_id, floor_id, i1, i2
+                        i2Ti1, floor_pose_graph, building_id, floor_id, i1, i2
                     )
 
                     imageio.imwrite(layout_fpath1, layoutimg1)
@@ -261,14 +272,16 @@ def render_pairs(
 ) -> None:
     """Render BEV texture maps for all floors of all ZinD buildings.
 
-    We do this 
+    Args:
+        num_processes: number of processes to use for parallel rendering.
+        depth_save_root:
+        bev_save_root:
+        raw_dataset_dir:
+        hypotheses_save_root:
+        layout_save_root: 
     """
 
-    # building_id = "000"
-    # floor_id = "floor_02" # "floor_01"
-
-    # building_id = "981" # "000"
-    # floor_id = "floor_01" # "floor_01"
+    render_modalities = ["layout"] # ["rgb_texture"]
 
     # discover possible building ids and floors
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
@@ -277,10 +290,6 @@ def render_pairs(
     args = []
 
     for building_id in building_ids:
-
-        # # already rendered
-        # if building_id not in ["0003"]: # NEW_HOME_ID_TEST_SET:
-        #     continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         if not Path(json_annot_fpath).exists():
@@ -303,6 +312,7 @@ def render_pairs(
                     building_id,
                     floor_id,
                     layout_save_root,
+                    render_modalities
                 )
             ]
 
@@ -312,13 +322,12 @@ def render_pairs(
     else:
         for single_call_args in args:
             render_building_floor_pairs(*single_call_args)
-            # render_floor_texture(*single_call_args)
 
 
 if __name__ == "__main__":
     """ """
 
-    num_processes = 40
+    num_processes = 1 # 40
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
@@ -373,6 +382,7 @@ if __name__ == "__main__":
     # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
     layout_save_root = None
+    layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
