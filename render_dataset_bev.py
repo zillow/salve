@@ -15,7 +15,6 @@ import imageio
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.algorithms.spanning_tree as spanning_tree
 import afp.common.posegraph2d as posegraph2d
 import afp.utils.bev_rendering_utils as bev_rendering_utils
 import afp.utils.csv_utils as csv_utils
@@ -35,8 +34,11 @@ Nasty depth map estimation failure cases: (from complete_07_10 version)
 
 
 def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
-    """
-    Render point clouds one by one.
+    """Render inferred point clouds one by one.
+
+    Args:
+        bev_save_root:
+        raw_dataset_dir:
     """
     #building_id = "000"  # "981"  #
     # building_id = "004"
