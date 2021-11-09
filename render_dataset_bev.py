@@ -133,6 +133,8 @@ def render_building_floor_pairs(
         layout_save_root:
         render_modalities: "rgb_texture", "layout"
     """
+    import pdb; pdb.set_trace()
+
     if "layout" in render_modalities:
         # load the layouts, either inferred or GT.
         use_inferred_wdos_layout = True
@@ -280,8 +282,6 @@ def render_pairs(
         hypotheses_save_root:
         layout_save_root: 
     """
-    import pdb; pdb.set_trace()
-
     render_modalities = ["layout"] # ["rgb_texture"]
 
     # discover possible building ids and floors
