@@ -327,16 +327,16 @@ if __name__ == "__main__":
     # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
 
     # ResNet-152, ceiling only, RGB only, 587 tours, (predicted-WDO), low-res
-    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06"
-    config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06/2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
-    serialization_save_dir = (
-        "/data/johnlam/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_08"
-    )
+    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06"
+    # config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06/2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
+    # serialization_save_dir = (
+    #     "/data/johnlam/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_08"
+    # )
 
     # # ResNet-152, floor only, RGB only, 587 tours, (predicted-WDO), low-res
-    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/"
-    # config_fpath = ""
-    # serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_08"
+    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_06/2021_11_08_07_40_48"
+    config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_06/2021_11_08_07_40_48/2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
+    serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09" # tested at 93.9 acc.
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
