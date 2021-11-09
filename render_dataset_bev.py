@@ -375,14 +375,14 @@ if __name__ == "__main__":
     # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
     #bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
     #bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
-    bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    bev_save_root = None # "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres" # BEST
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_23_debug"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
     # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
-    layout_save_root = None
-    layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    #layout_save_root = None
+    layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(

@@ -1,8 +1,6 @@
 """
 Converts an inference result to PanoData and PoseGraph2d objects. Also supports rendering the inference
 result with oracle pose.
-
-FINISH LAGO BASELINE
 """
 
 import copy
@@ -61,11 +59,11 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
     # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
     
     # path to batch of unzipped prediction files, from Yuguang
-    #data_root = "/Users/johnlam/Downloads/zind2_john"
+    # data_root = "/Users/johnlam/Downloads/zind2_john"
     # data_root = "/mnt/data/johnlam/zind2_john"
     data_root = "/home/johnlam/zind2_john"
 
-    #pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    # pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     # pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     pano_mapping_tsv_fpath = "/home/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     pano_mapping_rows = csv_utils.read_csv(pano_mapping_tsv_fpath, delimiter=",")
@@ -255,6 +253,10 @@ def main() -> None:
     building_ids = [str(v).zfill(4) for v in range(NUM_ZIND_BUILDINGS)]
 
     for building_id in building_ids:
+
+        if building_id != "0544":
+            continue
+
         floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
         if floor_pose_graphs is None:
             # prediction files must have been missing, so we skip.
