@@ -280,7 +280,10 @@ if __name__ == "__main__":
 
     # ResNet-152 with just a single modality.
     #config_name = "2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
-    config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
+    #config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
+
+    # ResNet-152 trained again with equal amount of data as single modality
+    config_name = "2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml"
 
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the afp module
