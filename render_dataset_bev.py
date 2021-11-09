@@ -141,7 +141,7 @@ def render_building_floor_pairs(
             floor_pose_graphs = load_inferred_floor_pose_graphs(
                 query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
             )
-            if cloor_pose_graphs is None:
+            if floor_pose_graphs is None:
                 return
             import pdb; pdb.set_trace()
             floor_pose_graph = floor_pose_graphs[floor_id]
