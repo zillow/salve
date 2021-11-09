@@ -133,8 +133,6 @@ def render_building_floor_pairs(
         layout_save_root:
         render_modalities: "rgb_texture", "layout"
     """
-    import pdb; pdb.set_trace()
-
     if "layout" in render_modalities:
         # load the layouts, either inferred or GT.
         use_inferred_wdos_layout = True
@@ -143,11 +141,14 @@ def render_building_floor_pairs(
             floor_pose_graphs = load_inferred_floor_pose_graphs(
                 query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
             )
+            if cloor_pose_graphs is None:
+                return
+            import pdb; pdb.set_trace()
             floor_pose_graph = floor_pose_graphs[floor_id]
         else:
             floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
-
+    import pdb; pdb.set_trace()
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
     img_fpaths_dict = {panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
 
