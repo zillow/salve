@@ -79,9 +79,7 @@ def get_line_width_by_resolution(resolution: float) -> int:
 
 def test_get_line_width_by_resolution() -> None:
     """Ensure polyline thickness is computed properly."""
-    import pdb
 
-    pdb.set_trace()
     line_width = get_line_width_by_resolution(resolution=0.005)
     assert line_width == 30
     assert isinstance(line_width, int)

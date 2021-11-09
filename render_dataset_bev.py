@@ -94,7 +94,6 @@ def panoid_from_fpath(fpath: str) -> int:
     return int(Path(fpath).stem.split("_")[-1])
 
 
-
 def resize_image(image: np.ndarray, h: int, w: int) -> np.ndarray:
     """
     Args:
@@ -124,7 +123,7 @@ def render_building_floor_pairs(
     Given a set of possible alignment hypotheses for the floor, render all possible BEV floor-ceiling image pairs.
 
     Args:
-        depth_save_root: directory where depth maps should be saved.
+        depth_save_root: directory where depth maps should be saved (or are already cached here).
         bev_save_root: directory where bird's eye view texture maps should be saved.
         hypotheses_save_root: directory where putative alignment hypotheses are saved.
         raw_dataset_dir: path to ZinD dataset.
@@ -143,12 +142,10 @@ def render_building_floor_pairs(
             )
             if floor_pose_graphs is None:
                 return
-            import pdb; pdb.set_trace()
             floor_pose_graph = floor_pose_graphs[floor_id]
         else:
             floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
-    import pdb; pdb.set_trace()
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
     img_fpaths_dict = {panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
 
@@ -281,10 +278,10 @@ def render_pairs(
 
     Args:
         num_processes: number of processes to use for parallel rendering.
-        depth_save_root:
-        bev_save_root:
-        raw_dataset_dir:
-        hypotheses_save_root:
+        depth_save_root: directory where depth maps should be saved (or are already cached here).
+        bev_save_root: directory where bird's eye view texture maps should be saved.
+        raw_dataset_dir: path to ZinD dataset.
+        hypotheses_save_root: directory where putative alignment hypotheses are saved.
         layout_save_root: 
     """
     render_modalities = ["layout"] # ["rgb_texture"]
@@ -333,7 +330,7 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 1 # 40
+    num_processes = 35
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
