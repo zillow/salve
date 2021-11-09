@@ -36,6 +36,7 @@ GREEN = [0, 255, 0]
 BLUE = [0, 0, 255]
 WDO_COLOR_DICT_CV2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
+# the default resolution for rendering BEV images.
 
 # DEFAULT_BEV_IMG_H_PX = 2000
 # DEFAULT_BEV_IMG_W_PX = 2000
@@ -48,6 +49,50 @@ WDO_COLOR_DICT_CV2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
 DEFAULT_BEV_IMG_H_PX = 500
 DEFAULT_BEV_IMG_W_PX = 500
 DEFAULT_METERS_PER_PX = 0.02
+
+
+FULL_RES_METERS_PER_PX = 0.005
+
+# at 2000 x 2000 px image @ 0.005 m/px resolution, this thickness makes sense.
+FULL_RES_LINE_WIDTH_PX = 30
+
+
+def get_line_width_by_resolution(resolution: float) -> int:
+    """Compute an appropriate polyline width, in pixels, for a specific rendering resolution.
+    Note: this is not dependent upon image size -- solely dependent upon image resolution.
+    Can have a tiny image at high resolution.
+
+    Args:
+        resolution:
+    Returns:
+        line_width: line width (thickness) in pixels to use for rendering polylines with OpenCV. Must be an integer.
+    """
+    scale = resolution / FULL_RES_METERS_PER_PX
+
+    # larger scale means lower resolution, so we make the line width more narrow.
+    line_width = FULL_RES_LINE_WIDTH_PX / scale
+
+    line_width = round(line_width)
+    # must be at least 1 pixel thick.
+    return max(line_width, 1)
+
+
+def test_get_line_width_by_resolution() -> None:
+    """Ensure polyline thickness is computed properly."""
+    import pdb
+
+    pdb.set_trace()
+    line_width = get_line_width_by_resolution(resolution=0.005)
+    assert line_width == 30
+    assert isinstance(line_width, int)
+
+    line_width = get_line_width_by_resolution(resolution=0.01)
+    assert line_width == 15
+    assert isinstance(line_width, int)
+
+    line_width = get_line_width_by_resolution(resolution=0.02)
+    assert line_width == 8
+    assert isinstance(line_width, int)
 
 
 def prune_to_2d_bbox(
@@ -143,17 +188,13 @@ def rasterize_room_layout_pair(
     # plt.plot(i2_room_vertices[:,0], i2_room_vertices[:,1], 10, color='b')
 
     i1_wdos = (
-        floor_pose_graph.nodes[i1].doors
-        + floor_pose_graph.nodes[i1].windows
-        + floor_pose_graph.nodes[i1].openings
+        floor_pose_graph.nodes[i1].doors + floor_pose_graph.nodes[i1].windows + floor_pose_graph.nodes[i1].openings
     )
     i1_wdos = [i1_wdo.transform_from(i2Ti1) for i1_wdo in i1_wdos]
     img1 = rasterize_single_layout(bev_params, i1_room_vertices, wdo_objs=i1_wdos)
 
     i2_wdos = (
-        floor_pose_graph.nodes[i2].doors
-        + floor_pose_graph.nodes[i2].windows
-        + floor_pose_graph.nodes[i2].openings
+        floor_pose_graph.nodes[i2].doors + floor_pose_graph.nodes[i2].windows + floor_pose_graph.nodes[i2].openings
     )
     # i2_wdos are already in frame i2, so they do not need to be transformed.
     img2 = rasterize_single_layout(bev_params, i2_room_vertices, wdo_objs=i2_wdos)
@@ -192,6 +233,8 @@ def rasterize_single_layout(
 
     WHITE = (255, 255, 255)
 
+    # thickness will be 30 px at 2000 x 2000, and just 8 px at 500 x 500
+    wdo_thickness_px = get_line_width_by_resolution(DEFAULT_METERS_PER_PX)
     if render_mask:
         bev_img = rasterize_polygon(
             polygon_xy=room_vertices * HOHO_S_ZIND_SCALE_FACTOR,
@@ -205,7 +248,7 @@ def rasterize_single_layout(
             bev_img=bev_img,
             bevimg_Sim2_world=bevimg_Sim2_world,
             color=WHITE,
-            thickness=10,
+            thickness=int(wdo_thickness_px / 3),  # 10 px at 2000 x 2000, and just 2-3 px at 500 x 500
         )
 
     for wdo_idx, wdo in enumerate(wdo_objs):
@@ -217,7 +260,7 @@ def rasterize_single_layout(
             bev_img=bev_img,
             bevimg_Sim2_world=bevimg_Sim2_world,
             color=wdo_color,
-            thickness=30,
+            thickness=wdo_thickness_px,
         )
     bev_img = np.flipud(bev_img)
     return bev_img
