@@ -195,14 +195,21 @@ def measure_avg_relative_pose_errors(measurements: List[EdgeClassification], gt_
         building_id: str,
         floor_id: str,
         verbose: bool = False
-    ) -> float:
+    ) -> Tuple[float, float]:
     """Measure the error on each edge for Similarity(2) or SE(2) measurements, for rotation and for translation.
 
     Created for evaluation of measurements without an estimated pose graph (only edges). Can be multiple edges (multigraph)
     between two nodes.
 
     Args:
-        
+        hypotheses_save_root:
+        building_id: unique ID for ZinD building.
+        floor_id: unique ID for floor of a ZinD building.
+        verbose: 
+
+    Returns:
+        mean_rot_err:
+        mean_trans_err:
     """
     rot_errs = []
     trans_errs = []
