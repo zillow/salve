@@ -253,11 +253,15 @@ class PoseGraph2d(NamedTuple):
 
         # align the pose graphs
         aligned_bTi_list_est, aSb = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
-        aligned_est_pose_graph = self.apply_Sim3(a_Sim3_b = aSb)
+
+        # TODO(johnwlambert): assumes all nodes have the same scale, which is not true.
+        random_ref_pano_id = list(ref_pose_graph.nodes.keys())[0]
+        gt_scale = ref_pose_graph.nodes[random_ref_pano_id].global_Sim2_local.scale
+        aligned_est_pose_graph = self.apply_Sim3(a_Sim3_b = aSb, gt_scale=gt_scale)
         return aligned_est_pose_graph, aligned_bTi_list_est
 
 
-    def apply_Sim3(self, a_Sim3_b: Similarity3) -> "PoseGraph2d":
+    def apply_Sim3(self, a_Sim3_b: Similarity3, gt_scale: float) -> "PoseGraph2d":
         """Create a new pose instance of the entire pose graph, after applying a Similarity(2) transform to every pose.
 
         The Similarity(2) transformation is computed by projecting a Similarity(3) transformation to 2d.
@@ -274,16 +278,16 @@ class PoseGraph2d(NamedTuple):
             b_Sim2_i = aligned_est_pose_graph.nodes[i].global_Sim2_local
             a_Sim2_i = a_Sim2_b.compose(b_Sim2_i)
             # equivalent of `transformFrom()` on Pose2 object.
-            pano_data_i.global_Sim2_local = Sim2(R=a_Sim2_i.rotation, t=a_Sim2_i.translation * a_Sim2_i.scale, s=1.0)
+            pano_data_i.global_Sim2_local = Sim2(R=a_Sim2_i.rotation, t=a_Sim2_i.translation * a_Sim2_i.scale, s=gt_scale)
 
             for j in range(len(pano_data_i.windows)):
-                pano_data_i.windows[j] = pano_data_i.windows[j].apply_Sim2(a_Sim2_b)
+                pano_data_i.windows[j] = pano_data_i.windows[j].apply_Sim2(a_Sim2_b, gt_scale=gt_scale)
 
             for j in range(len(pano_data_i.openings)):
-                pano_data_i.openings[j] = pano_data_i.openings[j].apply_Sim2(a_Sim2_b)
+                pano_data_i.openings[j] = pano_data_i.openings[j].apply_Sim2(a_Sim2_b, gt_scale=gt_scale)
 
             for j in range(len(pano_data_i.doors)):
-                pano_data_i.doors[j] = pano_data_i.doors[j].apply_Sim2(a_Sim2_b)
+                pano_data_i.doors[j] = pano_data_i.doors[j].apply_Sim2(a_Sim2_b, gt_scale=gt_scale)
 
             # replace this PanoData with the new aligned version.
             aligned_est_pose_graph.nodes[i] = pano_data_i
@@ -365,48 +369,6 @@ class PoseGraph2d(NamedTuple):
 
         return mean_err
 
-    def render_estimated_layout(
-        self,
-        show_plot: bool = True,
-        save_plot: bool = False,
-        plot_save_dir: str = "floorplan_renderings",
-        gt_floor_pg: "PoseGraph2d" = None,
-        plot_save_fpath: Optional[str] = None,
-    ) -> None:
-        """
-        Either render (show plot) or save plot to disk.
-
-        Args:
-            show_plot: boolean indicating whether to show via GUI a rendering of the plot.
-            save_plot: boolean indicating whether to save a rendering of the plot.
-            plot_save_dir: if only a general saving directory is provided for saving
-            gt_floor_pg: ground truth pose graph
-            plot_save_fpath: if a specifically desired file path is provided.
-        """
-        if gt_floor_pg is not None:
-            plt.suptitle("left: GT floorplan. Right: estimated floorplan.")
-            plt.subplot(1, 2, 1)
-            gt_floor_pg.render_estimated_layout(show_plot=False, save_plot=False, plot_save_dir=None, gt_floor_pg=None)
-            plt.axis("equal")
-            plt.subplot(1, 2, 2)
-
-        for i, pano_obj in self.nodes.items():
-            pano_obj.plot_room_layout(coord_frame="global", show_plot=False)
-
-        plt.title(f"Building {self.building_id}, {self.floor_id}")
-        plt.axis("equal")
-        if save_plot:
-            if plot_save_dir is not None and plot_save_fpath is None:
-                os.makedirs(plot_save_dir, exist_ok=True)
-                save_fpath = f"{plot_save_dir}/{self.building_id}_{self.floor_id}.jpg"
-            elif plot_save_dir is None and plot_save_fpath is not None:
-                save_fpath = plot_save_fpath
-            plt.savefig(save_fpath, dpi=500)
-            plt.close("all")
-
-        if show_plot:
-            plt.axis("equal")
-            plt.show()
 
     def draw_edge(self, i1: int, i2: int, color: str) -> None:
         """ """
