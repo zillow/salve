@@ -144,7 +144,7 @@ class WDO:
         )
         return self_transformed
 
-    def apply_Sim2(self, a_Sim2_b: Sim2) -> "WDO":
+    def apply_Sim2(self, a_Sim2_b: Sim2, gt_scale: float) -> "WDO":
         """Convert the WDO's pose to a new global reference frame `a` for Sim(3) alignment.
         Previous was in global frame `b`.
 
@@ -155,7 +155,7 @@ class WDO:
         b_Sim2_j = self.global_Sim2_local
         a_Sim2_j = a_Sim2_b.compose(b_Sim2_j)
         # equivalent of `transformFrom()` on Pose2 object.
-        aligned_self.global_Sim2_local = Sim2(R=a_Sim2_j.rotation, t=a_Sim2_j.translation * a_Sim2_j.scale, s=1.0)
+        aligned_self.global_Sim2_local = Sim2(R=a_Sim2_j.rotation, t=a_Sim2_j.translation * a_Sim2_j.scale, s=gt_scale)
         return aligned_self
 
 
