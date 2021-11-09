@@ -15,19 +15,20 @@ try:
 except:
     print("Open3d could not be loaded, so skipping import...")
 
+import argoverse.utils.cv2_plotting_utils as cv2_plotting_utils
+import imageio
 from argoverse.utils.se2 import SE2
 from argoverse.utils.sim2 import Sim2
-from imageio import imread
 
 # from vis_zind_annotations import rotmat2d
 
 import afp.utils.hohonet_pano_utils as hohonet_pano_utils
 import afp.utils.interpolation_utils as interpolation_utils
+import afp.utils.rotation_utils as rotation_utils
 import afp.utils.zorder_utils as zorder_utils
 from afp.common.pano_data import WDO
 from afp.common.posegraph2d import PoseGraph2d
 from afp.utils.colormap import colormap
-from afp.utils.rotation_utils import rotmat2d
 
 
 RED = [255, 0, 0]
@@ -170,13 +171,13 @@ def rasterize_single_layout(
     TODO: render as mask, or as polyline
 
     Args:
-        bev_params:
-        room_vertices:
-        wdo_objs:
-        render_mask
+        bev_params: hyperparameters for rendering.
+        room_vertices: coordinates of single room layout vertices (floor-wall boundary).
+        wdo_objs: window, door, and openings detected or annotated from a single room.
+        render_mask: whether to render the polygon as a filled mask, or not (otherwise, drawn as a thin contour).
 
     Returns:
-        bev_img:
+        bev_img: array of shape (H,W,3) representing the rendered/rasterized BEV image.
     """
     HOHO_S_ZIND_SCALE_FACTOR = 1.5
 
@@ -231,9 +232,7 @@ def rasterize_polygon(
     img_xy = bevimg_Sim2_world.transform_from(polygon_xy)
     img_xy = np.round(img_xy).astype(np.int64)
 
-    from argoverse.utils.cv2_plotting_utils import draw_polygon_cv2
-
-    bev_img = draw_polygon_cv2(points=img_xy, image=bev_img, color=color)
+    bev_img = cv2_plotting_utils.draw_polygon_cv2(points=img_xy, image=bev_img, color=color)
     return bev_img
 
 
@@ -398,10 +397,10 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
     Args:
         xyzrgb, with rgb in [0,1] as floats
     """
-    depth = imread(depth_fpath)[..., None].astype(np.float32) * args.scale
+    depth = imageio.imread(depth_fpath)[..., None].astype(np.float32) * args.scale
 
     # Reading rgb-d
-    rgb = imread(rgb_fpath)
+    rgb = imageio.imread(rgb_fpath)
 
     width = 1024
     height = 512
@@ -478,8 +477,8 @@ def vis_depth_and_render(args, is_semantics: bool):
 def vis_depth(args):
     """ """
     # Reading rgb-d
-    rgb = imread(args.img)
-    depth = imread(args.depth)[..., None].astype(np.float32) * args.scale
+    rgb = imageio.imread(args.img)
+    depth = imageio.imread(args.depth)[..., None].astype(np.float32) * args.scale
 
     width = 1024
     height = 512
@@ -532,7 +531,7 @@ def render_bev_pair(
     print(i2Ti1)
 
     # HoHoNet center of pano is to -x, but in ZinD center of pano is +y
-    R = rotmat2d(-90)
+    R = rotation_utils.rotmat2d(-90)
 
     xyzrgb1[:, :2] = xyzrgb1[:, :2] @ R.T
     xyzrgb2[:, :2] = xyzrgb2[:, :2] @ R.T
@@ -584,7 +583,7 @@ def get_bev_pair_xyzrgb(
     print(i2Ti1)
 
     # HoHoNet center of pano is to -x, but in ZinD center of pano is +y
-    R = rotmat2d(-90)
+    R = rotation_utils.rotmat2d(-90)
 
     xyzrgb1[:, :2] = xyzrgb1[:, :2] @ R.T
     xyzrgb2[:, :2] = xyzrgb2[:, :2] @ R.T
