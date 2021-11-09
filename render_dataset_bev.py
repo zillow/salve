@@ -280,6 +280,7 @@ def render_pairs(
         hypotheses_save_root:
         layout_save_root: 
     """
+    import pdb; pdb.set_trace()
 
     render_modalities = ["layout"] # ["rgb_texture"]
 
