@@ -258,9 +258,13 @@ def render_building_floor_pairs(
 
                     # skip for ceiling, since would be duplicate.
                     layoutimg1, layoutimg2 = bev_rendering_utils.rasterize_room_layout_pair(
-                        i2Ti1, floor_pose_graph, building_id, floor_id, i1, i2
+                        i2Ti1=i2Ti1,
+                        floor_pose_graph=floor_pose_graph,
+                        building_id=building_id,
+                        floor_id=floor_id,
+                        i1=i1,
+                        i2=i2
                     )
-
                     imageio.imwrite(layout_fpath1, layoutimg1)
                     imageio.imwrite(layout_fpath2, layoutimg2)
 
