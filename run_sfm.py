@@ -12,7 +12,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple
 
-import argoverse.utils.json_utils as json_utils
 import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.graph as graph_utils
 import matplotlib.pyplot as plt
@@ -29,14 +28,12 @@ import afp.common.edge_classification as edge_classification
 import afp.common.posegraph2d as posegraph2d
 import afp.utils.axis_alignment_utils as axis_alignment_utils
 import afp.utils.graph_rendering_utils as graph_rendering_utils
-import afp.utils.iou_utils as iou_utils
 import afp.utils.rotation_utils as rotation_utils
 import afp.utils.pr_utils as pr_utils
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
 from afp.algorithms.cluster_merging import EdgeWDOPair
 from afp.common.edge_classification import EdgeClassification
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
-from afp.common.pano_data import PanoData
 from afp.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
 
 
