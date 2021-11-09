@@ -117,6 +117,7 @@ def render_floorplan(pose_graph: PoseGraph2d):
     """Given global poses, render the floorplan by rendering each room layout in the global coordinate frame.
 
     Args:
+        pose_graph: 2d pose graph, either estimated or ground truth.
     """
     for i, pano_obj in pose_graph.nodes.items():
         pano_obj.plot_room_layout(coord_frame="global", show_plot=False)
