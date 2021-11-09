@@ -20,6 +20,7 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Pose3, Similarity3
 from scipy.spatial.transform import Rotation
 
+import afp.utils.ransac as ransac
 import afp.utils.rotation_utils as rotation_utils
 from afp.common.pano_data import FloorData, PanoData
 
@@ -216,7 +217,7 @@ class PoseGraph2d(NamedTuple):
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
         bTi_list_est = self.as_3d_pose_graph()
 
-        mean_rot_err, mean_trans_err = compute_pose_errors_3d(aTi_list_gt, bTi_list_est)
+        mean_rot_err, mean_trans_err = ransac.compute_pose_errors_3d(aTi_list_gt, bTi_list_est)
         return mean_rot_err, mean_trans_err
 
     def measure_unaligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float]:
@@ -235,7 +236,7 @@ class PoseGraph2d(NamedTuple):
 
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
 
-        mean_rot_err, mean_trans_err = compute_pose_errors_3d(aTi_list_gt, aligned_bTi_list_est)
+        mean_rot_err, mean_trans_err = ransac.compute_pose_errors_3d(aTi_list_gt, aligned_bTi_list_est)
         return mean_rot_err, mean_trans_err
 
 
@@ -252,7 +253,8 @@ class PoseGraph2d(NamedTuple):
         bTi_list_est.extend([None] * pad_len)
 
         # align the pose graphs
-        aligned_bTi_list_est, aSb = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
+        aligned_bTi_list_est, aSb = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
+        # aligned_bTi_list_est, aSb = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
 
         # TODO(johnwlambert): assumes all nodes have the same scale, which is not true.
         random_ref_pano_id = list(ref_pose_graph.nodes.keys())[0]
@@ -587,40 +589,6 @@ def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> 
     floor_pg_dict = get_single_building_pose_graphs(building_id, pano_dir, json_annot_fpath)
     return floor_pg_dict[floor_id]
 
-
-def compute_pose_errors_3d(aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]) -> Tuple[float, float]:
-    """Compute average pose errors over all cameras (separately in rotation and translation).
-
-    Note: pose graphs must already be aligned.
-
-    Args:
-        aTi_list_gt: ground truth 2d pose graph.
-        aligned_bTi_list_est:
-
-    Returns:
-        mean_rot_err: mean rotation error per camera, in degrees.
-        mean_trans_err: mean translation error per camera.
-    """
-    #print("aTi_list_gt: ", aTi_list_gt)
-    #print("aligned_bTi_list_est",  aligned_bTi_list_est)
-
-    rotation_errors = []
-    translation_errors = []
-    for (aTi, aTi_) in zip(aTi_list_gt, aligned_bTi_list_est):
-        if aTi is None or aTi_ is None:
-            continue
-        rot_err = gtsfm_geometry_comparisons.compute_relative_rotation_angle(aTi.rotation(), aTi_.rotation())
-        trans_err = np.linalg.norm(aTi.translation() - aTi_.translation())
-
-        rotation_errors.append(rot_err)
-        translation_errors.append(trans_err)
-
-    #print("Rotation Errors: ", np.round(rotation_errors,1))
-    #print("Translation Errors: ", np.round(translation_errors,1))
-    mean_rot_err = np.mean(rotation_errors)
-    mean_trans_err = np.mean(translation_errors)
-    print(f"Mean translation error: {mean_trans_err:.1f}, Mean rotation error: {mean_rot_err:.1f}")
-    return mean_rot_err, mean_trans_err
 
 
 if __name__ == "__main__":
