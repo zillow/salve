@@ -43,7 +43,7 @@ def get_conf_thresholded_edges(
     confidence_threshold: float,
     building_id: str,
     floor_id: str,
-    gt_floor_pose_graph: Optional[PoseGraph2d] = None
+    gt_floor_pose_graph: Optional[PoseGraph2d] = None,
 ) -> Tuple[
     Dict[Tuple[int, int], Sim2],
     Dict[Tuple[int, int], np.ndarray],
@@ -51,7 +51,7 @@ def get_conf_thresholded_edges(
     Dict[Tuple[int, int], TwoViewEstimationReport],
     List[Tuple[int, int]],
     Dict[Tuple[int, int], EdgeWDOPair],
-    List[EdgeClassification]
+    List[EdgeClassification],
 ]:
     """Among all model predictions for a particular floor of a home, select only the positive predictions
     with sufficiently high confidence.
@@ -117,23 +117,24 @@ def get_conf_thresholded_edges(
             m.i2 = i2
 
         # Useful for understanding tracks.
-        #print(m)
+        # print(m)
 
         most_confident_edge_dict[(m.i1, m.i2)] += [m]
         high_conf_measurements.append(m)
 
-    
     wdo_type_counter = defaultdict(float)
     for m in high_conf_measurements:
         alignment_object, _, _ = m.wdo_pair_uuid.split("_")
-        wdo_type_counter[alignment_object] += 1/len(high_conf_measurements)
+        wdo_type_counter[alignment_object] += 1 / len(high_conf_measurements)
     print("WDO Type Distribution: ", wdo_type_counter)
 
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair] = {}
 
     if len(high_conf_measurements) > 0:
         # Compute errors over all edges (repeated per pano)
-        measure_avg_relative_pose_errors(high_conf_measurements, gt_floor_pose_graph,
+        measure_avg_relative_pose_errors(
+            high_conf_measurements,
+            gt_floor_pose_graph,
             hypotheses_save_root,
             building_id,
             floor_id,
@@ -152,7 +153,9 @@ def get_conf_thresholded_edges(
 
         # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
         # use model confidence
-        i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+        i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(
+            m, hypotheses_save_root, building_id, floor_id
+        )
         i2Si1_dict[(m.i1, m.i2)] = i2Si1
 
         i2Ri1_dict[(m.i1, m.i2)] = i2Si1.rotation
@@ -169,7 +172,7 @@ def get_conf_thresholded_edges(
 
         # print(m)
         # TODO: fix this
-        #mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=verbose)
+        # mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=verbose)
 
     # #import pdb; pdb.set_trace()
     # wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict)
@@ -187,15 +190,26 @@ def get_conf_thresholded_edges(
     class_imbalance_ratio = num_gt_negatives / (num_gt_positives + EPS)
     print(f"\tClass imbalance ratio {class_imbalance_ratio:.2f}")
 
-    return i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, per_edge_wdo_dict, high_conf_measurements, wdo_type_counter
+    return (
+        i2Si1_dict,
+        i2Ri1_dict,
+        i2Ui1_dict,
+        two_view_reports_dict,
+        gt_edges,
+        per_edge_wdo_dict,
+        high_conf_measurements,
+        wdo_type_counter,
+    )
 
 
-def measure_avg_relative_pose_errors(measurements: List[EdgeClassification], gt_floor_pg: "PoseGraph2d",
-        hypotheses_save_root: str,
-        building_id: str,
-        floor_id: str,
-        verbose: bool = False
-    ) -> Tuple[float, float]:
+def measure_avg_relative_pose_errors(
+    measurements: List[EdgeClassification],
+    gt_floor_pg: "PoseGraph2d",
+    hypotheses_save_root: str,
+    building_id: str,
+    floor_id: str,
+    verbose: bool = False,
+) -> Tuple[float, float]:
     """Measure the error on each edge for Similarity(2) or SE(2) measurements, for rotation and for translation.
 
     Created for evaluation of measurements without an estimated pose graph (only edges). Can be multiple edges (multigraph)
@@ -205,7 +219,7 @@ def measure_avg_relative_pose_errors(measurements: List[EdgeClassification], gt_
         hypotheses_save_root:
         building_id: unique ID for ZinD building.
         floor_id: unique ID for floor of a ZinD building.
-        verbose: 
+        verbose:
 
     Returns:
         mean_rot_err:
@@ -223,7 +237,9 @@ def measure_avg_relative_pose_errors(measurements: List[EdgeClassification], gt_
         i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
 
         # technically it is i2Si1, but scale will always be 1 with inferred WDO.
-        i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+        i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(
+            m, hypotheses_save_root, building_id, floor_id
+        )
 
         theta_deg_est = i2Ti1.theta_deg
         theta_deg_gt = i2Ti1_gt.theta_deg
@@ -236,9 +252,15 @@ def measure_avg_relative_pose_errors(measurements: List[EdgeClassification], gt_
         trans_errs.append(trans_err)
 
         if verbose:
-            print(f"\tPano pair ({i1},{i2}): (Rot) GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}, Trans Error {trans_err:.1f} from {np.round(i2Ti1_gt.translation,1)} vs. {np.round(i2Ti1.translation,1)}")
+            print(
+                f"\tPano pair ({i1},{i2}): (Rot) GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}, Trans Error {trans_err:.1f} from {np.round(i2Ti1_gt.translation,1)} vs. {np.round(i2Ti1.translation,1)}"
+            )
 
-    print(REDTEXT + f"Max relative rot error: {max(rot_errs):.1f}, Max relative trans error: {max(trans_errs):.1f} (normalized)" + ENDCOLOR)
+    print(
+        REDTEXT
+        + f"Max relative rot error: {max(rot_errs):.1f}, Max relative trans error: {max(trans_errs):.1f} (normalized)"
+        + ENDCOLOR
+    )
 
     mean_rot_err = np.mean(rot_errs)
     mean_trans_err = np.mean(trans_errs)
@@ -353,7 +375,9 @@ def growing_consensus(
         )
         seed_cycle_errors.append(cycle_error)
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
 
     min_error_triplet_idx = np.argmin(np.array(seed_cycle_errors))
     seed_triplet = connected_triplets[min_error_triplet_idx]
@@ -391,9 +415,7 @@ def build_filtered_spanning_tree(
     gt_floor_pose_graph: PoseGraph2d,
     plot_save_dir: str,
 ) -> None:
-    """Uses chained cycle consistency.
-
-    """
+    """Uses chained cycle consistency."""
     graph_rendering_utils.draw_graph_topology(
         edges=list(i2Ri1_dict.keys()),
         gt_floor_pose_graph=gt_floor_pose_graph,
@@ -437,7 +459,7 @@ def build_filtered_spanning_tree(
         report = FloorReconstructionReport(
             avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
         )
-        return None,  report
+        return None, report
     # TODO: measure the error in rotations
 
     # filter to rotations that are consistent with global
@@ -510,7 +532,6 @@ def build_filtered_spanning_tree(
             avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
         )
         return None, report
-
 
     report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
     return i2Si1_dict_consistent, report
@@ -677,7 +698,7 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    method = "spanning_tree" 
+    method = "spanning_tree"
     # method = "SE2_cycles"
     # method = "growing_consensus"
     # method = "filtered_spanning_tree"
@@ -687,14 +708,16 @@ def run_incremental_reconstruction(
 
     # TODO: add axis alignment.
 
-    confidence_threshold = 0.93 #8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
     plot_save_dir = (
         f"{Path(serialized_preds_json_dir).name}___2021_11_03_{method}_floorplans_with_conf_{confidence_threshold}"
     )
     os.makedirs(plot_save_dir, exist_ok=True)
 
-    floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
+    floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
+        serialized_preds_json_dir
+    )
 
     reconstruction_reports = []
 
@@ -720,7 +743,7 @@ def run_incremental_reconstruction(
             is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true_array, y_hat_array)
 
             plt.subplot(2, 2, 1)
-            plt.hist(probs[is_TP], bins=30) # 15 bins are too few, to see 98%-99% confidence bin
+            plt.hist(probs[is_TP], bins=30)  # 15 bins are too few, to see 98%-99% confidence bin
             plt.title("TP")
 
             plt.subplot(2, 2, 2)
@@ -741,7 +764,16 @@ def run_incremental_reconstruction(
         if render_multigraph:
             graph_rendering_utils.draw_multigraph(measurements, gt_floor_pose_graph)
 
-        i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, gt_edges, _, high_conf_measurements, wdo_type_counter = get_conf_thresholded_edges(
+        (
+            i2Si1_dict,
+            i2Ri1_dict,
+            i2Ui1_dict,
+            two_view_reports_dict,
+            gt_edges,
+            _,
+            high_conf_measurements,
+            wdo_type_counter,
+        ) = get_conf_thresholded_edges(
             measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id, gt_floor_pose_graph
         )
         # TODO: edge accuracy doesn't mean anything (too many FPs). Use average error on each edge, instead.
@@ -754,12 +786,12 @@ def run_incremental_reconstruction(
             print(REDTEXT + f"For {wdo_type}, {np.mean(percents)*100:.1f}%" + ENDCOLOR)
 
         if len(high_conf_measurements) == 0:
-            print(f"Skip Building {building_id}, {floor_id} -> no high conf measurements from {len(measurements)} measurements.")
-            
+            print(
+                f"Skip Building {building_id}, {floor_id} -> no high conf measurements from {len(measurements)} measurements."
+            )
+
             report = FloorReconstructionReport(
-                avg_abs_rot_err=np.nan,
-                avg_abs_trans_err=np.nan,
-                percent_panos_localized=0.0
+                avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
             )
             reconstruction_reports.append(report)
             continue
@@ -779,13 +811,11 @@ def run_incremental_reconstruction(
             # i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
-            report = FloorReconstructionReport.from_wSi_list(
-                wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir
-            )
+            report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
             reconstruction_reports.append(report)
 
         elif method in ["pose2_slam", "pgo"]:
-            #graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
+            # graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = pose2_slam.execute_planar_slam(
                 measurements=high_conf_measurements,
@@ -795,7 +825,7 @@ def run_incremental_reconstruction(
                 floor_id=floor_id,
                 wSi_list=wSi_list,
                 plot_save_dir=plot_save_dir,
-                optimize_poses_only="pgo"==method
+                optimize_poses_only="pgo" == method,
             )
             reconstruction_reports.append(report)
 
@@ -808,15 +838,18 @@ def run_incremental_reconstruction(
 
             # generate 100 spanning trees.
             from afp.algorithms.spanning_tree import RelativePoseMeasurement
+
             high_conf_measurements_rel = []
             for m in high_conf_measurements:
-                i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+                i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(
+                    m, hypotheses_save_root, building_id, floor_id
+                )
                 high_conf_measurements_rel.append(RelativePoseMeasurement(i1=m.i1, i2=m.i2, i2Si1=i2Si1))
 
-            wSi_list = spanning_tree.ransac_spanning_trees(high_conf_measurements_rel, num_hypotheses=100, min_num_edges_for_hypothesis=None)
-            report = FloorReconstructionReport.from_wSi_list(
-                wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir
+            wSi_list = spanning_tree.ransac_spanning_trees(
+                high_conf_measurements_rel, num_hypotheses=100, min_num_edges_for_hypothesis=None
             )
+            report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
             reconstruction_reports.append(report)
 
         elif method == "filtered_spanning_tree":
@@ -872,20 +905,21 @@ def run_incremental_reconstruction(
 
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
+
 def align_pairs_by_vanishing_angle(
-    i2Si1_dict: Dict[Tuple[int,int], Sim2], gt_floor_pose_graph: PoseGraph2d, visualize: bool = True
-) -> Dict[Tuple[int,int], Sim2]:
+    i2Si1_dict: Dict[Tuple[int, int], Sim2], gt_floor_pose_graph: PoseGraph2d, visualize: bool = True
+) -> Dict[Tuple[int, int], Sim2]:
     """ """
 
-    for (i1,i2), i2Si1 in i2Si1_dict.items():
+    for (i1, i2), i2Si1 in i2Si1_dict.items():
 
         verts_i1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
         verts_i2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
-        
+
         if visualize:
-            plt.subplot(1,2,1)
-            draw_polygon(verts_i1, color='r', linewidth=5)
-            draw_polygon(verts_i2, color='g', linewidth=1)
+            plt.subplot(1, 2, 1)
+            draw_polygon(verts_i1, color="r", linewidth=5)
+            draw_polygon(verts_i2, color="g", linewidth=1)
             plt.axis("equal")
 
         dominant_angle_deg1, angle_frac1 = axis_alignment_utils.determine_rotation_angle(verts_i1)
@@ -903,12 +937,11 @@ def align_pairs_by_vanishing_angle(
         i2Si1_dominant = Sim2(R=i2Ri1_dominant, t=np.zeros(2), s=1.0)
         # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
 
-
         # method = "rotate_about_origin_first"
         # method = "rotate_about_origin_last"
-        #method = "rotate_about_centroid_first"
+        # method = "rotate_about_centroid_first"
         method = "none"
-        
+
         # i1a and i2a represent the aligned frames.
         if method == "rotate_about_origin_first":
             # apply rotation first (delta pose)
@@ -924,7 +957,9 @@ def align_pairs_by_vanishing_angle(
 
         elif method == "rotate_about_centroid_first":
 
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
             verts_i1_ = geometry_utils.rotate_polygon_about_pt(
                 verts_i1, rotmat=i2Ri1_dominant, center_pt=np.mean(verts_i1, axis=0)
             )
@@ -936,42 +971,42 @@ def align_pairs_by_vanishing_angle(
             # TODO: wrong, since layouts need to be expressed in the body frame.
             verts_i1_ = i2Si1.transform_from(verts_i1)
 
-
         if visualize:
-            plt.subplot(1,2,2)
-            draw_polygon(verts_i1_, color='r', linewidth=5)
-            draw_polygon(verts_i2, color='g', linewidth=1)
+            plt.subplot(1, 2, 2)
+            draw_polygon(verts_i1_, color="r", linewidth=5)
+            draw_polygon(verts_i2, color="g", linewidth=1)
             plt.axis("equal")
             plt.show()
 
-        import pdb; pdb.set_trace()
+        import pdb
+
+        pdb.set_trace()
 
     return i2Si1_dict
 
 
 def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
     """ """
-    verts = np.vstack([poly, poly[0]]) # allow connection between the last and first vertex
+    verts = np.vstack([poly, poly[0]])  # allow connection between the last and first vertex
 
-    plt.plot(verts[:,0], verts[:,1], color=color, linewidth=linewidth)
-    plt.scatter(verts[:,0], verts[:,1], 10, color=color, marker='.')
-
+    plt.plot(verts[:, 0], verts[:, 1], color=color, linewidth=linewidth)
+    plt.scatter(verts[:, 0], verts[:, 1], 10, color=color, marker=".")
 
 
 def test_align_pairs_by_vanishing_angle() -> None:
     """Ensure we can use vanishing angles to make small corrections to rotations, with perfect layouts (no noise)."""
-    
-    # cameras are at the center of each room. doorway is at (0,1.5)
-    wTi1 = Pose2(Rot2(), np.array([1.5,1.5]))
-    wTi2 = Pose2(Rot2(), np.array([-1.5,1.5]))
 
-    i2Ri1 = wTi2.between(wTi1).rotation().matrix() # 2x2 identity matrix.
+    # cameras are at the center of each room. doorway is at (0,1.5)
+    wTi1 = Pose2(Rot2(), np.array([1.5, 1.5]))
+    wTi2 = Pose2(Rot2(), np.array([-1.5, 1.5]))
+
+    i2Ri1 = wTi2.between(wTi1).rotation().matrix()  # 2x2 identity matrix.
     i2ti1 = wTi2.between(wTi1).translation()
 
     i2Ri1_noisy = rotation_utils.rotmat2d(theta_deg=30)
 
     # simulate noisy rotation, but correct translation
-    i2Si1_dict = {(1,2): Sim2(R=i2Ri1, t=i2ti1, s=1.0)}
+    i2Si1_dict = {(1, 2): Sim2(R=i2Ri1, t=i2ti1, s=1.0)}
 
     # We cannot specify these layouts in the world coordinate frame. They must be in the local body frame.
     # fmt: off
@@ -993,8 +1028,8 @@ def test_align_pairs_by_vanishing_angle() -> None:
     layout2_w = geometry_utils.rotate_polygon_about_pt(layout1_w - np.array([3.,0]), rotmat=i2Ri1_noisy, center_pt=np.array([-1.5,1.5]))
     # fmt: on
 
-    draw_polygon(layout1_w, color='r', linewidth=5)
-    draw_polygon(layout2_w, color='g', linewidth=1)
+    draw_polygon(layout1_w, color="r", linewidth=5)
+    draw_polygon(layout2_w, color="g", linewidth=1)
     plt.axis("equal")
     plt.show()
 
@@ -1011,7 +1046,9 @@ def test_align_pairs_by_vanishing_angle() -> None:
     # use square and rotated square
     gt_floor_pose_graph = SimpleNamespace(**{"nodes": {1: pano_data_1, 2: pano_data_2}})
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     # ensure delta pose is accounted for properly.
     i2Si1_dict_aligned = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
 
@@ -1027,7 +1064,7 @@ def test_align_pairs_by_vanishing_angle_noisy() -> None:
     i2ti1 = None
 
     # simulate noisy rotation, but correct translation
-    i2Si1_dict = {(0,1): Sim2(R=i2Ri1, t=i2ti1, s=1.0)}
+    i2Si1_dict = {(0, 1): Sim2(R=i2Ri1, t=i2ti1, s=1.0)}
 
     layout0 = np.array([[]])
     layout1 = np.array([[]])
@@ -1039,8 +1076,6 @@ def test_align_pairs_by_vanishing_angle_noisy() -> None:
     gt_floor_pose_graph = SimpleNamespace(**{"nodes": {0: pano_data_0, 1: pano_data_1}})
 
     i2Si1_dict_aligned = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
-
-
 
 
 if __name__ == "__main__":
@@ -1058,25 +1093,25 @@ if __name__ == "__main__":
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
-
     # 186 tours, low-res, RGB only floor and ceiling. custom hacky val split
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    hypotheses_save_root = (
+        "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    )
 
     # 373 training tours, low-res, RGB only floor and ceiling, true ZinD train/val/test split
-    #serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications"
-    #serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications_v2_more_rendered"
-    
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications"
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications_v2_more_rendered"
+
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
-    serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    serialized_preds_json_dir = (
+        "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    )
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
 
-    #test_align_pairs_by_vanishing_angle()
-
+    # test_align_pairs_by_vanishing_angle()
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
-
-
