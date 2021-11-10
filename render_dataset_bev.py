@@ -20,8 +20,7 @@ import afp.utils.bev_rendering_utils as bev_rendering_utils
 import afp.utils.csv_utils as csv_utils
 import afp.utils.hohonet_inference as hohonet_inference_utils
 from afp.common.posegraph2d import PoseGraph2d
-from afp.dataset.zind_partition import OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
-
+from afp.dataset.zind_partition import DATASET_SPLITS, OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
 
 """
 Nasty depth map estimation failure cases: (from complete_07_10 version)
@@ -40,11 +39,13 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
         bev_save_root:
         raw_dataset_dir:
     """
-    #building_id = "000"  # "981"  #
+    # building_id = "000"  # "981"  #
     # building_id = "004"
     building_id = "0544"
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
 
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
 
@@ -61,7 +62,7 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
         if is_semantics:
             crop_z_range = [-float("inf"), 2]
         else:
-            crop_z_range = [-float("inf"), float('inf')] #-1.0]  # [0.5, float('inf')] #  # 2.0 # -1.0
+            crop_z_range = [-float("inf"), float("inf")]  # -1.0]  # [0.5, float('inf')] #  # 2.0 # -1.0
 
         args = SimpleNamespace(
             **{
@@ -69,11 +70,11 @@ def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:
                 "depth": f"{depth_save_root}/{building_id}/{Path(img_fpath).stem}.depth.png",
                 "scale": 0.001,
                 "crop_ratio": 80 / 512,  # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
-                "crop_z_range": crop_z_range #0.3 # -1.0 # -0.5 # 0.3 # 1.2
-                #"crop_z_above": 2,
+                "crop_z_range": crop_z_range  # 0.3 # -1.0 # -0.5 # 0.3 # 1.2
+                # "crop_z_above": 2,
             }
         )
-        
+
         bev_img = bev_rendering_utils.vis_depth_and_render(args, is_semantics=False)
 
         bev_rendering_utils.vis_depth(args)
@@ -104,7 +105,7 @@ def resize_image(image: np.ndarray, h: int, w: int) -> np.ndarray:
     Returns:
         image: array pf shape (h,w,3)
     """
-    image = cv2.resize(image, (w,h), interpolation=cv2.INTER_LINEAR)
+    image = cv2.resize(image, (w, h), interpolation=cv2.INTER_LINEAR)
     return image
 
 
@@ -137,6 +138,7 @@ def render_building_floor_pairs(
         use_inferred_wdos_layout = True
         if use_inferred_wdos_layout:
             from read_prod_predictions import load_inferred_floor_pose_graphs
+
             floor_pose_graphs = load_inferred_floor_pose_graphs(
                 query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
             )
@@ -227,7 +229,9 @@ def render_building_floor_pairs(
                         print("Both BEV images already exist, skipping...")
                         continue
 
-                    bev_img1, bev_img2 = bev_rendering_utils.render_bev_pair(args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False)
+                    bev_img1, bev_img2 = bev_rendering_utils.render_bev_pair(
+                        args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False
+                    )
 
                     if bev_img1 is None or bev_img2 is None:
                         continue
@@ -260,7 +264,7 @@ def render_building_floor_pairs(
                         building_id=building_id,
                         floor_id=floor_id,
                         i1=i1,
-                        i2=i2
+                        i2=i2,
                     )
                     imageio.imwrite(layout_fpath1, layoutimg1)
                     imageio.imwrite(layout_fpath2, layoutimg2)
@@ -282,9 +286,9 @@ def render_pairs(
         bev_save_root: directory where bird's eye view texture maps should be saved.
         raw_dataset_dir: path to ZinD dataset.
         hypotheses_save_root: directory where putative alignment hypotheses are saved.
-        layout_save_root: 
+        layout_save_root:
     """
-    render_modalities = ["layout"] # ["rgb_texture"]
+    render_modalities = ["rgb_texture"] # ["layout"]  # 
 
     # discover possible building ids and floors
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
@@ -293,6 +297,10 @@ def render_pairs(
     args = []
 
     for building_id in building_ids:
+
+        # for rendering test data only
+        if building_id not in DATASET_SPLITS["test"]:
+            continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         if not Path(json_annot_fpath).exists():
@@ -315,7 +323,7 @@ def render_pairs(
                     building_id,
                     floor_id,
                     layout_save_root,
-                    render_modalities
+                    render_modalities,
                 )
             ]
 
@@ -330,13 +338,13 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 35
+    num_processes = 1
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
 
     # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    #depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    # depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     depth_save_root = "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
@@ -349,11 +357,13 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    #hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
+    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
     # hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
-    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    hypotheses_save_root = (
+        "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    )
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
@@ -363,7 +373,7 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    #raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
+    # raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
     raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
 
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
@@ -376,16 +386,16 @@ if __name__ == "__main__":
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
     # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
-    #bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
-    #bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
-    bev_save_root = None # "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres" # BEST
+    # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
+    # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
+    bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"  # BEST
     # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_23_debug"
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
     # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
-    #layout_save_root = None
-    layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout"
+    # layout_save_root = None
+    # layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout"
 
     # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
