@@ -431,10 +431,14 @@ def eval_openmvg_errors_all_tours() -> None:
     building_ids.sort()
     reconstruction_reports = []
 
-    for building_id in building_ids:
+    for building_id in building_ids[::-1]:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
-        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(building_id))])
+        try:
+            new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(building_id))])
+        except Exception as e:
+            print(f"Exception for Building {building_id}: ", e)
+            continue
         new_building_id = new_building_ids[0]
         if new_building_id not in DATASET_SPLITS["test"]:
             continue
