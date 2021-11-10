@@ -23,19 +23,31 @@ class FloorReconstructionReport:
 
     @classmethod
     def from_wSi_list(
-        cls, wSi_list: List[Optional[Sim2]], gt_floor_pose_graph: PoseGraph2d, plot_save_dir: str
+        cls, wSi_list: List[Optional[Sim2]], gt_floor_pose_graph: PoseGraph2d, plot_save_dir: str, plot_save_fpath: str = None
     ) -> "FloorReconstructionReport":
         """ """
-        num_localized_panos = np.array([wSi is not None for wSi in wSi_list]).sum()
-        num_floor_panos = len(gt_floor_pose_graph.nodes)
-        percent_panos_localized = num_localized_panos / num_floor_panos * 100
-        print(f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
 
         # TODO: try spanning tree version, vs. Shonan version
         wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
         wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
 
         est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph)
+
+        return FloorReconstructionReport.from_est_floor_pose_graph(
+            est_floor_pose_graph=est_floor_pose_graph,
+            gt_floor_pose_graph=gt_floor_pose_graph,
+            plot_save_dir=plot_save_dir,
+            plot_save_fpath=plot_save_fpath
+        )
+
+    @classmethod
+    def from_est_floor_pose_graph(cls, est_floor_pose_graph: PoseGraph2d, gt_floor_pose_graph: PoseGraph2d, plot_save_dir: str, plot_save_fpath: str) -> "FloorReconstructionReport":
+        """
+        """
+        num_localized_panos = len(est_floor_pose_graph.nodes)
+        num_floor_panos = len(gt_floor_pose_graph.nodes)
+        percent_panos_localized = num_localized_panos / num_floor_panos * 100
+        print(f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
 
         aligned_est_floor_pose_graph, _ = est_floor_pose_graph.align_by_Sim3_to_ref_pose_graph(ref_pose_graph=gt_floor_pose_graph)
         mean_abs_rot_err, mean_abs_trans_err = aligned_est_floor_pose_graph.measure_aligned_abs_pose_error(
@@ -52,7 +64,8 @@ class FloorReconstructionReport:
             show_plot=False,
             save_plot=True,
             plot_save_dir=plot_save_dir,
-            gt_floor_pg=gt_floor_pose_graph
+            gt_floor_pg=gt_floor_pose_graph,
+            plot_save_fpath=plot_save_fpath
         )
 
         print()
