@@ -39,11 +39,13 @@ class FloorReconstructionReport:
 
         aligned_est_floor_pose_graph, _ = est_floor_pose_graph.align_by_Sim3_to_ref_pose_graph(ref_pose_graph=gt_floor_pose_graph)
         mean_abs_rot_err, mean_abs_trans_err = aligned_est_floor_pose_graph.measure_aligned_abs_pose_error(
-
-        # mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(
             gt_floor_pg=gt_floor_pose_graph
         )
-        print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
+
+        # convert units to meters.
+        worldmetric_s_worldnormalized = gt_floor_pose_graph.scale_meters_per_coordinate
+        mean_abs_trans_err_m = worldmetric_s_worldnormalized * mean_abs_trans_err
+        print(f"Mean rotation error: {mean_abs_rot_err:.2f}, Mean translation error: {mean_abs_trans_err_m:.2f}")
 
         render_floorplans_side_by_side(
             est_floor_pose_graph=aligned_est_floor_pose_graph,
@@ -58,7 +60,7 @@ class FloorReconstructionReport:
 
         return cls(
             avg_abs_rot_err=mean_abs_rot_err,
-            avg_abs_trans_err=mean_abs_trans_err,
+            avg_abs_trans_err=mean_abs_trans_err_m,
             percent_panos_localized=percent_panos_localized,
         )
 
@@ -88,15 +90,13 @@ def render_floorplans_side_by_side(
     if gt_floor_pg is not None:
         plt.suptitle("left: GT floorplan. Right: estimated floorplan.")
         ax1 = plt.subplot(1, 2, 1)
-        render_floorplan(gt_floor_pg)
-        #plt.axis("equal")
+        render_floorplan(gt_floor_pg, gt_floor_pg.scale_meters_per_coordinate)
         ax1.set_aspect('equal')
     
     ax2 = plt.subplot(1, 2, 2, sharex=ax1, sharey=ax1)
     ax2.set_aspect('equal')
-    render_floorplan(est_floor_pose_graph)
+    render_floorplan(est_floor_pose_graph, gt_floor_pg.scale_meters_per_coordinate)
     plt.title(f"Building {building_id}, {floor_id}")
-    #plt.axis("equal")
 
     if save_plot:
         if plot_save_dir is not None and plot_save_fpath is None:
@@ -113,13 +113,12 @@ def render_floorplans_side_by_side(
 
 
 
-def render_floorplan(pose_graph: PoseGraph2d):
+def render_floorplan(pose_graph: PoseGraph2d, scale_meters_per_coordinate: float) -> None:
     """Given global poses, render the floorplan by rendering each room layout in the global coordinate frame.
 
     Args:
         pose_graph: 2d pose graph, either estimated or ground truth.
     """
     for i, pano_obj in pose_graph.nodes.items():
-        pano_obj.plot_room_layout(coord_frame="global", show_plot=False)
-
+        pano_obj.plot_room_layout(coord_frame="worldmetric", show_plot=False, scale_meters_per_coordinate=scale_meters_per_coordinate)
 
