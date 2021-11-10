@@ -870,21 +870,7 @@ def run_incremental_reconstruction(
         else:
             raise RuntimeError("Unknown method.")
 
-    print()
-    print()
-    print(f"Test set contained {len(reconstruction_reports)} total floors.")
-    if len(reconstruction_reports) == 0:
-        print("Cannot compute error metrics, tested over zero homes.")
-        return
-
-    error_metrics = reconstruction_reports[0].__dict__.keys()
-    for error_metric in error_metrics:
-        avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
-        print(f"Averaged over all tours, {error_metric} = {avg_val:.2f}")
-
-        median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
-        print(f"Median over all tours, {error_metric} = {median_val:.2f}")
-
+    floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
 def align_pairs_by_vanishing_angle(
     i2Si1_dict: Dict[Tuple[int,int], Sim2], gt_floor_pose_graph: PoseGraph2d, visualize: bool = True
