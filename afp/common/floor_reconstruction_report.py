@@ -146,3 +146,25 @@ def render_floorplan(pose_graph: PoseGraph2d, scale_meters_per_coordinate: float
         pano_obj.plot_room_layout(
             coord_frame="worldmetric", show_plot=False, scale_meters_per_coordinate=scale_meters_per_coordinate
         )
+
+
+def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -> None:
+    """ """
+
+    print()
+    print()
+    print(f"Test set contained {len(reconstruction_reports)} total floors.")
+    if len(reconstruction_reports) == 0:
+        print("Cannot compute error metrics, tested over zero homes.")
+        return
+
+    error_metrics = reconstruction_reports[0].__dict__.keys()
+    for error_metric in error_metrics:
+        avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
+        print(f"Averaged over all tours, {error_metric} = {avg_val:.2f}")
+
+        median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
+        print(f"Median over all tours, {error_metric} = {median_val:.2f}")
+
+
+
