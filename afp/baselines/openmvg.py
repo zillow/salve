@@ -128,6 +128,8 @@ def test_find_seed_pair() -> None:
 def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, reconstruction_dirpath: str) -> None:
     """Run OpenMVG over a single floor of a single building, by sequentially executing binaries for each SfM stage.
 
+    The reconstruction result / estimated global poses will be written to a file named "sfm_data.json".
+
     Args:
         image_dirpath: path to temp. directory containing all images to use for reconstruction of a single floor.
         matches_dirpath: path to directory where matches info will be stored.
