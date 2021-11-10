@@ -1,5 +1,4 @@
-"""RANSAC based Sim(3) pose alignment.
-"""
+"""RANSAC based Sim(3) pose alignment."""
 
 import copy
 import math

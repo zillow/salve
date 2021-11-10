@@ -114,7 +114,7 @@ def planar_slam(
     landmark_positions_init: Dict[int, Point2],
     landmark_measurements: List[BearingRangeMeasurement],
     optimize_poses_only: bool,
-    use_robust: bool = True
+    use_robust: bool = True,
 ) -> Tuple[List[Optional[Pose2]], Dict[int, Point2]]:
     """
 
@@ -241,7 +241,7 @@ def execute_planar_slam(
     """Gather odometry and landmark measurements for planar Pose(2) SLAM.
 
     Args:
-        measurements: 
+        measurements:
         gt_floor_pg: ground truth 2d pose graph for this ZinD building floor.
         hypotheses_save_root:
         building_id:
@@ -261,7 +261,9 @@ def execute_planar_slam(
     # # as (x,y,theta). We don't use a dict, as we may have multiple measurements for each pair of poses.
     i2Ti1_measurements = []
     for m in measurements:
-        i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(m, hypotheses_save_root, building_id, floor_id)
+        i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(
+            m, hypotheses_save_root, building_id, floor_id
+        )
         theta_rad = np.deg2rad(i2Si1.theta_deg)
         x, y = i2Si1.translation
         om = OdometryMeasurement(m.i1, m.i2, Pose2(x, y, theta_rad))
@@ -277,9 +279,12 @@ def execute_planar_slam(
     if not optimize_poses_only:
         # load up the 3d point locations for each WDO.
         from read_prod_predictions import load_inferred_floor_pose_graphs
+
         raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
-        floor_pose_graphs = load_inferred_floor_pose_graphs(query_building_id=building_id, raw_dataset_dir=raw_dataset_dir)
+        floor_pose_graphs = load_inferred_floor_pose_graphs(
+            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+        )
         pano_dict_inferred = floor_pose_graphs[floor_id].nodes
         tracks_2d = data_association.perform_data_association(measurements, pano_dict_inferred)
         for j, track_2d in enumerate(tracks_2d):
@@ -318,9 +323,7 @@ def execute_planar_slam(
             continue
         wSi_list[i] = Sim2(R=wTi.rotation().matrix(), t=wTi.translation(), s=1.0)
 
-    report = FloorReconstructionReport.from_wSi_list(
-        wSi_list, gt_floor_pg, plot_save_dir=plot_save_dir
-    )
+    report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pg, plot_save_dir=plot_save_dir)
     return report
 
 
@@ -344,6 +347,3 @@ def bearing_range_from_vertex(v: Tuple[float, float]) -> float:
     bearing_rad = np.arctan2(y, x)
     range = np.linalg.norm(v)
     return np.rad2deg(bearing_rad), range
-
-
-

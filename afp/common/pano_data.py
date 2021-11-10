@@ -38,7 +38,7 @@ class WDO:
     @property
     def centroid(self) -> np.ndarray:
         """Compute centroid of WDO 2d line segment"""
-        return np.array([self.pt1,self.pt2]).mean(axis=0)
+        return np.array([self.pt1, self.pt2]).mean(axis=0)
 
     @property
     def width(self) -> float:
@@ -103,16 +103,14 @@ class WDO:
         Args:
             wdo_data: array of shape (3,2)
             global_Sim2_local
-            type: type of WDO, e.g. 
+            type: type of WDO, e.g.
         """
         pt1 = wdo_data[0].tolist()
         pt2 = wdo_data[1].tolist()
         bottom_z, top_z = wdo_data[2]
         pt1[0] *= -1
         pt2[0] *= -1
-        return cls(
-            global_Sim2_local=global_Sim2_local, pt1=pt1, pt2=pt2, bottom_z=bottom_z, top_z=top_z, type=type
-        )
+        return cls(global_Sim2_local=global_Sim2_local, pt1=pt1, pt2=pt2, bottom_z=bottom_z, top_z=top_z, type=type)
 
     def get_rotated_version(self) -> "WDO":
         """Rotate WDO by 180 degrees, as if seen from other side of doorway."""
@@ -129,18 +127,18 @@ class WDO:
 
     def transform_from(self, i2Ti1: Sim2) -> "WDO":
         """If this WDO is in i1's frame, this will transfer the WDO into i2's frame."""
-        pt1_ = tuple(i2Ti1.transform_from(np.array(self.pt1).reshape(1,2)).squeeze().tolist())
-        pt2_ = tuple(i2Ti1.transform_from(np.array(self.pt2).reshape(1,2)).squeeze().tolist())
+        pt1_ = tuple(i2Ti1.transform_from(np.array(self.pt1).reshape(1, 2)).squeeze().tolist())
+        pt2_ = tuple(i2Ti1.transform_from(np.array(self.pt2).reshape(1, 2)).squeeze().tolist())
 
         # global_Sim2_local represented wTi1, so wTi1 * i1Ti2 = wTi2
         i1Ti2 = i2Ti1.inverse()
         self_transformed = WDO(
-            global_Sim2_local=self.global_Sim2_local.compose(i1Ti2), # TODO: update this as well by multiply with i1Ti2
+            global_Sim2_local=self.global_Sim2_local.compose(i1Ti2),  # TODO: update this as well by multiply with i1Ti2
             pt1=pt1_,
             pt2=pt2_,
             bottom_z=self.bottom_z,
             top_z=self.top_z,
-            type=self.type
+            type=self.type,
         )
         return self_transformed
 
@@ -229,7 +227,7 @@ class PanoData:
 
             # as (x1,y1), (x2,y2), (bottom_z, top_z)
             # Transform the local W/D/O vertices to the global frame of reference
-            assert len(wdo_data) % 3 == 0 # should be a multiple of 3
+            assert len(wdo_data) % 3 == 0  # should be a multiple of 3
 
             num_wdo = len(wdo_data) // 3
             for wdo_idx in range(num_wdo):
@@ -246,7 +244,11 @@ class PanoData:
         return cls(pano_id, global_Sim2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
 
     def plot_room_layout(
-        self, coord_frame: str, wdo_objs_seen_on_floor: Optional[Set] = None, show_plot: bool = True, scale_meters_per_coordinate: Optional[float] = None
+        self,
+        coord_frame: str,
+        wdo_objs_seen_on_floor: Optional[Set] = None,
+        show_plot: bool = True,
+        scale_meters_per_coordinate: Optional[float] = None,
     ) -> None:
         """Plot the room shape for this panorama, either in a global or local frame
 
@@ -345,7 +347,7 @@ class PanoData:
 
 
 class FloorData(NamedTuple):
-    """ """
+    """Container for panorama information on a single floor of a building."""
 
     floor_id: str
     panos: List[PanoData]
