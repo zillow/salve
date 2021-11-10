@@ -29,8 +29,8 @@ from train_utils import load_model_checkpoint
 # logger = logger_utils.get_logger()
 
 # home_dir = "/Users/johnlam/Downloads"
-home_dir = "/mnt/data/johnlam"
-# home_dir = "/data/johnlam"
+# home_dir = "/mnt/data/johnlam"
+home_dir = "/data/johnlam"
 logger_utils.setup_file_logger(home_dir, program_name="training")
 
 
