@@ -42,7 +42,7 @@ class PoseGraph3d:
             wti_list.append(wti)
 
         est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(
-            wRi_list, wti_list, gt_floor_pose_graph, self.building_id, self.floor_id
+            wRi_list=wRi_list, wti_list=wti_list, gt_floor_pg=gt_floor_pose_graph
         )
         return est_floor_pose_graph
 
