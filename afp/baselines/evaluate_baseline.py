@@ -100,7 +100,7 @@ def save_empty_json_results_file(building_id: str, floor_id: str, algorithm_name
             "num_cameras": 0,
             "num_points": 0,
             "mean_abs_rot_err": np.nan,
-            "mean_abs_trans_err": np.nan
+            "mean_abs_trans_err": np.nan,
         }
     ]
     os.makedirs(f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results", exist_ok=True)
@@ -111,7 +111,11 @@ def save_empty_json_results_file(building_id: str, floor_id: str, algorithm_name
 
 
 def measure_algorithm_localization_accuracy(
-    building_id: str, floor_id: str, raw_dataset_dir: str, algorithm_name: str, reconstruction_json_fpath: Optional[str] = None
+    building_id: str,
+    floor_id: str,
+    raw_dataset_dir: str,
+    algorithm_name: str,
+    reconstruction_json_fpath: Optional[str] = None,
 ) -> FloorReconstructionReport:
     """Evaluate reconstruction from a single floor against GT poses, via Sim(3) alignment.
 
@@ -157,7 +161,7 @@ def measure_algorithm_localization_accuracy(
 
             openmvg_T_zillowcam = get_openmvg_T_zillow()
             algocam_T_zillowcam = openmvg_T_zillowcam
-            #algocam_T_zillowcam = Pose3()
+            # algocam_T_zillowcam = Pose3()
 
         bTi_list_est = [bTi.compose(algocam_T_zillowcam) if bTi is not None else None for bTi in bTi_list_est]
 
@@ -179,7 +183,7 @@ def measure_algorithm_localization_accuracy(
         )
 
         viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_11_09_largest"
-        #viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_11_09_largest/{building_id}_{floor_id}"
+        # viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_11_09_largest/{building_id}_{floor_id}"
         os.makedirs(viz_save_dir, exist_ok=True)
         plot_save_fpath = f"{viz_save_dir}/{algorithm_name}_reconstruction_{r}.jpg"
 
@@ -189,7 +193,7 @@ def measure_algorithm_localization_accuracy(
             # plot_save_dir=None,
             # plot_save_fpath=plot_save_fpath
             plot_save_dir=viz_save_dir,
-            plot_save_fpath=None
+            plot_save_fpath=None,
         )
 
         floor_results_dict = {
@@ -262,13 +266,15 @@ def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> No
         num_cameras = 0
         mean_abs_rot_err = 0
         mean_abs_trans_err = 0
-        num_reconst_cameras_on_floor = 0 # represents the cardinality of union of all CCs
+        num_reconst_cameras_on_floor = 0  # represents the cardinality of union of all CCs
         num_reconst_cameras_largest_cc = 0
 
         num_ccs_per_floor.append(len(all_cc_data))
 
         if num_ccs_per_floor == 0:
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
 
         # loop through the connected components
         # CC's are sorted by cardinality
@@ -286,7 +292,7 @@ def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> No
             if cc_idx == 0:
                 num_reconst_cameras_largest_cc = num_cameras
 
-            #print(f"CC {cc_idx} has {num_cameras} cameras.")
+            # print(f"CC {cc_idx} has {num_cameras} cameras.")
 
             cc_idx_arr.append(cc_idx)
             num_cameras_in_cc.append(num_cameras)
@@ -303,6 +309,7 @@ def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> No
         num_dropped_cameras_per_floor.append(num_dropped_cameras)
         if num_panos == 0:
             import pdb
+
             pdb.set_trace()
 
         # what % is found in the union?
@@ -427,7 +434,7 @@ def eval_openmvg_errors_all_tours() -> None:
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
-        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[ str(int(building_id)) ])
+        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(building_id))])
         new_building_id = new_building_ids[0]
         if new_building_id not in DATASET_SPLITS["test"]:
             continue
@@ -438,8 +445,10 @@ def eval_openmvg_errors_all_tours() -> None:
             if not Path(matches_dirpath).exists():
                 continue
 
-            reconstruction_json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
-            
+            reconstruction_json_fpath = (
+                f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
+            )
+
             # whether we want consider failed reconstructions
             if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
                 save_empty_json_results_file(building_id, floor_id, algorithm_name="openmvg")
@@ -454,7 +463,7 @@ def eval_openmvg_errors_all_tours() -> None:
                 floor_id=floor_id,
                 raw_dataset_dir=raw_dataset_dir,
                 algorithm_name="openmvg",
-                reconstruction_json_fpath=None #reconstruction_json_fpath,
+                reconstruction_json_fpath=None,  # reconstruction_json_fpath,
             )
             reconstruction_reports.append(report)
 
@@ -477,13 +486,13 @@ def eval_opensfm_errors_all_tours() -> None:
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
-        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[ str(int(building_id)) ])
+        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(building_id))])
         new_building_id = new_building_ids[0]
         if new_building_id not in DATASET_SPLITS["test"]:
             continue
 
         for floor_id in floor_ids:
-            #try:
+            # try:
             src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
             pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
 
@@ -499,7 +508,7 @@ def eval_opensfm_errors_all_tours() -> None:
                 floor_id=floor_id,
                 raw_dataset_dir=raw_dataset_dir,
                 algorithm_name="opensfm",
-                reconstruction_json_fpath=reconstruction_json_fpath
+                reconstruction_json_fpath=reconstruction_json_fpath,
             )
             reconstruction_reports.append(report)
 
@@ -507,7 +516,7 @@ def eval_opensfm_errors_all_tours() -> None:
             #     logger.exception(f"OpenSfM failed for {building_id} {floor_id}")
             #     print(f"failed on Building {building_id} {floor_id}")
             #     continue
-    
+
     print("OpenSfM test set eval complete.")
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
@@ -525,9 +534,9 @@ def visualize_side_by_side() -> None:
         old_building_floor_id = Path(openmvg_fpath).stem
         k = old_building_floor_id.find("_floor")
         old_building_id = old_building_floor_id[:k]
-        floor_id = old_building_floor_id[k+1:]
+        floor_id = old_building_floor_id[k + 1 :]
 
-        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[ str(int(old_building_id)) ])
+        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(old_building_id))])
         new_building_id = new_building_ids[0]
         if new_building_id not in DATASET_SPLITS["test"]:
             continue
@@ -548,18 +557,19 @@ def visualize_side_by_side() -> None:
         opensfm_img = imageio.imread(opensfm_fpath)
         afp_img = imageio.imread(afp_fpath)
 
-        plt.figure(figsize=(20,10))
-        plt.subplot(1,3,1)
+        plt.figure(figsize=(20, 10))
+        plt.subplot(1, 3, 1)
         plt.axis("off")
         plt.imshow(openmvg_img)
-        plt.subplot(1,3,2)
+        plt.subplot(1, 3, 2)
         plt.axis("off")
         plt.imshow(opensfm_img)
-        plt.subplot(1,3,3)
+        plt.subplot(1, 3, 3)
         plt.axis("off")
         plt.imshow(afp_img)
         plt.tight_layout()
         plt.show()
+
 
 def main() -> None:
     """ """
@@ -580,14 +590,14 @@ def main() -> None:
 
     # reconstruction_json_fpath
 
-    #eval_opensfm_errors_all_tours()
+    # eval_opensfm_errors_all_tours()
 
     eval_openmvg_errors_all_tours()
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
     # analyze_algorithm_results(json_results_dir, raw_dataset_dir)
 
-    #visualize_side_by_side()
+    # visualize_side_by_side()
 
 
 if __name__ == "__main__":

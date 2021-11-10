@@ -165,6 +165,3 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
 
         median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Median over all tours, {error_metric} = {median_val:.2f}")
-
-
-

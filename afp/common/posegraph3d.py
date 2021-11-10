@@ -1,4 +1,3 @@
-
 """
 Utilityfor creating 3d pose graphs.
 """

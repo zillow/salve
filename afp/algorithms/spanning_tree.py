@@ -1,4 +1,3 @@
-
 """
 Utilities for greedily assembling a spanning tree, by shortest paths to an origin node within
 a single connected component.
@@ -77,7 +76,9 @@ def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List
     return wRi_list
 
 
-def greedily_construct_st_Sim2(i2Si1_dict: Dict[Tuple[int, int], Sim2], verbose: bool = True) -> Optional[List[np.ndarray]]:
+def greedily_construct_st_Sim2(
+    i2Si1_dict: Dict[Tuple[int, int], Sim2], verbose: bool = True
+) -> Optional[List[np.ndarray]]:
     """Greedily assemble a spanning tree (not a minimum spanning tree).
 
     Args:
@@ -100,7 +101,7 @@ def greedily_construct_st_Sim2(i2Si1_dict: Dict[Tuple[int, int], Sim2], verbose:
     wSi_list = [None] * num_nodes
     # choose origin node
     origin_node = cc_nodes[0]
-    wSi_list[origin_node] = Sim2(R=np.eye(2),t=np.zeros(2), s=1.0)
+    wSi_list[origin_node] = Sim2(R=np.eye(2), t=np.zeros(2), s=1.0)
 
     G = nx.Graph()
     G.add_edges_from(edges)
@@ -114,7 +115,7 @@ def greedily_construct_st_Sim2(i2Si1_dict: Dict[Tuple[int, int], Sim2], verbose:
         if verbose:
             print(f"\tPath from {origin_node}->{dst_node}: {str(path)}")
 
-        wSi = Sim2(R=np.eye(2),t=np.zeros(2), s=1.0)
+        wSi = Sim2(R=np.eye(2), t=np.zeros(2), s=1.0)
         for (i1, i2) in zip(path[:-1], path[1:]):
 
             # i1, i2 may not be in sorted order here. May need to reverse ordering
@@ -270,9 +271,10 @@ class RelativePoseMeasurement:
     i2Si1: Sim2
 
 
-
 def ransac_spanning_trees(
-    high_conf_measurements: List[RelativePoseMeasurement], num_hypotheses: int = 10, min_num_edges_for_hypothesis: int = 20
+    high_conf_measurements: List[RelativePoseMeasurement],
+    num_hypotheses: int = 10,
+    min_num_edges_for_hypothesis: int = 20,
 ) -> List[Optional[Sim2]]:
     """
     Generate random spanning trees
@@ -290,15 +292,19 @@ def ransac_spanning_trees(
     SAMPLING_FRAC = 0.95  # 0.8
 
     if min_num_edges_for_hypothesis is None:
-        min_num_edges_for_hypothesis = int(math.ceil(SAMPLING_FRAC * K)) # or 2 * number of unique nodes, or 80% of total, etc.
+        min_num_edges_for_hypothesis = int(
+            math.ceil(SAMPLING_FRAC * K)
+        )  # or 2 * number of unique nodes, or 80% of total, etc.
 
-    max_unique_hypotheses = int(scipy.special.binom(K, min_num_edges_for_hypothesis)) # {n choose k}
+    max_unique_hypotheses = int(scipy.special.binom(K, min_num_edges_for_hypothesis))  # {n choose k}
     num_hypotheses = min(max_unique_hypotheses, num_hypotheses)
 
     # generate random hypotheses
-    hypotheses = [np.random.choice(a=K, size=min_num_edges_for_hypothesis, replace=False) for _ in range(num_hypotheses)]
+    hypotheses = [
+        np.random.choice(a=K, size=min_num_edges_for_hypothesis, replace=False) for _ in range(num_hypotheses)
+    ]
 
-    #for each hypothesis
+    # for each hypothesis
     for h_counter, h_idxs in enumerate(hypotheses):
 
         hypothesis_measurements = [m for k, m in enumerate(high_conf_measurements) if k in h_idxs]
@@ -306,30 +312,40 @@ def ransac_spanning_trees(
         i2Si1_dict = {}
         # randomly overwrite by order
         for m in hypothesis_measurements:
-            i2Si1_dict[(m.i1,m.i2)] = m.i2Si1
+            i2Si1_dict[(m.i1, m.i2)] = m.i2Si1
 
         # create the i2Si1_dict
         # generate a spanning tree greedily
         wSi_list = greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
 
         if wSi_list is None:
-            import pdb; pdb.set_trace()
+            import pdb
 
-        avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(high_conf_measurements, wSi_list)
+            pdb.set_trace()
+
+        avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(
+            high_conf_measurements, wSi_list
+        )
 
         print(
             f"Hypothesis {h_counter} had Rot errors {avg_rot_error:.1f}(mean) {med_rot_error:.1f} (med), Trans errors {avg_trans_error:.2f}(mean) {med_trans_error:.2f} (med)"
         )
-        
+
         # TODO: or could use MEDIAN instead
-        #if most inliers so far, set as best hypothesis
+        # if most inliers so far, set as best hypothesis
         if avg_rot_error <= avg_rot_error_best and avg_trans_error <= avg_trans_error_best:
             avg_rot_error_best = avg_rot_error
             avg_trans_error_best = avg_trans_error
             best_wSi_list = wSi_list
 
-    avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(high_conf_measurements, best_wSi_list)
-    print(REDTEXT + f"Chose hypothesis with {avg_rot_error:.1f}, {med_rot_error:.1f}, {avg_trans_error:.2f}, {med_trans_error:.2f} " + ENDCOLOR)
+    avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(
+        high_conf_measurements, best_wSi_list
+    )
+    print(
+        REDTEXT
+        + f"Chose hypothesis with {avg_rot_error:.1f}, {med_rot_error:.1f}, {avg_trans_error:.2f}, {med_trans_error:.2f} "
+        + ENDCOLOR
+    )
     return best_wSi_list
 
 
@@ -339,7 +355,7 @@ def compute_hypothesis_errors(
     """ """
     rot_errors = []
     trans_errors = []
-    #count the number of inliers / error against ALL measurements now.
+    # count the number of inliers / error against ALL measurements now.
     # Can use just rotation error, or just translation error, or both
     for m in high_conf_measurements:
 
@@ -361,15 +377,14 @@ def compute_hypothesis_errors(
 
         rot_errors.append(rot_error_deg)
         trans_errors.append(trans_error)
-    
-    avg_rot_error = np.mean(rot_errors) 
+
+    avg_rot_error = np.mean(rot_errors)
     med_rot_error = np.median(rot_errors)
 
     avg_trans_error = np.mean(trans_errors)
     med_trans_error = np.median(trans_errors)
 
     return avg_rot_error, med_rot_error, avg_trans_error, med_trans_error
-
 
 
 def convert_Pose2_to_Sim2(i2Ti1: Pose2) -> Sim2:
@@ -382,11 +397,11 @@ def test_ransac_spanning_trees() -> None:
 
     np.random.seed(0)
 
-    wT0 = Pose2(Rot2(), np.array([0,0]))
-    wT1 = Pose2(Rot2(), np.array([2,0]))
-    wT2 = Pose2(Rot2(), np.array([2,2]))
+    wT0 = Pose2(Rot2(), np.array([0, 0]))
+    wT1 = Pose2(Rot2(), np.array([2, 0]))
+    wT2 = Pose2(Rot2(), np.array([2, 2]))
 
-    wT2_noisy = Pose2(Rot2(), np.array([3,3]))
+    wT2_noisy = Pose2(Rot2(), np.array([3, 3]))
 
     i1Ti0 = wT1.between(wT0)
     i2Ti1 = wT2.between(wT1)
