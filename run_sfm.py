@@ -238,7 +238,7 @@ def measure_avg_relative_pose_errors(measurements: List[EdgeClassification], gt_
         if verbose:
             print(f"\tPano pair ({i1},{i2}): (Rot) GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}, Trans Error {trans_err:.1f} from {np.round(i2Ti1_gt.translation,1)} vs. {np.round(i2Ti1.translation,1)}")
 
-    print(REDTEXT + f"Max rot error: {max(rot_errs):.1f}, Max trans error: {max(trans_errs):.1f}" + ENDCOLOR)
+    print(REDTEXT + f"Max relative rot error: {max(rot_errs):.1f}, Max relative trans error: {max(trans_errs):.1f} (normalized)" + ENDCOLOR)
 
     mean_rot_err = np.mean(rot_errs)
     mean_trans_err = np.mean(trans_errs)
@@ -677,13 +677,13 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    # method = "spanning_tree" 
+    method = "spanning_tree" 
     # method = "SE2_cycles"
     # method = "growing_consensus"
     # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
     # method = "pose2_slam"
-    method = "pgo"
+    # method = "pgo"
 
     # TODO: add axis alignment.
 
@@ -704,7 +704,7 @@ def run_incremental_reconstruction(
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-        # if not (building_id == "1210" and floor_id == "floor_02"):
+        # if not (building_id == "1130" and floor_id == "floor_02"):
         #     continue
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
@@ -873,6 +873,10 @@ def run_incremental_reconstruction(
     print()
     print()
     print(f"Test set contained {len(reconstruction_reports)} total floors.")
+    if len(reconstruction_reports) == 0:
+        print("Cannot compute error metrics, tested over zero homes.")
+        return
+
     error_metrics = reconstruction_reports[0].__dict__.keys()
     for error_metric in error_metrics:
         avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
