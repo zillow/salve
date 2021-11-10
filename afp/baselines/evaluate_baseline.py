@@ -24,6 +24,7 @@ from gtsam import Pose3, Rot3
 
 import afp.baselines.opensfm as opensfm_utils
 import afp.baselines.openmvg as openmvg_utils
+import afp.common.floor_reconstruction_report as floor_reconstruction_report
 import afp.dataset.zind_partition as zind_partition
 import afp.visualization.utils as vis_utils
 from afp.baselines.openmvg import OPENMVG_DEMO_ROOT
@@ -111,7 +112,7 @@ def save_empty_json_results_file(building_id: str, floor_id: str, algorithm_name
 
 def measure_algorithm_localization_accuracy(
     building_id: str, floor_id: str, raw_dataset_dir: str, algorithm_name: str, reconstruction_json_fpath: Optional[str] = None
-) -> None:
+) -> FloorReconstructionReport:
     """Evaluate reconstruction from a single floor against GT poses, via Sim(3) alignment.
 
     Note: we do not refer to 3rd part SfM implementations as "baselines", but rather as "algorithms", as "baseline" means
@@ -204,6 +205,9 @@ def measure_algorithm_localization_accuracy(
     os.makedirs(summary_save_dir, exist_ok=True)
     json_save_fpath = f"{summary_save_dir}/{building_id}_{floor_id}.json"
     json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
+
+    assert isinstance(report, FloorReconstructionReport)
+    return report
 
 
 def count_panos_on_floor(raw_dataset_dir: str, building_id: str, floor_id: str) -> int:
@@ -413,16 +417,20 @@ def get_buildingid_floorid_from_json_fpath(fpath: str) -> Tuple[str, str]:
 
 
 def eval_openmvg_errors_all_tours() -> None:
-    """
-    Evaluate dumped sfm_data.json from every tour against ground truth.
-    """
+    """Evaluate the OpenMVG output files (dumped sfm_data.json) from every tour against ZinD ground truth."""
     raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
+    reconstruction_reports = []
 
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
+
+        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[ str(int(building_id)) ])
+        new_building_id = new_building_ids[0]
+        if new_building_id not in DATASET_SPLITS["test"]:
+            continue
 
         for floor_id in floor_ids:
 
@@ -441,17 +449,21 @@ def eval_openmvg_errors_all_tours() -> None:
 
             print(f"Running OpenMVG on {building_id}, {floor_id}")
 
-            measure_algorithm_localization_accuracy(
+            report = measure_algorithm_localization_accuracy(
                 building_id=building_id,
                 floor_id=floor_id,
                 raw_dataset_dir=raw_dataset_dir,
                 algorithm_name="openmvg",
                 reconstruction_json_fpath=None #reconstruction_json_fpath,
             )
+            reconstruction_reports.append(report)
+
+    print("OpenMVG test set eval complete.")
+    floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
 
 def eval_opensfm_errors_all_tours() -> None:
-    """ """
+    """Evaluate the OpenSfM output files from every tour against ZinD ground truth."""
     OPENSFM_REPO_ROOT = "/Users/johnlam/Downloads/OpenSfM"
     # reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
 
@@ -460,34 +472,44 @@ def eval_opensfm_errors_all_tours() -> None:
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
+    reconstruction_reports = []
+
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
+        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[ str(int(building_id)) ])
+        new_building_id = new_building_ids[0]
+        if new_building_id not in DATASET_SPLITS["test"]:
+            continue
+
         for floor_id in floor_ids:
-            try:
-                src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-                pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
+            #try:
+            src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
+            pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
 
-                if len(pano_fpaths) == 0:
-                    continue
-
-                FLOOR_OPENSFM_DATADIR = f"{OPENSFM_REPO_ROOT}/data/ZinD_{building_id}_{floor_id}__2021_09_13"
-                reconstruction_json_fpath = f"{FLOOR_OPENSFM_DATADIR}/reconstruction.json"
-
-                # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
-                measure_algorithm_localization_accuracy(
-                    building_id=building_id,
-                    floor_id=floor_id,
-                    raw_dataset_dir=raw_dataset_dir,
-                    algorithm_name="opensfm",
-                    reconstruction_json_fpath=reconstruction_json_fpath
-                )
-
-            except Exception as e:
-                logger.exception(f"OpenSfM failed for {building_id} {floor_id}")
-                print(f"failed on Building {building_id} {floor_id}")
+            if len(pano_fpaths) == 0:
                 continue
 
+            FLOOR_OPENSFM_DATADIR = f"{OPENSFM_REPO_ROOT}/data/ZinD_{building_id}_{floor_id}__2021_09_13"
+            reconstruction_json_fpath = f"{FLOOR_OPENSFM_DATADIR}/reconstruction.json"
+
+            # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
+            report = measure_algorithm_localization_accuracy(
+                building_id=building_id,
+                floor_id=floor_id,
+                raw_dataset_dir=raw_dataset_dir,
+                algorithm_name="opensfm",
+                reconstruction_json_fpath=reconstruction_json_fpath
+            )
+            reconstruction_reports.append(report)
+
+            # except Exception as e:
+            #     logger.exception(f"OpenSfM failed for {building_id} {floor_id}")
+            #     print(f"failed on Building {building_id} {floor_id}")
+            #     continue
+    
+    print("OpenSfM test set eval complete.")
+    floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
 
 def visualize_side_by_side() -> None:
@@ -528,10 +550,13 @@ def visualize_side_by_side() -> None:
 
         plt.figure(figsize=(20,10))
         plt.subplot(1,3,1)
+        plt.axis("off")
         plt.imshow(openmvg_img)
         plt.subplot(1,3,2)
+        plt.axis("off")
         plt.imshow(opensfm_img)
         plt.subplot(1,3,3)
+        plt.axis("off")
         plt.imshow(afp_img)
         plt.tight_layout()
         plt.show()
@@ -557,12 +582,12 @@ def main() -> None:
 
     #eval_opensfm_errors_all_tours()
 
-    #eval_openmvg_errors_all_tours()
+    eval_openmvg_errors_all_tours()
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
     # analyze_algorithm_results(json_results_dir, raw_dataset_dir)
 
-    visualize_side_by_side()
+    #visualize_side_by_side()
 
 
 if __name__ == "__main__":
