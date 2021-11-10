@@ -30,7 +30,7 @@ from train_utils import load_model_checkpoint
 
 # home_dir = "/Users/johnlam/Downloads"
 home_dir = "/mnt/data/johnlam"
-#home_dir = "/data/johnlam"
+# home_dir = "/data/johnlam"
 logger_utils.setup_file_logger(home_dir, program_name="training")
 
 
@@ -279,11 +279,14 @@ if __name__ == "__main__":
     # config_name = "2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
 
     # ResNet-152 with just a single modality.
-    #config_name = "2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
-    #config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
+    # config_name = "2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
+    # config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
 
-    # ResNet-152 trained again with equal amount of data as single modality
-    config_name = "2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # ResNet-152 trained again with equal amount of data as single modality (HAVENT RUN YET)
+    # config_name = "2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+
+    # ResNet-152 with Layout Only
+    config_name = "2021_11_10_resnet152_layoutonly.yaml"
 
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the afp module
