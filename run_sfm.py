@@ -25,6 +25,7 @@ import afp.algorithms.pose2_slam as pose2_slam
 import afp.algorithms.rotation_averaging as rotation_averaging
 import afp.algorithms.spanning_tree as spanning_tree
 import afp.common.edge_classification as edge_classification
+import afp.common.floor_reconstruction_report as floor_reconstruction_report
 import afp.common.posegraph2d as posegraph2d
 import afp.utils.axis_alignment_utils as axis_alignment_utils
 import afp.utils.graph_rendering_utils as graph_rendering_utils
@@ -698,13 +699,13 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    method = "spanning_tree"
+    # method = "spanning_tree"
     # method = "SE2_cycles"
     # method = "growing_consensus"
     # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
     # method = "pose2_slam"
-    # method = "pgo"
+    method = "pgo"
 
     # TODO: add axis alignment.
 
