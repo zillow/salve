@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
+import afp.utils.bev_rendering_utils as bev_rendering_utils
+import afp.utils.iou_utils as iou_utils
+from afp.common.bevparams import BEVParams
 from afp.common.posegraph2d import PoseGraph2d
 
 
@@ -147,15 +150,28 @@ def render_raster_occupancy(est_floor_pose_graph: PoseGraph2d, gt_floor_pg: Pose
     # compute raster IoU on occupancy
     # render side by side figures
 
-    BEV_Params()
-    bevimg_Sim2_world
-    bev_img = 
+    # not going to be larger than [-40,40] meters
+    BUILDING_XLIMS_M = 40
+    BUILDING_YLIMS_M = 40
+
+    IOU_EVAL_METERS_PER_PX = 0.5
+    IOU_EVAL_PX_PER_METER = 1 / IOU_EVAL_METERS_PER_PX
+
+    img_w = IOU_EVAL_PX_PER_METER * BUILDING_XLIMS_M * 2
+    img_h = IOU_EVAL_PX_PER_METER * BUILDING_YLIMS_M * 2
+
+    bev_params = BEVParams(img_h = img_h, img_w = img_w, meters_per_px = 0.5)
+    bevimg_Sim2_world = bev_params.bevimg_Sim2_world
+    bev_img = np.zeros((img_h+1, img_w+1, 3))
 
     # convert to meters. then 
-    polygon_xy_m
+    polygon_xy_m = None
 
     bev_img = bev_rendering_utils.rasterize_polygon(polygon_xy=polygon_xy_m, bev_img=bev_img, bevimg_Sim2_world=bevimg_Sim2_world, color=[1,1,1])
     occ_img = bev_img[:, :, 0]
+
+    iou = iou_utils.binary_mask_iou(mask1=occ_img, mask2=occ_img)
+
 
 
 def render_floorplan(pose_graph: PoseGraph2d, scale_meters_per_coordinate: float) -> None:
