@@ -125,6 +125,7 @@ def render_floorplans_side_by_side(
     Either render (show plot) or save plot to disk.
 
     Args:
+        est_floor_pose_graph: 
         show_plot: boolean indicating whether to show via GUI a rendering of the plot.
         save_plot: boolean indicating whether to save a rendering of the plot.
         plot_save_dir: if only a general saving directory is provided for saving
@@ -242,10 +243,10 @@ def render_floorplan(pose_graph: PoseGraph2d, scale_meters_per_coordinate: float
 
 
 def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -> None:
-    """
+    """Given a report per floor, compute summary statistics
 
     Args:
-        reconstruction_reports:
+        reconstruction_reports: report for every floor of each ZinD building in this split.
     """
 
     print()
@@ -254,7 +255,7 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
     if len(reconstruction_reports) == 0:
         print("Cannot compute error metrics, tested over zero homes.")
         return
-        
+
     error_metrics = [
         "avg_abs_rot_err",
         "avg_abs_trans_err",
@@ -278,7 +279,17 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
 
 
 def compute_translation_errors_against_threshold(reconstruction_reports: List[FloorReconstructionReport], threshold: float) -> float:
-    """ """
+    """Compute a success rate against a particular translation error threshold.
+
+    See Shabani et al, ICCV 2021.
+
+    Args:
+        reconstruction_reports:
+        threshold: maximum allowed translation error for each localized camera.
+
+    Returns:
+        avg_floor_success_rate: percent of cameras for which the translation error is below the specified threshold.
+    """
     floor_success_rates = []
     for r in reconstruction_reports:
         floor_success_rate = (r.translation_errors < threshold).mean()
@@ -290,7 +301,7 @@ def compute_translation_errors_against_threshold(reconstruction_reports: List[Fl
 
 
 def test_compute_translation_errors_against_threshold() -> None:
-    """ """
+    """Ensure that translation localization success rate is computed correctly."""
     reconstruction_reports = [
         FloorReconstructionReport(
             avg_abs_rot_err=np.nan,
