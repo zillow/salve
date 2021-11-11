@@ -55,7 +55,7 @@ def ransac_align_poses_sim3_ignore_missing(
         )
 
         # evaluate inliers.
-        rot_error, trans_error = compute_pose_errors_3d(aTi_list_ref, aligned_bTi_list_est)
+        rot_error, trans_error, _, _ = compute_pose_errors_3d(aTi_list_ref, aligned_bTi_list_est)
         # print("Deleted ", delete_idxs, f" -> trans_error {trans_error:.1f}, rot_error {rot_error:.1f}")
 
         if trans_error <= best_trans_error and rot_error <= best_rot_error:
@@ -71,7 +71,7 @@ def ransac_align_poses_sim3_ignore_missing(
 
 def compute_pose_errors_3d(
     aTi_list_gt: List[Pose3], aligned_bTi_list_est: List[Optional[Pose3]]
-) -> Tuple[float, float]:
+) -> Tuple[float, float, np.ndarray, np.ndarray]:
     """Compute average pose errors over all cameras (separately in rotation and translation).
 
     Note: pose graphs must already be aligned.
@@ -81,8 +81,10 @@ def compute_pose_errors_3d(
         aligned_bTi_list_est:
 
     Returns:
-        mean_rot_err: mean rotation error per camera, in degrees.
-        mean_trans_err: mean translation error per camera.
+        mean_rot_err: average rotation error per camera, measured in degrees.
+        mean_trans_err: average translation error per camera.
+        rot_errors: array of (K,) rotation errors, measured in degrees.
+        trans_errors: array of (K,) translation errors.
     """
     # print("aTi_list_gt: ", aTi_list_gt)
     # print("aligned_bTi_list_est",  aligned_bTi_list_est)
@@ -98,11 +100,14 @@ def compute_pose_errors_3d(
         rotation_errors.append(rot_err)
         translation_errors.append(trans_err)
 
+    rotation_errors = np.array(rotation_errors)
+    translation_errors = np.array(translation_errors)
+
     # print("Rotation Errors: ", np.round(rotation_errors,1))
     # print("Translation Errors: ", np.round(translation_errors,1))
     mean_rot_err = np.mean(rotation_errors)
     mean_trans_err = np.mean(translation_errors)
-    return mean_rot_err, mean_trans_err
+    return mean_rot_err, mean_trans_err, rotation_errors, translation_errors
 
 
 def test_ransac_align_poses_sim3_ignore_missing() -> None:
