@@ -104,7 +104,7 @@ class FloorReconstructionReport:
             avg_abs_rot_err=mean_abs_rot_err,
             avg_abs_trans_err=mean_abs_trans_err_m,
             percent_panos_localized=percent_panos_localized,
-            floorplan_iou=floorplan_iou
+            floorplan_iou=floorplan_iou,
         )
 
 
@@ -155,8 +155,9 @@ def render_floorplans_side_by_side(
         plt.show()
 
 
-
-def render_raster_occupancy(est_floor_pose_graph: PoseGraph2d, gt_floor_pg: PoseGraph2d, plot_save_dir: str, save_viz: bool = True) -> None:
+def render_raster_occupancy(
+    est_floor_pose_graph: PoseGraph2d, gt_floor_pg: PoseGraph2d, plot_save_dir: str, save_viz: bool = True
+) -> None:
     """Compute raster IoU on occupancy."""
     # render side by side figures
 
@@ -166,7 +167,7 @@ def render_raster_occupancy(est_floor_pose_graph: PoseGraph2d, gt_floor_pg: Pose
     BUILDING_XLIMS_M = 25
     BUILDING_YLIMS_M = 25
 
-    #IOU_EVAL_METERS_PER_PX = 0.1 (used before)
+    # IOU_EVAL_METERS_PER_PX = 0.1 (used before)
     IOU_EVAL_METERS_PER_PX = 0.01
     IOU_EVAL_PX_PER_METER = 1 / IOU_EVAL_METERS_PER_PX
 
@@ -182,9 +183,9 @@ def render_raster_occupancy(est_floor_pose_graph: PoseGraph2d, gt_floor_pg: Pose
     print(f"IoU: {iou:.2f}")
 
     if save_viz:
-        plt.subplot(1,2,1)
+        plt.subplot(1, 2, 1)
         plt.imshow(np.flipud(est_mask))
-        plt.subplot(1,2,2)
+        plt.subplot(1, 2, 2)
         plt.imshow(np.flipud(gt_mask))
         plt.suptitle(f"{gt_floor_pg.building_id} {gt_floor_pg.floor_id} --> IoU {iou:.2f}")
         # plt.show()
@@ -193,11 +194,13 @@ def render_raster_occupancy(est_floor_pose_graph: PoseGraph2d, gt_floor_pg: Pose
         os.makedirs(save_dir, exist_ok=True)
         save_fpath = f"{save_dir}/{gt_floor_pg.building_id}_{gt_floor_pg.floor_id}.jpg"
         plt.savefig(save_fpath, dpi=500)
-        
+
     return iou
 
 
-def rasterize_room(bev_params: BEVParams, floor_pose_graph: PoseGraph2d, scale_meters_per_coordinate: float) -> np.ndarray:
+def rasterize_room(
+    bev_params: BEVParams, floor_pose_graph: PoseGraph2d, scale_meters_per_coordinate: float
+) -> np.ndarray:
     """
     Args:
         bev_params
@@ -237,7 +240,7 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
     """
 
     Args:
-        reconstruction_reports: 
+        reconstruction_reports:
     """
 
     print()
@@ -255,4 +258,6 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
         median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Median over all tours, {error_metric} = {median_val:.2f}")
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
