@@ -1,0 +1,79 @@
+"""
+"""
+
+import glob
+from pathlib import Path
+
+import argoverse.utils.json_utils as json_utils
+
+import afp.common.posegraph2d as posegraph2d
+from afp.dataset.zind_partition import DATASET_SPLITS
+from read_prod_predictions import load_inferred_floor_pose_graphs
+
+
+def eval_oraclepose_predictedlayout() -> None:
+    """Evaluate floorplans.
+
+    Measure accuracy of oracle pose graph w/ PREDICTED layout vs. GT
+    """
+    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+
+    # discover possible building ids and floors
+    building_ids = [
+        Path(fpath).stem
+        for fpath in glob.glob(f"{raw_dataset_dir}/*")
+        if Path(fpath).is_dir()
+    ]
+    building_ids.sort()
+
+    reconstruction_reports = []
+
+    for building_id in building_ids:
+
+        # for rendering test data only
+        if building_id not in DATASET_SPLITS["test"]:
+            continue
+
+        gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(
+            building_id, floor_id, raw_dataset_dir
+        )
+
+        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
+        if not Path(json_annot_fpath).exists():
+            print(f"zind_data.json file missing for {building_id}")
+            continue
+
+        floor_map_json = json_utils.read_json_file(json_annot_fpath)
+
+        if "merger" not in floor_map_json:
+            print(f"No merger data in {building_id}: {json_annot_fpath}")
+            continue
+
+        # load up the inferred pose graph
+        floor_pose_graphs = load_inferred_floor_pose_graphs(
+            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+        )
+        if floor_pose_graphs is None:
+            return
+
+        viz_save_dir = ""
+
+        merger_data = floor_map_json["merger"]
+        for floor_id in merger_data.keys():
+
+            est_floor_pose_graph = floor_pose_graphs[floor_id]
+            report = FloorReconstructionReport.from_est_floor_pose_graph(
+                est_floor_pose_graph=est_floor_pose_graph,
+                gt_floor_pose_graph=gt_floor_pose_graph,
+                # plot_save_dir=None,
+                # plot_save_fpath=plot_save_fpath
+                plot_save_dir=viz_save_dir,
+                plot_save_fpath=None,
+            )
+            reconstruction_reports.append(report)
+
+    floor_reconstruction_report.summarize_reports(reconstruction_reports)
+
+
+if __name__ == "__main__":
+    eval_oraclepose_predictedlayout()
