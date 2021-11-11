@@ -25,11 +25,12 @@ from gtsam import Pose3, Rot3
 import afp.baselines.opensfm as opensfm_utils
 import afp.baselines.openmvg as openmvg_utils
 import afp.common.floor_reconstruction_report as floor_reconstruction_report
+import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_partition as zind_partition
 import afp.visualization.utils as vis_utils
 from afp.baselines.openmvg import OPENMVG_DEMO_ROOT
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
-from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph
+from afp.common.posegraph2d import PoseGraph2d
 from afp.common.posegraph3d import PoseGraph3d
 from afp.dataset.zind_partition import DATASET_SPLITS
 from afp.utils.logger_utils import get_logger
@@ -128,6 +129,9 @@ def measure_algorithm_localization_accuracy(
         raw_dataset_dir:
         algorithm_name
         reconstruction_json_fpath:
+
+    Returns:
+        report:
     """
     if algorithm_name == "opensfm":
         reconstructions = opensfm_utils.load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
@@ -146,7 +150,7 @@ def measure_algorithm_localization_accuracy(
             percent_panos_localized=0
         )
 
-    gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+    gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
     floor_results_dicts = []
     for r, reconstruction in enumerate(reconstructions):
@@ -439,6 +443,8 @@ def eval_openmvg_errors_all_tours() -> None:
     building_ids.sort()
     reconstruction_reports = []
 
+    counter = 0
+
     for building_id in building_ids[::-1]:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
@@ -452,7 +458,6 @@ def eval_openmvg_errors_all_tours() -> None:
             continue
 
         for floor_id in floor_ids:
-
             matches_dirpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
             if not Path(matches_dirpath).exists():
                 continue
@@ -468,7 +473,9 @@ def eval_openmvg_errors_all_tours() -> None:
             if not Path(reconstruction_json_fpath).exists():
                 continue
 
-            print(f"Running OpenMVG on {building_id}, {floor_id}")
+            # counter += 1
+            # if counter > 100:
+            #     break
 
             report = measure_algorithm_localization_accuracy(
                 building_id=building_id,
@@ -614,9 +621,9 @@ def main() -> None:
 
     # reconstruction_json_fpath
 
-    eval_opensfm_errors_all_tours()
+    #eval_opensfm_errors_all_tours()
 
-    # eval_openmvg_errors_all_tours()
+    eval_openmvg_errors_all_tours()
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
     # analyze_algorithm_results(json_results_dir, raw_dataset_dir)
