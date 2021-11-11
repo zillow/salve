@@ -24,6 +24,9 @@ class FloorReconstructionReport:
     avg_abs_trans_err: float
     percent_panos_localized: float
     floorplan_iou: Optional[float] = np.nan
+    rotation_errors: Optional[np.ndarray] = None
+    translation_errors: Optional[np.ndarray] = None
+
 
     def __repr__(self) -> str:
         """Concise summary of the class as a string."""
@@ -73,7 +76,7 @@ class FloorReconstructionReport:
         aligned_est_floor_pose_graph, _ = est_floor_pose_graph.align_by_Sim3_to_ref_pose_graph(
             ref_pose_graph=gt_floor_pose_graph
         )
-        mean_abs_rot_err, mean_abs_trans_err = aligned_est_floor_pose_graph.measure_aligned_abs_pose_error(
+        mean_abs_rot_err, mean_abs_trans_err, rot_errors, trans_errors = aligned_est_floor_pose_graph.measure_aligned_abs_pose_error(
             gt_floor_pg=gt_floor_pose_graph
         )
 
@@ -105,6 +108,8 @@ class FloorReconstructionReport:
             avg_abs_trans_err=mean_abs_trans_err_m,
             percent_panos_localized=percent_panos_localized,
             floorplan_iou=floorplan_iou,
+            rotation_errors=rot_errors,
+            translation_errors=trans_errors
         )
 
 
@@ -249,8 +254,13 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
     if len(reconstruction_reports) == 0:
         print("Cannot compute error metrics, tested over zero homes.")
         return
-
-    error_metrics = reconstruction_reports[0].__dict__.keys()
+        
+    error_metrics = [
+        "avg_abs_rot_err",
+        "avg_abs_trans_err",
+        "percent_panos_localized",
+        "floorplan_iou"
+    ]
     for error_metric in error_metrics:
         avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Averaged over all tours, {error_metric} = {avg_val:.2f}")
@@ -258,5 +268,56 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
         median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Median over all tours, {error_metric} = {median_val:.2f}")
 
-    import pdb; pdb.set_trace()
+    thresholded_trans_error_dict = {}
+    thresholded_trans_error_dict[0.2] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=0.2)
+    thresholded_trans_error_dict[0.6] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=0.6)
+    thresholded_trans_error_dict[1.0] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=1.0)
+    
+    print("Average position localization success rates: ", thresholded_trans_error_dict)
     print("Evaluation complete.")
+
+
+def compute_translation_errors_against_threshold(reconstruction_reports: List[FloorReconstructionReport], threshold: float) -> float:
+    """ """
+    floor_success_rates = []
+    for r in reconstruction_reports:
+        floor_success_rate = (r.translation_errors < threshold).mean()
+        floor_success_rates.append(floor_success_rate)
+
+    avg_floor_success_rate = np.mean(floor_success_rates)
+    print(f"Avg. Position Localization Floor Success Rate @ {threshold} = {avg_floor_success_rate:.2f}")
+    return avg_floor_success_rate
+
+
+def test_compute_translation_errors_against_threshold() -> None:
+    """ """
+    reconstruction_reports = [
+        FloorReconstructionReport(
+            avg_abs_rot_err=np.nan,
+            avg_abs_trans_err=np.nan,
+            percent_panos_localized=np.nan,
+            floorplan_iou=np.nan,
+            rotation_errors=None,
+            translation_errors=np.array([0.0, 0.1, 0.19, 0.3, 0.4, 900]) # 3/6 are under threshold.
+        ),
+        FloorReconstructionReport(
+            avg_abs_rot_err=np.nan,
+            avg_abs_trans_err=np.nan,
+            percent_panos_localized=np.nan,
+            floorplan_iou=np.nan,
+            rotation_errors=None,
+            translation_errors=np.array([0.0, 0.1, 0.18, 0.19, 0.21]) # 4/5 are under threshold
+        ),
+        FloorReconstructionReport(
+            avg_abs_rot_err=np.nan,
+            avg_abs_trans_err=np.nan,
+            percent_panos_localized=np.nan,
+            floorplan_iou=np.nan,
+            rotation_errors=None,
+            translation_errors=np.array([800, 900, 1000]) # 0/3 are under threshold.
+        )
+    ]
+    threshold = 0.2
+    avg_success_rate = compute_translation_errors_against_threshold(reconstruction_reports, threshold)
+    expected_avg_success_rate = np.mean([3/6, 4/5, 0/3])
+    assert np.isclose(avg_success_rate, expected_avg_success_rate)

@@ -212,23 +212,34 @@ class PoseGraph2d(NamedTuple):
         """ """
         pass
 
-    def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float]:
-        """ """
+    def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float, np.ndarray, np.ndarray]:
+        """
+        Args:
+            gt_floor_pg: 
+
+        Returns:
+            mean_rot_err: average rotation error per camera, measured in degrees.
+            mean_trans_err: average translation error per camera.
+            rot_errors: array of (K,) rotation errors, measured in degrees.
+            trans_errors: array of (K,) translation errors.
+        """
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
         bTi_list_est = self.as_3d_pose_graph()
 
-        mean_rot_err, mean_trans_err = ransac.compute_pose_errors_3d(aTi_list_gt, bTi_list_est)
-        return mean_rot_err, mean_trans_err
+        mean_rot_err, mean_trans_err, rot_errors, trans_errors = ransac.compute_pose_errors_3d(aTi_list_gt, bTi_list_est)
+        return mean_rot_err, mean_trans_err, rot_errors, trans_errors
 
-    def measure_unaligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float]:
+    def measure_unaligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float, np.ndarray, np.ndarray]:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
 
         Args:
-            gt_floor_pg
+            gt_floor_pg: 
 
         Returns:
-            mean_rot_err
-            mean_trans_err
+            mean_rot_err: average rotation error per camera, measured in degrees.
+            mean_trans_err: average translation error per camera.
+            rot_errors: array of (K,) rotation errors, measured in degrees.
+            trans_errors: array of (K,) translation errors.
         """
 
         # get the new aligned estimated pose graph
@@ -237,7 +248,7 @@ class PoseGraph2d(NamedTuple):
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
 
         mean_rot_err, mean_trans_err = ransac.compute_pose_errors_3d(aTi_list_gt, aligned_bTi_list_est)
-        return mean_rot_err, mean_trans_err
+        return mean_rot_err, mean_trans_err, rot_errors, trans_errors
 
 
     def align_by_Sim3_to_ref_pose_graph(self, ref_pose_graph: "PoseGraph2d") -> "PoseGraph2d":
