@@ -90,7 +90,7 @@ class FloorReconstructionReport:
 
 
 def render_floorplans_side_by_side(
-    est_floor_pose_graph,
+    est_floor_pose_graph:  PoseGraph2d,
     show_plot: bool = True,
     save_plot: bool = False,
     plot_save_dir: str = "floorplan_renderings",
@@ -134,6 +134,28 @@ def render_floorplans_side_by_side(
     if show_plot:
         # plt.axis("equal")
         plt.show()
+
+    render_raster_occupancy(
+        est_floor_pose_graph,
+        gt_floor_pg,
+    )
+
+
+def render_raster_occupancy(est_floor_pose_graph: PoseGraph2d, gt_floor_pg: PoseGraph2d) -> None:
+    """ """
+    import pdb; pdb.set_trace()
+    # compute raster IoU on occupancy
+    # render side by side figures
+
+    BEV_Params()
+    bevimg_Sim2_world
+    bev_img = 
+
+    # convert to meters. then 
+    polygon_xy_m
+
+    bev_img = bev_rendering_utils.rasterize_polygon(polygon_xy=polygon_xy_m, bev_img=bev_img, bevimg_Sim2_world=bevimg_Sim2_world, color=[1,1,1])
+    occ_img = bev_img[:, :, 0]
 
 
 def render_floorplan(pose_graph: PoseGraph2d, scale_meters_per_coordinate: float) -> None:
