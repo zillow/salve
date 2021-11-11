@@ -1,4 +1,6 @@
 
+"""Recursively find corrupted images in a directory using many workers."""
+
 import glob
 from multiprocessing import Pool
 
