@@ -167,8 +167,8 @@ def render_raster_occupancy(
     BUILDING_XLIMS_M = 25
     BUILDING_YLIMS_M = 25
 
-    # IOU_EVAL_METERS_PER_PX = 0.1 (used before)
-    IOU_EVAL_METERS_PER_PX = 0.01
+    IOU_EVAL_METERS_PER_PX = 0.1 
+    #IOU_EVAL_METERS_PER_PX = 0.01 #(no appreciable difference in IoU with this resolution)
     IOU_EVAL_PX_PER_METER = 1 / IOU_EVAL_METERS_PER_PX
 
     img_w = int(IOU_EVAL_PX_PER_METER * BUILDING_XLIMS_M * 2)
@@ -258,6 +258,5 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
         median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Median over all tours, {error_metric} = {median_val:.2f}")
 
-    import pdb
-
-    pdb.set_trace()
+    import pdb; pdb.set_trace()
+    print("Evaluation complete.")
