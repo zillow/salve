@@ -286,6 +286,10 @@ def load_opensfm_reconstructions_from_json(
     """
     # reconstruction = types.Reconstruction()
 
+    if not Path(reconstruction_json_fpath).exists():
+        reconstructions = []
+        return reconstructions
+
     objs = json_utils.read_json_file(reconstruction_json_fpath)
     reconstructions = [load_opensfm_reconstruction_from_json(obj) for obj in objs]
     return reconstructions
