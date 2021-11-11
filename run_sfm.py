@@ -310,7 +310,7 @@ def cycles_SE2_spanning_tree(
 
     est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph)
 
-    mean_abs_rot_err, mean_abs_trans_err = est_floor_pose_graph.measure_unaligned_abs_pose_error(
+    mean_abs_rot_err, mean_abs_trans_err, _, _ = est_floor_pose_graph.measure_unaligned_abs_pose_error(
         gt_floor_pg=gt_floor_pose_graph
     )
     print(f"\tAvg translation error: {mean_abs_trans_err:.2f}")
