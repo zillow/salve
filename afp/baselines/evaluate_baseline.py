@@ -136,7 +136,15 @@ def measure_algorithm_localization_accuracy(
         reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(building_id, floor_id)
         if len(reconstructions[0].pose_dict) == 0:
             save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
+            import pdb; pdb.set_trace()
             return
+
+    if len(reconstructions) == 0:
+        return FloorReconstructionReport(
+            avg_abs_rot_err=np.nan,
+            avg_abs_trans_err=np.nan,
+            percent_panos_localized=0
+        )
 
     gt_floor_pose_graph = get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
@@ -487,15 +495,26 @@ def eval_opensfm_errors_all_tours() -> None:
 
     reconstruction_reports = []
 
+    counter = 0
+
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
-        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(building_id))])
+        try:
+            new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(building_id))])
+        except Exception as e:
+            print(f"Exception for Building {building_id}: ", e)
+            continue
+
         new_building_id = new_building_ids[0]
         if new_building_id not in DATASET_SPLITS["test"]:
             continue
 
         for floor_id in floor_ids:
+
+            # counter += 1
+            # if counter > 200:
+            #     continue
             # try:
             src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
             pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
@@ -522,6 +541,7 @@ def eval_opensfm_errors_all_tours() -> None:
             #     continue
 
     print("OpenSfM test set eval complete.")
+    import pdb; pdb.set_trace()
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
 
@@ -594,9 +614,9 @@ def main() -> None:
 
     # reconstruction_json_fpath
 
-    # eval_opensfm_errors_all_tours()
+    eval_opensfm_errors_all_tours()
 
-    eval_openmvg_errors_all_tours()
+    # eval_openmvg_errors_all_tours()
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
     # analyze_algorithm_results(json_results_dir, raw_dataset_dir)
