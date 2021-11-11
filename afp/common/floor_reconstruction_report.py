@@ -23,6 +23,15 @@ class FloorReconstructionReport:
     avg_abs_rot_err: float
     avg_abs_trans_err: float
     percent_panos_localized: float
+    floorplan_iou: Optional[float] = np.nan
+
+    def __repr__(self) -> str:
+        """Concise summary of the class as a string."""
+        summary_str = f"Abs. Rot err (deg) {avg_abs_rot_err:.1f}, "
+        summary_str += f"Abs. trans err {avg_abs_trans_err:.2f}, "
+        summary_str += f"%Localized {percent_panos_localized:.2f},"
+        summary_str += f"Floorplan IoU {floorplan_iou:.2f}"
+        return summary_str
 
     @classmethod
     def from_wSi_list(
@@ -82,6 +91,12 @@ class FloorReconstructionReport:
             plot_save_fpath=plot_save_fpath,
         )
 
+        floorplan_iou = render_raster_occupancy(
+            est_floor_pose_graph=aligned_est_floor_pose_graph,
+            gt_floor_pg=gt_floor_pose_graph,
+            plot_save_dir=plot_save_dir,
+        )
+
         print()
         print()
 
@@ -89,11 +104,12 @@ class FloorReconstructionReport:
             avg_abs_rot_err=mean_abs_rot_err,
             avg_abs_trans_err=mean_abs_trans_err_m,
             percent_panos_localized=percent_panos_localized,
+            floorplan_iou=floorplan_iou
         )
 
 
 def render_floorplans_side_by_side(
-    est_floor_pose_graph:  PoseGraph2d,
+    est_floor_pose_graph: PoseGraph2d,
     show_plot: bool = True,
     save_plot: bool = False,
     plot_save_dir: str = "floorplan_renderings",
@@ -138,40 +154,71 @@ def render_floorplans_side_by_side(
         # plt.axis("equal")
         plt.show()
 
-    render_raster_occupancy(
-        est_floor_pose_graph,
-        gt_floor_pg,
-    )
 
 
-def render_raster_occupancy(est_floor_pose_graph: PoseGraph2d, gt_floor_pg: PoseGraph2d) -> None:
-    """ """
-    import pdb; pdb.set_trace()
-    # compute raster IoU on occupancy
+def render_raster_occupancy(est_floor_pose_graph: PoseGraph2d, gt_floor_pg: PoseGraph2d, plot_save_dir: str, save_viz: bool = True) -> None:
+    """Compute raster IoU on occupancy."""
     # render side by side figures
 
-    # not going to be larger than [-40,40] meters
-    BUILDING_XLIMS_M = 40
-    BUILDING_YLIMS_M = 40
+    scale_meters_per_coordinate = gt_floor_pg.scale_meters_per_coordinate
 
-    IOU_EVAL_METERS_PER_PX = 0.5
+    # not going to be larger than [-40,40] meters
+    BUILDING_XLIMS_M = 25
+    BUILDING_YLIMS_M = 25
+
+    #IOU_EVAL_METERS_PER_PX = 0.1 (used before)
+    IOU_EVAL_METERS_PER_PX = 0.01
     IOU_EVAL_PX_PER_METER = 1 / IOU_EVAL_METERS_PER_PX
 
-    img_w = IOU_EVAL_PX_PER_METER * BUILDING_XLIMS_M * 2
-    img_h = IOU_EVAL_PX_PER_METER * BUILDING_YLIMS_M * 2
+    img_w = int(IOU_EVAL_PX_PER_METER * BUILDING_XLIMS_M * 2)
+    img_h = int(IOU_EVAL_PX_PER_METER * BUILDING_YLIMS_M * 2)
 
-    bev_params = BEVParams(img_h = img_h, img_w = img_w, meters_per_px = 0.5)
-    bevimg_Sim2_world = bev_params.bevimg_Sim2_world
-    bev_img = np.zeros((img_h+1, img_w+1, 3))
+    bev_params = BEVParams(img_h=img_h, img_w=img_w, meters_per_px=IOU_EVAL_METERS_PER_PX)
 
-    # convert to meters. then 
-    polygon_xy_m = None
+    est_mask = rasterize_room(bev_params, est_floor_pose_graph, scale_meters_per_coordinate)
+    gt_mask = rasterize_room(bev_params, gt_floor_pg, scale_meters_per_coordinate)
 
-    bev_img = bev_rendering_utils.rasterize_polygon(polygon_xy=polygon_xy_m, bev_img=bev_img, bevimg_Sim2_world=bevimg_Sim2_world, color=[1,1,1])
+    iou = iou_utils.binary_mask_iou(mask1=est_mask, mask2=gt_mask)
+    print(f"IoU: {iou:.2f}")
+
+    if save_viz:
+        plt.subplot(1,2,1)
+        plt.imshow(np.flipud(est_mask))
+        plt.subplot(1,2,2)
+        plt.imshow(np.flipud(gt_mask))
+        plt.suptitle(f"{gt_floor_pg.building_id} {gt_floor_pg.floor_id} --> IoU {iou:.2f}")
+        # plt.show()
+
+        save_dir = f"{plot_save_dir}__floorplan_iou"
+        os.makedirs(save_dir, exist_ok=True)
+        save_fpath = f"{save_dir}/{gt_floor_pg.building_id}_{gt_floor_pg.floor_id}.jpg"
+        plt.savefig(save_fpath, dpi=500)
+        
+    return iou
+
+
+def rasterize_room(bev_params: BEVParams, floor_pose_graph: PoseGraph2d, scale_meters_per_coordinate: float) -> np.ndarray:
+    """
+    Args:
+        bev_params
+        floor_pose_graph
+        scale_meters_per_coordinate
+
+    Returns:
+        occ_img: occupancy mask.
+    """
+    bev_img = np.zeros((bev_params.img_h + 1, bev_params.img_w + 1, 3))
+
+    for i, pano_obj in floor_pose_graph.nodes.items():
+        # convert to meters
+        room_vertices_m = pano_obj.room_vertices_global_2d * scale_meters_per_coordinate
+
+        bev_img = bev_rendering_utils.rasterize_polygon(
+            polygon_xy=room_vertices_m, bev_img=bev_img, bevimg_Sim2_world=bev_params.bevimg_Sim2_world, color=[1, 1, 1]
+        )
+
     occ_img = bev_img[:, :, 0]
-
-    iou = iou_utils.binary_mask_iou(mask1=occ_img, mask2=occ_img)
-
+    return occ_img
 
 
 def render_floorplan(pose_graph: PoseGraph2d, scale_meters_per_coordinate: float) -> None:
@@ -187,7 +234,11 @@ def render_floorplan(pose_graph: PoseGraph2d, scale_meters_per_coordinate: float
 
 
 def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -> None:
-    """ """
+    """
+
+    Args:
+        reconstruction_reports: 
+    """
 
     print()
     print()
@@ -203,3 +254,5 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
 
         median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Median over all tours, {error_metric} = {median_val:.2f}")
+
+    import pdb; pdb.set_trace()
