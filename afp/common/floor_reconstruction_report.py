@@ -18,7 +18,7 @@ from afp.common.posegraph2d import PoseGraph2d
 
 @dataclass(frozen=True)
 class FloorReconstructionReport:
-    """Summary statistics about the reconstructed floorplan."""
+    """Summary statistics about the quality of the reconstructed floorplan."""
 
     avg_abs_rot_err: float
     avg_abs_trans_err: float
@@ -275,7 +275,7 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
     thresholded_trans_error_dict[1.0] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=1.0)
     
     print("Average position localization success rates: ", thresholded_trans_error_dict)
-    print("Evaluation complete.")
+    print("======> Evaluation complete. ======>")
 
 
 def compute_translation_errors_against_threshold(reconstruction_reports: List[FloorReconstructionReport], threshold: float) -> float:
@@ -292,11 +292,15 @@ def compute_translation_errors_against_threshold(reconstruction_reports: List[Fl
     """
     floor_success_rates = []
     for r in reconstruction_reports:
+        if r.translation_errors is None:
+            # no cameras were localized for this floor.
+            print("No cameras for this FloorReconstructionReport.")
+            continue
         floor_success_rate = (r.translation_errors < threshold).mean()
         floor_success_rates.append(floor_success_rate)
 
     avg_floor_success_rate = np.mean(floor_success_rates)
-    print(f"Avg. Position Localization Floor Success Rate @ {threshold} = {avg_floor_success_rate:.2f}")
+    print(f"Avg. Position Localization Floor Success Rate @ {threshold} = {avg_floor_success_rate:.3f}")
     return avg_floor_success_rate
 
 
