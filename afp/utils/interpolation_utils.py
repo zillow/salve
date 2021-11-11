@@ -39,6 +39,9 @@ def interp_dense_grid_from_sparse(
         # return the empty grid, since we can't interpolate.
         return bev_img
 
+    if is_collinear(points):
+        return bev_img
+
     grid_coords = get_mesh_grid_as_point_cloud(min_x=0, max_x=grid_w - 1, min_y=0, max_y=grid_h - 1)
     # Note: `xi` -- Points at which to interpolate data.
     interp_rgb_vals = scipy.interpolate.griddata(
@@ -50,6 +53,55 @@ def interp_dense_grid_from_sparse(
     X = grid_coords[:, 0].astype(np.int32)
     bev_img[Y, X, :] = interp_rgb_vals
     return bev_img
+
+
+def is_collinear(points: np.ndarray) -> bool:
+    """
+    Args:
+        points: (N,2) array.
+    """
+    # all share the same x coordinate?
+    if np.allclose(points[:,0], points[0,0]):
+        return True
+
+    if np.allclose(points[:,1], points[0,1]):
+        return True
+
+    return False
+
+
+def test_interp_dense_grid_from_sparse_collinear() -> None:
+    """Ensure we can avoid interpolation when we have points collinear in x, or when all collinear in y.
+
+    Without the check, Scipy would raise the following error:
+        scipy.spatial.qhull.QhullError: QH6013 qhull input error: input is less than 3-dimensional
+        since all points have the same x coordinate    0
+    """
+    RED = [255, 0, 0]
+    GREEN = [0, 255, 0]
+
+    bev_img = np.zeros((10, 10, 3))
+    # provided as (x,y) tuples
+    points = np.array([[0, 0], [0, 3], [0, 2], [0, 4]])
+    rgb_values = np.array([RED, GREEN, RED, GREEN])
+    grid_h = 10
+    grid_w = 10
+    
+    # since all collinear, interpolation is impossible
+    dense_grid = interp_dense_grid_from_sparse(
+        bev_img=bev_img, points=points, rgb_values=rgb_values, grid_h=grid_h, grid_w=grid_w, is_semantics=False
+    )
+    expected_dense_grid = np.zeros((10, 10, 3))
+    assert np.allclose(dense_grid, expected_dense_grid)
+
+
+    # now, check for points collinear in y.
+    bev_img = np.zeros((10, 10, 3))
+    points = np.array([[0, 0], [3,0], [2,0], [4,0]])
+    # since all collinear, interpolation is impossible
+    dense_grid = interp_dense_grid_from_sparse(
+        bev_img=bev_img, points=points, rgb_values=rgb_values, grid_h=grid_h, grid_w=grid_w, is_semantics=False
+    )
 
 
 def test_interp_dense_grid_from_sparse_insufficient_points_simplex() -> None:
@@ -205,6 +257,6 @@ def test_remove_hallucinated_content_largekernel() -> None:
 
 
 if __name__ == "__main__":
-    test_remove_hallucinated_content()
-
-    test_remove_hallucinated_content_largekernel()
+    #test_remove_hallucinated_content()
+    #test_remove_hallucinated_content_largekernel()
+    test_interp_dense_grid_from_sparse_collinear()
