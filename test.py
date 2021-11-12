@@ -342,6 +342,11 @@ if __name__ == "__main__":
     # #serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09" # tested at 93.9 acc.
     # serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_11" # tested at 94.7 acc.
 
+    # ResNet-152, layout-only, XYZ tours (predicted WDO), low-res.
+    model_results_dir = ""
+    config_fpath = ""
+    serialization_save_dir = ""
+
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
     ckpt_fpath = glob.glob(f"{model_results_dir}/*.pth")[0]
@@ -371,5 +376,3 @@ if __name__ == "__main__":
     print("Val accs: ", val_mAccs)
     print("Num epochs trained", len(val_mAccs))
     print("Max val mAcc", max(val_mAccs))
-
-    # quit()

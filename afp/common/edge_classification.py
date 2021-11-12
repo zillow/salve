@@ -12,7 +12,7 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 
 import afp.common.posegraph2d as posegraph2d
-import afp.utils.pr_utils as pr_utils
+#import afp.utils.pr_utils as pr_utils # TODO: introduces a dependency cycle, need to refactor
 
 
 @dataclass(frozen=False)
