@@ -16,6 +16,7 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 
+import afp.common.floor_reconstruction_report as floor_reconstruction_report
 import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_data as zind_data
 import afp.utils.csv_utils as csv_utils
@@ -59,13 +60,13 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
     # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
     
     # path to batch of unzipped prediction files, from Yuguang
-    # data_root = "/Users/johnlam/Downloads/zind2_john"
+    data_root = "/Users/johnlam/Downloads/zind2_john"
     # data_root = "/mnt/data/johnlam/zind2_john"
-    data_root = "/home/johnlam/zind2_john"
+    # data_root = "/home/johnlam/zind2_john"
 
-    # pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     # pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-    pano_mapping_tsv_fpath = "/home/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+    # pano_mapping_tsv_fpath = "/home/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     pano_mapping_rows = csv_utils.read_csv(pano_mapping_tsv_fpath, delimiter=",")
 
     # Note: pano_guid is unique across the entire dataset.
@@ -269,11 +270,13 @@ def main() -> None:
                 building_id=building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
             )
 
-            floor_pose_graph.render_estimated_layout(
+            floor_reconstruction_report.render_floorplans_side_by_side(
+                est_floor_pose_graph=floor_pose_graph,
                 show_plot=False,
                 save_plot=True,
-                plot_save_dir=f"{model_name}__oracle_pose",
+                plot_save_dir=f"{model_name}__oracle_pose_2021_11_12",
                 gt_floor_pg=gt_pose_graph,
+
             )
 
             floor_pose_graph.save_as_zind_data_json(
