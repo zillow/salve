@@ -33,12 +33,13 @@ class EdgeClassification:
 
 
 def get_edge_classifications_from_serialized_preds(
-    serialized_preds_json_dir: str,
+    serialized_preds_json_dir: str, allowed_wdo_types: List[str] = ["door", "window", "opening"]
 ) -> Dict[Tuple[str, str], List[EdgeClassification]]:
     """Given a directory of JSON files containing model predictions into predictions per ZinD building and per floor.
 
     Args:
         serialized_preds_json_dir: path to directory where model predictions (per edge) have been serialized as JSON.
+        allowed_wdo_types: allowed types of semantic objects (W/D/O) to use for reconstruction. Others will be ignored.
 
     Returns:
         floor_edgeclassifications_dict: a mapping from (building_id, floor_id) to corresponding edge measurements.
@@ -74,7 +75,10 @@ def get_edge_classifications_from_serialized_preds(
             k = Path(fp0).stem.split("___")[1].find(f"_{configuration}")
             assert k != -1
             wdo_pair_uuid = Path(fp0).stem.split("___")[1][:k]
-            assert any([wdo_type in wdo_pair_uuid for wdo_type in ["door", "window", "opening"]])
+            # split `door_3_0` to `door`
+            wdo_type = wdo_pair_uuid.split("_")[0]
+            if wdo_type not in allowed_wdo_types:
+                continue
 
             floor_edgeclassifications_dict[(building_id, floor_id)] += [
                 EdgeClassification(
