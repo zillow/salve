@@ -6,6 +6,7 @@ from pathlib import Path
 
 import argoverse.utils.json_utils as json_utils
 
+import afp.common.floor_reconstruction_report as floor_reconstruction_report
 import afp.common.posegraph2d as posegraph2d
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
 from afp.dataset.zind_partition import DATASET_SPLITS
@@ -17,7 +18,7 @@ def eval_oraclepose_predictedlayout() -> None:
 
     Measure accuracy of oracle pose graph w/ PREDICTED layout vs. GT
     """
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     # discover possible building ids and floors
     building_ids = [
@@ -53,7 +54,7 @@ def eval_oraclepose_predictedlayout() -> None:
             query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
         )
         if floor_pose_graphs is None:
-            return
+            continue
 
         merger_data = floor_map_json["merger"]
         for floor_id in merger_data.keys():
@@ -74,6 +75,8 @@ def eval_oraclepose_predictedlayout() -> None:
             reconstruction_reports.append(report)
 
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
+
+    print("Evaluation complete (Oracle pose + predicted layout)")
 
 
 if __name__ == "__main__":
