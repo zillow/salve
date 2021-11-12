@@ -7,6 +7,7 @@ from pathlib import Path
 import argoverse.utils.json_utils as json_utils
 
 import afp.common.posegraph2d as posegraph2d
+from afp.common.floor_reconstruction_report import FloorReconstructionReport
 from afp.dataset.zind_partition import DATASET_SPLITS
 from read_prod_predictions import load_inferred_floor_pose_graphs
 
@@ -28,15 +29,13 @@ def eval_oraclepose_predictedlayout() -> None:
 
     reconstruction_reports = []
 
+    viz_save_dir = f"2021_11_11_oraclepose_predicted_layout"
+
     for building_id in building_ids:
 
         # for rendering test data only
         if building_id not in DATASET_SPLITS["test"]:
             continue
-
-        gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(
-            building_id, floor_id, raw_dataset_dir
-        )
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         if not Path(json_annot_fpath).exists():
@@ -56,10 +55,12 @@ def eval_oraclepose_predictedlayout() -> None:
         if floor_pose_graphs is None:
             return
 
-        viz_save_dir = ""
-
         merger_data = floor_map_json["merger"]
         for floor_id in merger_data.keys():
+
+            gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(
+                building_id, floor_id, raw_dataset_dir
+            )
 
             est_floor_pose_graph = floor_pose_graphs[floor_id]
             report = FloorReconstructionReport.from_est_floor_pose_graph(
