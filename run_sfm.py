@@ -38,6 +38,7 @@ from afp.common.floor_reconstruction_report import FloorReconstructionReport
 from afp.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
 
 
+
 def get_conf_thresholded_edges(
     measurements: List[EdgeClassification],
     hypotheses_save_root: str,
@@ -709,7 +710,7 @@ def run_incremental_reconstruction(
 
     # TODO: add axis alignment.
 
-    confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    confidence_threshold = 0.5 # 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
 
     plot_save_dir = (
         f"{Path(serialized_preds_json_dir).name}___2021_11_03_{method}_floorplans_with_conf_{confidence_threshold}"
@@ -1099,12 +1100,13 @@ if __name__ == "__main__":
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
-    # 186 tours, low-res, RGB only floor and ceiling. custom hacky val split
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     hypotheses_save_root = (
         "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
     )
+
+    # 186 tours, low-res, RGB only floor and ceiling. custom hacky val split
+    # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
 
     # 373 training tours, low-res, RGB only floor and ceiling, true ZinD train/val/test split
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications"
@@ -1118,9 +1120,14 @@ if __name__ == "__main__":
     #     "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
     # )
 
-    # floor-only
+    # floor-only, ResNet-152
+    # serialized_preds_json_dir = (
+    #     "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09"
+    # )
+
+    # ceiling-only, ResNet-152
     serialized_preds_json_dir = (
-        "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09"
+        "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12"
     )
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
