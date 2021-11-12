@@ -73,7 +73,8 @@ class FloorReconstructionReport:
         percent_panos_localized = num_localized_panos / num_floor_panos * 100
         print(f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
 
-        # import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
+        #aligned_est_floor_pose_graph = est_floor_pose_graph
         aligned_est_floor_pose_graph, _ = est_floor_pose_graph.align_by_Sim3_to_ref_pose_graph(
             ref_pose_graph=gt_floor_pose_graph
         )
@@ -245,12 +246,11 @@ def render_floorplan(pose_graph: PoseGraph2d, scale_meters_per_coordinate: float
 
 
 def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -> None:
-    """Given a report per floor, compute summary statistics
+    """Given a report per floor, compute summary statistics for each error metric.
 
     Args:
         reconstruction_reports: report for every floor of each ZinD building in this split.
     """
-
     print()
     print()
     print(f"Test set contained {len(reconstruction_reports)} total floors.")
