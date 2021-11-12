@@ -248,7 +248,7 @@ def run_epoch(
                 logging.info(
                     f"\t{split} result at iter [{iter+1}/{len(data_loader)}] {args.num_ce_classes}-CE mAcc {avg_mAcc:.4f}"
                 )
-                train_utils.print_time_remaining(batch_time, current_iter, max_iter)
+                train_utils.print_time_remaining(batch_time=batch_time, current_iter=current_iter, max_iter=max_iter)
 
     _, accs, _, avg_mAcc, _ = sam.get_metrics()
     logging.info(f"{split} result at epoch [{epoch+1}/{args.num_epochs}]: mAcc{avg_mAcc:.4f}")

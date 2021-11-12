@@ -52,7 +52,10 @@ def cross_entropy_forward(
 
 
 def print_time_remaining(batch_time: AverageMeter, current_iter: int, max_iter: int) -> None:
-    """ """
+    """Use a running average of time to run a single batch through the network to estimate training time remaining.
+
+    Note: this estimate may include both forward prop and optionally backprop time.
+    """
     remain_iter = max_iter - current_iter
     remain_time = remain_iter * batch_time.avg
     t_m, t_s = divmod(remain_time, 60)
@@ -77,7 +80,7 @@ def get_train_transform(args: TrainingConfig) -> Callable:
         args: training hyperparamaters.
 
     Returns:
-        callable object with sequentially chained data transformations.
+        A callable object with sequentially chained data transformations.
     """
     if len(args.modalities) == 1:
         Resize = transform.ResizePair
@@ -233,14 +236,16 @@ def get_model(args: TrainingConfig) -> nn.Module:
 
 
 def unnormalize_img(input: Tensor, mean: Tuple[float,float,float], std: Tuple[float,float,float]) -> None:
-    """Pass in by reference a Pytorch tensor.
+    """Undo the normalization operation on a normalized tensor.
+
+    Note: we pass in by reference a Pytorch tensor.
     """
     for t,m,s in zip(input, mean, std):
         t.mul_(s).add_(m)
 
 
 def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfig) -> nn.Module:
-    """ """
+    """Load serialized weights from a Pytorch checkpoint file."""
     if not Path(ckpt_fpath).exists():
         raise RuntimeError(f"=> no checkpoint found at {ckpt_fpath}")
 
