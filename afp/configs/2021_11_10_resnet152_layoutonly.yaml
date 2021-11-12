@@ -25,7 +25,7 @@ TrainingConfig:
     batch_size: 256
 
     #data_root: "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25",
-    data_root: /home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout
+    data_root: /data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout
     layout_data_root: 
     #model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
     model_save_dirpath: /data/johnlam/ZinD_trained_models_2021_11_10
