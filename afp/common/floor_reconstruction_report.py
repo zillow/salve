@@ -73,6 +73,7 @@ class FloorReconstructionReport:
         percent_panos_localized = num_localized_panos / num_floor_panos * 100
         print(f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
 
+        # import pdb; pdb.set_trace()
         aligned_est_floor_pose_graph, _ = est_floor_pose_graph.align_by_Sim3_to_ref_pose_graph(
             ref_pose_graph=gt_floor_pose_graph
         )
@@ -200,6 +201,7 @@ def render_raster_occupancy(
         os.makedirs(save_dir, exist_ok=True)
         save_fpath = f"{save_dir}/{gt_floor_pg.building_id}_{gt_floor_pg.floor_id}.jpg"
         plt.savefig(save_fpath, dpi=500)
+        plt.close("all")
 
     return iou
 
@@ -269,12 +271,12 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
         median_val = np.nanmedian([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Median over all tours, {error_metric} = {median_val:.2f}")
 
-    thresholded_trans_error_dict = {}
-    thresholded_trans_error_dict[0.2] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=0.2)
-    thresholded_trans_error_dict[0.6] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=0.6)
-    thresholded_trans_error_dict[1.0] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=1.0)
+    # thresholded_trans_error_dict = {}
+    # thresholded_trans_error_dict[0.2] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=0.2)
+    # thresholded_trans_error_dict[0.6] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=0.6)
+    # thresholded_trans_error_dict[1.0] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=1.0)
     
-    print("Average position localization success rates: ", thresholded_trans_error_dict)
+    # print("Average position localization success rates: ", thresholded_trans_error_dict)
     print("======> Evaluation complete. ======>")
 
 
