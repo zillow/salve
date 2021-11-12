@@ -1,12 +1,20 @@
 
+"""Precision/recall computation utilities."""
+
 import os
 from enum import Enum, auto
 from pathlib import Path
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
+import sklearn
+
+from afp.common.edge_classification import EdgeClassification
+
 
 _PathLike = Union[str, "os.PathLike[str]"]
+
 
 class InterpType(Enum):
     ALL = auto()
@@ -249,13 +257,110 @@ def test_compute_prec_recall_curve() -> None:
     assert ap == 0.67
 
 
+def plot_precision_recall_curve_sklearn(measurements: List[EdgeClassification]) -> None:
+    """
+    Args:
+        measurements: list of length (K,) representing model predictions.
+
+    Returns:
+        prec: array of shape (K,) represen
+            Precision values such that element i is the precision of predictions with score >= thresholds[i] and the last element is 1.
+        recall: array of shape (K,) represen
+            Decreasing recall values such that element i is the recall of predictions with score >= thresholds[i] and the last element is 0.
+        thresholds: array of shape (K-1,) representing confidence thresholds for each precision and recall value.
+            see https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
+    """
+    y_true_list = []
+    probas_pred = []
+    for m in measurements:
+
+        y_true_list.append(m.y_true)
+
+        if m.y_hat == 1:
+            pos_prob = m.prob
+        else:
+            pos_prob = 1 - m.prob
+
+        probas_pred.append(pos_prob)
+
+    # from sklearn.metrics import PrecisionRecallDisplay
+    prec, recall, thresholds = sklearn.metrics.precision_recall_curve(y_true=y_true_list, probas_pred=probas_pred, pos_label=1)
+    # pr_display = PrecisionRecallDisplay(precision=prec, recall=recall).plot()
+    # plt.show()
+
+    return prec, recall, thresholds
+
+
+def make_dummy_edge_classification(prob: float, y_hat: int, y_true: int) -> EdgeClassification:
+    """ """
+    measurement = EdgeClassification(
+        i1=0, # dummy val
+        i2=1, # dummy val
+        prob=prob,
+        y_hat=y_hat,
+        y_true=y_true,
+        pair_idx=0, # dummy index
+        wdo_pair_uuid="door_0_1", # dummy val
+        configuration="identity" # dummy val
+    )
+    return measurement
+
+
+def test_plot_precision_recall_curve_sklearn1() -> None:
+    """For all correct predictions, with increasing amounts of confidence."""
+    y_pred = np.array([1,1,1])
+    y_true = np.array([1,1,1])
+    probs =  np.array([0.1, 0.2, 0.3])
+
+    measurements = []
+    for i in range(3):
+        measurements.append(make_dummy_edge_classification(prob=probs[i], y_hat=y_pred[i], y_true=y_true[i]))
+
+    prec, rec, thresholds = plot_precision_recall_curve_sklearn(measurements)
+
+    expected_prec = np.array([1., 1., 1., 1.])
+    expected_rec = np.array([1., 0.667, 0.333, 0. ])
+    expected_thresholds = np.array([0.1, 0.2, 0.3])
+
+    assert np.allclose(prec, expected_prec)
+    assert np.allclose(rec, expected_rec)
+    assert np.allclose(thresholds, expected_thresholds)
+
+
+def test_plot_precision_recall_curve_sklearn2() -> None:
+    """For some incorrect and correct predictions.
+
+    @ >= 0.3 thresh, 2 TPs, 1 FP. (prec 2/3). Recall 1.
+    @ >= 0.8 thresh, 1 FP, 1 TP. (prec 1/2). Recall 1/2.
+    @ >= 0.9 thresh, 0 FP, 1 TP (prec 1). Recall 1/2.
+    """
+    y_pred = np.array([1,1,1,1])
+    y_true = np.array([1,0,1,0])
+    probs =  np.array([0.9, 0.8, 0.3, 0.2])
+
+    measurements = []
+    for i in range(4):
+        measurements.append(make_dummy_edge_classification(prob=probs[i], y_hat=y_pred[i], y_true=y_true[i]))
+
+    prec, rec, thresholds = plot_precision_recall_curve_sklearn(measurements)
+
+    expected_prec = np.array([0.66666667, 0.5 , 1. , 1. ])
+    expected_rec = np.array([1. , 0.5, 0.5, 0. ])
+    expected_thresholds = np.array([0.3, 0.8, 0.9])
+
+    assert np.allclose(prec, expected_prec)
+    assert np.allclose(rec, expected_rec)
+    assert np.allclose(thresholds, expected_thresholds)
 
 
 if __name__ == '__main__':
-    test_compute_prec_recall_curve()
+    #test_compute_prec_recall_curve()
 
     # test_compute_precision_recall_1()
     # test_compute_precision_recall_2()
     # #test_compute_precision_recall_3()
     # test_compute_precision_recall_4()
+
+    #test_plot_precision_recall_curve_sklearn1()
+    test_plot_precision_recall_curve_sklearn2()
 
