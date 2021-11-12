@@ -906,6 +906,11 @@ def run_incremental_reconstruction(
 
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
+    print("Completed Eval with:")
+    print(f"\tconfidence>={confidence_threshold}")
+    print(f"\tmethod={method}")
+    print(f"\tfrom serializations {Path(serialized_preds_json_dir).name}")
+
 
 def align_pairs_by_vanishing_angle(
     i2Si1_dict: Dict[Tuple[int, int], Sim2], gt_floor_pose_graph: PoseGraph2d, visualize: bool = True
@@ -1107,8 +1112,15 @@ if __name__ == "__main__":
 
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
+    
+    # ceiling + floor
+    # serialized_preds_json_dir = (
+    #     "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    # )
+
+    # floor-only
     serialized_preds_json_dir = (
-        "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+        "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09"
     )
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
