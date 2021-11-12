@@ -53,35 +53,6 @@ def get_colormapped_spheres(wTi_list: List[Optional[Pose3]]) -> np.ndarray:
     return point_cloud, rgb
 
 
-def plot_3d_poses(aTi_list_gt: List[Optional[Pose3]], bTi_list_est: List[Optional[Pose3]]) -> None:
-    """
-
-    Ground truth poses are rendered large (sphere of radius 0.5)
-    Estimated poses are rendered small (spehere of radius 0.2)
-
-    Args:
-        aTi_list_gt: list of ground truth camera poses.
-        bTi_list_est: list of estimated camera poses.
-    """
-    point_cloud_est, rgb_est = get_colormapped_spheres(bTi_list_est)
-    point_cloud_gt, rgb_gt = get_colormapped_spheres(aTi_list_gt)
-    geo1 = open3d_vis_utils.create_colored_spheres_open3d(point_cloud_est, rgb_est, sphere_radius=0.2)
-    geo2 = open3d_vis_utils.create_colored_spheres_open3d(point_cloud_gt, rgb_gt, sphere_radius=0.5)
-
-    def get_coordinate_frames(wTi_list: List[Optional[Pose3]]) -> List[open3d.geometry.LineSet]:
-        frames = []
-        for i, wTi in enumerate(wTi_list):
-            if wTi is None:
-                continue
-            frames.extend(draw_coordinate_frame(wTi))
-        return frames
-
-    frames1 = get_coordinate_frames(aTi_list_gt)
-    frames2 = get_coordinate_frames(bTi_list_est)
-
-    open3d.visualization.draw_geometries(geo1 + geo2 + frames1 + frames2)
-
-
 def draw_coordinate_frame(wTc: Pose3, axis_length: float = 1.0) -> List[open3d.geometry.LineSet]:
     """Draw 3 orthogonal axes representing a camera coordinate frame.
 
@@ -119,4 +90,33 @@ def draw_coordinate_frame(wTc: Pose3, axis_length: float = 1.0) -> List[open3d.g
         line_sets.append(line_set)
 
     return line_sets
+
+
+def plot_3d_poses(aTi_list_gt: List[Optional[Pose3]], bTi_list_est: List[Optional[Pose3]]) -> None:
+    """
+
+    Ground truth poses are rendered large (sphere of radius 0.5)
+    Estimated poses are rendered small (spehere of radius 0.2)
+
+    Args:
+        aTi_list_gt: list of ground truth camera poses.
+        bTi_list_est: list of estimated camera poses.
+    """
+    point_cloud_est, rgb_est = get_colormapped_spheres(bTi_list_est)
+    point_cloud_gt, rgb_gt = get_colormapped_spheres(aTi_list_gt)
+    geo1 = open3d_vis_utils.create_colored_spheres_open3d(point_cloud_est, rgb_est, sphere_radius=0.2)
+    geo2 = open3d_vis_utils.create_colored_spheres_open3d(point_cloud_gt, rgb_gt, sphere_radius=0.5)
+
+    def get_coordinate_frames(wTi_list: List[Optional[Pose3]]) -> List[open3d.geometry.LineSet]:
+        frames = []
+        for i, wTi in enumerate(wTi_list):
+            if wTi is None:
+                continue
+            frames.extend(draw_coordinate_frame(wTi))
+        return frames
+
+    frames1 = get_coordinate_frames(aTi_list_gt)
+    frames2 = get_coordinate_frames(bTi_list_est)
+
+    open3d.visualization.draw_geometries(geo1 + geo2 + frames1 + frames2)
 
