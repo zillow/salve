@@ -710,15 +710,17 @@ def run_incremental_reconstruction(
 
     # TODO: add axis alignment.
 
-    confidence_threshold = 0.5 # 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    allowed_wdo_types =  ["door", "window", "opening"] # ["door"] # ["opening"] # ["window"] # 
 
+    allowed_wdo_types_summary = "_".join(allowed_wdo_types)
     plot_save_dir = (
-        f"{Path(serialized_preds_json_dir).name}___2021_11_03_{method}_floorplans_with_conf_{confidence_threshold}"
+        f"{Path(serialized_preds_json_dir).name}___2021_11_03_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}"
     )
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
-        serialized_preds_json_dir
+        serialized_preds_json_dir, allowed_wdo_types=allowed_wdo_types
     )
 
     reconstruction_reports = []
@@ -911,6 +913,7 @@ def run_incremental_reconstruction(
     print(f"\tconfidence>={confidence_threshold}")
     print(f"\tmethod={method}")
     print(f"\tfrom serializations {Path(serialized_preds_json_dir).name}")
+    print(f"\tUsing object types", allowed_wdo_types)
 
 
 def align_pairs_by_vanishing_angle(
@@ -1116,19 +1119,19 @@ if __name__ == "__main__":
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
     
     # ceiling + floor
-    # serialized_preds_json_dir = (
-    #     "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
-    # )
+    serialized_preds_json_dir = (
+        "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    )
 
     # floor-only, ResNet-152
     # serialized_preds_json_dir = (
     #     "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09"
     # )
 
-    # ceiling-only, ResNet-152
-    serialized_preds_json_dir = (
-        "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12"
-    )
+    # # ceiling-only, ResNet-152
+    # serialized_preds_json_dir = (
+    #     "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12"
+    # )
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
 
