@@ -700,13 +700,13 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    # method = "spanning_tree"
+    method = "spanning_tree"
     # method = "SE2_cycles"
     # method = "growing_consensus"
     # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
     # method = "pose2_slam"
-    method = "pgo"
+    # method = "pgo"
 
     # TODO: add axis alignment.
 
@@ -731,8 +731,8 @@ def run_incremental_reconstruction(
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-        # if not (building_id == "1130" and floor_id == "floor_02"):
-        #     continue
+        if not (building_id == "0605" and floor_id == "floor_01"):
+            continue
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
@@ -812,7 +812,7 @@ def run_incremental_reconstruction(
 
         if method == "spanning_tree":
 
-            # i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
+            i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
@@ -820,6 +820,7 @@ def run_incremental_reconstruction(
 
         elif method in ["pose2_slam", "pgo"]:
             # graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
+            import pdb; pdb.set_trace()
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = pose2_slam.execute_planar_slam(
                 measurements=high_conf_measurements,
@@ -922,18 +923,27 @@ def align_pairs_by_vanishing_angle(
     """ """
 
     for (i1, i2), i2Si1 in i2Si1_dict.items():
+        
 
-        verts_i1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
-        verts_i2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+        if i2 == 8:
+            import pdb; pdb.set_trace()
+
+        vertsi1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
+        vertsi2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+
+        vertsi1_i2fr = i2Si1.transform_from(vertsi1)
 
         if visualize:
             plt.subplot(1, 2, 1)
-            draw_polygon(verts_i1, color="r", linewidth=5)
-            draw_polygon(verts_i2, color="g", linewidth=1)
+            plt.title("Local body coordinates.")
+            draw_polygon(vertsi1_i2fr, color="r", linewidth=5)
+            draw_polygon(vertsi2, color="g", linewidth=1)
             plt.axis("equal")
 
-        dominant_angle_deg1, angle_frac1 = axis_alignment_utils.determine_rotation_angle(verts_i1)
-        dominant_angle_deg2, angle_frac2 = axis_alignment_utils.determine_rotation_angle(verts_i2)
+        # this has to happen in a common reference frame! ( in i2's frame).
+
+        dominant_angle_deg1, angle_frac1 = axis_alignment_utils.determine_rotation_angle(vertsi1_i2fr)
+        dominant_angle_deg2, angle_frac2 = axis_alignment_utils.determine_rotation_angle(vertsi2)
 
         # Below: using the oracle.
         # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
@@ -943,6 +953,7 @@ def align_pairs_by_vanishing_angle(
         # i2Si1 = wSi2.inverse().compose(wSi1)
 
         # import pdb; pdb.set_trace()
+        print("Rotate by ", dominant_angle_deg2 - dominant_angle_deg1)
         i2Ri1_dominant = rotation_utils.rotmat2d(theta_deg=dominant_angle_deg2 - dominant_angle_deg1)
         i2Si1_dominant = Sim2(R=i2Ri1_dominant, t=np.zeros(2), s=1.0)
         # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
@@ -950,10 +961,27 @@ def align_pairs_by_vanishing_angle(
         # method = "rotate_about_origin_first"
         # method = "rotate_about_origin_last"
         # method = "rotate_about_centroid_first"
-        method = "none"
+        #method = "none"
+        method = "rotate_in_place_last_about_roomcenter"
+
+
+        if method == "rotate_about_wdo":
+
+            vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
+                vertsi1_i2fr, rotmat=i2Ri1_dominant, center_pt=np.mean(vertsi1_i2fr, axis=0) # i2Si1.transform_from(np.zeros((1,2)))
+            )
+            i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
+            
+
+        elif method == "rotate_in_place_last_about_roomcenter":
+
+            vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
+                vertsi1_i2fr, rotmat=i2Ri1_dominant, center_pt=np.mean(vertsi1_i2fr, axis=0) # i2Si1.transform_from(np.zeros((1,2)))
+            )
+            #import pdb; pdb.set_trace()
 
         # i1a and i2a represent the aligned frames.
-        if method == "rotate_about_origin_first":
+        elif method == "rotate_about_origin_first":
             # apply rotation first (delta pose)
             i1Si1a = i2Si1_dominant
             i2Si1a = i2Si1.compose(i1Si1a)
@@ -967,30 +995,25 @@ def align_pairs_by_vanishing_angle(
 
         elif method == "rotate_about_centroid_first":
 
-            import pdb
-
-            pdb.set_trace()
+            import pdb; pdb.set_trace()
             verts_i1_ = geometry_utils.rotate_polygon_about_pt(
-                verts_i1, rotmat=i2Ri1_dominant, center_pt=np.mean(verts_i1, axis=0)
+                np.copy(verts_i1), rotmat=i2Ri1_dominant, center_pt=np.mean(verts_i1, axis=0)
             )
             verts_i1_ = i2Si1.transform_from(verts_i1_)
             # TODO: compute new translation that will accomplish this via Pose2.align()
 
         elif method == "none":
-
             # TODO: wrong, since layouts need to be expressed in the body frame.
             verts_i1_ = i2Si1.transform_from(verts_i1)
 
         if visualize:
             plt.subplot(1, 2, 2)
-            draw_polygon(verts_i1_, color="r", linewidth=5)
-            draw_polygon(verts_i2, color="g", linewidth=1)
+            plt.title(f"{i1} {i2}")
+            draw_polygon(vertsi1_i2fr_r, color="r", linewidth=5)
+            draw_polygon(vertsi2, color="g", linewidth=1)
             plt.axis("equal")
             plt.show()
-
-        import pdb
-
-        pdb.set_trace()
+            plt.close("all")
 
     return i2Si1_dict
 
@@ -1088,6 +1111,53 @@ def test_align_pairs_by_vanishing_angle_noisy() -> None:
     i2Si1_dict_aligned = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
 
 
+def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
+    """
+    pts1 and pts2 need to be in a common reference frame.
+    """
+    from gtsam import Point3, Point3Pairs, Similarity3
+
+    # lift to 3d plane
+    pt_pairs_i2i1 = []
+    for pt1, pt2 in zip(pts1, pts2):
+        pt1_3d = np.array([pt1[0], pt1[1], 0])
+        pt2_3d = np.array([pt2[0], pt2[1], 0])
+        pt_pairs_i2i1 += [(Point3(pt2_3d), Point3(pt1_3d))]
+
+    pt_pairs_i2i1 = Point3Pairs(pt_pairs_i2i1)
+    i2Si1 = Similarity3.Align(abPointPairs=pt_pairs_i2i1)
+
+    # project back to 2d
+    i2Ri1 = i2Si1.rotation().matrix()[:2, :2]
+    theta_deg = rotation_utils.rotmat2theta_deg(i2Ri1)
+    i2Ti1 = Pose2(Rot2.fromDegrees(theta_deg), i2Si1.translation()[:2])
+    return i2Ti1
+
+
+def test_compute_i2Ti1() -> None:
+    """ """
+
+    pts1_w = np.array(
+        [
+            [2,1],
+            [1,1],
+            [1,2]
+        ])
+    pts2_w = np.array(
+        [
+            [-1,1],
+            [0,1],
+            [0,0]
+        ])
+    i2Ti1 = compute_i2Ti1(pts1=pts1_w, pts2=pts2_w)
+
+    #import pdb; pdb.set_trace()
+    for i in range(3):
+        expected_pt2_w = i2Ti1.transformFrom(pts1_w[i])
+        print(expected_pt2_w)
+        assert np.allclose(pts2_w[i], expected_pt2_w)
+
+
 if __name__ == "__main__":
 
     # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
@@ -1132,9 +1202,9 @@ if __name__ == "__main__":
     # serialized_preds_json_dir = (
     #     "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12"
     # )
+    test_compute_i2Ti1()
+    #run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
 
-    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
-
-    # test_align_pairs_by_vanishing_angle()
+    #test_align_pairs_by_vanishing_angle()
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
