@@ -10,7 +10,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.graph as graph_utils
@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Pose2
+
+from gtsam import Point3, Point3Pairs, Similarity3
 
 import afp.algorithms.cycle_consistency as cycle_utils
 import afp.algorithms.mfas as mfas
@@ -32,11 +34,10 @@ import afp.utils.graph_rendering_utils as graph_rendering_utils
 import afp.utils.rotation_utils as rotation_utils
 import afp.utils.pr_utils as pr_utils
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
-from afp.algorithms.cluster_merging import EdgeWDOPair
 from afp.common.edge_classification import EdgeClassification
+from afp.common.edgewdopair import EdgeWDOPair
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
 from afp.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
-
 
 
 def get_conf_thresholded_edges(
@@ -54,6 +55,7 @@ def get_conf_thresholded_edges(
     List[Tuple[int, int]],
     Dict[Tuple[int, int], EdgeWDOPair],
     List[EdgeClassification],
+    DefaultDict[str, float],
 ]:
     """Among all model predictions for a particular floor of a home, select only the positive predictions
     with sufficiently high confidence.
@@ -70,11 +72,12 @@ def get_conf_thresholded_edges(
     Returns:
         i2Si1_dict: Similarity(2) for each edge.
         i2Ri1_dict: 2d relative rotation for each edge
-        i2Ui1_dict:
-        two_view_reports_dict:
-        gt_edges:
-        per_edge_wdo_dict:
-        high_conf_measurements:
+        i2ti1_dict: 2d relative translation for each edge.
+        two_view_reports_dict: 
+        gt_edges: list of tuples (i1,i2) representing all edges in true adjacency graph.
+        per_edge_wdo_dict: mapping from edge (i1,i2) to EdgeWDOPair information.
+        high_conf_measurements: all measurements of sufficient confidence, even if forming a multigraph.
+        wdo_type_counter: dictionary containing counts of W/D/O types.
     """
     # for each edge, choose the most confident prediction over all WDO pair alignments
     most_confident_edge_dict = defaultdict(list)
@@ -82,7 +85,7 @@ def get_conf_thresholded_edges(
 
     i2Si1_dict = {}
     i2Ri1_dict = {}
-    i2Ui1_dict = {}
+    i2ti1_dict = {}
     two_view_reports_dict = {}
 
     # compute_precision_recall(measurements)
@@ -151,7 +154,7 @@ def get_conf_thresholded_edges(
         if len(measurements) > 1:
             most_confident_was_correct.append(m.y_true == 1)
 
-        per_edge_wdo_dict[(i1, i2)] = EdgeWDOPair(i1=i1, i2=i2, wdo_pair_uuid=m.wdo_pair_uuid)
+        per_edge_wdo_dict[(i1, i2)] = EdgeWDOPair.from_wdo_pair_uuid(i1=i1, i2=i2, wdo_pair_uuid=m.wdo_pair_uuid)
 
         # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
         # use model confidence
@@ -161,7 +164,7 @@ def get_conf_thresholded_edges(
         i2Si1_dict[(m.i1, m.i2)] = i2Si1
 
         i2Ri1_dict[(m.i1, m.i2)] = i2Si1.rotation
-        i2Ui1_dict[(m.i1, m.i2)] = i2Si1.translation
+        i2ti1_dict[(m.i1, m.i2)] = i2Si1.translation
 
         R_error_deg = 0
         U_error_deg = 0
@@ -195,7 +198,7 @@ def get_conf_thresholded_edges(
     return (
         i2Si1_dict,
         i2Ri1_dict,
-        i2Ui1_dict,
+        i2ti1_dict,
         two_view_reports_dict,
         gt_edges,
         per_edge_wdo_dict,
@@ -731,7 +734,7 @@ def run_incremental_reconstruction(
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-        if not (building_id == "0605" and floor_id == "floor_01"):
+        if not (building_id == "0966" and floor_id == "floor_00"):
             continue
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
@@ -774,9 +777,10 @@ def run_incremental_reconstruction(
             i2Ui1_dict,
             two_view_reports_dict,
             gt_edges,
-            _,
+            per_edge_wdo_dict,
             high_conf_measurements,
             wdo_type_counter,
+
         ) = get_conf_thresholded_edges(
             measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id, gt_floor_pose_graph
         )
@@ -810,9 +814,17 @@ def run_incremental_reconstruction(
 
         # TODO: apply axis alignment pre-processing (or post-processing) before evaluation
 
+        # from read_prod_predictions import load_inferred_floor_pose_graphs
+        # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+        # floor_pose_graphs = load_inferred_floor_pose_graphs(
+        #     query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+        # )
+        # pano_dict_inferred = floor_pose_graphs[floor_id].nodes
+
+
         if method == "spanning_tree":
 
-            i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
+            i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
@@ -918,15 +930,20 @@ def run_incremental_reconstruction(
 
 
 def align_pairs_by_vanishing_angle(
-    i2Si1_dict: Dict[Tuple[int, int], Sim2], gt_floor_pose_graph: PoseGraph2d, visualize: bool = True
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
+    gt_floor_pose_graph: PoseGraph2d,
+    per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair],
+    visualize: bool = False
 ) -> Dict[Tuple[int, int], Sim2]:
     """ """
 
     for (i1, i2), i2Si1 in i2Si1_dict.items():
-        
 
-        if i2 == 8:
-            import pdb; pdb.set_trace()
+        edge_wdo_pair = per_edge_wdo_dict[(i1,i2)]
+        alignment_object = edge_wdo_pair.alignment_object
+        i1_wdo_idx = edge_wdo_pair.i1_wdo_idx
+        i1wdocenter_i1fr = getattr(gt_floor_pose_graph.nodes[i1], alignment_object + "s")[i1_wdo_idx].centroid
+        i1wdocenter_i2fr = i2Si1.transform_from(i1wdocenter_i1fr.reshape(1,2)).squeeze()
 
         vertsi1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
         vertsi2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
@@ -935,7 +952,7 @@ def align_pairs_by_vanishing_angle(
 
         if visualize:
             plt.subplot(1, 2, 1)
-            plt.title("Local body coordinates.")
+            plt.title("Coordinate in i2's frame.")
             draw_polygon(vertsi1_i2fr, color="r", linewidth=5)
             draw_polygon(vertsi2, color="g", linewidth=1)
             plt.axis("equal")
@@ -962,16 +979,20 @@ def align_pairs_by_vanishing_angle(
         # method = "rotate_about_origin_last"
         # method = "rotate_about_centroid_first"
         #method = "none"
-        method = "rotate_in_place_last_about_roomcenter"
-
+        #method = "rotate_in_place_last_about_roomcenter"
+        method = "rotate_about_wdo"
 
         if method == "rotate_about_wdo":
 
             vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
-                vertsi1_i2fr, rotmat=i2Ri1_dominant, center_pt=np.mean(vertsi1_i2fr, axis=0) # i2Si1.transform_from(np.zeros((1,2)))
+                vertsi1_i2fr, rotmat=i2Ri1_dominant, center_pt=i1wdocenter_i2fr
             )
-            i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
-            
+            # note: computing i2rSi2.compose(i2Si1) as:
+            # and then i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
+            #   DOES NOT WORK! 
+            i2rTi1 = compute_i2Ti1(pts1=vertsi1, pts2=vertsi1_i2fr_r)
+            i2rSi1 = Sim2(R=i2rTi1.rotation().matrix(), t=i2rTi1.translation(), s=1.0)
+            i2Si1_dict[(i1,i2)] = i2rSi1
 
         elif method == "rotate_in_place_last_about_roomcenter":
 
@@ -1113,9 +1134,8 @@ def test_align_pairs_by_vanishing_angle_noisy() -> None:
 
 def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
     """
-    pts1 and pts2 need to be in a common reference frame.
+    pts1 and pts2 need NOT be in a common reference frame.
     """
-    from gtsam import Point3, Point3Pairs, Similarity3
 
     # lift to 3d plane
     pt_pairs_i2i1 = []
@@ -1151,12 +1171,31 @@ def test_compute_i2Ti1() -> None:
         ])
     i2Ti1 = compute_i2Ti1(pts1=pts1_w, pts2=pts2_w)
 
-    #import pdb; pdb.set_trace()
     for i in range(3):
         expected_pt2_w = i2Ti1.transformFrom(pts1_w[i])
         print(expected_pt2_w)
         assert np.allclose(pts2_w[i], expected_pt2_w)
 
+
+
+def test_compute_i2Ti1_from_rotation_in_place() -> None:
+    """
+    Take upright line segment, rotate in place, and determine (R,t) to make it happen.
+    """
+    pts1_w = np.array(
+        [
+            [0,2],
+            [0,1],
+            [0,0]
+        ])
+    pts2_w = np.array(
+        [
+            [-0.5,2],
+            [0,1],
+            [0.5,0]
+        ])
+    i2Ti1 = compute_i2Ti1(pts1=pts1_w, pts2=pts2_w)
+    
 
 if __name__ == "__main__":
 
@@ -1202,8 +1241,9 @@ if __name__ == "__main__":
     # serialized_preds_json_dir = (
     #     "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12"
     # )
-    test_compute_i2Ti1()
-    #run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
+    #test_compute_i2Ti1()
+    #test_compute_i2Ti1_from_rotation_in_place()
+    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
 
     #test_align_pairs_by_vanishing_angle()
 
