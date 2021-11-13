@@ -4,6 +4,7 @@ Tools for aligning room predictions to dominant axes.
 """
 from typing import Optional, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 # This allows angles in the range [84.3, 95.7] to be considered close to 90 degrees.
@@ -21,7 +22,7 @@ def determine_rotation_angle(poly: np.ndarray) -> Tuple[Optional[float], Optiona
         poly: Room shape polygon as a numpy array.
 
     Returns:
-        angle: Dominant room shape rotation angle, in degrees. Returns None if no room
+        angle: Dominant room shape rotation angle, in degrees, in the range [-45,45]. Returns None if no room
             polygon edges were close to orthogonal.
         angle_fraction: The fraction of polygon angles used to determine the dominant angle.
             Returns None if no room polygon edges were close to orthogonal.
@@ -63,12 +64,77 @@ def determine_rotation_angle(poly: np.ndarray) -> Tuple[Optional[float], Optiona
     deviations = [ang % 90 for ang in angles]
     angle = np.median(deviations)
     if angle > 45:
-        angle = 90 - angle
+        angle = angle - 90
     else:
         angle = angle
     angle_fraction = len(angles) / len(poly)
 
     return angle, angle_fraction
+
+
+def test_determine_rotation_angle_manhattanroom1() -> None:
+    """ """
+    vertsi1_i2fr = np.array(
+        [
+            [-2.2514273 , -1.19972439],
+            [-2.28502837,  0.17584117],
+            [-2.50067059,  0.17057366],
+            [-2.52850206,  1.30994228],
+            [-1.89300909,  1.32546553],
+            [-1.89455772,  1.3888638 ],
+            [ 0.56135492,  1.4488546 ],
+            [ 0.56784876,  1.18300859],
+            [ 1.77462389,  1.2124866 ],
+            [ 1.83111122, -1.09999984]
+        ])
+
+    dominant_angle_deg, angle_frac = determine_rotation_angle(poly=vertsi1_i2fr)
+    # draw_polygon(vertsi1_i2fr, color="g", linewidth=1)
+    # plt.show()
+    # import pdb; pdb.set_trace()
+    expected_dominant_angle_deg = 1.399
+    expected_angle_frac = 1.0
+
+    assert np.isclose(dominant_angle_deg, expected_dominant_angle_deg, atol=1e-3)
+    assert np.isclose(angle_frac, expected_angle_frac, atol=1e-3)
+
+
+def test_determine_rotation_angle_manhattanroom2() -> None:
+    """ """
+    vertsi2 = np.array(
+        [
+            [-2.28579039, -1.17761538],
+            [-2.23140688,  0.19728535],
+            [-2.44694488,  0.20581085],
+            [-2.4018995 ,  1.3446288 ],
+            [-1.76671367,  1.31950434],
+            [-1.76420719,  1.38287197],
+            [ 0.69051847,  1.28577652],
+            [ 0.68000814,  1.02005899],
+            [ 1.88620002,  0.97234867],
+            [ 1.79477498, -1.33902011]
+        ])
+
+    dominant_angle_deg, angle_frac = determine_rotation_angle(poly=vertsi2)
+    # draw_polygon(vertsi2, color="g", linewidth=1)
+    # plt.show()
+    
+    #dominant_angle_deg2, angle_frac2 = (2.2651251515060835, 1.0)
+
+    expected_dominant_angle_deg = -2.265
+    expected_angle_frac = 1.0
+
+    assert np.isclose(dominant_angle_deg, expected_dominant_angle_deg, atol=1e-3)
+    assert np.isclose(angle_frac, expected_angle_frac, atol=1e-3)
+
+
+def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
+    """ """
+    verts = np.vstack([poly, poly[0]])  # allow connection between the last and first vertex
+
+    plt.plot(verts[:, 0], verts[:, 1], color=color, linewidth=linewidth)
+    plt.scatter(verts[:, 0], verts[:, 1], 10, color=color, marker=".")
+
 
 
 def test_determine_rotation_angle_square() -> None:
@@ -203,3 +269,11 @@ def test_compute_relative_angle_deg() -> None:
     angle_deg = compute_relative_angle_deg(v1, v2)
     # wrap around 1/4 turn clockwise
     assert np.isclose(angle_deg, 90.0)
+
+
+
+if __name__ == "__main__":
+    """ """
+    test_determine_rotation_angle_manhattanroom1()
+    test_determine_rotation_angle_manhattanroom2()
+
