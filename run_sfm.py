@@ -824,7 +824,7 @@ def run_incremental_reconstruction(
 
         if method == "spanning_tree":
 
-            i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
+            #i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
@@ -933,7 +933,7 @@ def align_pairs_by_vanishing_angle(
     i2Si1_dict: Dict[Tuple[int, int], Sim2],
     gt_floor_pose_graph: PoseGraph2d,
     per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair],
-    visualize: bool = False
+    visualize: bool = False,
 ) -> Dict[Tuple[int, int], Sim2]:
     """ """
 
@@ -955,12 +955,15 @@ def align_pairs_by_vanishing_angle(
             plt.title("Coordinate in i2's frame.")
             draw_polygon(vertsi1_i2fr, color="r", linewidth=5)
             draw_polygon(vertsi2, color="g", linewidth=1)
+
+            # mark the WDO center on the plot
+            plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 30, color='m', marker='+', zorder=3)
             plt.axis("equal")
 
         # this has to happen in a common reference frame! ( in i2's frame).
-
         dominant_angle_deg1, angle_frac1 = axis_alignment_utils.determine_rotation_angle(vertsi1_i2fr)
         dominant_angle_deg2, angle_frac2 = axis_alignment_utils.determine_rotation_angle(vertsi2)
+        # import pdb; pdb.set_trace()
 
         # Below: using the oracle.
         # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
@@ -970,8 +973,9 @@ def align_pairs_by_vanishing_angle(
         # i2Si1 = wSi2.inverse().compose(wSi1)
 
         # import pdb; pdb.set_trace()
-        print("Rotate by ", dominant_angle_deg2 - dominant_angle_deg1)
-        i2Ri1_dominant = rotation_utils.rotmat2d(theta_deg=dominant_angle_deg2 - dominant_angle_deg1)
+        i2_theta_i1 = dominant_angle_deg2 - dominant_angle_deg1
+        print(f"Rotate by {i2_theta_i1:.2f} deg.", )
+        i2Ri1_dominant = rotation_utils.rotmat2d(theta_deg=i2_theta_i1)
         i2Si1_dominant = Sim2(R=i2Ri1_dominant, t=np.zeros(2), s=1.0)
         # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
 
