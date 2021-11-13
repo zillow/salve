@@ -814,14 +814,6 @@ def run_incremental_reconstruction(
 
         # TODO: apply axis alignment pre-processing (or post-processing) before evaluation
 
-        # from read_prod_predictions import load_inferred_floor_pose_graphs
-        # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-        # floor_pose_graphs = load_inferred_floor_pose_graphs(
-        #     query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
-        # )
-        # pano_dict_inferred = floor_pose_graphs[floor_id].nodes
-
-
         if method == "spanning_tree":
 
             #i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
@@ -936,6 +928,14 @@ def align_pairs_by_vanishing_angle(
     visualize: bool = False,
 ) -> Dict[Tuple[int, int], Sim2]:
     """ """
+
+    from read_prod_predictions import load_inferred_floor_pose_graphs
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    floor_pose_graphs = load_inferred_floor_pose_graphs(
+        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
+    )
+    pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes
+    import pdb; pdb.set_trace()
 
     for (i1, i2), i2Si1 in i2Si1_dict.items():
 
