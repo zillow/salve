@@ -81,6 +81,20 @@ def greedily_construct_st_Sim2(
 ) -> Optional[List[np.ndarray]]:
     """Greedily assemble a spanning tree (not a minimum spanning tree).
 
+    Find the largest connected component, then sort the nodes in the largest CC by their pano ID.
+    Choose the smallest pano ID in that CC as the origin. Then, walk through the rest of the nodes
+    in the CC one at a time, and for each next node, find the shortest path to it through the graph.
+    Walk along each edge in that path, and chain the relative pose to the previous absolute (global) pose,
+    to get a new absolute (global) pose. Cache away this new global pose in a dictionary of Sim(2) objects.
+
+    Intuition: shortest path is a way to try to minimize drift. 
+
+    Note: The scale of the Sim(2) objects is set to 1, though, this is just an artifact of the old way I had implemented this.
+
+    TODOs:
+        - could use a MST.
+        - likely better to start at degree with highest degree to minimize drift the most.
+
     Args:
         i2Ri1_dict: relative rotations
 
