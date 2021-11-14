@@ -4,8 +4,13 @@ Tools for aligning room predictions to dominant axes.
 """
 from typing import Optional, Tuple
 
+import gtsfm.utils.ellipsoid as ellipsoid_utils
 import matplotlib.pyplot as plt
 import numpy as np
+import rdp
+
+import afp.utils.rotation_utils as rotation_utils
+
 
 # This allows angles in the range [84.3, 95.7] to be considered close to 90 degrees.
 MAX_RIGHT_ANGLE_DEVIATION = 0.1
@@ -271,9 +276,89 @@ def test_compute_relative_angle_deg() -> None:
     assert np.isclose(angle_deg, 90.0)
 
 
+def get_dominant_direction_from_point_cloud(point_cloud: np.ndarray) -> np.ndarray:
+    """
+    Args:
+        point_cloud:
+
+    Returns:
+        dominant_angle:
+    """
+    N = point_cloud.shape[0]
+    point_cloud_3d = np.zeros((N,3))
+    point_cloud_3d[:,:2] = point_cloud
+
+    wuprightRw = ellipsoid_utils.get_alignment_rotation_matrix_from_svd(point_cloud_3d)
+
+    # only consider the xy plane.
+    theta_deg = rotation_utils.rotmat2theta_deg(wuprightRw[:2,:2])
+    theta_deg = theta_deg % 90
+    if theta_deg > 45:
+        theta_deg = theta_deg - 90
+    else:
+        theta_deg = theta_deg
+
+    return theta_deg
+
+
+
+def test_get_dominant_direction_from_point_cloud() -> None:
+    """ """
+
+    pts = np.array(
+        [
+            [0,2],
+            [2,0],
+            [4,2],
+            [2,4]
+        ])
+    theta_deg = get_dominant_direction_from_point_cloud(point_cloud=pts)
+    import pdb; pdb.set_trace()
+
+    wuprightRw = rotation_utils.rotmat2d(theta_deg=theta_deg)
+    pts_upright = pts @ wuprightRw.T
+    draw_polygon(pts, color="g", linewidth=1)
+    draw_polygon(pts_upright, color="r", linewidth=1)
+    plt.show()
+    import pdb; pdb.set_trace()
+    assert np.isclose(theta_deg, 45.0)
+
+
+def test_get_dominant_direction_from_point_cloud_noisycontour() -> None:
+    """ """
+    pts = np.array(
+        [
+            [-1.53565851e-16, -1.25396034e+00],
+            [-1.26181436e-01, -1.27988242e+00],
+            [-4.11747648e-01, -1.27121274e+00],
+            [-4.82221888e-01, -1.12370988e+00],
+            [-6.82202389e-01, -1.03339383e+00],
+            [-7.58918883e-01, -9.00692972e-01],
+            [-8.17266696e-01, -5.16402841e-01],
+            [-7.30617455e-01,  6.33083629e-01],
+            [ 7.15242613e-01,  5.97047324e-01],
+            [ 7.43703725e-01,  5.61197177e-01],
+            [ 6.67396098e-01, -4.81455496e-01],
+            [ 5.00910746e-01, -6.65935793e-01],
+            [ 1.13918679e-01, -1.23301478e+00],
+            [ 1.51643861e-16, -1.23826609e+00]
+        ])
+
+    pts = rdp.rdp(pts, epsilon=0.1)
+    theta_deg = get_dominant_direction_from_point_cloud(point_cloud=pts)
+
+    wuprightRw = rotation_utils.rotmat2d(theta_deg=theta_deg)
+    pts_upright = pts @ wuprightRw.T
+    draw_polygon(pts, color="g", linewidth=1)
+    draw_polygon(pts_upright, color="r", linewidth=1)
+    plt.show()
+
 
 if __name__ == "__main__":
     """ """
-    test_determine_rotation_angle_manhattanroom1()
-    test_determine_rotation_angle_manhattanroom2()
+    # test_determine_rotation_angle_manhattanroom1()
+    # test_determine_rotation_angle_manhattanroom2()
+
+    #test_get_dominant_direction_from_point_cloud()
+    test_get_dominant_direction_from_point_cloud_noisycontour()
 
