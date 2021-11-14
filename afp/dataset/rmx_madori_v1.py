@@ -136,7 +136,7 @@ class PanoStructurePredictionRmxMadoriV1:
         plt.scatter(np.arange(1024), self.floor_boundary, 10, color="y", marker=".")
 
     def convert_to_pano_data(
-        self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d, img_fpath: str
+        self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d, img_fpath: str, vanishing_angle_deg: float
     ) -> PanoData:
         """Render the wall-floor boundary in a bird's eye view.
 
@@ -226,6 +226,7 @@ class PanoStructurePredictionRmxMadoriV1:
             doors=doors,
             windows=windows,
             openings=openings,
+            vanishing_angle_deg=vanishing_angle_deg
         )
         return pano_data
 
