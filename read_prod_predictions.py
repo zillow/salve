@@ -176,7 +176,8 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
                     continue
                 # 
                 pano_data = pred_obj.convert_to_pano_data(
-                    img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph, img_fpath=img_fpath
+                    img_h, img_w, pano_id=i, gt_pose_graph=gt_pose_graph, img_fpath=img_fpath,
+                    vanishing_angle_deg=floor_map_json['panos'][pano_guid]["vanishing_angle"]
                 )
                 floor_pose_graphs[floor_id].nodes[i] = pano_data
 
