@@ -741,8 +741,8 @@ def run_incremental_reconstruction(
         # if not (building_id == "0605" and floor_id == "floor_01"):
         #     continue
 
-        if not (building_id == "0353" and floor_id == "floor_02"):
-            continue
+        # if not (building_id == "0353" and floor_id == "floor_02"):
+        #     continue
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
@@ -937,10 +937,19 @@ def align_pairs_by_vanishing_angle(
     i2Si1_dict: Dict[Tuple[int, int], Sim2],
     gt_floor_pose_graph: PoseGraph2d,
     per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair],
-    visualize: bool = True
+    visualize: bool = False,
 ) -> Dict[Tuple[int, int], Sim2]:
-    """ """
+    """
 
+    Note: 
+    - rotating in place about the room center yields wrong results.
+    - the rotation must be about a specific point (not about the origin).
+
+    Args:
+        i2Si1_dict
+        gt_floor_pose_graph
+        per_edge_wdo_dict
+    """
     from read_prod_predictions import load_inferred_floor_pose_graphs
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     floor_pose_graphs = load_inferred_floor_pose_graphs(
@@ -976,8 +985,6 @@ def align_pairs_by_vanishing_angle(
             plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='.', zorder=3)
             plt.axis("equal")
 
-        #import pdb; pdb.set_trace()
-
         dominant_angle_method = "vp"
         if dominant_angle_method == "pca":
             dominant_angle_deg1 = axis_alignment_utils.get_dominant_direction_from_point_cloud(vertsi1_i2fr)
@@ -997,8 +1004,6 @@ def align_pairs_by_vanishing_angle(
             dominant_angle_deg1, angle_frac1 = axis_alignment_utils.determine_rotation_angle(vertsi1_i2fr)
             dominant_angle_deg2, angle_frac2 = axis_alignment_utils.determine_rotation_angle(vertsi2)
             i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
-            # import pdb; pdb.set_trace()
-
 
             # Below: using the oracle.
             # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
@@ -1010,8 +1015,10 @@ def align_pairs_by_vanishing_angle(
         MAX_ALLOWED_CORRECTION_DEG = 15.0
         if np.absolute(i2r_theta_i2) > MAX_ALLOWED_CORRECTION_DEG:
             print(f"Skipping for too large of a correction -> {i2r_theta_i2:.1f} deg.")
-            plt.show()
-            plt.close("all")
+            
+            if visualize:
+                plt.show()
+                plt.close("all")
             continue
 
         print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
@@ -1037,39 +1044,6 @@ def align_pairs_by_vanishing_angle(
             i2rTi1 = compute_i2Ti1(pts1=vertsi1, pts2=vertsi1_i2fr_r)
             i2rSi1 = Sim2(R=i2rTi1.rotation().matrix(), t=i2rTi1.translation(), s=1.0)
             i2Si1_dict[(i1,i2)] = i2rSi1
-
-        elif method == "rotate_in_place_last_about_roomcenter":
-
-            vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
-                vertsi1_i2fr, rotmat=i2Ri1_dominant, center_pt=np.mean(vertsi1_i2fr, axis=0) # i2Si1.transform_from(np.zeros((1,2)))
-            )
-            #import pdb; pdb.set_trace()
-
-        # i1a and i2a represent the aligned frames.
-        elif method == "rotate_about_origin_first":
-            # apply rotation first (delta pose)
-            i1Si1a = i2Si1_dominant
-            i2Si1a = i2Si1.compose(i1Si1a)
-            verts_i1_ = i2Si1a.transform_from(verts_i1)
-
-        elif method == "rotate_about_origin_last":
-            # apply rotation second (much worse)
-            i2aSi2 = i2Si1_dominant
-            i2aSi1 = i2aSi2.compose(i2Si1)
-            verts_i1_ = i2aSi1.transform_from(verts_i1)
-
-        elif method == "rotate_about_centroid_first":
-
-            import pdb; pdb.set_trace()
-            verts_i1_ = geometry_utils.rotate_polygon_about_pt(
-                np.copy(verts_i1), rotmat=i2Ri1_dominant, center_pt=np.mean(verts_i1, axis=0)
-            )
-            verts_i1_ = i2Si1.transform_from(verts_i1_)
-            # TODO: compute new translation that will accomplish this via Pose2.align()
-
-        elif method == "none":
-            # TODO: wrong, since layouts need to be expressed in the body frame.
-            verts_i1_ = i2Si1.transform_from(verts_i1)
 
         if visualize:
             plt.subplot(1, 2, 2)
