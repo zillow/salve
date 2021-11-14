@@ -179,7 +179,11 @@ def test_get_wd_normal_2d() -> None:
 
 @dataclass(frozen=False)
 class PanoData:
-    """Container for ground truth relevant to a single panorama."""
+    """Container for ground truth relevant to a single panorama.
+
+    Args:
+        vanishing_angle_deg: defined as ...
+    """
 
     id: int
     global_Sim2_local: Sim2
@@ -189,7 +193,8 @@ class PanoData:
     doors: Optional[List[WDO]] = None
     windows: Optional[List[WDO]] = None
     openings: Optional[List[WDO]] = None
-
+    vanishing_angle_deg: Optional[float] = None
+    
     @property
     def room_vertices_global_2d(self):
         """ """
