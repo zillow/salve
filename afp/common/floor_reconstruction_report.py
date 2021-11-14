@@ -6,6 +6,7 @@ import os
 from dataclasses import dataclass
 from typing import List, Optional
 
+import argoverse.utils.json_utils as json_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
@@ -87,6 +88,8 @@ class FloorReconstructionReport:
         mean_abs_trans_err_m = worldmetric_s_worldnormalized * mean_abs_trans_err
         print(f"Mean rotation error: {mean_abs_rot_err:.2f}, Mean translation error: {mean_abs_trans_err_m:.2f}")
 
+        serialize_predicted_pose_graph(aligned_est_floor_pose_graph, gt_floor_pose_graph, plot_save_dir)
+
         render_floorplans_side_by_side(
             est_floor_pose_graph=aligned_est_floor_pose_graph,
             show_plot=False,
@@ -113,6 +116,32 @@ class FloorReconstructionReport:
             rotation_errors=rot_errors,
             translation_errors=trans_errors
         )
+
+
+def serialize_predicted_pose_graph(
+    aligned_est_floor_pose_graph: PoseGraph2d, gt_floor_pose_graph: PoseGraph2d, plot_save_dir: str
+) -> None:
+    """ """
+    building_id = gt_floor_pose_graph.building_id
+    floor_id = gt_floor_pose_graph.floor_id
+    global_poses_info = {}
+
+    for i, pano_data in aligned_est_floor_pose_graph.nodes.items():
+        global_poses_info[i] = {
+            "R": pano_data.global_Sim2_local.rotation.tolist(),
+            "t": pano_data.global_Sim2_local.translation.tolist(),
+            "s": pano_data.global_Sim2_local.scale,
+        }
+
+    save_dict = {
+        "building_id": building_id,
+        "floor_id": floor_id,
+        "scale_meters_per_coordinate": gt_floor_pose_graph.scale_meters_per_coordinate,
+        "wSi_dict": global_poses_info
+    }
+    json_save_fpath = f"{plot_save_dir}_serialized/{building_id}__{floor_id}.json"
+    os.makedirs(f"{plot_save_dir}_serialized", exist_ok=True)
+    json_utils.save_json_dict(json_save_fpath, save_dict)
 
 
 def render_floorplans_side_by_side(
