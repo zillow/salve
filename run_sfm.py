@@ -709,16 +709,17 @@ def run_incremental_reconstruction(
     # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
     # method = "pose2_slam"
-    # method = "pgo"
+    #method = "pgo"
 
     # TODO: add axis alignment.
 
+    use_axis_alignment = True
     confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
     allowed_wdo_types =  ["door", "window", "opening"] # ["door"] # ["opening"] # ["window"] # 
 
     allowed_wdo_types_summary = "_".join(allowed_wdo_types)
     plot_save_dir = (
-        f"{Path(serialized_preds_json_dir).name}___2021_11_03_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}"
+        f"{Path(serialized_preds_json_dir).name}___2021_11_03_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
     )
     os.makedirs(plot_save_dir, exist_ok=True)
 
@@ -734,7 +735,13 @@ def run_incremental_reconstruction(
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-        if not (building_id == "0966" and floor_id == "floor_00"):
+        # if not (building_id == "0966" and floor_id == "floor_00"):
+        #     continue
+
+        # if not (building_id == "0605" and floor_id == "floor_01"):
+        #     continue
+
+        if not (building_id == "0353" and floor_id == "floor_02"):
             continue
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
@@ -816,7 +823,8 @@ def run_incremental_reconstruction(
 
         if method == "spanning_tree":
 
-            #i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
+            if use_axis_alignment:
+                i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
@@ -824,7 +832,10 @@ def run_incremental_reconstruction(
 
         elif method in ["pose2_slam", "pgo"]:
             # graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
-            import pdb; pdb.set_trace()
+
+            if use_axis_alignment:
+                i2Si1_dict = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
+
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = pose2_slam.execute_planar_slam(
                 measurements=high_conf_measurements,
@@ -919,13 +930,14 @@ def run_incremental_reconstruction(
     print(f"\tmethod={method}")
     print(f"\tfrom serializations {Path(serialized_preds_json_dir).name}")
     print(f"\tUsing object types", allowed_wdo_types)
+    print(f"\tUsed axis alignment: {use_axis_alignment}")
 
 
 def align_pairs_by_vanishing_angle(
     i2Si1_dict: Dict[Tuple[int, int], Sim2],
     gt_floor_pose_graph: PoseGraph2d,
     per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair],
-    visualize: bool = False,
+    visualize: bool = True
 ) -> Dict[Tuple[int, int], Sim2]:
     """ """
 
@@ -935,18 +947,21 @@ def align_pairs_by_vanishing_angle(
         query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
     )
     pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
     for (i1, i2), i2Si1 in i2Si1_dict.items():
 
         edge_wdo_pair = per_edge_wdo_dict[(i1,i2)]
         alignment_object = edge_wdo_pair.alignment_object
         i1_wdo_idx = edge_wdo_pair.i1_wdo_idx
-        i1wdocenter_i1fr = getattr(gt_floor_pose_graph.nodes[i1], alignment_object + "s")[i1_wdo_idx].centroid
+        i1wdocenter_i1fr = getattr(pano_dict_inferred[i1], alignment_object + "s")[i1_wdo_idx].centroid
+        #i1wdocenter_i1fr = getattr(gt_floor_pose_graph.nodes[i1], alignment_object + "s")[i1_wdo_idx].centroid
         i1wdocenter_i2fr = i2Si1.transform_from(i1wdocenter_i1fr.reshape(1,2)).squeeze()
 
-        vertsi1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
-        vertsi2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+        # vertsi1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
+        # vertsi2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+        vertsi1 = pano_dict_inferred[i1].room_vertices_local_2d
+        vertsi2 = pano_dict_inferred[i2].room_vertices_local_2d
 
         vertsi1_i2fr = i2Si1.transform_from(vertsi1)
 
@@ -957,26 +972,51 @@ def align_pairs_by_vanishing_angle(
             draw_polygon(vertsi2, color="g", linewidth=1)
 
             # mark the WDO center on the plot
-            plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 30, color='m', marker='+', zorder=3)
+            plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='+', zorder=3)
+            plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='.', zorder=3)
             plt.axis("equal")
 
-        # this has to happen in a common reference frame! ( in i2's frame).
-        dominant_angle_deg1, angle_frac1 = axis_alignment_utils.determine_rotation_angle(vertsi1_i2fr)
-        dominant_angle_deg2, angle_frac2 = axis_alignment_utils.determine_rotation_angle(vertsi2)
-        # import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
 
-        # Below: using the oracle.
-        # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
-        # wSi2 = gt_floor_pose_graph.nodes[i2].global_Sim2_local
-        # wSi1 = i2Si1_dict[i1]
-        # wSi2 = i2Si1_dict[i2]
-        # i2Si1 = wSi2.inverse().compose(wSi1)
+        dominant_angle_method = "vp"
+        if dominant_angle_method == "pca":
+            dominant_angle_deg1 = axis_alignment_utils.get_dominant_direction_from_point_cloud(vertsi1_i2fr)
+            dominant_angle_deg2 = axis_alignment_utils.get_dominant_direction_from_point_cloud(vertsi2)
+            i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
 
-        # import pdb; pdb.set_trace()
-        i2_theta_i1 = dominant_angle_deg2 - dominant_angle_deg1
-        print(f"Rotate by {i2_theta_i1:.2f} deg.", )
-        i2Ri1_dominant = rotation_utils.rotmat2d(theta_deg=i2_theta_i1)
-        i2Si1_dominant = Sim2(R=i2Ri1_dominant, t=np.zeros(2), s=1.0)
+        elif dominant_angle_method == "vp":
+            vp_i1 = pano_dict_inferred[i1].vanishing_angle_deg
+            vp_i2 = pano_dict_inferred[i2].vanishing_angle_deg
+
+            i2r_theta_i2 = compute_vp_correction(i2Si1=i2Si1, vp_i1=vp_i1, vp_i2=vp_i2)
+
+            plt.title(f"i1, i2 = ({i1},{i2}) -> vps ({vp_i1:.1f}, {vp_i2:.1f})")
+
+        elif dominant_angle_method == "polygon_edge_angles":
+            # this has to happen in a common reference frame! ( in i2's frame).
+            dominant_angle_deg1, angle_frac1 = axis_alignment_utils.determine_rotation_angle(vertsi1_i2fr)
+            dominant_angle_deg2, angle_frac2 = axis_alignment_utils.determine_rotation_angle(vertsi2)
+            i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
+            # import pdb; pdb.set_trace()
+
+
+            # Below: using the oracle.
+            # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
+            # wSi2 = gt_floor_pose_graph.nodes[i2].global_Sim2_local
+            # wSi1 = i2Si1_dict[i1]
+            # wSi2 = i2Si1_dict[i2]
+            # i2Si1 = wSi2.inverse().compose(wSi1)
+
+        MAX_ALLOWED_CORRECTION_DEG = 15.0
+        if np.absolute(i2r_theta_i2) > MAX_ALLOWED_CORRECTION_DEG:
+            print(f"Skipping for too large of a correction -> {i2r_theta_i2:.1f} deg.")
+            plt.show()
+            plt.close("all")
+            continue
+
+        print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
+        i2r_R_i2 = rotation_utils.rotmat2d(theta_deg=i2r_theta_i2)
+        i2r_S_i2 = Sim2(R=i2r_R_i2, t=np.zeros(2), s=1.0)
         # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
 
         # method = "rotate_about_origin_first"
@@ -989,7 +1029,7 @@ def align_pairs_by_vanishing_angle(
         if method == "rotate_about_wdo":
 
             vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
-                vertsi1_i2fr, rotmat=i2Ri1_dominant, center_pt=i1wdocenter_i2fr
+                vertsi1_i2fr, rotmat=i2r_R_i2, center_pt=i1wdocenter_i2fr
             )
             # note: computing i2rSi2.compose(i2Si1) as:
             # and then i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
@@ -1041,6 +1081,34 @@ def align_pairs_by_vanishing_angle(
             plt.close("all")
 
     return i2Si1_dict
+
+
+def compute_vp_correction(i2Si1: Sim2, vp_i1: float, vp_i2: float) -> float:
+    """
+
+    Args:
+        i2Si1: pose of camera i1 in i2's frame.
+        vp_i1: vanishing angle of i1
+        vp_i2: vanishing angle of i2
+
+    Returns:
+        i2r_theta_i2: correction to relative pose
+    """
+    i2_theta_i1 = rotation_utils.rotmat2theta_deg(i2Si1.rotation)
+    i2r_theta_i2 = -((vp_i2 - vp_i1) + i2_theta_i1)
+    i2r_theta_i2 = i2r_theta_i2 % 90
+
+    if i2r_theta_i2 > 45:
+        i2r_theta_i2 = i2r_theta_i2 - 90
+
+    return i2r_theta_i2
+
+
+def test_compute_vp_correction() -> None:
+    """ """
+    pass
+    # TODO: write this unit test.
+
 
 
 def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
@@ -1201,6 +1269,9 @@ def test_compute_i2Ti1_from_rotation_in_place() -> None:
     i2Ti1 = compute_i2Ti1(pts1=pts1_w, pts2=pts2_w)
     
 
+
+
+
 if __name__ == "__main__":
 
     # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
@@ -1248,6 +1319,8 @@ if __name__ == "__main__":
     #test_compute_i2Ti1()
     #test_compute_i2Ti1_from_rotation_in_place()
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
+
+    #test_get_dominant_direction_from_point_cloud()
 
     #test_align_pairs_by_vanishing_angle()
 
