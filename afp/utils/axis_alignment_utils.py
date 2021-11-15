@@ -1,19 +1,29 @@
 
 """
 Tools for aligning room predictions to dominant axes.
-"""
-from typing import Optional, Tuple
 
+Can use vanishing points, PCA or polgon edge angles.
+"""
+
+from types import SimpleNamespace
+from typing import Any, Dict, List, Optional, Tuple
+
+import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.ellipsoid as ellipsoid_utils
 import matplotlib.pyplot as plt
 import numpy as np
 import rdp
+from argoverse.utils.sim2 import Sim2
+from gtsam import Rot2, Point3, Point3Pairs, Pose2, Similarity3
 
 import afp.utils.rotation_utils as rotation_utils
+from afp.common.edgewdopair import EdgeWDOPair
+from afp.common.posegraph2d import PoseGraph2d
 
 
 # This allows angles in the range [84.3, 95.7] to be considered close to 90 degrees.
 MAX_RIGHT_ANGLE_DEVIATION = 0.1
+MAX_ALLOWED_CORRECTION_DEG = 15.0
 
 
 def determine_rotation_angle(poly: np.ndarray) -> Tuple[Optional[float], Optional[float]]:
@@ -132,13 +142,6 @@ def test_determine_rotation_angle_manhattanroom2() -> None:
     assert np.isclose(dominant_angle_deg, expected_dominant_angle_deg, atol=1e-3)
     assert np.isclose(angle_frac, expected_angle_frac, atol=1e-3)
 
-
-def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
-    """ """
-    verts = np.vstack([poly, poly[0]])  # allow connection between the last and first vertex
-
-    plt.plot(verts[:, 0], verts[:, 1], color=color, linewidth=linewidth)
-    plt.scatter(verts[:, 0], verts[:, 1], 10, color=color, marker=".")
 
 
 
@@ -352,6 +355,316 @@ def test_get_dominant_direction_from_point_cloud_noisycontour() -> None:
     draw_polygon(pts, color="g", linewidth=1)
     draw_polygon(pts_upright, color="r", linewidth=1)
     plt.show()
+
+
+def align_pairs_by_vanishing_angle(
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
+    gt_floor_pose_graph: PoseGraph2d,
+    per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair],
+    visualize: bool = False,
+) -> Dict[Tuple[int, int], Sim2]:
+    """
+
+    Note: 
+    - rotating in place about the room center yields wrong results.
+    - the rotation must be about a specific point (not about the origin).
+
+    Args:
+        i2Si1_dict
+        gt_floor_pose_graph
+        per_edge_wdo_dict
+    """
+    from read_prod_predictions import load_inferred_floor_pose_graphs
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    floor_pose_graphs = load_inferred_floor_pose_graphs(
+        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
+    )
+    pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes
+    # import pdb; pdb.set_trace()
+
+    for (i1, i2), i2Si1 in i2Si1_dict.items():
+
+        edge_wdo_pair = per_edge_wdo_dict[(i1,i2)]
+        alignment_object = edge_wdo_pair.alignment_object
+        i1_wdo_idx = edge_wdo_pair.i1_wdo_idx
+        i1wdocenter_i1fr = getattr(pano_dict_inferred[i1], alignment_object + "s")[i1_wdo_idx].centroid
+        #i1wdocenter_i1fr = getattr(gt_floor_pose_graph.nodes[i1], alignment_object + "s")[i1_wdo_idx].centroid
+        i1wdocenter_i2fr = i2Si1.transform_from(i1wdocenter_i1fr.reshape(1,2)).squeeze()
+
+        # vertsi1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
+        # vertsi2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+        vertsi1 = pano_dict_inferred[i1].room_vertices_local_2d
+        vertsi2 = pano_dict_inferred[i2].room_vertices_local_2d
+
+        vertsi1_i2fr = i2Si1.transform_from(vertsi1)
+
+        if visualize:
+            plt.subplot(1, 2, 1)
+            plt.title("Coordinate in i2's frame.")
+            draw_polygon(vertsi1_i2fr, color="r", linewidth=5)
+            draw_polygon(vertsi2, color="g", linewidth=1)
+
+            # mark the WDO center on the plot
+            plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='+', zorder=3)
+            plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='.', zorder=3)
+            plt.axis("equal")
+
+        dominant_angle_method = "vp"
+        if dominant_angle_method == "pca":
+            dominant_angle_deg1 = get_dominant_direction_from_point_cloud(vertsi1_i2fr)
+            dominant_angle_deg2 = get_dominant_direction_from_point_cloud(vertsi2)
+            i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
+
+        elif dominant_angle_method == "vp":
+            vp_i1 = pano_dict_inferred[i1].vanishing_angle_deg
+            vp_i2 = pano_dict_inferred[i2].vanishing_angle_deg
+
+            i2r_theta_i2 = compute_vp_correction(i2Si1=i2Si1, vp_i1=vp_i1, vp_i2=vp_i2)
+
+            plt.title(f"i1, i2 = ({i1},{i2}) -> vps ({vp_i1:.1f}, {vp_i2:.1f})")
+
+        elif dominant_angle_method == "polygon_edge_angles":
+            # this has to happen in a common reference frame! ( in i2's frame).
+            dominant_angle_deg1, angle_frac1 = determine_rotation_angle(vertsi1_i2fr)
+            dominant_angle_deg2, angle_frac2 = determine_rotation_angle(vertsi2)
+            i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
+
+            # Below: using the oracle.
+            # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
+            # wSi2 = gt_floor_pose_graph.nodes[i2].global_Sim2_local
+            # wSi1 = i2Si1_dict[i1]
+            # wSi2 = i2Si1_dict[i2]
+            # i2Si1 = wSi2.inverse().compose(wSi1)
+
+        if np.absolute(i2r_theta_i2) > MAX_ALLOWED_CORRECTION_DEG:
+            print(f"Skipping for too large of a correction -> {i2r_theta_i2:.1f} deg.")
+            
+            if visualize:
+                plt.show()
+                plt.close("all")
+            continue
+
+        print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
+        i2r_R_i2 = rotation_utils.rotmat2d(theta_deg=i2r_theta_i2)
+        i2r_S_i2 = Sim2(R=i2r_R_i2, t=np.zeros(2), s=1.0)
+        # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
+
+        # method = "rotate_about_origin_first"
+        # method = "rotate_about_origin_last"
+        # method = "rotate_about_centroid_first"
+        #method = "none"
+        #method = "rotate_in_place_last_about_roomcenter"
+        method = "rotate_about_wdo"
+
+        if method == "rotate_about_wdo":
+
+            vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
+                vertsi1_i2fr, rotmat=i2r_R_i2, center_pt=i1wdocenter_i2fr
+            )
+            # note: computing i2rSi2.compose(i2Si1) as:
+            # and then i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
+            #   DOES NOT WORK! 
+            i2rTi1 = compute_i2Ti1(pts1=vertsi1, pts2=vertsi1_i2fr_r)
+            i2rSi1 = Sim2(R=i2rTi1.rotation().matrix(), t=i2rTi1.translation(), s=1.0)
+            i2Si1_dict[(i1,i2)] = i2rSi1
+
+        if visualize:
+            plt.subplot(1, 2, 2)
+            plt.title(f"{i1} {i2}")
+            draw_polygon(vertsi1_i2fr_r, color="r", linewidth=5)
+            draw_polygon(vertsi2, color="g", linewidth=1)
+            plt.axis("equal")
+            plt.show()
+            plt.close("all")
+
+    return i2Si1_dict
+
+
+def compute_vp_correction(i2Si1: Sim2, vp_i1: float, vp_i2: float) -> float:
+    """
+
+    Args:
+        i2Si1: pose of camera i1 in i2's frame.
+        vp_i1: vanishing angle of i1
+        vp_i2: vanishing angle of i2
+
+    Returns:
+        i2r_theta_i2: correction to relative pose
+    """
+    i2_theta_i1 = rotation_utils.rotmat2theta_deg(i2Si1.rotation)
+    i2r_theta_i2 = -((vp_i2 - vp_i1) + i2_theta_i1)
+    i2r_theta_i2 = i2r_theta_i2 % 90
+
+    if i2r_theta_i2 > 45:
+        i2r_theta_i2 = i2r_theta_i2 - 90
+
+    return i2r_theta_i2
+
+
+def test_compute_vp_correction() -> None:
+    """ """
+    pass
+    # TODO: write this unit test.
+
+
+
+def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
+    """ """
+    verts = np.vstack([poly, poly[0]])  # allow connection between the last and first vertex
+
+    plt.plot(verts[:, 0], verts[:, 1], color=color, linewidth=linewidth)
+    plt.scatter(verts[:, 0], verts[:, 1], 10, color=color, marker=".")
+
+
+def test_align_pairs_by_vanishing_angle() -> None:
+    """Ensure we can use vanishing angles to make small corrections to rotations, with perfect layouts (no noise)."""
+
+    # cameras are at the center of each room. doorway is at (0,1.5)
+    wTi1 = Pose2(Rot2(), np.array([1.5, 1.5]))
+    wTi2 = Pose2(Rot2(), np.array([-1.5, 1.5]))
+
+    i2Ri1 = wTi2.between(wTi1).rotation().matrix()  # 2x2 identity matrix.
+    i2ti1 = wTi2.between(wTi1).translation()
+
+    i2Ri1_noisy = rotation_utils.rotmat2d(theta_deg=30)
+
+    # simulate noisy rotation, but correct translation
+    i2Si1_dict = {(1, 2): Sim2(R=i2Ri1, t=i2ti1, s=1.0)}
+
+    # We cannot specify these layouts in the world coordinate frame. They must be in the local body frame.
+    # fmt: off
+    # Note: this is provided in i1's frame.
+    layout1_w = np.array(
+        [
+            [0,0],
+            [3,0],
+            [3,3],
+            [0,3]
+        ]
+    ).astype(np.float32)
+    # TODO: figure out how to undo the effect on the translation, as well!
+
+    #(align at WDO only! and then recompute!)
+    # Note: this is provided in i2's frame.
+    #layout2 = (layout1 - np.array([3,0])) @ i2Ri1_noisy.T
+    # layout2 = (layout1 @ i2Ri1_noisy.T) - np.array([3,0])
+    layout2_w = geometry_utils.rotate_polygon_about_pt(layout1_w - np.array([3.,0]), rotmat=i2Ri1_noisy, center_pt=np.array([-1.5,1.5]))
+    # fmt: on
+
+    draw_polygon(layout1_w, color="r", linewidth=5)
+    draw_polygon(layout2_w, color="g", linewidth=1)
+    plt.axis("equal")
+    plt.show()
+
+    def transform_point_cloud(pts_w: np.ndarray, iTw: Pose2) -> np.ndarray:
+        """Transfer from world frame to camera i's frame."""
+        return np.vstack([iTw.transformFrom(pt_w) for pt_w in pts_w])
+
+    layout1_i1 = transform_point_cloud(layout1_w, iTw=wTi1.inverse())
+    layout2_i2 = transform_point_cloud(layout2_w, iTw=wTi2.inverse())
+
+    pano_data_1 = SimpleNamespace(**{"room_vertices_local_2d": layout1_i1})
+    pano_data_2 = SimpleNamespace(**{"room_vertices_local_2d": layout2_i2})
+
+    # use square and rotated square
+    gt_floor_pose_graph = SimpleNamespace(**{"nodes": {1: pano_data_1, 2: pano_data_2}})
+
+    import pdb
+
+    pdb.set_trace()
+    # ensure delta pose is accounted for properly.
+    i2Si1_dict_aligned = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
+
+
+def test_align_pairs_by_vanishing_angle_noisy() -> None:
+    """Ensure delta pose is accounted for properly, with dominant rotation directions computed from noisy layouts.
+
+    Using noisy contours, using Douglas-Peucker to capture the rough manhattanization.
+
+    """
+    assert False
+    i2Ri1 = None
+    i2ti1 = None
+
+    # simulate noisy rotation, but correct translation
+    i2Si1_dict = {(0, 1): Sim2(R=i2Ri1, t=i2ti1, s=1.0)}
+
+    layout0 = np.array([[]])
+    layout1 = np.array([[]])
+
+    pano_data_0 = SimpleNamespace(**{"room_vertices_local_2d": layout0})
+    pano_data_1 = SimpleNamespace(**{"room_vertices_local_2d": layout1})
+
+    # use square and rotated square
+    gt_floor_pose_graph = SimpleNamespace(**{"nodes": {0: pano_data_0, 1: pano_data_1}})
+
+    i2Si1_dict_aligned = align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph)
+
+
+def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
+    """
+    pts1 and pts2 need NOT be in a common reference frame.
+    """
+
+    # lift to 3d plane
+    pt_pairs_i2i1 = []
+    for pt1, pt2 in zip(pts1, pts2):
+        pt1_3d = np.array([pt1[0], pt1[1], 0])
+        pt2_3d = np.array([pt2[0], pt2[1], 0])
+        pt_pairs_i2i1 += [(Point3(pt2_3d), Point3(pt1_3d))]
+
+    pt_pairs_i2i1 = Point3Pairs(pt_pairs_i2i1)
+    i2Si1 = Similarity3.Align(abPointPairs=pt_pairs_i2i1)
+
+    # project back to 2d
+    i2Ri1 = i2Si1.rotation().matrix()[:2, :2]
+    theta_deg = rotation_utils.rotmat2theta_deg(i2Ri1)
+    i2Ti1 = Pose2(Rot2.fromDegrees(theta_deg), i2Si1.translation()[:2])
+    return i2Ti1
+
+
+def test_compute_i2Ti1() -> None:
+    """ """
+
+    pts1_w = np.array(
+        [
+            [2,1],
+            [1,1],
+            [1,2]
+        ])
+    pts2_w = np.array(
+        [
+            [-1,1],
+            [0,1],
+            [0,0]
+        ])
+    i2Ti1 = compute_i2Ti1(pts1=pts1_w, pts2=pts2_w)
+
+    for i in range(3):
+        expected_pt2_w = i2Ti1.transformFrom(pts1_w[i])
+        print(expected_pt2_w)
+        assert np.allclose(pts2_w[i], expected_pt2_w)
+
+
+
+def test_compute_i2Ti1_from_rotation_in_place() -> None:
+    """
+    Take upright line segment, rotate in place, and determine (R,t) to make it happen.
+    """
+    pts1_w = np.array(
+        [
+            [0,2],
+            [0,1],
+            [0,0]
+        ])
+    pts2_w = np.array(
+        [
+            [-0.5,2],
+            [0,1],
+            [0.5,0]
+        ])
+    i2Ti1 = compute_i2Ti1(pts1=pts1_w, pts2=pts2_w)
+    
 
 
 if __name__ == "__main__":
