@@ -16,6 +16,7 @@ import rdp
 from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point3, Point3Pairs, Pose2, Similarity3
 
+import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.rotation_utils as rotation_utils
 from afp.common.edgewdopair import EdgeWDOPair
 from afp.common.posegraph2d import PoseGraph2d
@@ -370,13 +371,13 @@ def align_pairs_by_vanishing_angle(
     - the rotation must be about a specific point (not about the origin).
 
     Args:
-        i2Si1_dict
-        gt_floor_pose_graph
-        per_edge_wdo_dict
+        i2Si1_dict:
+        gt_floor_pose_graph:
+        per_edge_wdo_dict:
+        visualize:
     """
-    from read_prod_predictions import load_inferred_floor_pose_graphs
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    floor_pose_graphs = load_inferred_floor_pose_graphs(
+    floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
         query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
     )
     pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes

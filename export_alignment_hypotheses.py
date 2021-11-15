@@ -26,6 +26,7 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from shapely.geometry import LineString
 
+import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.logger_utils as logger_utils
 import afp.utils.overlap_utils as overlap_utils
 import afp.utils.rotation_utils as rotation_utils
@@ -806,9 +807,7 @@ def export_single_building_wdo_alignment_hypotheses(
 
     use_inferred_wdos_layout = True
     if use_inferred_wdos_layout:
-        from read_prod_predictions import load_inferred_floor_pose_graphs
-
-        floor_pose_graphs = load_inferred_floor_pose_graphs(
+        floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
             query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
         )
         if floor_pose_graphs is None:

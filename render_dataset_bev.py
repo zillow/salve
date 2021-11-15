@@ -16,6 +16,7 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 
 import afp.common.posegraph2d as posegraph2d
+import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.bev_rendering_utils as bev_rendering_utils
 import afp.utils.csv_utils as csv_utils
 import afp.utils.hohonet_inference as hohonet_inference_utils
@@ -137,9 +138,7 @@ def render_building_floor_pairs(
         # load the layouts, either inferred or GT.
         use_inferred_wdos_layout = True
         if use_inferred_wdos_layout:
-            from read_prod_predictions import load_inferred_floor_pose_graphs
-
-            floor_pose_graphs = load_inferred_floor_pose_graphs(
+            floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
                 query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
             )
             if floor_pose_graphs is None:

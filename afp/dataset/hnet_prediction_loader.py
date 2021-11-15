@@ -27,7 +27,7 @@ from afp.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
 from afp.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
 
-REPO_ROOT = Path(__file__).resolve().parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 MODEL_NAMES = [
     "rmx-madori-v1_predictions",  # Ethan’s new shape DWO joint model

@@ -22,8 +22,10 @@ from gtsam.symbol_shorthand import X, L
 
 import afp.algorithms.data_association as data_association
 import afp.common.edge_classification as edge_classification
+import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 from afp.common.edge_classification import EdgeClassification
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
+
 
 
 # Create noise models
@@ -278,11 +280,8 @@ def execute_planar_slam(
 
     if not optimize_poses_only:
         # load up the 3d point locations for each WDO.
-        from read_prod_predictions import load_inferred_floor_pose_graphs
-
         raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-
-        floor_pose_graphs = load_inferred_floor_pose_graphs(
+        floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
             query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
         )
         pano_dict_inferred = floor_pose_graphs[floor_id].nodes
