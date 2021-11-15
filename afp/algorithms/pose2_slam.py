@@ -23,9 +23,10 @@ from gtsam.symbol_shorthand import X, L
 import afp.algorithms.data_association as data_association
 import afp.common.edge_classification as edge_classification
 import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
+import afp.utils.axis_alignment_utils as axis_alignment_utils
 from afp.common.edge_classification import EdgeClassification
+from afp.common.edgewdopair import EdgeWDOPair
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
-
 
 
 # Create noise models
@@ -237,6 +238,8 @@ def execute_planar_slam(
     floor_id: str,
     wSi_list: List[Sim2],
     plot_save_dir: str,
+    use_axis_alignment: bool,
+    per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair],
     optimize_poses_only: bool = False,
     verbose: bool = True,
 ) -> None:
@@ -256,6 +259,13 @@ def execute_planar_slam(
     Returns:
         report
     """
+    if (not optimize_poses_only) or use_axis_alignment:
+        raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+        floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
+            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+        )
+        pano_dict_inferred = floor_pose_graphs[floor_id].nodes
+
     wTi_list_init = [
         Pose2(Rot2.fromDegrees(wSi.theta_deg), wSi.translation) if wSi is not None else None for wSi in wSi_list
     ]
@@ -266,6 +276,14 @@ def execute_planar_slam(
         i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(
             m, hypotheses_save_root, building_id, floor_id
         )
+
+        if use_axis_alignment:
+            edge_wdo_pair = per_edge_wdo_dict[(m.i1, m.i2)]
+            i2rSi1 = axis_alignment_utils.align_pair_measurement_by_vanishing_angle(i1=m.i1, i2=m.i2, i2Si1=i2Si1, edge_wdo_pair=edge_wdo_pair, pano_dict_inferred=pano_dict_inferred, visualize=False)
+            if i2rSi1 is not None:
+                # use the corrected version
+                i2Si1 = i2rSi1
+
         theta_rad = np.deg2rad(i2Si1.theta_deg)
         x, y = i2Si1.translation
         om = OdometryMeasurement(m.i1, m.i2, Pose2(x, y, theta_rad))
@@ -279,12 +297,7 @@ def execute_planar_slam(
     landmark_positions_init = {}
 
     if not optimize_poses_only:
-        # load up the 3d point locations for each WDO.
-        raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-        floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
-        )
-        pano_dict_inferred = floor_pose_graphs[floor_id].nodes
+        # will use loaded 3d point locations for each WDO inside pano_dict_inferred.
         tracks_2d = data_association.perform_data_association(measurements, pano_dict_inferred)
         for j, track_2d in enumerate(tracks_2d):
             color = np.random.rand(3)
