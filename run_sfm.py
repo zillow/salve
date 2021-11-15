@@ -703,13 +703,13 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    method = "spanning_tree"
+    # method = "spanning_tree"
     # method = "SE2_cycles"
     # method = "growing_consensus"
     # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
     # method = "pose2_slam"
-    #method = "pgo"
+    method = "pgo"
 
     # TODO: add axis alignment.
 
@@ -846,6 +846,8 @@ def run_incremental_reconstruction(
                 wSi_list=wSi_list,
                 plot_save_dir=plot_save_dir,
                 optimize_poses_only="pgo" == method,
+                use_axis_alignment=use_axis_alignment,
+                per_edge_wdo_dict=per_edge_wdo_dict,
             )
             reconstruction_reports.append(report)
 
