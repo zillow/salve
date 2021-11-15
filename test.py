@@ -343,16 +343,18 @@ if __name__ == "__main__":
     # serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_11" # tested at 94.7 acc.
 
     # ResNet-152, layout-only, XYZ tours (predicted WDO), low-res (FAILED AT 10 epochs)
-    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_10/2021_11_11_19_45_07"
-    config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_10/2021_11_11_19_45_07/2021_11_10_resnet152_layoutonly.yaml"
-    serialization_save_dir = (
-        "/data/johnlam/2021_11_10__ResNet152layoutonly__877tours_serialized_edge_classifications_test2021_11_15"
-    )
+    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_10/2021_11_11_19_45_07"
+    # config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_10/2021_11_11_19_45_07/2021_11_10_resnet152_layoutonly.yaml"
+    # serialization_save_dir = (
+    #     "/data/johnlam/2021_11_10__ResNet152layoutonly__877tours_serialized_edge_classifications_test2021_11_15"
+    # )
 
     # ResNet-152, layout-only, XYZ tours (predicted WDO), low-res (TRAINED 15/50 epochs so far, will go to completion0
-    # model_results_dir = ""
-    # config_fpath = ""
-    # serialization_save_dir = ""
+    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_10/2021_11_13_13_28_10"
+    config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_10/2021_11_13_13_28_10/2021_11_10_resnet152_layoutonly.yaml"
+    serialization_save_dir = (
+        "/data/johnlam/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test2021_11_15"
+    )
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
