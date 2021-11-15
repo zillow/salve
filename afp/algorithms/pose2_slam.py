@@ -239,7 +239,7 @@ def execute_planar_slam(
     wSi_list: List[Sim2],
     plot_save_dir: str,
     use_axis_alignment: bool,
-    per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair],
+    per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair],
     optimize_poses_only: bool = False,
     verbose: bool = True,
 ) -> None:
@@ -279,7 +279,14 @@ def execute_planar_slam(
 
         if use_axis_alignment:
             edge_wdo_pair = per_edge_wdo_dict[(m.i1, m.i2)]
-            i2rSi1 = axis_alignment_utils.align_pair_measurement_by_vanishing_angle(i1=m.i1, i2=m.i2, i2Si1=i2Si1, edge_wdo_pair=edge_wdo_pair, pano_dict_inferred=pano_dict_inferred, visualize=False)
+            i2rSi1 = axis_alignment_utils.align_pair_measurement_by_vanishing_angle(
+                i1=m.i1,
+                i2=m.i2,
+                i2Si1=i2Si1,
+                edge_wdo_pair=edge_wdo_pair,
+                pano_dict_inferred=pano_dict_inferred,
+                visualize=False,
+            )
             if i2rSi1 is not None:
                 # use the corrected version
                 i2Si1 = i2rSi1
