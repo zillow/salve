@@ -19,6 +19,7 @@ from gtsam import Rot2, Point3, Point3Pairs, Pose2, Similarity3
 import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.rotation_utils as rotation_utils
 from afp.common.edgewdopair import EdgeWDOPair
+from afp.common.pano_data import PanoData
 from afp.common.posegraph2d import PoseGraph2d
 
 
@@ -369,6 +370,7 @@ def align_pairs_by_vanishing_angle(
     Note: 
     - rotating in place about the room center yields wrong results.
     - the rotation must be about a specific point (not about the origin).
+    - The rotation must be about the W/D/O object (we choose the midpoint here).
 
     Args:
         i2Si1_dict:
@@ -381,93 +383,15 @@ def align_pairs_by_vanishing_angle(
         query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
     )
     pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes
-    # import pdb; pdb.set_trace()
 
     for (i1, i2), i2Si1 in i2Si1_dict.items():
-
         edge_wdo_pair = per_edge_wdo_dict[(i1,i2)]
-        alignment_object = edge_wdo_pair.alignment_object
-        i1_wdo_idx = edge_wdo_pair.i1_wdo_idx
-        i1wdocenter_i1fr = getattr(pano_dict_inferred[i1], alignment_object + "s")[i1_wdo_idx].centroid
-        #i1wdocenter_i1fr = getattr(gt_floor_pose_graph.nodes[i1], alignment_object + "s")[i1_wdo_idx].centroid
-        i1wdocenter_i2fr = i2Si1.transform_from(i1wdocenter_i1fr.reshape(1,2)).squeeze()
-
-        # vertsi1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
-        # vertsi2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
-        vertsi1 = pano_dict_inferred[i1].room_vertices_local_2d
-        vertsi2 = pano_dict_inferred[i2].room_vertices_local_2d
-
-        vertsi1_i2fr = i2Si1.transform_from(vertsi1)
-
-        if visualize:
-            plt.subplot(1, 2, 1)
-            plt.title("Coordinate in i2's frame.")
-            draw_polygon(vertsi1_i2fr, color="r", linewidth=5)
-            draw_polygon(vertsi2, color="g", linewidth=1)
-
-            # mark the WDO center on the plot
-            plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='+', zorder=3)
-            plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='.', zorder=3)
-            plt.axis("equal")
-
-        dominant_angle_method = "vp"
-        if dominant_angle_method == "pca":
-            dominant_angle_deg1 = get_dominant_direction_from_point_cloud(vertsi1_i2fr)
-            dominant_angle_deg2 = get_dominant_direction_from_point_cloud(vertsi2)
-            i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
-
-        elif dominant_angle_method == "vp":
-            vp_i1 = pano_dict_inferred[i1].vanishing_angle_deg
-            vp_i2 = pano_dict_inferred[i2].vanishing_angle_deg
-
-            i2r_theta_i2 = compute_vp_correction(i2Si1=i2Si1, vp_i1=vp_i1, vp_i2=vp_i2)
-
-            plt.title(f"i1, i2 = ({i1},{i2}) -> vps ({vp_i1:.1f}, {vp_i2:.1f})")
-
-        elif dominant_angle_method == "polygon_edge_angles":
-            # this has to happen in a common reference frame! ( in i2's frame).
-            dominant_angle_deg1, angle_frac1 = determine_rotation_angle(vertsi1_i2fr)
-            dominant_angle_deg2, angle_frac2 = determine_rotation_angle(vertsi2)
-            i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
-
-            # Below: using the oracle.
-            # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
-            # wSi2 = gt_floor_pose_graph.nodes[i2].global_Sim2_local
-            # wSi1 = i2Si1_dict[i1]
-            # wSi2 = i2Si1_dict[i2]
-            # i2Si1 = wSi2.inverse().compose(wSi1)
-
-        if np.absolute(i2r_theta_i2) > MAX_ALLOWED_CORRECTION_DEG:
-            print(f"Skipping for too large of a correction -> {i2r_theta_i2:.1f} deg.")
-            
-            if visualize:
-                plt.show()
-                plt.close("all")
+        i2rSi1 = align_pair_measurement_by_vanishing_angle(i1, i2, i2Si1, edge_wdo_pair, pano_dict_inferred, visualize)
+        if i2rSi1 is None:
+            # requested correction was too large.
             continue
 
-        print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
-        i2r_R_i2 = rotation_utils.rotmat2d(theta_deg=i2r_theta_i2)
-        i2r_S_i2 = Sim2(R=i2r_R_i2, t=np.zeros(2), s=1.0)
-        # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
-
-        # method = "rotate_about_origin_first"
-        # method = "rotate_about_origin_last"
-        # method = "rotate_about_centroid_first"
-        #method = "none"
-        #method = "rotate_in_place_last_about_roomcenter"
-        method = "rotate_about_wdo"
-
-        if method == "rotate_about_wdo":
-
-            vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
-                vertsi1_i2fr, rotmat=i2r_R_i2, center_pt=i1wdocenter_i2fr
-            )
-            # note: computing i2rSi2.compose(i2Si1) as:
-            # and then i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
-            #   DOES NOT WORK! 
-            i2rTi1 = compute_i2Ti1(pts1=vertsi1, pts2=vertsi1_i2fr_r)
-            i2rSi1 = Sim2(R=i2rTi1.rotation().matrix(), t=i2rTi1.translation(), s=1.0)
-            i2Si1_dict[(i1,i2)] = i2rSi1
+        i2Si1_dict[(i1,i2)] = i2rSi1
 
         if visualize:
             plt.subplot(1, 2, 2)
@@ -480,6 +404,97 @@ def align_pairs_by_vanishing_angle(
 
     return i2Si1_dict
 
+
+def align_pair_measurement_by_vanishing_angle(
+    i1: int, i2: int, i2Si1: Sim2, edge_wdo_pair: EdgeWDOPair, pano_dict_inferred: Dict[int, PanoData], visualize: bool
+) -> Optional[Sim2]:
+    """
+
+    Args:
+        i1: panorama ID of camera 1
+        i2: panorama ID of camera 2
+        i2Si1:
+        edge_wdo_pair:
+        pano_dict_inferred:
+
+    Returns:
+        i2rSi1: updated measurement, to an updated i2 frame. (or can think of it as updated i1 pose).
+            If None, then the requested correction was too large
+    """
+    alignment_object = edge_wdo_pair.alignment_object
+    i1_wdo_idx = edge_wdo_pair.i1_wdo_idx
+    i1wdocenter_i1fr = getattr(pano_dict_inferred[i1], alignment_object + "s")[i1_wdo_idx].centroid
+    #i1wdocenter_i1fr = getattr(gt_floor_pose_graph.nodes[i1], alignment_object + "s")[i1_wdo_idx].centroid
+    i1wdocenter_i2fr = i2Si1.transform_from(i1wdocenter_i1fr.reshape(1,2)).squeeze()
+
+    # vertsi1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
+    # vertsi2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
+    vertsi1 = pano_dict_inferred[i1].room_vertices_local_2d
+    vertsi2 = pano_dict_inferred[i2].room_vertices_local_2d
+
+    vertsi1_i2fr = i2Si1.transform_from(vertsi1)
+
+    if visualize:
+        plt.subplot(1, 2, 1)
+        plt.title("Coordinate in i2's frame.")
+        draw_polygon(vertsi1_i2fr, color="r", linewidth=5)
+        draw_polygon(vertsi2, color="g", linewidth=1)
+
+        # mark the WDO center on the plot
+        plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='+', zorder=3)
+        plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='.', zorder=3)
+        plt.axis("equal")
+
+    dominant_angle_method = "vp"
+    if dominant_angle_method == "pca":
+        dominant_angle_deg1 = get_dominant_direction_from_point_cloud(vertsi1_i2fr)
+        dominant_angle_deg2 = get_dominant_direction_from_point_cloud(vertsi2)
+        i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
+
+    elif dominant_angle_method == "vp":
+        vp_i1 = pano_dict_inferred[i1].vanishing_angle_deg
+        vp_i2 = pano_dict_inferred[i2].vanishing_angle_deg
+
+        i2r_theta_i2 = compute_vp_correction(i2Si1=i2Si1, vp_i1=vp_i1, vp_i2=vp_i2)
+
+        plt.title(f"i1, i2 = ({i1},{i2}) -> vps ({vp_i1:.1f}, {vp_i2:.1f})")
+
+    elif dominant_angle_method == "polygon_edge_angles":
+        # this has to happen in a common reference frame! ( in i2's frame).
+        dominant_angle_deg1, angle_frac1 = determine_rotation_angle(vertsi1_i2fr)
+        dominant_angle_deg2, angle_frac2 = determine_rotation_angle(vertsi2)
+        i2r_theta_i2 = dominant_angle_deg2 - dominant_angle_deg1
+
+        # Below: using the oracle.
+        # wSi1 = gt_floor_pose_graph.nodes[i1].global_Sim2_local
+        # wSi2 = gt_floor_pose_graph.nodes[i2].global_Sim2_local
+        # wSi1 = i2Si1_dict[i1]
+        # wSi2 = i2Si1_dict[i2]
+        # i2Si1 = wSi2.inverse().compose(wSi1)
+
+    if np.absolute(i2r_theta_i2) > MAX_ALLOWED_CORRECTION_DEG:
+        print(f"Skipping for too large of a correction -> {i2r_theta_i2:.1f} deg.")
+        
+        if visualize:
+            plt.show()
+            plt.close("all")
+        return None
+
+    print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
+    i2r_R_i2 = rotation_utils.rotmat2d(theta_deg=i2r_theta_i2)
+    i2r_S_i2 = Sim2(R=i2r_R_i2, t=np.zeros(2), s=1.0)
+    # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
+
+    vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
+        vertsi1_i2fr, rotmat=i2r_R_i2, center_pt=i1wdocenter_i2fr
+    )
+    # note: computing i2rSi2.compose(i2Si1) as:
+    # and then i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
+    #   DOES NOT WORK! 
+    i2rTi1 = compute_i2Ti1(pts1=vertsi1, pts2=vertsi1_i2fr_r)
+    i2rSi1 = Sim2(R=i2rTi1.rotation().matrix(), t=i2rTi1.translation(), s=1.0)
+
+    return i2rSi1
 
 def compute_vp_correction(i2Si1: Sim2, vp_i1: float, vp_i2: float) -> float:
     """
