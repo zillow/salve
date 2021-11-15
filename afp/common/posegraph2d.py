@@ -22,8 +22,13 @@ from scipy.spatial.transform import Rotation
 
 import afp.utils.ransac as ransac
 import afp.utils.rotation_utils as rotation_utils
-import afp.visualization.utils
 from afp.common.pano_data import FloorData, PanoData
+
+try:
+    import afp.visualization.utils
+except Exception as e:
+    print("Open3D could not be loaded, skipping...")
+    print("Exception: ", e)
 
 
 REDTEXT = "\033[91m"

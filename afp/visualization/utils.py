@@ -5,15 +5,9 @@
 from typing import List, Optional
 
 import numpy as np
-
-try:
-    import open3d
-    # import below is from gtsfm
-    import visualization.open3d_vis_utils as open3d_vis_utils
-except Exception as e:
-    print("Open3D could not be loaded, skipping...")
-    print("Exception: ", e)
-
+import open3d
+# import below is from gtsfm
+import visualization.open3d_vis_utils as open3d_vis_utils
 from colour import Color
 from gtsam import Pose3
 
