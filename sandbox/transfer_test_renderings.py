@@ -19,7 +19,7 @@ def main() -> None:
 
 		for building_id in DATASET_SPLITS["test"]:
 
-			cmd = f"rsync -rvz --ignore-existing {MEGATRON_HOSTNAME}:{MEGATRON_DATAROOT}/{label_type}/{building_id} {SE1_TRANSFER_DIR}/{label_type}/{building_id}"
+			cmd = f"rsync -rvz --ignore-existing {MEGATRON_HOSTNAME}:{MEGATRON_DATAROOT}/{label_type}/{building_id} {SE1_TRANSFER_DIR}/{label_type}"
 			print(cmd)
 			#subprocess_utils.run_command(cmd)
 
