@@ -321,11 +321,11 @@ if __name__ == "__main__":
     # config_fpath = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_25_14_31_23/2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
     # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
 
-    # # ResNet-152, floor and ceiling, RGB only, 435 tours, (predicted WDO), low-res
-    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16"
-    config_fpath = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16/2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
-    serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
+    # # # ResNet-152, floor and ceiling, RGB only, 435 tours, (predicted WDO), low-res
+    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16"
+    # config_fpath = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16/2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
 
     # # ResNet-152, ceiling only, RGB only, 587 tours, (predicted-WDO), low-res
     # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06"
@@ -341,10 +341,11 @@ if __name__ == "__main__":
     # )
 
     # # # ResNet-152, floor only, RGB only, 587 tours, (predicted-WDO), low-res
-    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_06/2021_11_08_07_40_48"
-    # config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_06/2021_11_08_07_40_48/2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
-    # #serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09" # tested at 93.9 acc.
-    # serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_11" # tested at 94.7 acc.
+    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_06/2021_11_08_07_40_48"
+    config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_06/2021_11_08_07_40_48/2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
+    #serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09" # tested at 93.9 acc.
+    #serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_11" # tested at 94.7 acc.
+    serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test109buildings_2021_11_16"
 
     # ResNet-152, layout-only, XYZ tours (predicted WDO), low-res (FAILED AT 10 epochs)
     # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_10/2021_11_11_19_45_07"
