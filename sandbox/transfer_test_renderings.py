@@ -9,7 +9,8 @@ from afp.dataset.zind_partition import DATASET_SPLITS
 
 MEGATRON_HOSTNAME = "johnlam@172.22.152.131"
 MEGATRON_DATAROOT = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
-SE1_TRANSFER_DIR = "/data/johnlam/test1"
+#SE1_TRANSFER_DIR = "/data/johnlam/test1"
+SE1_TRANSFER_DIR = "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
 
 
 def main() -> None:
@@ -18,6 +19,9 @@ def main() -> None:
 	for label_type in ["gt_alignment_approx", "incorrect_alignment"]:
 
 		for building_id in DATASET_SPLITS["test"]:
+
+			if building_id != "0691":
+				continue
 
 			cmd = f"rsync -rvz --ignore-existing {MEGATRON_HOSTNAME}:{MEGATRON_DATAROOT}/{label_type}/{building_id} {SE1_TRANSFER_DIR}/{label_type}"
 			print(cmd)
