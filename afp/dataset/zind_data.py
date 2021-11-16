@@ -222,6 +222,7 @@ def make_dataset(
         split_building_ids = list(set(DATASET_SPLITS[split]).intersection(set(available_building_ids)))
 
     logging.info(f"{split} split building ids: {split_building_ids}")
+    print(f"{split} split building ids: {split_building_ids}")
 
     label_dict = {"gt_alignment_approx": 1, "incorrect_alignment": 0}  # is_match = True
 
@@ -245,6 +246,7 @@ def make_dataset(
                 data_list.extend(tuples)
 
     logging.info(f"Data list for split {split} has {len(data_list)} tuples.")
+    print(f"Data list for split {split} has {len(data_list)} tuples.")
     return data_list
 
 
