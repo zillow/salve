@@ -260,7 +260,8 @@ def main() -> None:
 
     for building_id in building_ids:
 
-        if building_id != "0544":
+        # if building_id != "0767":
+        if building_id != "0879":
             continue
 
         floor_pose_graphs = load_inferred_floor_pose_graphs(
