@@ -20,12 +20,12 @@ def main() -> None:
 
 		for building_id in DATASET_SPLITS["test"]:
 
-			if building_id != "0691":
-				continue
+			# if building_id != "0691":
+			# 	continue
 
 			cmd = f"rsync -rvz --ignore-existing {MEGATRON_HOSTNAME}:{MEGATRON_DATAROOT}/{label_type}/{building_id} {SE1_TRANSFER_DIR}/{label_type}"
 			print(cmd)
-			#subprocess_utils.run_command(cmd)
+			subprocess_utils.run_command(cmd)
 
 
 if __name__ == "__main__":
