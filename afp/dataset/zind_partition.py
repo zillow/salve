@@ -16,7 +16,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def map_old_zind_ids_to_new_ids(old_ids: List[str]) -> List[str]:
-    """New ZinD IDs are 4-digit strings."""
+    """New ZinD IDs are 4-digit strings.
+
+    TODO: remove before public code release.
+    """
     tsv_fpath = REPO_ROOT / "ZInD_Re-processing.tsv"
     tsv_rows = csv_utils.read_csv(tsv_fpath, delimiter="\t")
     oldid_to_newid_mapping = {row["old_home_id"]: row["new_home_id"] for row in tsv_rows}
@@ -32,7 +35,9 @@ def map_old_zind_ids_to_new_ids(old_ids: List[str]) -> List[str]:
 
 
 def map_new_zind_ids_to_old_ids(new_ids: List[str]) -> List[str]:
-    """ """
+    """
+    TODO: remove before public code release.
+    """
     tsv_fpath = REPO_ROOT / "ZInD_Re-processing.tsv"
     tsv_rows = csv_utils.read_csv(tsv_fpath, delimiter="\t")
     newid_to_oldid_mapping = {row["new_home_id"]: row["old_home_id"] for row in tsv_rows}
