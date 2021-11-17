@@ -1,4 +1,9 @@
 
+"""Official ZInD dataset splits.
+
+Taken from https://github.com/zillow/zind/blob/main/zind_partition.json
+"""
+
 from pathlib import Path
 from typing import List
 
@@ -24,6 +29,22 @@ def map_old_zind_ids_to_new_ids(old_ids: List[str]) -> List[str]:
         else:
             print(f"ZinD old ID {old_id} not present in final release.")
     return new_ids
+
+
+def map_new_zind_ids_to_old_ids(new_ids: List[str]) -> List[str]:
+    """ """
+    tsv_fpath = REPO_ROOT / "ZInD_Re-processing.tsv"
+    tsv_rows = csv_utils.read_csv(tsv_fpath, delimiter="\t")
+    newid_to_oldid_mapping = {row["new_home_id"]: row["old_home_id"] for row in tsv_rows}
+    old_ids = []
+    for new_id in new_ids:
+        old_id = newid_to_oldid_mapping.get(new_id, None)
+        if old_id is not None:
+            #old_id = old_id.zfill(4)
+            old_ids.append(old_id)
+        else:
+            print(f"ZinD old ID {old_id} not present in final release.")
+    return old_ids
 
 
 def test_map_old_zind_ids_to_new_ids() -> None:
