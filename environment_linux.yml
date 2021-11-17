@@ -23,7 +23,6 @@ dependencies:
   - python-graphviz
   # core functionality and APIs
   - matplotlib==3.4.2
-  - networkx
   - numpy
   - nodejs
   - pandas
@@ -43,5 +42,5 @@ dependencies:
     - rdp
     - yacs # for HoHoNet
     - open3d
-
+    - networkx>=2.6.3
 
