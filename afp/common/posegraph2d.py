@@ -214,6 +214,47 @@ class PoseGraph2d(NamedTuple):
             scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE,
         )
 
+
+    @classmethod
+    def from_aligned_est_poses_and_inferred_layouts(
+        cls, aligned_est_floor_pose_graph: "PoseGraph2d", inferred_floor_pose_graph: "PoseGraph2d"
+    ) -> "PoseGraph2d":
+        """Combine estimated global poses with inferred room layouts.
+
+        Args:
+            aligned_est_floor_pose_graph: estimated global poses, aligned to GT for eval, with GT layouts.
+            inferred_floor_pose_graph: oracle global poses, with inferred layouts.
+
+        Returns:
+            inferred_aligned_pg: estimated global poses with inferred room layouts.
+        """
+        nodes = {}
+        # estimated pano data w/ pose info
+        for i, epd in aligned_est_floor_pose_graph.nodes.items():
+
+            # inferred panorama data with W/D/O detections + predicted layout.
+            ipd = inferred_floor_pose_graph.nodes[i]
+
+            nodes[i] = PanoData(
+                id=i,
+                global_Sim2_local=epd.global_Sim2_local,
+                room_vertices_local_2d=ipd.room_vertices_local_2d,
+                image_path=ipd.image_path,
+                label=ipd.label,
+                doors=ipd.doors,
+                windows=ipd.windows,
+                openings=ipd.openings,
+            )
+
+        print(f"\t\t\tScale is: {aligned_est_floor_pose_graph.scale_meters_per_coordinate:.1f}")
+        inferred_aligned_pg = cls(
+            building_id=aligned_est_floor_pose_graph.building_id,
+            floor_id=aligned_est_floor_pose_graph.floor_id,
+            nodes=nodes,
+            scale_meters_per_coordinate=aligned_est_floor_pose_graph.scale_meters_per_coordinate
+        )
+        return inferred_aligned_pg
+
     def as_json(self, json_fpath: str) -> None:
         """ """
         pass
