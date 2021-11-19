@@ -11,14 +11,13 @@ No shared texture between (0,75) -- yet doors align it (garage to kitchen)
 """
 
 import glob
-import json
 import os
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import argoverse.utils.json_utils as json_utils
 import matplotlib.pyplot as plt
@@ -31,7 +30,7 @@ import afp.utils.logger_utils as logger_utils
 import afp.utils.overlap_utils as overlap_utils
 import afp.utils.rotation_utils as rotation_utils
 import afp.utils.sim3_align_dw as sim3_align_dw  # TODO: rename module to more informative name
-from afp.common.pano_data import FloorData, PanoData, WDO
+from afp.common.pano_data import FloorData, PanoData
 
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
@@ -682,7 +681,6 @@ def export_single_building_wdo_alignment_hypotheses(
 
     floor_gt_is_valid_report_dict = defaultdict(list)
 
-    floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
 
         logger.info("--------------------------------")
