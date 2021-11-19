@@ -55,7 +55,7 @@ def test_compute_width_uncertainty_some_uncertainty():
 
 
 def compute_relative_angle(v1: np.ndarray, v2: np.ndarray) -> float:
-    """Returns angle in degrees between two 2d vectors"""
+    """Returns angle in degrees between two 2d vectors. Both vectors must be of float type."""
     v1 /= np.linalg.norm(v1)
     v2 /= np.linalg.norm(v2)
 
@@ -96,3 +96,12 @@ def test_compute_relative_angle() -> None:
     v2 = np.array([1.0, 0])
     angle_deg = compute_relative_angle(v1, v2)
     assert np.isclose(angle_deg, 0)
+
+
+def test_compute_relative_angle2() -> None:
+    """ """
+    vec1 = np.array([5., 0])
+    vec2 = np.array([0., 9])
+
+    angle_deg = compute_relative_angle(vec1, vec2)
+    assert angle_deg == 90.0
