@@ -63,13 +63,20 @@ PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, 
 
 
 class AlignmentHypothesis(NamedTuple):
-    """ """
+    """
+    Args:
+        i2Ti1: relative pose.
+        wdo_alignment_object: either 'door', 'window', or 'opening'
+        i1_wdo_idx: this is the WDO index for Pano i1 (known as i)
+        i2_wdo_idx: this is the WDO index for Pano i2 (known as j)
+        configuration: either identity or rotated
+    """
 
     i2Ti1: Sim2
-    wdo_alignment_object: str  # either 'door', 'window', or 'opening'
-    i1_wdo_idx: int  # this is the WDO index for Pano i1 (known as i)
-    i2_wdo_idx: int  # this is the WDO index for Pano i2 (known as j)
-    configuration: str  # either identity or rotated
+    wdo_alignment_object: str
+    i1_wdo_idx: int
+    i2_wdo_idx: int
+    configuration: str
 
 
 @dataclass
