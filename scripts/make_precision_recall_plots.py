@@ -56,7 +56,10 @@ def make_thresholds_plot() -> None:
     plt.style.use("ggplot")
     #sns.set_style({"font.family": "Times New Roman"})
 
-    palette = np.array(sns.color_palette("hls", 3))
+    # this is the current operating point -- 93% confidence and above.
+    op_conf_thresh = 0.93
+
+    palette = np.array(sns.color_palette("hls", 4))
     color_dict = {
         "ceiling + floor": palette[0], # "r",
         "floor-only": palette[1], # "b",
@@ -87,11 +90,14 @@ def make_thresholds_plot() -> None:
         plt.plot(thresholds[:n-1], prec[:n-1], color=color_dict[model_name], label=f"{model_name}: precision", linestyle="solid")
         plt.plot(thresholds[:n-1], recall[:n-1], color=color_dict[model_name], label=f"{model_name}: recall", linestyle="dashed")
     
+    # show the operating point
+    plt.plot([op_conf_thresh, op_conf_thresh], [0,1], color=palette[3])
+
     plt.xlabel("CNN probability for 'positive' class")
     plt.legend()
     # plt.show()
     plt.tight_layout()
-    plt.savefig("2021_11_12_precision_recall_vs_confthresholds_v2.pdf", dpi=500)
+    plt.savefig("2021_11_16_precision_recall_vs_confthresholds_v2.pdf", dpi=500)
     plt.show()
 
 
