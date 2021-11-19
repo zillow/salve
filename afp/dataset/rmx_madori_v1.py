@@ -116,7 +116,7 @@ class PanoStructurePredictionRmxMadoriV1:
             img_h: image height (in pixels).
             img_w: image width (in pixels).
         """
-        linewidth = 20
+        linewidth = 20 # use 20 for paper figures, but 5 for debug visualizations.
 
         uv = copy.deepcopy(self.corners_in_uv)
         uv[:, 0] *= img_w
