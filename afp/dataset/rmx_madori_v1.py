@@ -27,6 +27,9 @@ WINDOW_COLOR = RED
 DOOR_COLOR = GREEN
 OPENING_COLOR = BLUE
 
+YELLOW = (1.0, 1.0, 0.0)
+LAYOUT_COLOR = YELLOW
+
 
 @dataclass
 class RmxMadoriV1DWO:
@@ -113,6 +116,8 @@ class PanoStructurePredictionRmxMadoriV1:
             img_h: image height (in pixels).
             img_w: image width (in pixels).
         """
+        linewidth = 20
+
         uv = copy.deepcopy(self.corners_in_uv)
         uv[:, 0] *= img_w
         uv[:, 1] *= img_h
@@ -127,13 +132,14 @@ class PanoStructurePredictionRmxMadoriV1:
             [self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]
         ):
             for wdo in wdo_instances:
-                plt.plot([wdo.s * img_w, wdo.s * img_w], [0, img_h - 1], color=color, linewidth=5)
-                plt.plot([wdo.e * img_w, wdo.e * img_w], [0, img_h - 1], color=color, linewidth=5)
+                plt.plot([wdo.s * img_w, wdo.s * img_w], [0, img_h - 1], color=color, linewidth=linewidth)
+                plt.plot([wdo.e * img_w, wdo.e * img_w], [0, img_h - 1], color=color, linewidth=linewidth)
 
         if len(self.floor_boundary) != 1024:
             print(f"\tFloor boundary shape was {len(self.floor_boundary)}")
             return
-        plt.scatter(np.arange(1024), self.floor_boundary, 10, color="y", marker=".")
+        # plt.scatter(np.arange(1024), self.floor_boundary, 10, color="y", marker=".")
+        plt.plot(np.arange(1024), self.floor_boundary, color=LAYOUT_COLOR, linewidth=linewidth)
 
     def convert_to_pano_data(
         self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d, img_fpath: str, vanishing_angle_deg: float
