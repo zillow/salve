@@ -255,37 +255,6 @@ def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
     json_utils.save_json_dict(save_fpath, dict_for_serialization)
 
 
-def test_get_relative_angle() -> None:
-    """ """
-    vec1 = np.array([5, 0])
-    vec2 = np.array([0, 9])
-
-    angle_deg = get_relative_angle(vec1, vec2)
-    assert angle_deg == 90.0
-
-
-def normalize_vec(v: np.ndarray) -> np.ndarray:
-    """Convert vector to equivalent unit-length version."""
-    return v / np.linalg.norm(v)
-
-
-def get_relative_angle(vec1: np.ndarray, vec2: np.ndarray) -> float:
-    """Get angle in degrees of two vectors. We normalize them first to unit length."""
-
-    # expect vector to be 2d or 3d
-    assert vec1.size in [2, 3]
-    assert vec2.size in [2, 3]
-
-    vec1 = normalize_vec(vec1)
-    vec2 = normalize_vec(vec2)
-
-    dot_product = np.dot(vec1, vec2)
-    assert dot_product >= -1.0 and dot_product <= 1.0
-    angle_rad = np.arccos(dot_product)
-    angle_deg = np.rad2deg(angle_rad)
-    return angle_deg
-
-
 # def test_align_rooms_by_wd() -> None:
 #     """ """
 #     wTi5 = Sim2(
@@ -934,7 +903,6 @@ if __name__ == "__main__":
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root, use_inferred_wdos_layout)
 
     # test_reflections_2()
-    # test_get_wd_normal_2d()
     # test_get_relative_angle()
     # test_align_rooms_by_wd()
     # test_prune_to_unique_sim2_objs()
