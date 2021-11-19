@@ -35,8 +35,8 @@ from afp.common.pano_data import FloorData, PanoData, WDO
 
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
-HEADER = '\033[95m'
-OKGREEN = '\033[92m'
+HEADER = "\033[95m"
+OKGREEN = "\033[92m"
 
 # could increase to 10. I found 9.5 to 12 degrees let in false positives.
 OPENING_ALIGNMENT_ANGLE_TOLERANCE = 9.0
@@ -76,7 +76,6 @@ class AlignmentHypothesis(NamedTuple):
 @dataclass
 class AlignmentGenerationReport:
     floor_alignment_infeasibility_dict = Dict[str, Tuple[int, int]]
-
 
 
 # multiply all x-coordinates or y-coordinates by -1, to transfer origin from upper-left, to bottom-left
@@ -454,7 +453,7 @@ def align_rooms_by_wd(
     pano2_obj: PanoData,
     transform_type: str = "SE2",
     use_inferred_wdos_layout: bool = True,
-    visualize: bool = False
+    visualize: bool = False,
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """
     Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
@@ -601,16 +600,16 @@ def align_rooms_by_wd(
                         max_width = max(pano1_wd.width, pano2_wd_.width)
                         width_ratio = min_width / max_width
 
-                        # pano1_uncertainty_factor = compute_width_uncertainty(pano1_wd)
-                        # pano2_uncertainty_factor = compute_width_uncertainty(pano2_wd)
+                        # pano1_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano1_wd)
+                        # pano2_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano2_wd)
 
-                        is_valid = width_ratio >= MIN_ALLOWED_WDO_WIDTH_RATIO # should be in [0.5, 1.0]
+                        is_valid = width_ratio >= MIN_ALLOWED_WDO_WIDTH_RATIO  # should be in [0.5, 1.0]
 
                         if verbose:
                             # (i1) pink, (i2) orange
                             print(
-                                f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}" \
-                                + "" # f", Uncertainty: {pano1_uncertainty_factor:.2f}, {pano2_uncertainty_factor:.2f}"
+                                f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}"
+                                + ""  # f", Uncertainty: {pano1_uncertainty_factor:.2f}, {pano2_uncertainty_factor:.2f}"
                             )
 
                     else:
@@ -670,123 +669,13 @@ def align_rooms_by_wd(
     return possible_alignment_info, num_invalid_configurations
 
 
-def compute_width_uncertainty(pano_wd: WDO) -> float:
-    """Compute uncertainty scaling factor on measurement.
-
-    Note: accurate only for a orthographic camera (subject to depth and focal length for a perspective camera).
-    """
-    cam_center = np.zeros(2)
-    ray_to_camera = cam_center - pano_wd.centroid
-
-    # pointing CW from pt 1 to pt2
-    wdo_normal = -pano_wd.get_wd_normal_2d()
-
-    theta_deg = compute_relative_angle(ray_to_camera, wdo_normal)
-    uncertainty_factor = 1 / np.cos(np.deg2rad(theta_deg))
-    return np.absolute(uncertainty_factor)
-
-
-def test_compute_width_uncertainty_no_uncertainty1():
-    """Fronto parallel, towards (0,1)."""
-    pano_wd = WDO(
-        global_Sim2_local=None,
-        pt1=(-2,4),
-        pt2=(2,4),
-        bottom_z=-np.nan,
-        top_z=np.nan,
-        type="opening"
-    )
-    uncertainty_factor = compute_width_uncertainty(pano_wd)
-    assert np.isclose(uncertainty_factor, 1.0)
-
-
-def test_compute_width_uncertainty_no_uncertainty2():
-    """Fronto parallel, but towards (1,1)."""
-    pano_wd = WDO(
-        global_Sim2_local=None,
-        pt1=(2,3),
-        pt2=(3,2),
-        bottom_z=-np.nan,
-        top_z=np.nan,
-        type="opening"
-    )
-    uncertainty_factor = compute_width_uncertainty(pano_wd)
-    assert np.isclose(uncertainty_factor, 1.0)
-
-
-def test_compute_width_uncertainty_some_uncertainty():
-    """Fronto parallel, but towards (1,1)."""
-    pano_wd = WDO(
-        global_Sim2_local=None,
-        pt1=(-3,2),
-        pt2=(-3,3),
-        bottom_z=-np.nan,
-        top_z=np.nan,
-        type="opening"
-    )
-    uncertainty_factor = compute_width_uncertainty(pano_wd)
-    assert np.isclose(uncertainty_factor, 1.3017, atol=1e-3)
-
-    # now, provide slightly less tilt on the WDO
-    pano_wd = WDO(
-        global_Sim2_local=None,
-        pt1=(-3.0,2),
-        pt2=(-2.9,3),
-        bottom_z=-np.nan,
-        top_z=np.nan,
-        type="opening"
-    )
-    uncertainty_factor = compute_width_uncertainty(pano_wd)
-    # should be slightly less uncertainty now
-    assert np.isclose(uncertainty_factor, 1.2144, atol=1e-3)
-
-
-def compute_relative_angle(v1: np.ndarray, v2: np.ndarray) -> float:
-    """Returns angle in degrees between two 2d vectors"""
-    v1 /= np.linalg.norm(v1)
-    v2 /= np.linalg.norm(v2)
-
-    dot_product = np.dot(v1, v2)
-    angle_rad = np.arccos(dot_product)
-    angle_deg = np.rad2deg(angle_rad)
-    return angle_deg
-
-
-def test_compute_relative_angle() -> None:
-    """ """
-    v1 = np.array([1.,1])
-    v2 = np.array([1.,0])
-    angle_deg = compute_relative_angle(v1, v2)
-    assert np.isclose(angle_deg, 45)
-
-    v1 = np.array([1.,-1])
-    v2 = np.array([1.,0])
-    angle_deg = compute_relative_angle(v1, v2)
-    assert np.isclose(angle_deg, 45)
-
-    v1 = np.array([0,1.])
-    v2 = np.array([1,0.])
-    angle_deg = compute_relative_angle(v1, v2)
-    assert np.isclose(angle_deg, 90)
-
-    v1 = np.array([0,-1.])
-    v2 = np.array([1,0.])
-    angle_deg = compute_relative_angle(v1, v2)
-    assert np.isclose(angle_deg, 90)
-
-    v1 = np.array([ 1.,0])
-    v2 = np.array([-1.,0])
-    angle_deg = compute_relative_angle(v1, v2)
-    assert np.isclose(angle_deg, 180)
-
-    v1 = np.array([1.,0])
-    v2 = np.array([1.,0])
-    angle_deg = compute_relative_angle(v1, v2)
-    assert np.isclose(angle_deg, 0)
-
-
 def export_single_building_wdo_alignment_hypotheses(
-    hypotheses_save_root: str, building_id: str, pano_dir: str, json_annot_fpath: str, raw_dataset_dir: str
+    hypotheses_save_root: str,
+    building_id: str,
+    pano_dir: str,
+    json_annot_fpath: str,
+    raw_dataset_dir: str,
+    use_inferred_wdos_layout: bool,
 ) -> None:
     """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
@@ -802,10 +691,10 @@ def export_single_building_wdo_alignment_hypotheses(
         building_id:
         pano_dir:
         json_annot_fpath:
+        use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
     """
     verbose = False
 
-    use_inferred_wdos_layout = True
     if use_inferred_wdos_layout:
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
             query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
@@ -946,20 +835,19 @@ def export_single_building_wdo_alignment_hypotheses(
         logger.info(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
         logger.info(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
 
-
     print(f"{OKGREEN} Building {building_id}: ")
     for floor_id, gt_is_valid_arr in floor_gt_is_valid_report_dict.items():
         print(f"{OKGREEN} {floor_id}: {np.mean(gt_is_valid_arr):.2f} over {len(gt_is_valid_arr)} alignment pairs.")
     print(HEADER)
 
-def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str) -> None:
+
+def export_alignment_hypotheses_to_json(
+    num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str, use_inferred_wdos_layout: bool
+) -> None:
     """
     Questions: what is tour_data_mapping.json? -> for internal people, GUIDs to production people
     Last edge of polygon (to close it) is not provided -- right??
     are all polygons closed? or just polylines?
-    What is 'scale_meters_per_coordinate'?
-
-    What is merger vs. redraw?
 
     Sim(2)
 
@@ -969,6 +857,12 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
     sRp + st
 
     Maybe compose with other Sim(2)
+
+    Args:
+        num_processes
+        raw_dataset_dir
+        hypotheses_save_root
+        use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
     """
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
@@ -987,7 +881,9 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
-        args += [(hypotheses_save_root, building_id, pano_dir, json_annot_fpath, raw_dataset_dir)]
+        args += [
+            (hypotheses_save_root, building_id, pano_dir, json_annot_fpath, raw_dataset_dir, use_inferred_wdos_layout)
+        ]
 
     if num_processes > 1:
         with Pool(num_processes) as p:
@@ -999,6 +895,8 @@ def export_alignment_hypotheses_to_json(num_processes: int, raw_dataset_dir: str
 
 if __name__ == "__main__":
     """ """
+    use_inferred_wdos_layout = False
+
     # teaser file
     # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
@@ -1007,9 +905,9 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
     # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
-    #raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     ##raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
+    # raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -1021,16 +919,19 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
 
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
 
-    #hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_cosine_uncertainty"
+    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_cosine_uncertainty"
     ##hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
-    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    # hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    hypotheses_save_root = (
+        "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_17_SE2_width_thresh0.65"
+    )
 
-    num_processes = 40
+    num_processes = 1
 
-    export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root)
+    export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root, use_inferred_wdos_layout)
 
     # test_reflections_2()
     # test_get_wd_normal_2d()
