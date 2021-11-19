@@ -377,7 +377,7 @@ def run_opensfm_over_all_zind() -> None:
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
-    for building_id in building_ids[90:]:
+    for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         for floor_id in floor_ids:
@@ -403,14 +403,15 @@ def run_opensfm_over_all_zind() -> None:
 
                 # import pdb; pdb.set_trace()
                 cmd = f"bin/opensfm_run_all data/ZinD_{building_id}_{floor_id}__2021_09_13 2>&1 | tee {FLOOR_OPENSFM_DATADIR}/opensfm.log"
+                print(cmd)
                 subprocess_utils.run_command(cmd)
 
                 # shutil.rmtree()
 
                 # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
-                measure_algorithm_localization_accuracy(
-                    reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir, algorithm_name="opensfm"
-                )
+                # measure_algorithm_localization_accuracy(
+                #     reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir, algorithm_name="opensfm"
+                # )
 
             except Exception as e:
                 logger.exception(f"OpenSfM failed for {building_id} {floor_id}")
@@ -424,6 +425,5 @@ if __name__ == "__main__":
     python ~/Downloads/jlambert-auto-floorplan/afp/baselines/opensfm.py
 
     """
-    # run_opensfm_over_all_zind()
+    run_opensfm_over_all_zind()
     # test_measure_opensfm_localization_accuracy()
-    pass
