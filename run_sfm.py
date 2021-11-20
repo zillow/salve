@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 import argoverse.utils.geometry as geometry_utils
-import gtsfm.utils.graph as graph_utils
+import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
@@ -30,6 +30,7 @@ import afp.common.edge_classification as edge_classification
 import afp.common.floor_reconstruction_report as floor_reconstruction_report
 import afp.common.posegraph2d as posegraph2d
 import afp.utils.axis_alignment_utils as axis_alignment_utils
+import afp.utils.graph_utils as graph_utils
 import afp.utils.graph_rendering_utils as graph_rendering_utils
 import afp.utils.rotation_utils as rotation_utils
 import afp.utils.pr_utils as pr_utils
@@ -445,7 +446,7 @@ def build_filtered_spanning_tree(
     filtered_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
     print(f"\tFiltered by rot cycles Edge Acc = {filtered_edge_acc:.2f}")
 
-    cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
+    cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
     print(
         f"After triplet rot cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
     )
@@ -480,7 +481,7 @@ def build_filtered_spanning_tree(
         save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_relative_by_global.jpg",
     )
 
-    cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
+    cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
     print(
         f"After filtering by rel. vs. composed abs., the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
     )
@@ -512,7 +513,7 @@ def build_filtered_spanning_tree(
         save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_translations.jpg",
     )
 
-    cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
+    cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
     print(
         f"After triplet trans. cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
     )
@@ -715,7 +716,7 @@ def run_incremental_reconstruction(
 
     use_axis_alignment = True
     confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
-    allowed_wdo_types =  ["door", "window", "opening"] # ["door"] # ["opening"] # ["window"] # 
+    allowed_wdo_types = ["door", "window", "opening"] #    ["window"] #  ["opening"] # ["door"] # 
 
     allowed_wdo_types_summary = "_".join(allowed_wdo_types)
     plot_save_dir = (
@@ -731,18 +732,12 @@ def run_incremental_reconstruction(
 
     averaged_wdo_type_counter = defaultdict(list)
 
+    pdfs = []
+    cdfs = []
+
     # loop over each building and floor
     # for each building/floor tuple
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
-
-        # if not (building_id == "0966" and floor_id == "floor_00"):
-        #     continue
-
-        # if not (building_id == "0605" and floor_id == "floor_01"):
-        #     continue
-
-        # if not (building_id == "0353" and floor_id == "floor_02"):
-        #     continue
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
@@ -776,7 +771,7 @@ def run_incremental_reconstruction(
 
         render_multigraph = False
         if render_multigraph:
-            graph_rendering_utils.draw_multigraph(measurements, gt_floor_pose_graph)
+            graph_rendering_utils.draw_multigraph(measurements, gt_floor_pose_graph, confidence_threshold=confidence_threshold)
 
         (
             i2Si1_dict,
@@ -787,11 +782,14 @@ def run_incremental_reconstruction(
             per_edge_wdo_dict,
             high_conf_measurements,
             wdo_type_counter,
-
         ) = get_conf_thresholded_edges(
             measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id, gt_floor_pose_graph
         )
         # TODO: edge accuracy doesn't mean anything (too many FPs). Use average error on each edge, instead.
+
+        pdf, cdf = graph_utils.analyze_cc_distribution(nodes=list(gt_floor_pose_graph.nodes.keys()), edges=list(i2Si1_dict.keys()))
+        pdfs.append(pdf)
+        cdfs.append(cdf)
 
         for wdo_type, percent in wdo_type_counter.items():
             averaged_wdo_type_counter[wdo_type].append(percent)
@@ -814,7 +812,7 @@ def run_incremental_reconstruction(
         unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
         print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
 
-        cc_nodes = graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
+        cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
         print(
             f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
         )
@@ -925,6 +923,10 @@ def run_incremental_reconstruction(
         else:
             raise RuntimeError("Unknown method.")
 
+    show_pdf_cdf = False
+    if show_pdf_cdf:
+        aggregate_cc_distributions(pdfs, cdfs)
+
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
     print("Completed Eval with:")
@@ -935,6 +937,32 @@ def run_incremental_reconstruction(
     print(f"\tUsed axis alignment: {use_axis_alignment}")
 
 
+def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -> None:
+    """ """
+    import pdb; pdb.set_trace()
+    max_num_ccs = max([len(pdf) for pdf in pdfs])
+
+    avg_pdf = np.zeros((max_num_ccs))
+    avg_cdf = np.zeros((max_num_ccs))
+
+    for pdf, cdf in zip(pdfs, cdfs):
+        C = pdf.shape[0]
+
+        #pad the rest (long tail) of the PDF with 0s
+        padded_pdf = np.zeros(max_num_ccs)
+        padded_pdf[:C] = pdf
+
+        #pad the rest of the CDF with 1s
+        padded_cdf = np.ones(max_num_ccs)
+        padded_cdf[:C] = cdf
+
+        avg_pdf += padded_pdf
+        avg_cdf += padded_cdf
+
+    avg_pdf /= len(pdfs)
+    avg_cdf /= len(cdfs)
+
+    graph_utils.plot_pdf_cdf(avg_pdf, avg_cdf)
 
 
 if __name__ == "__main__":
@@ -971,6 +999,8 @@ if __name__ == "__main__":
     serialized_preds_json_dir = (
         "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
     )
+    # serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
+
 
     # floor-only, ResNet-152
     # serialized_preds_json_dir = (
@@ -981,6 +1011,14 @@ if __name__ == "__main__":
     # serialized_preds_json_dir = (
     #     "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12"
     # )
+    # /data/johnlam/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test109buildings_2021_11_16
+
+    # #layout-only, ResNet-152, 15/50 epochs complete
+    # serialized_preds_json_dir = (
+    #     "/Users/johnlam/Downloads/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test2021_11_15"
+    # )
+    # "/data/johnlam/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test109buildings_2021_11_16"
+
     #test_compute_i2Ti1()
     #test_compute_i2Ti1_from_rotation_in_place()
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
