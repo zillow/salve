@@ -1,6 +1,13 @@
 """
 Transformation (R,t) followed by a reflection over the x-axis is equivalent to 
 Transformation by (R^T,-t) followed by no reflection.
+
+Sim(2)
+
+s(Rp + t)  -> Sim(2)
+sRp + t -> ICP (Zillow)
+
+sRp + st
 """
 
 import copy
