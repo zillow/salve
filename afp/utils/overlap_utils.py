@@ -240,27 +240,32 @@ def determine_invalid_wall_overlap(
 ) -> bool:
     """
     TODO: consider adding allowed_overlap_pct: float = 0.01
-        Args:
-            pano1_id: panorama id
-            pano2_id: panorama id
-            i: id of WDO to match from pano1
-            j: id of WDO to match from pano2
 
-        TODO: use `wall_buffer_m`
+    Amount of intersection of the two polygons is not a useful signal.
 
-        Returns:
+    Args:
+        pano1_id: ID for panorama 1
+        pano2_id: ID for panorama 2
+        i: ID of WDO to use for matching from pano1
+        j: ID of WDO to use for matching from pano2
+        pano1_room_vertices:
+        pano2_room_vertices: in the same coordinate frame as `pano1_room_vertices'
+        shrink_factor: related to amount of buffer away from boundaries (e.g. away from walls).
+
+    Returns:
+        is_valid: 
     """
+    EPS = 1e-9 # must add eps to avoid being detected as a duplicate vertex
+    # Note: polygon does not contain loop closure (no vertex is repeated twice). Thus, must add first
+    # vertex to end of vertex list.
+    pano1_room_vertices = np.vstack([pano1_room_vertices, pano1_room_vertices[0] + EPS])
+    pano2_room_vertices = np.vstack([pano2_room_vertices, pano2_room_vertices[0] + EPS])
+
     polygon1 = Polygon(pano1_room_vertices)
     polygon2 = Polygon(pano2_room_vertices)
 
-    pano1_room_vertices_interp = interp_evenly_spaced_points(pano1_room_vertices, interval_m=0.1)  # meters
-    pano2_room_vertices_interp = interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)  # meters
-
-    # # should be in the same coordinate frame, now
-    # inter_poly = polygon1.intersection(polygon2)
-    # inter_poly_area = inter_poly.area
-
-    # inter_poly_verts = np.array(list(inter_poly.exterior.coords))
+    pano1_room_vertices_interp = interp_evenly_spaced_points(pano1_room_vertices, interval_m=0.1)  # in normalized coords
+    pano2_room_vertices_interp = interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)  # in normalized coords
 
     shrunk_poly1 = shrink_polygon(polygon1, shrink_factor=shrink_factor)
     shrunk_poly1_verts = np.array(list(shrunk_poly1.exterior.coords))
@@ -288,9 +293,11 @@ def determine_invalid_wall_overlap(
         plt.scatter(pano2_room_vertices_interp[:, 0], pano2_room_vertices_interp[:, 1], 10, color="g")
         plt.plot(pano2_room_vertices[:, 0], pano2_room_vertices[:, 1], color="g", linewidth=10, alpha=0.1)
 
+        # render shrunk polygon 1 in red.
         plt.scatter(shrunk_poly1_verts[:, 0], shrunk_poly1_verts[:, 1], 10, color="r")
         plt.plot(shrunk_poly1_verts[:, 0], shrunk_poly1_verts[:, 1], color="r", linewidth=1, alpha=0.1)
 
+        # render shrunk polygon 2 in blue.
         plt.scatter(shrunk_poly2_verts[:, 0], shrunk_poly2_verts[:, 1], 10, color="b")
         plt.plot(shrunk_poly2_verts[:, 0], shrunk_poly2_verts[:, 1], color="b", linewidth=1, alpha=0.1)
 
@@ -379,6 +386,48 @@ def test_determine_invalid_wall_overlap2() -> None:
     assert is_valid
 
 
+def test_determine_invalid_wall_overlap3() -> None:
+    """ """
+    # TODO: determine why this was considered valid for Building "0003" and panos (0.7)
+    # "opening_0_7___step3_identity_2_0.jpg"
+
+    pano1_id = 0
+    pano2_id = 8
+    i = 2
+    j = 0
+    # 1 is in magenta.
+    pano1_room_vertices = np.array(
+        [
+            [-1.20350544,  2.19687034],
+            [-0.14832726,  3.12533515],
+            [ 2.14896215,  0.51452036],
+            [ 1.09378396, -0.41394445]
+        ])
+    # 2 is in green.
+    pano2_room_vertices = np.array(
+        [
+            [-0.08913514, -1.02572344],
+            [-2.17362494,  1.34324966],
+            [-0.15560001,  3.11893567],
+            [ 1.92888979,  0.74996256]
+        ])
+    shrink_factor = 0.1
+    visualize = True
+
+    freespace_is_valid = determine_invalid_wall_overlap(
+        pano1_id=pano1_id,
+        pano2_id=pano2_id,
+        i=i,
+        j=j,
+        pano1_room_vertices=pano1_room_vertices,
+        pano2_room_vertices=pano2_room_vertices,
+        shrink_factor=shrink_factor,
+        visualize=visualize
+    )
+    
+    assert False
+
+
 if __name__ == "__main__":
     pass
     # test_shrink_polygon()
@@ -389,3 +438,4 @@ if __name__ == "__main__":
 
     # test_determine_invalid_wall_overlap1()
     # test_determine_invalid_wall_overlap2()
+    test_determine_invalid_wall_overlap3()
