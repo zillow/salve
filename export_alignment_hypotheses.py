@@ -74,7 +74,8 @@ class AlignTransformType(str, Enum):
     can be computed from three point correspondences in the general case and from two point matches if
     the gravity direction is known.
     """
-    SE2: str ="SE2"
+
+    SE2: str = "SE2"
     Sim3: str = "Sim3"
 
 
@@ -564,9 +565,13 @@ def align_rooms_by_wd(
                     if use_inferred_wdos_layout:
                         # sole criterion, as overlap isn't reliable anymore, with inferred WDO.
                         # could also reason about layouts beyond openings to determine validity.
-                        is_valid, width_ratio = determine_invalid_width_ratio(pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout)
+                        is_valid, width_ratio = determine_invalid_width_ratio(
+                            pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout
+                        )
                     else:
-                        width_is_valid, width_ratio = determine_invalid_width_ratio(pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout)
+                        width_is_valid, width_ratio = determine_invalid_width_ratio(
+                            pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout
+                        )
                         freespace_is_valid = overlap_utils.determine_invalid_wall_overlap(
                             pano1_id,
                             pano2_id,
@@ -632,10 +637,9 @@ def align_rooms_by_wd(
     return possible_alignment_info, num_invalid_configurations
 
 
-
 def determine_invalid_width_ratio(pano1_wd: WDO, pano2_wd: WDO, use_inferred_wdos_layout: bool) -> Tuple[bool, float]:
     """Check to see if relative width ratio of W/D/Os is within some maximum allowed range, e.g. [0.65, 1]
-    
+
     Args:
         pano1_wd: W/D/O object for panorama 1.
         pano2_wd: W/D/O object for panorama 2.
@@ -652,7 +656,9 @@ def determine_invalid_width_ratio(pano1_wd: WDO, pano2_wd: WDO, use_inferred_wdo
     # pano1_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano1_wd)
     # pano2_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano2_wd)
 
-    min_allowed_wdo_width_ratio = MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO if use_inferred_wdos_layout else MIN_ALLOWED_GT_WDO_WIDTH_RATIO
+    min_allowed_wdo_width_ratio = (
+        MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO if use_inferred_wdos_layout else MIN_ALLOWED_GT_WDO_WIDTH_RATIO
+    )
 
     is_valid = width_ratio >= min_allowed_wdo_width_ratio  # should be in [0.65, 1.0] for inferred WDO
     return is_valid, width_ratio
@@ -747,19 +753,22 @@ def export_single_building_wdo_alignment_hypotheses(
                             pano_dict_inferred[i1],
                             pano_dict_inferred[i2],
                             use_inferred_wdos_layout=use_inferred_wdos_layout,
-                            transform_type=AlignTransformType.SE2
+                            transform_type=AlignTransformType.SE2,
                         )
                     else:
                         possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
-                            pano_dict[i1], pano_dict[i2],
+                            pano_dict[i1],
+                            pano_dict[i2],
                             use_inferred_wdos_layout=use_inferred_wdos_layout,
-                            transform_type=AlignTransformType.SE2
+                            transform_type=AlignTransformType.SE2,
                         )
                 except Exception:
                     logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
                     continue
 
-                import pdb; pdb.set_trace()
+                import pdb
+
+                pdb.set_trace()
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
@@ -853,15 +862,13 @@ def export_alignment_hypotheses_to_json(
 
     for building_id in building_ids:
 
-        if building_id in ["0000","0001","0002"]:
+        if building_id in ["0000", "0001", "0002"]:
             continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
-        args += [
-            (hypotheses_save_root, building_id, json_annot_fpath, raw_dataset_dir, use_inferred_wdos_layout)
-        ]
+        args += [(hypotheses_save_root, building_id, json_annot_fpath, raw_dataset_dir, use_inferred_wdos_layout)]
 
     if num_processes > 1:
         with Pool(num_processes) as p:
