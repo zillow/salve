@@ -1,9 +1,26 @@
 """
-Based on code found at
-https://gitlab.zgtools.net/zillow/rmx/research/scripts-insights/open_platform_utils/-/raw/zind_cleanup/zfm360/visualize_zfm360_data.py
+The alignment generation method here is based upon Cohen 2016.
 
-Data can be found at:
-/mnt/data/zhiqiangw/ZInD_release/complete_zind_paper_final_localized_json_6_3_21
+Window-Window correspondences must be established. Have to find all possible pairwise choices. ICP is not required,
+since we can know correspondences between W/D/O vertices.
+
+Cohen16: A single match between an indoor and outdoor window determines an alignment hypothesis
+Computing the alignment boils down to finding a  transformation between the models.
+
+Can perform alignment in 2d or 3d (fewer unknowns in 2d).
+Note: when fitting Sim(3), note that if the heights are the same, but door width scale is different, perfect door-width alignment
+cannot be possible, since the height figures into the least squares problem.
+
+We make sure wide door cannot fit inside a narrow door (e.g. 2x width not allowed).
+
+What heuristic tells us if they should be identity or mirrored in configuration?
+Are there any new WDs that should not be visible? walls should not cross on top of each other? know same-room connections, first
+
+Cannot expect a match for each door or window. Find nearest neighbor -- but then choose min dist on rows or cols?
+may not be visible?
+- Rooms can be joined at windows.
+- Rooms may be joined at a door.
+- Predicted wall cannot lie behind another wall, if line of sight is clear.
 
 conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=10.1 -c pytorch
 
@@ -30,7 +47,7 @@ import afp.utils.logger_utils as logger_utils
 import afp.utils.overlap_utils as overlap_utils
 import afp.utils.rotation_utils as rotation_utils
 import afp.utils.sim3_align_dw as sim3_align_dw  # TODO: rename module to more informative name
-from afp.common.pano_data import FloorData, PanoData
+from afp.common.pano_data import FloorData, PanoData, WDO
 
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
@@ -42,24 +59,23 @@ OPENING_ALIGNMENT_ANGLE_TOLERANCE = 9.0
 DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
 ALIGNMENT_TRANSLATION_TOLERANCE = 0.35  # was set to 0.2 for GT
 
-# (smaller width) / (larger width) must be greater than 0.65 / 1.0.
-MIN_ALLOWED_WDO_WIDTH_RATIO = 0.65
+# (smaller width) / (larger width) must be greater than 0.65 / 1.0 for inferred data.
+MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO = 0.65
+MIN_ALLOWED_GT_WDO_WIDTH_RATIO = 0.8
 
 
 logger = logger_utils.get_logger()
 
-# The type of supported polygon/wall/point objects.
-class PolygonType(Enum):
-    ROOM = "room"
-    WINDOW = "window"
-    DOOR = "door"
-    OPENING = "opening"
-    PRIMARY_CAMERA = "primary_camera"
-    SECONDARY_CAMERA = "secondary_camera"
-    PIN_LABEL = "pin_label"
 
+class AlignTransformType(str, Enum):
+    """Type of transformation used
 
-PolygonTypeMapping = {"windows": PolygonType.WINDOW, "doors": PolygonType.DOOR, "openings": PolygonType.OPENING}
+    Similarity transformation between the models, which
+    can be computed from three point correspondences in the general case and from two point matches if
+    the gravity direction is known.
+    """
+    SE2: str ="SE2"
+    Sim3: str = "Sim3"
 
 
 class AlignmentHypothesis(NamedTuple):
@@ -426,43 +442,24 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 def align_rooms_by_wd(
     pano1_obj: PanoData,
     pano2_obj: PanoData,
-    transform_type: str = "SE2",
-    use_inferred_wdos_layout: bool = True,
-    visualize: bool = False,
+    transform_type: AlignTransformType,
+    use_inferred_wdos_layout: bool,
+    visualize: bool = True,
 ) -> Tuple[List[AlignmentHypothesis], int]:
-    """
-    Window-Window correspondences must be established. May have to find all possible pairwise choices, or ICP?
-
-    Cohen16: A single match between an indoor and outdoor window determines an alignment hypothesis
-    Computing the alignment boils down to finding a similarity transformation between the models, which
-    can be computed from three point correspondences in the general case and from two point matches if
-    the gravity direction is known.
-
-    TODO: maybe perform alignment in 2d, instead of 3d? so we have less unknowns?
-
-    What heuristic tells us if they should be identity or mirrored in configuration?
-    Are there any new WDs that should not be visible? walls should not cross on top of each other? know same-room connections, first
-
-    Cannot expect a match for each door or window. Find nearest neighbor -- but then choose min dist on rows or cols?
-    may not be visible?
-    - Rooms can be joined at windows.
-    - Rooms may be joined at a door.
-    - Predicted wall cannot lie behind another wall, if line of sight is clear.
-
-    Note: when fitting Sim(3), note that if the heights are the same, but door width scale is different, perfect door-width alignment
-    cannot be possible, since the height figures into the least squares problem.
+    """Compute alignment between two panoramas by computing the transformation between a window-window, door-door, or opening-opening object.
 
     Args:
         pano1_obj
         pano2_obj
         transform_type: transformation object to fit, e.g.  Sim(3) or SE(2), "Sim3" or "SE2"
+        use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
         visualize: whether to save visualizations for each putative pair.
 
     Returns:
         possible_alignment_info: list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
         num_invalid_configurations: number of alignment configurations that were rejected, because of freespace penetration by aligned walls.
     """
-    verbose = False
+    verbose = True
 
     pano1_id = pano1_obj.id
     pano2_id = pano2_obj.id
@@ -491,12 +488,10 @@ def align_rooms_by_wd(
 
             for j, pano2_wd in enumerate(pano2_wds):
 
-                if alignment_object == "door":
+                if alignment_object in ["door", "opening"]:
                     plausible_configurations = ["identity", "rotated"]
                 elif alignment_object == "window":
                     plausible_configurations = ["identity"]
-                elif alignment_object == "opening":
-                    plausible_configurations = ["identity", "rotated"]
 
                 for configuration in plausible_configurations:
                     # if verbose:
@@ -533,9 +528,9 @@ def align_rooms_by_wd(
 
                     # import pdb; pdb.set_trace()
 
-                    if transform_type == "SE2":
+                    if transform_type == AlignTransformType.SE2:
                         i2Ti1, aligned_pts1 = sim3_align_dw.align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
-                    elif transform_type == "Sim3":
+                    elif transform_type == AlignTransformType.Sim3:
                         i2Ti1, aligned_pts1 = sim3_align_dw.align_points_sim3(pano2_wd_pts, pano1_wd_pts)
                     else:
                         raise RuntimeError
@@ -567,28 +562,12 @@ def align_rooms_by_wd(
                     pano2_room_vertices = pano2_room_vertices[:, :2]
 
                     if use_inferred_wdos_layout:
-                        # overlap isn't reliable anymore?
-                        # TODO: write new code that considers whether we are beyond an opening? in which case invalid?
-
-                        # Check to see if relative width ratio is within the range [0.5, 2]
-                        min_width = min(pano1_wd.width, pano2_wd_.width)
-                        max_width = max(pano1_wd.width, pano2_wd_.width)
-                        width_ratio = min_width / max_width
-
-                        # pano1_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano1_wd)
-                        # pano2_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano2_wd)
-
-                        is_valid = width_ratio >= MIN_ALLOWED_WDO_WIDTH_RATIO  # should be in [0.5, 1.0]
-
-                        if verbose:
-                            # (i1) pink, (i2) orange
-                            print(
-                                f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}"
-                                + ""  # f", Uncertainty: {pano1_uncertainty_factor:.2f}, {pano2_uncertainty_factor:.2f}"
-                            )
-
+                        # sole criterion, as overlap isn't reliable anymore, with inferred WDO.
+                        # could also reason about layouts beyond openings to determine validity.
+                        is_valid, width_ratio = determine_invalid_width_ratio(pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout)
                     else:
-                        is_valid = overlap_utils.determine_invalid_wall_overlap(
+                        width_is_valid, width_ratio = determine_invalid_width_ratio(pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout)
+                        freespace_is_valid = overlap_utils.determine_invalid_wall_overlap(
                             pano1_id,
                             pano2_id,
                             i,
@@ -598,6 +577,15 @@ def align_rooms_by_wd(
                             shrink_factor=0.1,
                             visualize=False,
                         )
+                        is_valid = freespace_is_valid and width_is_valid
+
+                    if verbose:
+                        # (i1) pink, (i2) orange
+                        print(
+                            f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}"
+                            + ""  # f", Uncertainty: {pano1_uncertainty_factor:.2f}, {pano2_uncertainty_factor:.2f}"
+                        )
+
                     # logger.error("Pano1 room verts: %s", str(pano1_room_vertices))
                     # logger.error("Pano2 room verts: %s", str(pano2_room_vertices))
 
@@ -644,10 +632,35 @@ def align_rooms_by_wd(
     return possible_alignment_info, num_invalid_configurations
 
 
+
+def determine_invalid_width_ratio(pano1_wd: WDO, pano2_wd: WDO, use_inferred_wdos_layout: bool) -> Tuple[bool, float]:
+    """Check to see if relative width ratio of W/D/Os is within some maximum allowed range, e.g. [0.65, 1]
+    
+    Args:
+        pano1_wd: W/D/O object for panorama 1.
+        pano2_wd: W/D/O object for panorama 2.
+        use_inferred_wdos_layout: whether to use looser requirements (GT should be closer to true width.)
+
+    Returns:
+        is_valid: whether the match is plausible, given the relative W/D/O widths.
+        width_ratio: w_min/w_max, where w_min=min(w1,w2) and w_max=max(w1,w2)
+    """
+    min_width = min(pano1_wd.width, pano2_wd.width)
+    max_width = max(pano1_wd.width, pano2_wd.width)
+    width_ratio = min_width / max_width
+
+    # pano1_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano1_wd)
+    # pano2_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano2_wd)
+
+    min_allowed_wdo_width_ratio = MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO if use_inferred_wdos_layout else MIN_ALLOWED_GT_WDO_WIDTH_RATIO
+
+    is_valid = width_ratio >= min_allowed_wdo_width_ratio  # should be in [0.65, 1.0] for inferred WDO
+    return is_valid, width_ratio
+
+
 def export_single_building_wdo_alignment_hypotheses(
     hypotheses_save_root: str,
     building_id: str,
-    pano_dir: str,
     json_annot_fpath: str,
     raw_dataset_dir: str,
     use_inferred_wdos_layout: bool,
@@ -664,11 +677,11 @@ def export_single_building_wdo_alignment_hypotheses(
     Args:
         hypotheses_save_root: base directory where alignment hypotheses will be saved
         building_id:
-        pano_dir:
-        json_annot_fpath:
+        json_annot_fpath: path to GT data for this building (contained in "zind_data.json")
+        raw_dataset_dir:
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
     """
-    verbose = False
+    verbose = True
 
     if use_inferred_wdos_layout:
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
@@ -710,7 +723,6 @@ def export_single_building_wdo_alignment_hypotheses(
 
         pano_ids = sorted(list(pano_dict.keys()))
         for i1 in pano_ids:
-
             for i2 in pano_ids:
 
                 # compute only upper diagonal, since symmetric
@@ -718,7 +730,7 @@ def export_single_building_wdo_alignment_hypotheses(
                     continue
 
                 if (building_id == "0006") and (i1 == 7 or i2 == 7):
-                    # annotation error for pano 7?
+                    # annotation error for pano 7, in ZinD.
                     continue
 
                 if i1 % 1000 == 0:
@@ -735,14 +747,19 @@ def export_single_building_wdo_alignment_hypotheses(
                             pano_dict_inferred[i1],
                             pano_dict_inferred[i2],
                             use_inferred_wdos_layout=use_inferred_wdos_layout,
+                            transform_type=AlignTransformType.SE2
                         )
                     else:
                         possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
-                            pano_dict[i1], pano_dict[i2], use_inferred_wdos_layout=use_inferred_wdos_layout
+                            pano_dict[i1], pano_dict[i2],
+                            use_inferred_wdos_layout=use_inferred_wdos_layout,
+                            transform_type=AlignTransformType.SE2
                         )
                 except Exception:
                     logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
                     continue
+
+                import pdb; pdb.set_trace()
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
@@ -760,7 +777,6 @@ def export_single_building_wdo_alignment_hypotheses(
                         pdb.set_trace()
 
                 # TODO: estimate how often an inferred opening can provide the correct relative pose.
-                # TODO: make sure wide door cannot fid narrow door (e.g. 2x width not allowed)
 
                 # remove redundant transformations
                 pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
@@ -800,6 +816,7 @@ def export_single_building_wdo_alignment_hypotheses(
 
                 # such as (14,15) from building 000, floor 01, where doors are separated incorrectly in GT
                 if not GT_valid:
+
                     # logger.warning(
                     #     f"\tGT invalid for Building {building_id}, Floor {floor_id}: ({i1},{i2}): {i2Ti1_gt} vs. {[i1Ti1 for i1Ti1 in pruned_possible_alignment_info]}"
                     # )
@@ -818,19 +835,10 @@ def export_single_building_wdo_alignment_hypotheses(
 def export_alignment_hypotheses_to_json(
     num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str, use_inferred_wdos_layout: bool
 ) -> None:
-    """
-    Questions: what is tour_data_mapping.json? -> for internal people, GUIDs to production people
-    Last edge of polygon (to close it) is not provided -- right??
+    """Use multiprocessing to dump alignment hypotheses for all buildings to JSON.
+
+    To confirm: Last edge of polygon (to close it) is not provided -- right??
     are all polygons closed? or just polylines?
-
-    Sim(2)
-
-    s(Rp + t)  -> Sim(2)
-    sRp + t -> ICP (Zillow)
-
-    sRp + st
-
-    Maybe compose with other Sim(2)
 
     Args:
         num_processes
@@ -845,18 +853,14 @@ def export_alignment_hypotheses_to_json(
 
     for building_id in building_ids:
 
-        # if building_id in ["0003","0006","0034"]:
-        #     continue
-
-        # if building_id not in ['0767', '0712', '0711', '0706', '0613',  '0757']:#, '0654', '0560', '0544']:#, '0654', '0613', '0560', '0757', '0544']: #0246"]: #, "001", "002"]: #'1635']: #, '1584', '1583', '1578', '1530', '1490', '1442', '1626', '1427', '1394']:
-        #     continue
+        if building_id in ["0000","0001","0002"]:
+            continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
-        pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
         args += [
-            (hypotheses_save_root, building_id, pano_dir, json_annot_fpath, raw_dataset_dir, use_inferred_wdos_layout)
+            (hypotheses_save_root, building_id, json_annot_fpath, raw_dataset_dir, use_inferred_wdos_layout)
         ]
 
     if num_processes > 1:
@@ -872,12 +876,8 @@ if __name__ == "__main__":
     use_inferred_wdos_layout = False
 
     # teaser file
-    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # raw_dataset_dir = "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
-    # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     ##raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
