@@ -693,7 +693,7 @@ def export_single_building_wdo_alignment_hypotheses(
         hypotheses_save_root: base directory where alignment hypotheses will be saved
         building_id:
         json_annot_fpath: path to GT data for this building (contained in "zind_data.json")
-        raw_dataset_dir:
+        raw_dataset_dir: path to ZinD dataset.
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
     """
     verbose = False
@@ -855,8 +855,8 @@ def export_alignment_hypotheses_to_json(
     are all polygons closed? or just polylines?
 
     Args:
-        num_processes
-        raw_dataset_dir
+        num_processes: number of processes to use for parallel alignment generation.
+        raw_dataset_dir: path to ZinD dataset.
         hypotheses_save_root
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
     """
