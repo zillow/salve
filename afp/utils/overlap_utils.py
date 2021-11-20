@@ -387,10 +387,12 @@ def test_determine_invalid_wall_overlap2() -> None:
 
 
 def test_determine_invalid_wall_overlap3() -> None:
-    """ """
-    # TODO: determine why this was considered valid for Building "0003" and panos (0.7)
-    # "opening_0_7___step3_identity_2_0.jpg"
+    """
+    panos (0,8) below. similar to 
 
+    TODO: determine why this was considered valid for Building "0003" and panos (0.7)
+    "opening_0_7___step3_identity_2_0.jpg".
+    """
     pano1_id = 0
     pano2_id = 8
     i = 2
