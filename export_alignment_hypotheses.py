@@ -130,7 +130,16 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
 
 
 def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2, wdo_alignment_object: str) -> bool:
-    """ """
+    """Check if two rigid body transformations are equal up to a tolerance.
+
+    Args:
+        i2Ti1:
+        i2Ti1_:
+        wdo_alignment_object
+
+    Returns:
+        boolean indicating whether the two input transformations are equal up to a tolerance.
+    """
     angle1 = i2Ti1.theta_deg
     angle2 = i2Ti1_.theta_deg
 
@@ -445,7 +454,7 @@ def align_rooms_by_wd(
     pano2_obj: PanoData,
     transform_type: AlignTransformType,
     use_inferred_wdos_layout: bool,
-    visualize: bool = True,
+    visualize: bool = False,
 ) -> Tuple[List[AlignmentHypothesis], int]:
     """Compute alignment between two panoramas by computing the transformation between a window-window, door-door, or opening-opening object.
 
@@ -460,7 +469,7 @@ def align_rooms_by_wd(
         possible_alignment_info: list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
         num_invalid_configurations: number of alignment configurations that were rejected, because of freespace penetration by aligned walls.
     """
-    verbose = True
+    verbose = False
 
     pano1_id = pano1_obj.id
     pano2_id = pano2_obj.id
@@ -687,7 +696,7 @@ def export_single_building_wdo_alignment_hypotheses(
         raw_dataset_dir:
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
     """
-    verbose = True
+    verbose = False
 
     if use_inferred_wdos_layout:
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
@@ -765,10 +774,6 @@ def export_single_building_wdo_alignment_hypotheses(
                 except Exception:
                     logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
                     continue
-
-                import pdb
-
-                pdb.set_trace()
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
@@ -862,9 +867,6 @@ def export_alignment_hypotheses_to_json(
 
     for building_id in building_ids:
 
-        if building_id in ["0000", "0001", "0002"]:
-            continue
-
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
@@ -886,9 +888,9 @@ if __name__ == "__main__":
     # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     ##raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
-    # raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
@@ -906,15 +908,15 @@ if __name__ == "__main__":
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_cosine_uncertainty"
     ##hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
     # hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    hypotheses_save_root = (
-        "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_17_SE2_width_thresh0.65"
-    )
+    # hypotheses_save_root = (
+    #     "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    # )
+    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
 
-    num_processes = 1
+    num_processes = 32
 
     export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root, use_inferred_wdos_layout)
 
     # test_reflections_2()
-    # test_get_relative_angle()
     # test_align_rooms_by_wd()
     # test_prune_to_unique_sim2_objs()
