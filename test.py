@@ -321,11 +321,11 @@ if __name__ == "__main__":
     # config_fpath = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_25_14_31_23/2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
     # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
 
-    # # # ResNet-152, floor and ceiling, RGB only, 435 tours, (predicted WDO), low-res
-    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16"
-    config_fpath = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16/2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
-    serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
+    # # # # ResNet-152, floor and ceiling, RGB only, 435 tours, (predicted WDO), low-res
+    # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16"
+    # config_fpath = "/data/johnlam/ZinD_trained_models_2021_10_22/2021_10_26_16_23_16/2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    # serialization_save_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
 
     # # ResNet-152, ceiling only, RGB only, 587 tours, (predicted-WDO), low-res
     # model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_04/2021_11_04_10_01_06"
@@ -363,6 +363,11 @@ if __name__ == "__main__":
     # serialization_save_dir = (
     #     "/data/johnlam/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test109buildings_2021_11_16"
     # )
+
+    # # # ResNet-152, floor and ceiling, RGB only, 587 tours, (predicted WDO), low-res, with equal data now as floor-only or ceiling only
+    model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_09/2021_11_19_21_42_11"
+    config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_09/2021_11_19_21_42_11/2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    serialization_save_dir = "/data/johnlam/2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23"
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
