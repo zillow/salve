@@ -349,7 +349,6 @@ if __name__ == "__main__":
 
     render_modalities = ["rgb_texture"] # ["layout"]
 
-    # render_dataset(bev_save_root, raw_dataset_dir)
     render_pairs(
         num_processes=num_processes,
         depth_save_root=depth_save_root,
