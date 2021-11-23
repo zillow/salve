@@ -240,7 +240,7 @@ def render_pairs(
     for building_id in building_ids:
 
         # for rendering test data only
-        if building_id not in DATASET_SPLITS["train"]:
+        if building_id not in DATASET_SPLITS["test"]:
             continue
 
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
@@ -279,7 +279,7 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 10
+    num_processes = 15
 
     # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
