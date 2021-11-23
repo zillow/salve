@@ -390,7 +390,7 @@ if __name__ == "__main__":
     args.workers = 10
 
     split = "test"
-    save_viz = True
+    save_viz = False
     evaluate_model(serialization_save_dir, ckpt_fpath, args, split, save_viz)
 
     train_results_json = json_utils.read_json_file(train_results_fpath)
