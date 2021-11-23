@@ -631,6 +631,7 @@ def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
 
     pt_pairs_i2i1 = Point3Pairs(pt_pairs_i2i1)
     i2Si1 = Similarity3.Align(abPointPairs=pt_pairs_i2i1)
+    # TODO: we should use Pose2.Align()
 
     # project back to 2d
     i2Ri1 = i2Si1.rotation().matrix()[:2, :2]
