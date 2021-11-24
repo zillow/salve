@@ -519,15 +519,18 @@ def eval_opensfm_errors_all_tours() -> None:
 
         for floor_id in floor_ids:
 
-            # counter += 1
-            # if counter > 200:
-            #     continue
             # try:
             src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
             pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
 
             if len(pano_fpaths) == 0:
                 continue
+
+            # counter += 1
+            # if counter > 500:
+            #     continue
+
+            print(f"On New Building {new_building_id} Old Building {building_id}, {floor_id}")
 
             FLOOR_OPENSFM_DATADIR = f"{OPENSFM_REPO_ROOT}/data/ZinD_{building_id}_{floor_id}__2021_09_13"
             reconstruction_json_fpath = f"{FLOOR_OPENSFM_DATADIR}/reconstruction.json"
@@ -621,7 +624,7 @@ def main() -> None:
 
     # reconstruction_json_fpath
 
-    #eval_opensfm_errors_all_tours()
+    # eval_opensfm_errors_all_tours()
 
     eval_openmvg_errors_all_tours()
     # then analyze the mean statistics
