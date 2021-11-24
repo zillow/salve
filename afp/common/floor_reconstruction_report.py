@@ -4,17 +4,22 @@ Stores information about a floorplan reconstruction.
 
 import os
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Set, Tuple
 
 import argoverse.utils.json_utils as json_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
+import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.bev_rendering_utils as bev_rendering_utils
 import afp.utils.iou_utils as iou_utils
 from afp.common.bevparams import BEVParams
 from afp.common.posegraph2d import PoseGraph2d
+
+import afp.utils.graph_utils as graph_utils
+
+EPS = 1e-10
 
 
 @dataclass(frozen=True)
@@ -58,7 +63,7 @@ class FloorReconstructionReport:
             gt_floor_pose_graph=gt_floor_pose_graph,
             plot_save_dir=plot_save_dir,
             plot_save_fpath=plot_save_fpath,
-        )
+        ), est_floor_pose_graph
 
     @classmethod
     def from_est_floor_pose_graph(
@@ -105,6 +110,32 @@ class FloorReconstructionReport:
             plot_save_dir=plot_save_dir,
         )
 
+        render_inferred = False
+        if render_inferred:
+        # load up the inferred pose graph.
+            raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+            floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
+                query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
+            )
+            inferred_floor_pose_graph = floor_pose_graphs[gt_floor_pose_graph.floor_id]
+
+            # combine the inferred and GT pose graph elements.
+            inferred_aligned_pg = PoseGraph2d.from_aligned_est_poses_and_inferred_layouts(aligned_est_floor_pose_graph, inferred_floor_pose_graph)
+            render_floorplans_side_by_side(
+                est_floor_pose_graph=inferred_aligned_pg,
+                show_plot=False,
+                save_plot=True,
+                plot_save_dir=plot_save_dir + "_inferred",
+                gt_floor_pg=gt_floor_pose_graph,
+                plot_save_fpath=plot_save_fpath,
+            )
+
+            render_rasterized_room_clustering(
+                inferred_aligned_pg,
+                plot_save_dir=plot_save_dir + "_clustering",
+                scale_meters_per_coordinate=gt_floor_pose_graph.scale_meters_per_coordinate
+            )
+
         print()
         print()
 
@@ -116,6 +147,38 @@ class FloorReconstructionReport:
             rotation_errors=rot_errors,
             translation_errors=trans_errors
         )
+
+
+
+def render_rasterized_room_clustering(inferred_aligned_pg: PoseGraph2d, plot_save_dir: str, scale_meters_per_coordinate: float) -> None:
+    """ """
+    MAX_IOU_MERGE_THRESHOLD = 0.25
+
+    from shapely.geometry import Polygon
+    poly_dict = {i: Polygon(pano_data.room_vertices_global_2d * scale_meters_per_coordinate) for i, pano_data in inferred_aligned_pg.nodes.items()}
+
+    edges = []
+
+    # form affinity matrix
+    for i1, poly1 in poly_dict.items():
+        for i2, poly2 in poly_dict.items():
+
+            if i1 >= i2:
+                continue
+            # print(f"On {i1}, {i2}")
+
+            inter = poly1.intersection(poly2).area
+            union = poly1.union(poly2).area
+            iou = inter / (union + EPS)
+            if iou > MAX_IOU_MERGE_THRESHOLD:
+                edges += [(i1,i2)]
+
+    import pdb; pdb.set_trace()
+    # greedily cluster rooms by IoU (form adjacency matrix, and then find CCs with networkx)
+    # assign color per cluster
+    # use polygon patch with no alpha
+
+    ccs = graph_utils.find_connected_components(nodes=list(poly_dict.keys()), edges=edges)
 
 
 def serialize_predicted_pose_graph(
@@ -367,3 +430,5 @@ def test_compute_translation_errors_against_threshold() -> None:
     avg_success_rate = compute_translation_errors_against_threshold(reconstruction_reports, threshold)
     expected_avg_success_rate = np.mean([3/6, 4/5, 0/3])
     assert np.isclose(avg_success_rate, expected_avg_success_rate)
+
+
