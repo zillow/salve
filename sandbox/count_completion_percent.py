@@ -56,7 +56,7 @@ def check_negative_positive_ratio() -> None:
     """ """
     ratios = []
 
-    desired_split = "train" #  "test"
+    desired_split =  "test" # "train" # 
 
     hypotheses_save_root = (
         "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
