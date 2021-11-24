@@ -94,5 +94,5 @@ def check_negative_positive_ratio() -> None:
 
 if __name__ == "__main__":
 
-    #check_completion()
-    check_negative_positive_ratio()
+    check_completion()
+    # check_negative_positive_ratio()
