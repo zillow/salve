@@ -85,7 +85,10 @@ def check_negative_positive_ratio() -> None:
         print(f"Ratio on Building {building_id}: {ratio:.3f}")
         ratios.append(ratio)
 
+    print(f"On split {desired_split}")
     print("Average ratio: ", np.mean(ratios))
+    print("Min ratio: ", np.amin(ratios))
+    print("Max ratio: ", np.amax(ratios))
 
 
 if __name__ == "__main__":
