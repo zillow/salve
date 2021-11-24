@@ -1,6 +1,6 @@
 
 """
-There are at least 4 coordinate systems we work with in ZinD.
+There are at least 4 coordinate systems we work with in ZInD.
 We have these 4 CSs and they have different scales.
 
 1. Spherical coordinate system (we are still working on defining
@@ -44,7 +44,8 @@ def zind_intersect_cartesian_with_floor_plane(cartesian_coordinates: np.ndarray,
 
     get unit-norm rays, then scale so that y has unit norm
     """
-    return cartesian_coordinates * camera_height / cartesian_coordinates[:, 1].reshape(-1, 1)
+    y = cartesian_coordinates[:, 1]
+    return cartesian_coordinates * camera_height / y.reshape(-1, 1)
 
 
 def zind_cartesian_to_sphere(points_cart: np.ndarray) -> np.ndarray:
