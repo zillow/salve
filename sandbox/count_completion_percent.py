@@ -3,6 +3,8 @@
 import glob
 from pathlib import Path
 
+import numpy as np
+
 from afp.dataset.zind_partition import DATASET_SPLITS
 
 
