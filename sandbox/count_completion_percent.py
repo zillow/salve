@@ -58,14 +58,14 @@ def check_negative_positive_ratio() -> None:
 
     desired_split = "train" #  "test"
 
-    # hypotheses_save_root = (
-    #     "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    # )
-    # bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    hypotheses_save_root = (
+        "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    )
+    bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
     # bev_save_root = "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
 
-    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-    bev_save_root = "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    # hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    # bev_save_root = "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
 
     building_ids = [Path(d).name for d in glob.glob(f"{bev_save_root}/gt_alignment_approx/*")]
 
@@ -85,10 +85,11 @@ def check_negative_positive_ratio() -> None:
         print(f"Ratio on Building {building_id}: {ratio:.3f}")
         ratios.append(ratio)
 
+    print()
     print(f"On split {desired_split}")
-    print("Average ratio: ", np.mean(ratios))
-    print("Min ratio: ", np.amin(ratios))
-    print("Max ratio: ", np.amax(ratios))
+    print(f"Average ratio: {np.mean(ratios):.3f}")
+    print(f"Min ratio: {np.amin(ratios):.3f}")
+    print(f"Max ratio: {np.amax(ratios):.3f}")
 
 
 if __name__ == "__main__":
