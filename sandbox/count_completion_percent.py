@@ -13,11 +13,14 @@ def main() -> None:
     """ """
     desired_split = "test"
 
-    hypotheses_save_root = (
-        "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    )
-    bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    # hypotheses_save_root = (
+    #     "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    # )
+    # bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
     # bev_save_root = "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+
+    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    bev_save_root = "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
 
     building_ids = [Path(d).name for d in glob.glob(f"{bev_save_root}/gt_alignment_approx/*")]
 
