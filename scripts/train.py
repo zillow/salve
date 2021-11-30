@@ -276,31 +276,29 @@ def run_epoch(
 
 
 if __name__ == "__main__":
-    """
-    Explanation of config files:
+    """Explanation of config files:
 
-    # ResNet-50, low-res
-    # config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    ResNet-50, low-res
+        config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml
 
-    # try ResNet-152
-    # config_name = "2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    ResNet-152
+        config_name = "2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml
 
-    # ResNet-152 with just a single modality.
-    # config_name = "2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
-    # config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
+    ResNet-152 with just a single modality.
+        config_name = "2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml
+        config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml
 
-    # ResNet-152 trained again with equal amount of data as single modality
-    #config_name = "2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    ResNet-152 trained again with equal amount of data as single modality
+        config_name = "2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml
 
-    # ResNet-152 with Layout Only
-    # config_name = "2021_11_10_resnet152_layoutonly.yaml"
+    ResNet-152 with Layout Only
+        config_name = "2021_11_10_resnet152_layoutonly.yaml
 
-    # ResNet-152 w/ GT WDO and GT layout.
-    #config_name = "2021_11_23_resnet152_ceiling_floor_rgbonly_GT_WDO_no_photometric_augment.yaml"
+    ResNet-152 w/ GT WDO and GT layout.
+        config_name = "2021_11_23_resnet152_ceiling_floor_rgbonly_GT_WDO_no_photometric_augment.yaml
 
-    # ResNet-152 w/ GT WDO and GT layout, and more data.
-    config_name = "2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml"
-
+    ResNet-152 w/ GT WDO and GT layout, and more data.
+        2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
