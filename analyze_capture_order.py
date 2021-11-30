@@ -1,5 +1,7 @@
 
+"""Measure how often spatially adjacent cameras are temporally adjacent in capture order."""
 
+import argparse
 import glob
 from collections import defaultdict
 from pathlib import Path
@@ -8,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def main(hypotheses_save_root):
+def main(hypotheses_save_root: str) -> None:
 	""" """
 	traj_distance_dict = defaultdict(list)
 
@@ -25,8 +27,6 @@ def main(hypotheses_save_root):
 			for label_type in ["gt_alignment_approx", "gt_alignment_exact", "incorrect_alignment"]: # 
 
 				json_fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_type}/*.json")
-				#import pdb; pdb.set_trace()
-
 				for json_fpath in json_fpaths:
 					i, j = Path(json_fpath).stem.split('_')[:2]
 					i, j = int(i), int(j)
@@ -48,7 +48,12 @@ def main(hypotheses_save_root):
 
 if __name__ == "__main__":
 
-	#hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-	hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-
-	main(hypotheses_save_root)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--hypotheses_save_root",
+    	type=str,
+    	# default="/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
+    	default="/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3",
+    	help="dirpath to ."
+    )
+    args = parser.parse_args()
+	main(args.hypotheses_save_root)
