@@ -903,9 +903,12 @@ if __name__ == "__main__":
     - locally: /Users/johnlam/Downloads/zind_bridgeapi_2021_10_05
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_processes", type=int, default=32,
-        help="Number of processes to use for parallel generation of alignment hypotheses. " \
-        "Each worker processes one building at a time."
+    parser.add_argument(
+        "--num_processes",
+        type=int,
+        default=32,
+        help="Number of processes to use for parallel generation of alignment hypotheses. "
+        "Each worker processes one building at a time.",
     )
     parser.add_argument(
         "--raw_dataset_dir",
@@ -913,7 +916,7 @@ if __name__ == "__main__":
         # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
         # "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
         default="/home/johnlam/zind_bridgeapi_2021_10_05",
-        help="where ZInD dataset is stored on disk (after download from Bridge API)"
+        help="where ZInD dataset is stored on disk (after download from Bridge API)",
     )
     parser.add_argument(
         "--hypotheses_save_root",
@@ -921,12 +924,14 @@ if __name__ == "__main__":
         # "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
         # "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
         default="/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
-        help="where JSON files with alignment hypotheses will be saved to."
+        help="where JSON files with alignment hypotheses will be saved to.",
     )
     args = parser.parse_args()
     use_inferred_wdos_layout = False
 
-    export_alignment_hypotheses_to_json(args.num_processes, args.raw_dataset_dir, args.hypotheses_save_root, use_inferred_wdos_layout)
+    export_alignment_hypotheses_to_json(
+        args.num_processes, args.raw_dataset_dir, args.hypotheses_save_root, use_inferred_wdos_layout
+    )
 
     # test_reflections_2()
     # test_align_rooms_by_wd()
