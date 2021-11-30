@@ -283,7 +283,7 @@ class PanoData:
 
         if coord_frame == "worldmetric":
             if scale_meters_per_coordinate is None:
-                print("Failure: need scale as arg to convert to meters.")
+                print("Failure: need scale as arg to convert to meters. Skipping rendering...")
                 return
             else:
                 room_vertices *= scale_meters_per_coordinate
