@@ -6,7 +6,7 @@ import argoverse.utils.json_utils as json_utils
 import numpy as np
 
 
-def main() -> None:
+def main(data_root: str) -> None:
     """
     Measured over 2453 scales from 1575 JSON files.
     Min:  2.344799085543489
@@ -16,7 +16,6 @@ def main() -> None:
     """
     all_valid_scales = []
 
-    data_root = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     gt_fpaths = glob.glob(f"{data_root}/**/zind_data.json")
     for gt_fpath in gt_fpaths:
         building_data = json_utils.read_json_file(gt_fpath)
@@ -38,4 +37,13 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--data_root",
+        type=str,
+        default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05",
+        help="dirpath to downloaded ZInD dataset.",
+    )
+    args = parser.parse_args()
+    main(args.data_root)
