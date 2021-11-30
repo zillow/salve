@@ -933,6 +933,5 @@ if __name__ == "__main__":
         args.num_processes, args.raw_dataset_dir, args.hypotheses_save_root, use_inferred_wdos_layout
     )
 
-    # test_reflections_2()
     # test_align_rooms_by_wd()
     # test_prune_to_unique_sim2_objs()
