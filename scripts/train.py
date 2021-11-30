@@ -11,7 +11,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Dict
+from typing import Dict, List
 
 import argoverse.utils.datetime_utils as datetime_utils
 import argoverse.utils.json_utils as json_utils
@@ -113,6 +113,47 @@ def main(args) -> None:
         logging.info("Results on crit stat: " + str([f"{v:.3f}" for v in results_dict[crit_acc_stat]]))
 
 
+def visualize_unnormalized_examples(x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor, x4: torch.Tensor, is_match: torch.Tensor, fp0: List[str], fp1: List[str]) -> None:
+    """Purely for debugging input to the network"""
+
+    # TODO(johnwlambert): verify the type of fp0 and fp1
+
+    import matplotlib.pyplot as plt
+    import mseg_semantic.utils.normalization_utils as normalization_utils
+
+    for k in range(n):
+        plt.figure(figsize=(10,5))
+        mean, std = normalization_utils.get_imagenet_mean_std()
+
+        train_utils.unnormalize_img(x1[k].cpu(), mean, std)
+        train_utils.unnormalize_img(x2[k].cpu(), mean, std)
+
+        plt.subplot(2,2,1)
+        plt.imshow(x1[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+        plt.subplot(2,2,2)
+        plt.imshow(x2[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+        if x3 is not None:
+            unnormalize_img(x3[k].cpu(), mean, std)
+            unnormalize_img(x4[k].cpu(), mean, std)
+
+            plt.subplot(2,2,3)
+            plt.imshow(x3[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+            plt.subplot(2,2,4)
+            plt.imshow(x4[k].numpy().transpose(1,2,0).astype(np.uint8))
+
+        plt.title("Is match" + str(is_match[k].numpy().item()))
+
+        print(fp0[k])
+        print(fp1[k])
+        print()
+
+        plt.show()
+        plt.close("all")
+
+
 def run_epoch(
     args, epoch: int, model, data_loader: torch.utils.data.DataLoader, optimizer: torch.optim.Optimizer, split: str
 ) -> Dict[str, float]:
@@ -151,44 +192,9 @@ def run_epoch(
 
         n = x1.size(0)
 
-        """
-        # debug routines
-        for k in range(n):
-            import matplotlib.pyplot as plt
-            from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
-            from train_utils import unnormalize_img
-
-            plt.figure(figsize=(10,5))
-            mean, std = get_imagenet_mean_std()
-
-            unnormalize_img(x1[k].cpu(), mean, std)
-            unnormalize_img(x2[k].cpu(), mean, std)
-
-            plt.subplot(2,2,1)
-            plt.imshow(x1[k].numpy().transpose(1,2,0).astype(np.uint8))
-
-            plt.subplot(2,2,2)
-            plt.imshow(x2[k].numpy().transpose(1,2,0).astype(np.uint8))
-
-            if x3 is not None:
-                unnormalize_img(x3[k].cpu(), mean, std)
-                unnormalize_img(x4[k].cpu(), mean, std)
-
-                plt.subplot(2,2,3)
-                plt.imshow(x3[k].numpy().transpose(1,2,0).astype(np.uint8))
-
-                plt.subplot(2,2,4)
-                plt.imshow(x4[k].numpy().transpose(1,2,0).astype(np.uint8))
-
-            plt.title("Is match" + str(is_match[k].numpy().item()))
-
-            print(fp0[k])
-            print(fp1[k])
-            print()
-
-            plt.show()
-            plt.close("all")
-        """
+        debug = False
+        if debug:
+            visualize_unnormalized_examples(x1, x2, x3, x4, is_match, fp0, fp1)
 
         if torch.cuda.is_available():
             x1 = x1.cuda(non_blocking=True)
