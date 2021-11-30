@@ -90,7 +90,7 @@ python run_sfm.py
 ## Training a model
 
 ```bash
-python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST}
+python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST} --config_name {FILE NAME OF YAML CONFIG under afp/configs/}
 ```
 
 ## TODOs:
