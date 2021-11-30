@@ -55,9 +55,15 @@ pip install -e .
 
 ## Running Reconstruction
 
+Download and unzip the Madori-V1 HorizonNet predictions:
+```bash
+
+```
+
 Run SALVe model inference by first generating alignment hypotheses:
 ```bash
-python scripts/export_alignment_hypotheses.py
+python scripts/export_alignment_hypotheses.py --num_processes {NUM. DESIRED PROCS.} \
+    --raw_dataset_dir {PATH TO ZIND} --hypotheses_save_root {DIRECTORY WHERE TO DUMP OUTPUT}
 ```
 
 Run HoHoNet inference and render BEV images:
@@ -86,3 +92,9 @@ python run_sfm.py
 ```bash
 python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST}
 ```
+
+## TODOs:
+
+- Maybe use different schema for Madori-V1 files.
+- Find missing Madori-V1.
+- 
