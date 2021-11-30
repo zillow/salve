@@ -59,6 +59,12 @@ Run SALVe model inference by first generating alignment hypotheses:
 ```bash
 python scripts/export_alignment_hypotheses.py
 ```
+
+Run HoHoNet inference and render BEV images:
+```bash
+python scripts/render_dataset_bev.py
+```
+
 and then sending them to the model for scoring:
 ```bash
 python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST}
