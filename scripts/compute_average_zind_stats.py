@@ -1,5 +1,6 @@
 """Measure the average scaling factor to convert from world-normalized Cartesian to world-metric Cartesian."""
 
+import argparse
 import glob
 
 import argoverse.utils.json_utils as json_utils
