@@ -58,7 +58,7 @@ pip install -e .
 
 Run SALVe model inference by:
 ```bash
-python scripts/test.py
+python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST}
 ```
 
 Now, pass the front-end measurements to SfM:
@@ -75,5 +75,5 @@ python run_sfm.py
 ## Training a model
 
 ```bash
-python scripts/train.py
+python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST}
 ```
