@@ -114,7 +114,10 @@ def main(args) -> None:
 
 
 def visualize_unnormalized_examples(x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor, x4: torch.Tensor, is_match: torch.Tensor, fp0: List[str], fp1: List[str]) -> None:
-    """Purely for debugging input to the network"""
+    """Visualize training examples right before the forward pass through the network.
+
+    Note: Purely for debugging input to the network
+    """
 
     # TODO(johnwlambert): verify the type of fp0 and fp1
 
