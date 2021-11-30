@@ -1,4 +1,3 @@
-
 """Generate visualizations of annotated floorplans and camera poses in a bird's eye view."""
 
 import argparse
@@ -16,7 +15,9 @@ import afp.common.posegraph2d as posegraph2d
 from afp.common.pano_data import PanoData, FloorData
 
 
-def render_building(building_id: str, pano_dir: str, json_annot_fpath: str, viz_save_dir: str, raw_dataset_dir: str) -> None:
+def render_building(
+    building_id: str, pano_dir: str, json_annot_fpath: str, viz_save_dir: str, raw_dataset_dir: str
+) -> None:
     """For a single building, render each floor.
 
     floor_map_json has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'
@@ -43,7 +44,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str, viz_
                 coord_frame="worldmetric",
                 wdo_objs_seen_on_floor=wdo_objs_seen_on_floor,
                 show_plot=False,
-                scale_meters_per_coordinate=gt_floor_pose_graph.scale_meters_per_coordinate
+                scale_meters_per_coordinate=gt_floor_pose_graph.scale_meters_per_coordinate,
             )
 
         plt.legend(loc="upper right")
@@ -79,9 +80,13 @@ def export_pano_visualizations(raw_dataset_dir: str, viz_save_dir: str) -> None:
         print(f"Render floor maps for {building_id}")
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-        render_building(building_id=building_id, pano_dir=pano_dir, json_annot_fpath=json_annot_fpath, 
-            viz_save_dir=viz_save_dir, raw_dataset_dir=raw_dataset_dir
-            )
+        render_building(
+            building_id=building_id,
+            pano_dir=pano_dir,
+            json_annot_fpath=json_annot_fpath,
+            viz_save_dir=viz_save_dir,
+            raw_dataset_dir=raw_dataset_dir,
+        )
 
 
 if __name__ == "__main__":
