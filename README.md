@@ -53,3 +53,16 @@ pip install -e .
 - We use Facebook's `hydra` library for configuration files.
 - We use the [`rdp`](https://github.com/fhirschmann/rdp) library for polygon simplification.
 
+## Running Reconstruction
+
+
+Run SALVe model inference by:
+```bash
+python scripts/test.py
+```
+
+Now, pass the front-end measurements to SfM:
+```
+python run_sfm.py
+```
+
