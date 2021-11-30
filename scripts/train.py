@@ -259,19 +259,10 @@ def run_epoch(
 
 
 if __name__ == "__main__":
+    """
+    Explanation of config files:
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
-    opts = parser.parse_args()
-
-    # config_name = "2021_06_26_08_38_09__resnet18_floor_ceiling_rgbonly.yaml"
-    # config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly.yaml"
-    # config_name = "2021_06_28_resnet50_ceiling_floor_rgbonly_debug.yaml"
-    # config_name = "2021_07_23_resnet50_ceiling_floor_rgbonly_photometric_augment.yaml"
-    # "2021_07_24_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
-    # config_name = "2021_08_03_resnet50_ceiling_floor_layout.yaml"
-    # config_name = "2021_08_06_resnet50_ceiling_floor_layout.yaml"
-    # config_name = "2021_10_18_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
+    # ResNet-50, low-res
     # config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml"
 
     # try ResNet-152
@@ -293,15 +284,21 @@ if __name__ == "__main__":
     # ResNet-152 w/ GT WDO and GT layout, and more data.
     config_name = "2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml"
 
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
+    parser.add_argument("--config_name", type=str, required=True, help="File name of config file (not file path!). Should end in .yaml")
+    opts = parser.parse_args()
+
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the afp module
-        cfg = hydra.compose(config_name=config_name)
+        cfg = hydra.compose(config_name=opts.config_name)
         args = instantiate(cfg.TrainingConfig)
 
     # always take from the command line
     args.gpu_ids = opts.gpu_ids
     if not args.cfg_stem:
-        args.cfg_stem = Path(config_name).stem
+        args.cfg_stem = Path(opts.config_name).stem
 
     print("Using GPUs ", args.gpu_ids)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
