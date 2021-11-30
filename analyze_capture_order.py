@@ -10,7 +10,12 @@ import numpy as np
 
 
 def main(hypotheses_save_root: str) -> None:
-    """ """
+    """For 3 types of generated hypotheses, make a histogram of temporal distance (i.e. capture order).
+
+	- GT relative pose from annotated global poses.
+	- Relative pose from W/D/O (under threshold)
+	- Relative pose from W/D/O (over threshold)
+    """
     traj_distance_dict = defaultdict(list)
 
     # by distance within the capture trajectory
