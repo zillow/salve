@@ -1,11 +1,15 @@
+
+"""Generate visualizations of annotated floorplans and camera poses in a bird's eye view."""
+
+import argparse
 import glob
 import os
 from pathlib import Path
 from typing import Optional, Set
 
+import argoverse.utils.json_utils as json_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
 
 from afp.common.pano_data import PanoData, FloorData
@@ -17,7 +21,7 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
     """
     FLOORPLANS_OUTPUT_DIR = "/Users/johnlam/Downloads/ZinD_Vis_2021_07_13"
 
-    floor_map_json = read_json_file(json_annot_fpath)
+    floor_map_json = json_utils.read_json_file(json_annot_fpath)
 
     if "merger" not in floor_map_json:
         print(f"Building {building_id} missing `merger` data, skipping...")
@@ -72,23 +76,6 @@ def export_pano_visualizations(raw_dataset_dir: str) -> None:
 
     for building_id in building_ids:
 
-        if building_id not in [
-            "1530",
-            "1442",
-            "1482",
-            "1490",
-            "1441",
-            "1427",
-            "1634",
-            "1635",
-            "1626",
-            "1584",
-            "1578",
-            "1583",
-            "1394",
-        ]:  # != '000': # '1442':
-            continue
-
         print(f"Render floor maps for {building_id}")
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zfm_data.json"
         pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
@@ -97,6 +84,12 @@ def export_pano_visualizations(raw_dataset_dir: str) -> None:
 
 if __name__ == "__main__":
     """ """
-    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    export_pano_visualizations(raw_dataset_dir)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--raw_dataset_dir",
+        type=str,
+        default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05",
+        help="dirpath to downloaded ZInD dataset.",
+    )
+    args = parser.parse_args()
+    export_pano_visualizations(args.raw_dataset_dir)
