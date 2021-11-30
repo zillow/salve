@@ -1,4 +1,6 @@
 
+"""Stores hyperparameters for training a model (for a single experiment)."""
+
 from dataclasses import dataclass
 
 @dataclass(frozen=False)
