@@ -1,5 +1,4 @@
-"""
-"""
+"""Run SALVe model inference."""
 
 import argparse
 import glob
@@ -16,7 +15,7 @@ import seaborn as sns
 import torch
 import torch.backends.cudnn as cudnn
 from hydra.utils import instantiate
-from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
+import mseg_semantic.utils.normalization_utils as normalization_utils
 from mseg_semantic.utils.avg_meter import SegmentationAverageMeter
 from torch import nn
 
@@ -206,7 +205,7 @@ def visualize_examples(
         fig = plt.figure(figsize=(10, 5))
         # gs1 = gridspec.GridSpec(ncols=2, nrows=2)
         # gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes.
-        mean, std = get_imagenet_mean_std()
+        mean, std = normalization_utils.get_imagenet_mean_std()
 
         for i, x in zip(range(4), [x1, x2, x3, x4]):
             train_utils.unnormalize_img(x[j], mean, std)
