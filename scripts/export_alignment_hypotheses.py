@@ -1,5 +1,7 @@
 """
-The alignment generation method here is based upon Cohen 2016.
+Utility to generate potential relative poses by exhaustive pairwise W/D/O alignments.
+
+The alignment generation method here is based upon Cohen et al. 2016.
 
 Window-Window correspondences must be established. Have to find all possible pairwise choices. ICP is not required,
 since we can know correspondences between W/D/O vertices.
