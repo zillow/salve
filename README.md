@@ -62,7 +62,18 @@ python scripts/test.py
 ```
 
 Now, pass the front-end measurements to SfM:
-```
+```bash
 python run_sfm.py
 ```
 
+## Pretrained Models
+
+- Custom HorizonNet W/D/O & Layout w/ photometric info:
+- Rasterized layout only:
+- GT WDO:
+
+## Training a model
+
+```bash
+python scripts/train.py
+```
