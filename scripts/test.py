@@ -21,7 +21,7 @@ from mseg_semantic.utils.avg_meter import SegmentationAverageMeter
 from torch import nn
 
 import afp.utils.pr_utils as pr_utils
-import train_utils as train_utils
+import afp.train_utils as train_utils
 from afp.training_config import TrainingConfig
 from afp.utils.logger_utils import get_logger
 

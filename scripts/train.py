@@ -23,8 +23,7 @@ from hydra.utils import instantiate
 from mseg_semantic.utils.avg_meter import AverageMeter, SegmentationAverageMeter
 
 import afp.utils.logger_utils as logger_utils
-import train_utils as train_utils
-from train_utils import load_model_checkpoint
+import afp.train_utils as train_utils
 
 # logger = logger_utils.get_logger()
 
@@ -52,7 +51,7 @@ def main(args) -> None:
     model = train_utils.get_model(args)
     optimizer = train_utils.get_optimizer(args, model)
 
-    # model = load_model_checkpoint(
+    # model = train_utils.load_model_checkpoint(
     #     ckpt_fpath="/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/train_ckpt.pth",
     #     model=model,
     #     args=args
