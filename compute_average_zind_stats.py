@@ -1,4 +1,3 @@
-
 """Measure the average scaling factor to convert from world-normalized Cartesian to world-metric Cartesian."""
 
 import glob
@@ -22,7 +21,7 @@ def main() -> None:
     for gt_fpath in gt_fpaths:
         building_data = json_utils.read_json_file(gt_fpath)
 
-        scales_dict = building_data['scale_meters_per_coordinate']
+        scales_dict = building_data["scale_meters_per_coordinate"]
 
         valid_scales = [v for v in scales_dict.values() if v is not None]
 
@@ -33,8 +32,9 @@ def main() -> None:
     print("Mean: ", np.mean(all_valid_scales))
     print("Median: ", np.median(all_valid_scales))
     print("Max: ", np.amax(all_valid_scales))
-    import pdb; pdb.set_trace()
+    import pdb
 
+    pdb.set_trace()
 
 
 if __name__ == "__main__":
