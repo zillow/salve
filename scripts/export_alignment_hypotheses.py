@@ -27,6 +27,7 @@ conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=10
 No shared texture between (0,75) -- yet doors align it (garage to kitchen)
 """
 
+import argparse
 import glob
 import os
 from collections import defaultdict
@@ -881,41 +882,49 @@ def export_alignment_hypotheses_to_json(
 
 
 if __name__ == "__main__":
-    """ """
+    """
+    Alignment hypotheses have been saved to the following locations:
+
+    On se1-001:
+    - from Predicted WDO + Predicted Layout:
+        /home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
+    - from GT WDO + GT Layout:
+        /home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8
+
+    Locally:
+    - from GT WDO + GT Layout:
+        /Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8
+
+    ZInD is stored in the following locations:
+    - DGX: /mnt/data/johnlam/zind_bridgeapi_2021_10_05
+    - se1-001: /home/johnlam/zind_bridgeapi_2021_10_05
+    - locally: /Users/johnlam/Downloads/zind_bridgeapi_2021_10_05
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_processes", type=int, default=32,
+        help="Number of processes to use for parallel generation of alignment hypotheses. " \
+        "Each worker processes one building at a time."
+    )
+    parser.add_argument(
+        "--raw_dataset_dir",
+        type=str,
+        # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
+        # "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+        default="/home/johnlam/zind_bridgeapi_2021_10_05",
+        help="where ZInD dataset is stored on disk (after download from Bridge API)"
+    )
+    parser.add_argument(
+        "--hypotheses_save_root",
+        type=str,
+        # "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+        # "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+        default="/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
+        help="where JSON files with alignment hypotheses will be saved to."
+    )
+    args = parser.parse_args()
     use_inferred_wdos_layout = False
 
-    # teaser file
-    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-
-    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    ##raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
-
-    # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_22_find_missing_alignments"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_31_SE2"
-
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_cosine_uncertainty"
-    ##hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
-    # hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    # hypotheses_save_root = (
-    #     "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-    # )
-    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-
-    num_processes = 32
-
-    export_alignment_hypotheses_to_json(num_processes, raw_dataset_dir, hypotheses_save_root, use_inferred_wdos_layout)
+    export_alignment_hypotheses_to_json(args.num_processes, args.raw_dataset_dir, args.hypotheses_save_root, use_inferred_wdos_layout)
 
     # test_reflections_2()
     # test_align_rooms_by_wd()
