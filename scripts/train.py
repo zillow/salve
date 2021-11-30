@@ -113,7 +113,15 @@ def main(args) -> None:
         logging.info("Results on crit stat: " + str([f"{v:.3f}" for v in results_dict[crit_acc_stat]]))
 
 
-def visualize_unnormalized_examples(x1: torch.Tensor, x2: torch.Tensor, x3: torch.Tensor, x4: torch.Tensor, is_match: torch.Tensor, fp0: List[str], fp1: List[str]) -> None:
+def visualize_unnormalized_examples(
+    x1: torch.Tensor,
+    x2: torch.Tensor,
+    x3: torch.Tensor,
+    x4: torch.Tensor,
+    is_match: torch.Tensor,
+    fp0: List[str],
+    fp1: List[str],
+) -> None:
     """Visualize training examples right before the forward pass through the network.
 
     Note: Purely for debugging input to the network
@@ -125,27 +133,27 @@ def visualize_unnormalized_examples(x1: torch.Tensor, x2: torch.Tensor, x3: torc
     import mseg_semantic.utils.normalization_utils as normalization_utils
 
     for k in range(n):
-        plt.figure(figsize=(10,5))
+        plt.figure(figsize=(10, 5))
         mean, std = normalization_utils.get_imagenet_mean_std()
 
         train_utils.unnormalize_img(x1[k].cpu(), mean, std)
         train_utils.unnormalize_img(x2[k].cpu(), mean, std)
 
-        plt.subplot(2,2,1)
-        plt.imshow(x1[k].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.subplot(2, 2, 1)
+        plt.imshow(x1[k].numpy().transpose(1, 2, 0).astype(np.uint8))
 
-        plt.subplot(2,2,2)
-        plt.imshow(x2[k].numpy().transpose(1,2,0).astype(np.uint8))
+        plt.subplot(2, 2, 2)
+        plt.imshow(x2[k].numpy().transpose(1, 2, 0).astype(np.uint8))
 
         if x3 is not None:
             unnormalize_img(x3[k].cpu(), mean, std)
             unnormalize_img(x4[k].cpu(), mean, std)
 
-            plt.subplot(2,2,3)
-            plt.imshow(x3[k].numpy().transpose(1,2,0).astype(np.uint8))
+            plt.subplot(2, 2, 3)
+            plt.imshow(x3[k].numpy().transpose(1, 2, 0).astype(np.uint8))
 
-            plt.subplot(2,2,4)
-            plt.imshow(x4[k].numpy().transpose(1,2,0).astype(np.uint8))
+            plt.subplot(2, 2, 4)
+            plt.imshow(x4[k].numpy().transpose(1, 2, 0).astype(np.uint8))
 
         plt.title("Is match" + str(is_match[k].numpy().item()))
 
@@ -281,7 +289,7 @@ if __name__ == "__main__":
     # config_name = "2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml"
     # config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml"
 
-    # ResNet-152 trained again with equal amount of data as single modality 
+    # ResNet-152 trained again with equal amount of data as single modality
     #config_name = "2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml"
 
     # ResNet-152 with Layout Only
@@ -296,7 +304,9 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
-    parser.add_argument("--config_name", type=str, required=True, help="File name of config file (not file path!). Should end in .yaml")
+    parser.add_argument(
+        "--config_name", type=str, required=True, help="File name of config file (not file path!). Should end in .yaml"
+    )
     opts = parser.parse_args()
 
     with hydra.initialize_config_module(config_module="afp.configs"):
