@@ -28,10 +28,9 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
     floor_dominant_rotation = {}
     for floor_id, floor_data in merger_data.items():
 
-        
         # if floor_id != 'floor_02':
         #     continue
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
 
         fd = FloorData.from_json(floor_data, floor_id)
 
@@ -67,13 +66,27 @@ def render_building(building_id: str, pano_dir: str, json_annot_fpath: str) -> N
 
 def export_pano_visualizations(raw_dataset_dir: str) -> None:
     """ """
-    
+
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
 
     for building_id in building_ids:
 
-        if building_id not in ['1530', '1442', '1482', '1490', '1441', '1427', '1634', '1635', '1626', '1584', '1578', '1583', '1394']: # != '000': # '1442':
+        if building_id not in [
+            "1530",
+            "1442",
+            "1482",
+            "1490",
+            "1441",
+            "1427",
+            "1634",
+            "1635",
+            "1626",
+            "1584",
+            "1578",
+            "1583",
+            "1394",
+        ]:  # != '000': # '1442':
             continue
 
         print(f"Render floor maps for {building_id}")
@@ -84,6 +97,6 @@ def export_pano_visualizations(raw_dataset_dir: str) -> None:
 
 if __name__ == "__main__":
     """ """
-    #raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
+    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
     export_pano_visualizations(raw_dataset_dir)
