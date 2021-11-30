@@ -33,15 +33,23 @@ or on Mac
 conda env create -f environment_mac.yml
 ```
 
-We use the `GTSAM` library for back-end SLAM/rotation graph optimization, and pose graph alignment. Pre-built python wheels for `GTSAM` are available for download [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1126472520) on Github under "Artifacts" (there is no need to build GTSAM from scratch). The GTSAM libraries on `pypi` are out of date. You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
+We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. Pre-built python wheels for `GTSAM` are available for download [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1126472520) on Github under "Artifacts" (there is no need to build GTSAM from scratch). The GTSAM libraries on `pypi` are out of date. You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
 
 Then, install the Python wheel for GTSAM via 
 ```
 pip install /path/to/wheel/file.whl
 ```
 
-Next, clone the `HoHoNet` repo.
+**Rendering Training/Testing Data** If you'd like to render training or testing data, clone the `HoHoNet` repo.
 
+**Libraries for evaluation** We use `AvgMeter` classes from `mseg-semantic`. Install as follows:
+
+```bash
+git clone https://github.com/mseg-dataset/mseg-semantic.git
+pip install -e .
+```
+
+**Notes about libraries used**
 - We use Facebook's `hydra` library for configuration files.
 - We use the [`rdp`](https://github.com/fhirschmann/rdp) library for polygon simplification.
 
