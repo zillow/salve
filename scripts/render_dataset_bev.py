@@ -2,6 +2,7 @@
 Render aligned texture maps and/or layouts in a bird's eye view, to be used for training a network.
 """
 
+import argparse
 import glob
 import os
 from multiprocessing import Pool
@@ -279,10 +280,10 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-    num_processes = 15
 
-    # depth_save_root = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps"
-    # depth_save_root = "/mnt/data/johnlam/HoHoNet_Depth_Maps"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_processes", type=int, default=15, help="Number of processes to use for parallel rendering.")
+    args = parser.parse_args()
 
     # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     # depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
@@ -350,7 +351,7 @@ if __name__ == "__main__":
     render_modalities = ["rgb_texture"] # ["layout"]
 
     render_pairs(
-        num_processes=num_processes,
+        num_processes=args.num_processes,
         depth_save_root=depth_save_root,
         bev_save_root=bev_save_root,
         raw_dataset_dir=raw_dataset_dir,
