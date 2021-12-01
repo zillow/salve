@@ -1,7 +1,5 @@
 
-"""
-Utilities for filling a raster canvas from top-to-bottom, or bottom-to-top.
-"""
+"""Utilities for filling a raster canvas from top-to-bottom, or bottom-to-top."""
 
 import numpy as np
 from argoverse.utils.mesh_grid import get_mesh_grid_as_point_cloud
@@ -19,7 +17,16 @@ def choose_elevated_repeated_vals(
     Note: Use lights, instead of floor, when available for salient features.
 
     Args:
+        x: x-coordinates of point cloud
+        y: y-coordinates
+        z: z-coordinates
+        zmin: maximum z-value to consider for binning.
+        zmax: maximum z-value to consider for binning.
+        num_slices: number of bins for histogram.
+
+    Returns:
        valid: logicals, for where at this location, we are the highest z value
+
     """
     num_pts = x.shape[0]
     global_idxs = np.arange(num_pts)
