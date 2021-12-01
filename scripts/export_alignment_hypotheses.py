@@ -1,30 +1,4 @@
-"""
-Utility to generate potential relative poses by exhaustive pairwise W/D/O alignments.
-
-The alignment generation method here is based upon Cohen et al. 2016.
-
-Window-Window correspondences must be established. Have to find all possible pairwise choices. ICP is not required,
-since we can know correspondences between W/D/O vertices.
-
-Cohen16: A single match between an indoor and outdoor window determines an alignment hypothesis
-Computing the alignment boils down to finding a  transformation between the models.
-
-Can perform alignment in 2d or 3d (fewer unknowns in 2d).
-Note: when fitting Sim(3), note that if the heights are the same, but door width scale is different, perfect door-width alignment
-cannot be possible, since the height figures into the least squares problem.
-
-We make sure wide door cannot fit inside a narrow door (e.g. 2x width not allowed).
-
-What heuristic tells us if they should be identity or mirrored in configuration?
-Are there any new WDs that should not be visible? walls should not cross on top of each other? know same-room connections, first
-
-Cannot expect a match for each door or window. Find nearest neighbor -- but then choose min dist on rows or cols?
-may not be visible?
-- Rooms can be joined at windows.
-- Rooms may be joined at a door.
-- Predicted wall cannot lie behind another wall, if line of sight is clear.
-
-conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=10.1 -c pytorch
+"""Script to generate all pairwise W/D/O alignment hypotheses, for all of ZInD.
 
 No shared texture between (0,75) -- yet doors align it (garage to kitchen)
 """
@@ -34,7 +8,6 @@ import glob
 import os
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import Enum
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
@@ -47,10 +20,10 @@ from shapely.geometry import LineString
 
 import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.logger_utils as logger_utils
-import afp.utils.overlap_utils as overlap_utils
 import afp.utils.rotation_utils as rotation_utils
-import afp.utils.sim3_align_dw as sim3_align_dw  # TODO: rename module to more informative name
+import afp.utils.wdo_alignment as wdo_alignment_utils
 from afp.common.pano_data import FloorData, PanoData, WDO
+from afp.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
 
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
@@ -62,41 +35,8 @@ OPENING_ALIGNMENT_ANGLE_TOLERANCE = 9.0
 DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
 ALIGNMENT_TRANSLATION_TOLERANCE = 0.35  # was set to 0.2 for GT
 
-# (smaller width) / (larger width) must be greater than 0.65 / 1.0 for inferred data.
-MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO = 0.65
-MIN_ALLOWED_GT_WDO_WIDTH_RATIO = 0.8
-
 
 logger = logger_utils.get_logger()
-
-
-class AlignTransformType(str, Enum):
-    """Type of transformation used
-
-    Similarity transformation between the models, which
-    can be computed from three point correspondences in the general case and from two point matches if
-    the gravity direction is known.
-    """
-
-    SE2: str = "SE2"
-    Sim3: str = "Sim3"
-
-
-class AlignmentHypothesis(NamedTuple):
-    """
-    Args:
-        i2Ti1: relative pose.
-        wdo_alignment_object: either 'door', 'window', or 'opening'
-        i1_wdo_idx: this is the WDO index for Pano i1 (known as i)
-        i2_wdo_idx: this is the WDO index for Pano i2 (known as j)
-        configuration: either identity or rotated
-    """
-
-    i2Ti1: Sim2
-    wdo_alignment_object: str
-    i1_wdo_idx: int
-    i2_wdo_idx: int
-    configuration: str
 
 
 @dataclass
@@ -171,35 +111,6 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2, wdo_alignment_object: str) -> bo
     return True
 
 
-def test_obj_almost_equal() -> None:
-    """ """
-    # fmt: off
-    i2Ti1_pred = Sim2(
-        R=np.array(
-            [
-                [-0.99928814, 0.03772511],
-                [-0.03772511, -0.99928814]
-            ], dtype=np.float32
-        ),
-        t=np.array([-3.0711207, -0.5683456], dtype=np.float32),
-        s=1.0,
-    )
-
-    i2Ti1_gt = Sim2(
-        R=np.array(
-            [
-                [-0.9999569, -0.00928213],
-                [0.00928213, -0.9999569]
-            ], dtype=np.float32
-        ),
-        t=np.array([-3.0890038, -0.5540818], dtype=np.float32),
-        s=0.9999999999999999,
-    )
-    # fmt: on
-    assert obj_almost_equal(i2Ti1_pred, i2Ti1_gt)
-    assert obj_almost_equal(i2Ti1_gt, i2Ti1_pred)
-
-
 def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]) -> List[AlignmentHypothesis]:
     """
     Only useful for GT objects, that might have exact equality? (confirm how GT can actually have exact values)
@@ -226,53 +137,6 @@ def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]
     return pruned_possible_alignment_info
 
 
-def test_prune_to_unique_sim2_objs() -> None:
-    """ """
-    wR1 = np.eye(2)
-    wt1 = np.array([0, 1])
-    ws1 = 1.5
-
-    wR2 = np.array([[0, 1], [1, 0]])
-    wt2 = np.array([1, 2])
-    ws2 = 3.0
-
-    possible_alignment_info = [
-        AlignmentHypothesis(
-            i2Ti1=Sim2(wR1, wt1, ws1),
-            wdo_alignment_object="window",
-            i1_wdo_idx=1,
-            i2_wdo_idx=5,
-            configuration="identity",
-        ),
-        AlignmentHypothesis(
-            i2Ti1=Sim2(wR1, wt1, ws1),
-            wdo_alignment_object="window",
-            i1_wdo_idx=2,
-            i2_wdo_idx=6,
-            configuration="identity",
-        ),
-        AlignmentHypothesis(
-            i2Ti1=Sim2(wR2, wt2, ws2),
-            wdo_alignment_object="window",
-            i1_wdo_idx=3,
-            i2_wdo_idx=7,
-            configuration="identity",
-        ),
-        AlignmentHypothesis(
-            i2Ti1=Sim2(wR1, wt1, ws1),
-            wdo_alignment_object="window",
-            i1_wdo_idx=4,
-            i2_wdo_idx=8,
-            configuration="identity",
-        ),
-    ]
-    pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
-    assert len(pruned_possible_alignment_info) == 2
-
-    assert pruned_possible_alignment_info[0].i2Ti1.scale == 1.5
-    assert pruned_possible_alignment_info[1].i2Ti1.scale == 3.0
-
-
 def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
     """
     Args:
@@ -288,392 +152,6 @@ def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
         "s": i2Ti1.scale,
     }
     json_utils.save_json_dict(save_fpath, dict_for_serialization)
-
-
-# def test_align_rooms_by_wd() -> None:
-#     """ """
-#     wTi5 = Sim2(
-#         R=np.array([[0.999897, -0.01435102], [0.01435102, 0.999897]], dtype=np.float32),
-#         t=np.array([0.7860708, -1.57248], dtype=np.float32),
-#         s=0.4042260417272217,
-#     )
-#     wTi8 = Sim2(
-#         R=np.array([[0.02998102, -0.99955046], [0.99955046, 0.02998102]], dtype=np.float32),
-#         t=np.array([0.91035557, -3.2141], dtype=np.float32),
-#         s=0.4042260417272217,
-#     )
-
-#     # fmt: off
-#     pano1_obj = PanoData(
-#         id=5,
-#         global_Sim2_local=wTi5,
-#         room_vertices_local_2d=np.array(
-#             [
-#                 [ 1.46363621, -2.43808616],
-#                 [ 1.3643741 ,  0.5424695 ],
-#                 [ 0.73380685,  0.52146958],
-#                 [ 0.7149462 ,  1.08780075],
-#                 [ 0.4670652 ,  1.07954551],
-#                 [ 0.46914653,  1.01704912],
-#                 [-1.2252865 ,  0.96061904],
-#                 [-1.10924507, -2.5237714 ]
-#             ]),
-#         image_path='panos/floor_01_partial_room_05_pano_5.jpg',
-#         label='living room',
-#         doors=[],
-#         windows=[
-#             WDO(
-#                 global_Sim2_local=wTi5,
-#                 pt1=[-1.0367953294361147, -2.5213585867749635],
-#                 pt2=[-0.4661345615720372, -2.5023537435761822],
-#                 bottom_z=-0.5746298535133153,
-#                 top_z=0.38684337323286566,
-#                 type='windows'
-#             ),
-#             WDO(
-#                 global_Sim2_local=wTi5,
-#                 pt1=[0.823799786466513, -2.45939477144822],
-#                 pt2=[1.404932996095547, -2.4400411621788427],
-#                 bottom_z=-0.5885416433689703,
-#                 top_z=0.3591070365687572,
-#                 type='windows'
-#             )
-#         ],
-#         openings=[]
-#     )
-
-
-#     pano2_obj = PanoData(
-#         id=8,
-#         global_Sim2_local=wTi8,
-#         room_vertices_local_2d=np.array(
-#             [
-#                 [-0.7336625 , -1.3968136 ],
-#                 [ 2.23956454, -1.16554334],
-#                 [ 2.19063694, -0.53652654],
-#                 [ 2.75557561, -0.4925832 ],
-#                 [ 2.73634178, -0.2453117 ],
-#                 [ 2.67399906, -0.25016098],
-#                 [ 2.54252291,  1.44010577],
-#                 [-0.93330008,  1.16974146]
-#             ]),
-#         image_path='panos/floor_01_partial_room_05_pano_8.jpg',
-#         label='living room',
-#         doors=[],
-#         windows=[
-#             WDO(
-#                 global_Sim2_local=wTi8,
-#                 pt1=[-0.9276784906829552, 1.0974698581331057],
-#                 pt2=[-0.8833992085857922, 0.5282122352406332],
-#                 bottom_z=-0.5746298535133153,
-#                 top_z=0.38684337323286566,
-#                 type='windows'
-#             ),
-#             WDO(
-#                 global_Sim2_local=wTi8,
-#                 pt1=[-0.7833093301499523, -0.758550412558342],
-#                 pt2=[-0.7382174598580689, -1.338254727497497],
-#                 bottom_z=-0.5885416433689703,
-#                 top_z=0.3591070365687572,
-#                 type='windows'
-#             )
-#         ],
-#         openings=[]
-#     )
-
-#     # fmt: on
-#     possible_alignment_info, _ = align_rooms_by_wd(pano1_obj, pano2_obj)
-#     assert len(possible_alignment_info) == 3
-
-
-def plot_room_walls(
-    pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, color=None, linewidth: float = 2.0, alpha: float = 0.5
-) -> None:
-    """ """
-    room_vertices = pano_obj.room_vertices_local_2d
-    if i2Ti1:
-        room_vertices = i2Ti1.transform_from(room_vertices)
-
-    if color is None:
-        color = np.random.rand(3)
-    plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color, alpha=alpha)
-    plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=alpha, linewidth=linewidth)
-    # draw edge to close each polygon
-    last_vert = room_vertices[-1]
-    first_vert = room_vertices[0]
-    plt.plot(
-        [last_vert[0], first_vert[0]], [last_vert[1], first_vert[1]], color=color, alpha=alpha, linewidth=linewidth
-    )
-
-
-def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
-    """
-
-    Returns:
-        pts: array of shape (N,3)
-    """
-    pts = np.zeros((0, 3))
-
-    for wd in pano_obj.windows + pano_obj.doors + pano_obj.openings:
-        wd_pts = wd.polygon_vertices_local_3d
-
-        pts = np.vstack([pts, wd_pts])
-
-    return pts
-
-
-# def sample_points_along_bbox_boundary(wdo: WDO) -> np.ndarray:
-#     """ """
-
-#     from argoverse.utils.interpolate import interp_arc
-#     from argoverse.utils.polyline_density import get_polyline_length
-
-#     x1,y1 = wdo.local_vertices_3d
-
-#     num_interp_pts = int(query_l2 * NUM_PTS_PER_TRAJ / ref_l2)
-#     dense_interp_polyline = interp_arc(num_interp_pts, polyline_to_interp[:, 0], polyline_to_interp[:, 1])
-
-#     return pts
-
-
-# def test_sample_points_along_bbox_boundary() -> None:
-#     """ """
-#     global_SIM2_local = Sim2(R=np.eye(2), t=np.zeros(2), s=1.0)
-
-#     wdo = WDO(
-#         global_SIM2_local= global_SIM2_local,
-#         pt1= (x1,y1),
-#         pt2= (x2,y2),
-#         bottom_z=0,
-#         top_z=10,
-#         type="door"
-#     )
-
-#     pts = sample_points_along_bbox_boundary(wdo)
-
-
-def align_rooms_by_wd(
-    pano1_obj: PanoData,
-    pano2_obj: PanoData,
-    transform_type: AlignTransformType,
-    use_inferred_wdos_layout: bool,
-    visualize: bool = False,
-) -> Tuple[List[AlignmentHypothesis], int]:
-    """Compute alignment between two panoramas by computing the transformation between a window-window, door-door, or opening-opening object.
-
-    Args:
-        pano1_obj
-        pano2_obj
-        transform_type: transformation object to fit, e.g.  Sim(3) or SE(2), "Sim3" or "SE2"
-        use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
-        visualize: whether to save visualizations for each putative pair.
-
-    Returns:
-        possible_alignment_info: list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
-        num_invalid_configurations: number of alignment configurations that were rejected, because of freespace penetration by aligned walls.
-    """
-    verbose = False
-
-    pano1_id = pano1_obj.id
-    pano2_id = pano2_obj.id
-
-    num_invalid_configurations = 0
-    possible_alignment_info = []
-
-    for alignment_object in ["door", "window", "opening"]:
-
-        if alignment_object == "door":
-            pano1_wds = pano1_obj.doors
-            pano2_wds = pano2_obj.doors
-
-        elif alignment_object == "window":
-            pano1_wds = pano1_obj.windows
-            pano2_wds = pano2_obj.windows
-
-        elif alignment_object == "opening":
-            pano1_wds = pano1_obj.openings
-            pano2_wds = pano2_obj.openings
-
-        # try every possible pairwise combination, for this object type
-        for i, pano1_wd in enumerate(pano1_wds):
-            pano1_wd_pts = pano1_wd.polygon_vertices_local_3d
-            # sample_points_along_bbox_boundary(wd), # TODO: add in the 3d linear interpolation
-
-            for j, pano2_wd in enumerate(pano2_wds):
-
-                if alignment_object in ["door", "opening"]:
-                    plausible_configurations = ["identity", "rotated"]
-                elif alignment_object == "window":
-                    plausible_configurations = ["identity"]
-
-                for configuration in plausible_configurations:
-                    # if verbose:
-                    #     logger.debug(f"\t{alignment_object} {i}/{j} {configuration}")
-
-                    if configuration == "rotated":
-                        pano2_wd_ = pano2_wd.get_rotated_version()
-                    else:
-                        pano2_wd_ = pano2_wd
-
-                    pano2_wd_pts = pano2_wd_.polygon_vertices_local_3d
-                    # sample_points_along_bbox_boundary(wd)
-
-                    # if visualize:
-                    #     plt.close("all")
-
-                    #     all_wd_verts_1 = get_all_pano_wd_vertices(pano1_obj)
-                    #     all_wd_verts_2 = get_all_pano_wd_vertices(pano2_obj)
-                    #     plt.scatter(-all_wd_verts_1[:,0], all_wd_verts_1[:,1], 10, color='k', marker='+')
-                    #     plt.scatter(-all_wd_verts_2[:,0], all_wd_verts_2[:,1], 10, color='g', marker='+')
-
-                    #     plot_room_walls(pano1_obj)
-                    #     plot_room_walls(pano2_obj)
-
-                    #     plt.plot(-pano1_wd.polygon_vertices_local_3d[:,0], pano1_wd.polygon_vertices_local_3d[:,1], color="r", linewidth=5, alpha=0.2)
-                    #     plt.plot(-pano2_wd_.polygon_vertices_local_3d[:,0], pano2_wd_.polygon_vertices_local_3d[:,1], color="b", linewidth=5, alpha=0.2)
-
-                    #     plt.axis("equal")
-                    #     plt.title("Step 1: Before alignment")
-                    #     #os.makedirs(f"debug_plots/{pano1_id}_{pano2_id}", exist_ok=True)
-                    #     #plt.savefig(f"debug_plots/{pano1_id}_{pano2_id}/step1_{i}_{j}.jpg")
-                    #     plt.show()
-                    #     plt.close("all")
-
-                    # import pdb; pdb.set_trace()
-
-                    if transform_type == AlignTransformType.SE2:
-                        i2Ti1, aligned_pts1 = sim3_align_dw.align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
-                    elif transform_type == AlignTransformType.Sim3:
-                        i2Ti1, aligned_pts1 = sim3_align_dw.align_points_sim3(pano2_wd_pts, pano1_wd_pts)
-                    else:
-                        raise RuntimeError
-
-                    aligned_pts1 = aligned_pts1[:, :2]
-                    pano2_wd_pts = pano2_wd_pts[:, :2]
-
-                    if visualize:
-                        plt.scatter(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], 200, color="r", marker=".")
-                        plt.scatter(aligned_pts1[:, 0], aligned_pts1[:, 1], 50, color="b", marker=".")
-
-                    all_pano1_pts = get_all_pano_wd_vertices(pano1_obj)
-                    all_pano2_pts = get_all_pano_wd_vertices(pano2_obj)
-
-                    all_pano1_pts = i2Ti1.transform_from(all_pano1_pts[:, :2])
-
-                    all_pano1_pts = all_pano1_pts[:, :2]
-                    all_pano2_pts = all_pano2_pts[:, :2]
-
-                    if visualize:
-                        plt.scatter(all_pano1_pts[:, 0], all_pano1_pts[:, 1], 200, color="g", marker="+")
-                        plt.scatter(all_pano2_pts[:, 0], all_pano2_pts[:, 1], 50, color="m", marker="+")
-
-                    pano1_room_vertices = pano1_obj.room_vertices_local_2d
-                    pano1_room_vertices = i2Ti1.transform_from(pano1_room_vertices)
-                    pano2_room_vertices = pano2_obj.room_vertices_local_2d
-
-                    pano1_room_vertices = pano1_room_vertices[:, :2]
-                    pano2_room_vertices = pano2_room_vertices[:, :2]
-
-                    if use_inferred_wdos_layout:
-                        # sole criterion, as overlap isn't reliable anymore, with inferred WDO.
-                        # could also reason about layouts beyond openings to determine validity.
-                        is_valid, width_ratio = determine_invalid_width_ratio(
-                            pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout
-                        )
-                    else:
-                        width_is_valid, width_ratio = determine_invalid_width_ratio(
-                            pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout
-                        )
-                        freespace_is_valid = overlap_utils.determine_invalid_wall_overlap(
-                            pano1_id,
-                            pano2_id,
-                            i,
-                            j,
-                            pano1_room_vertices,
-                            pano2_room_vertices,
-                            shrink_factor=0.1,
-                            visualize=False,
-                        )
-                        is_valid = freespace_is_valid and width_is_valid
-
-                    if verbose:
-                        # (i1) pink, (i2) orange
-                        print(
-                            f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}"
-                            + ""  # f", Uncertainty: {pano1_uncertainty_factor:.2f}, {pano2_uncertainty_factor:.2f}"
-                        )
-
-                    # logger.error("Pano1 room verts: %s", str(pano1_room_vertices))
-                    # logger.error("Pano2 room verts: %s", str(pano2_room_vertices))
-
-                    if is_valid:
-                        possible_alignment_info.append(
-                            AlignmentHypothesis(
-                                i2Ti1=i2Ti1,
-                                wdo_alignment_object=alignment_object,
-                                i1_wdo_idx=i,
-                                i2_wdo_idx=j,
-                                configuration=configuration,
-                            )
-                        )
-                        classification = "valid"
-                    else:
-                        num_invalid_configurations += 1
-                        classification = "invalid"
-
-                    if visualize:
-                        plot_room_walls(pano1_obj, i2Ti1, color="tab:pink", linewidth=10)
-                        plot_room_walls(pano2_obj, color="tab:orange", linewidth=1)
-
-                        plt.scatter(aligned_pts1[:, 0], aligned_pts1[:, 1], 10, color="r", marker="+")
-                        plt.plot(aligned_pts1[:, 0], aligned_pts1[:, 1], color="r", linewidth=10, alpha=0.5)
-
-                        plt.scatter(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], 10, color="b", marker="+")
-                        plt.plot(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], color="g", linewidth=5, alpha=0.1)
-
-                        # plt.plot(inter_poly_verts[:,0],inter_poly_verts[:,1], color='m')
-
-                        plt.title(
-                            f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid}, aligned via {alignment_object}, \n  config={configuration}"
-                        )
-                        # window_normals_compatible={window_normals_compatible},
-                        plt.axis("equal")
-                        os.makedirs(f"debug_plots/{classification}", exist_ok=True)
-                        plt.savefig(
-                            f"debug_plots/{classification}/{alignment_object}_{pano1_id}_{pano2_id}___step3_{configuration}_{i}_{j}.jpg"
-                        )
-
-                        # plt.show()
-                        plt.close("all")
-
-    return possible_alignment_info, num_invalid_configurations
-
-
-def determine_invalid_width_ratio(pano1_wd: WDO, pano2_wd: WDO, use_inferred_wdos_layout: bool) -> Tuple[bool, float]:
-    """Check to see if relative width ratio of W/D/Os is within some maximum allowed range, e.g. [0.65, 1]
-
-    Args:
-        pano1_wd: W/D/O object for panorama 1.
-        pano2_wd: W/D/O object for panorama 2.
-        use_inferred_wdos_layout: whether to use looser requirements (GT should be closer to true width.)
-
-    Returns:
-        is_valid: whether the match is plausible, given the relative W/D/O widths.
-        width_ratio: w_min/w_max, where w_min=min(w1,w2) and w_max=max(w1,w2)
-    """
-    min_width = min(pano1_wd.width, pano2_wd.width)
-    max_width = max(pano1_wd.width, pano2_wd.width)
-    width_ratio = min_width / max_width
-
-    # pano1_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano1_wd)
-    # pano2_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano2_wd)
-
-    min_allowed_wdo_width_ratio = (
-        MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO if use_inferred_wdos_layout else MIN_ALLOWED_GT_WDO_WIDTH_RATIO
-    )
-
-    is_valid = width_ratio >= min_allowed_wdo_width_ratio  # should be in [0.65, 1.0] for inferred WDO
-    return is_valid, width_ratio
 
 
 def export_single_building_wdo_alignment_hypotheses(
@@ -761,14 +239,14 @@ def export_single_building_wdo_alignment_hypotheses(
 
                 try:
                     if use_inferred_wdos_layout:
-                        possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
+                        possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
                             pano_dict_inferred[i1],
                             pano_dict_inferred[i2],
                             use_inferred_wdos_layout=use_inferred_wdos_layout,
                             transform_type=AlignTransformType.SE2,
                         )
                     else:
-                        possible_alignment_info, num_invalid_configurations = align_rooms_by_wd(
+                        possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
                             pano_dict[i1],
                             pano_dict[i2],
                             use_inferred_wdos_layout=use_inferred_wdos_layout,
@@ -933,5 +411,4 @@ if __name__ == "__main__":
         args.num_processes, args.raw_dataset_dir, args.hypotheses_save_root, use_inferred_wdos_layout
     )
 
-    # test_align_rooms_by_wd()
     # test_prune_to_unique_sim2_objs()
