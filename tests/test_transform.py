@@ -1,4 +1,6 @@
 
+"""Unit tests to make sure data augmentation / preprocessing transforms work correctly."""
+
 import time
 
 import imageio
