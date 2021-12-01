@@ -22,7 +22,7 @@ import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.logger_utils as logger_utils
 import afp.utils.rotation_utils as rotation_utils
 import afp.utils.wdo_alignment as wdo_alignment_utils
-from afp.common.pano_data import FloorData, PanoData, WDO
+from afp.common.pano_data import FloorData, PanoData
 from afp.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
 
 
@@ -49,9 +49,13 @@ class AlignmentGenerationReport:
 
 
 def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
-    """ """
+    """Check if two rooms share a door, window, or opening.
+
+    Args:
+        pano1_obj: Room information for pano 1
+        pano2_obj: Room information for pano 2
+    """
     DIST_THRESH = 0.1
-    # do they share a door or window?
 
     for wdo1 in pano1_obj.windows + pano1_obj.doors + pano1_obj.openings:
         poly1 = LineString(wdo1.vertices_global_2d)
@@ -68,7 +72,6 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
 
     # plt.axis("equal")
     # plt.show()
-
     return False
 
 
