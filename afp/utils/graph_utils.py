@@ -20,9 +20,11 @@ def find_connected_components(nodes: List[int], edges: List[Tuple[int,int]]) -> 
 
 
 def analyze_cc_distribution(nodes: List[int], edges: List[Tuple[int,int]], visualize: bool = False) -> Tuple[np.ndarray, np.ndarray]:
-    """Analyze connected component distribution.
+    """Analyze connected component distribution. We sort from largest CC to smallest CC.
 
-    Cannnot derive nodes from edges, as some may be missing.
+    Args:
+        nodes: nodes of graph. Cannnot derive nodes from edges, as some may have zero degree, so we must pass in both.
+        edges: edges of graph.
 
     Returns:
         array of shape (C,) representing probability density function. values in [0,1]
