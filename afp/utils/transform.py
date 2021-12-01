@@ -1,6 +1,6 @@
 
 """
-Utilities for data augmentation.
+Utilities for data augmentation and preprocessing.
 """
 
 import collections
