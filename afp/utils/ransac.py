@@ -17,7 +17,7 @@ def ransac_align_poses_sim3_ignore_missing(
     bTi_list_est: List[Optional[Pose3]],
     num_iters: int = 1000,
     delete_frac: float = DEFAULT_RANSAC_ALIGNMENT_DELETE_FRAC,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> Tuple[List[Optional[Pose3]], Similarity3]:
     """Align pose graphs by estimating a Similarity(3) transformation, while accounting for outliers in the pose graph.
 
@@ -58,7 +58,7 @@ def ransac_align_poses_sim3_ignore_missing(
         delete_idxs = np.random.choice(a=valid_idxs, size=num_to_delete, replace=False)
         for del_idx in delete_idxs:
             bTi_list_est_subset[del_idx] = None
-        
+
         aligned_bTi_list_est, aSb = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(
             aTi_list_ref_subset, bTi_list_est_subset
         )
@@ -106,7 +106,7 @@ def compute_pose_errors_3d(
     """
     if verbose:
         print("aTi_list_gt: ", aTi_list_gt)
-        print("aligned_bTi_list_est",  aligned_bTi_list_est)
+        print("aligned_bTi_list_est", aligned_bTi_list_est)
 
     rotation_errors = []
     translation_errors = []
@@ -123,8 +123,8 @@ def compute_pose_errors_3d(
     translation_errors = np.array(translation_errors)
 
     if verbose:
-        print("Rotation Errors: ", np.round(rotation_errors,1))
-        print("Translation Errors: ", np.round(translation_errors,1))
+        print("Rotation Errors: ", np.round(rotation_errors, 1))
+        print("Translation Errors: ", np.round(translation_errors, 1))
     mean_rot_err = np.mean(rotation_errors)
     mean_trans_err = np.mean(translation_errors)
     return mean_rot_err, mean_trans_err, rotation_errors, translation_errors
@@ -199,4 +199,3 @@ def test_ransac_align_poses_sim3_ignore_missing() -> None:
 
 if __name__ == "__main__":
     test_ransac_align_poses_sim3_ignore_missing()
-
