@@ -90,7 +90,7 @@ def test_shrink_polygon() -> None:
     assert isinstance(shrunk_poly1_verts, np.ndarray)
 
 
-def interp_evenly_spaced_points(polyline: np.ndarray, interval_m) -> np.ndarray:
+def interp_evenly_spaced_points(polyline: np.ndarray, interval_m: float) -> np.ndarray:
     """Nx2 polyline to Mx2 polyline, for waypoint every `interval_m` meters"""
 
     length_m = get_polyline_length(polyline)
