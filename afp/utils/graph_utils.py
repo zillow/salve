@@ -19,24 +19,6 @@ def find_connected_components(nodes: List[int], edges: List[Tuple[int,int]]) -> 
     return list(ccs)
 
 
-def test_find_connected_components1() -> None:
-    """Two clusters. One has three nodes, the other is a singleton."""
-    nodes = [1,2,3,4]
-    edges = [(2,3),(3,4)]
-    ccs = find_connected_components(nodes, edges)
-    expected_ccs = [{1}, {2, 3, 4}]
-    assert ccs == expected_ccs
-
-
-def test_find_connected_components2() -> None:
-    """Four clusters. Two have 2-nodes, and 2 singletons."""
-    nodes = [1,2,3,4,5,6]
-    edges = [(1,2), (5,6)]
-    ccs = find_connected_components(nodes, edges)
-    expected_ccs = [{1,2}, {3}, {4}, {5,6}]
-    assert ccs == expected_ccs
-
-
 def analyze_cc_distribution(nodes: List[int], edges: List[Tuple[int,int]], visualize: bool = False) -> Tuple[np.ndarray, np.ndarray]:
     """Analyze connected component distribution.
 
@@ -94,20 +76,4 @@ def plot_pdf_cdf(pdf: np.ndarray, cdf: np.ndarray, truncation_limit: int = 5) ->
     plt.legend()
     plt.savefig("2021_11_17_conn_comp_distribution_v1.pdf")
     plt.show()
-
-
-def test_analyze_cc_distribution() -> None:
-    """ """
-    nodes = [1,2,3,4,5,6]
-    edges = [(1,2), (5,6)]
-
-    analyze_cc_distribution(nodes=nodes, edges=edges)
-
-
-if __name__ == "__main__":
-    test_analyze_cc_distribution()
-
-    #test_find_connected_components1()
-    test_find_connected_components2()
-
 
