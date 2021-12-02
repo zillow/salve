@@ -177,10 +177,6 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
         # continue
 
 
-
-
-
-
 if __name__ == "__main__":
     """ """
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
