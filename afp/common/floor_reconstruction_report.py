@@ -4,12 +4,11 @@ Stores information about a floorplan reconstruction.
 
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional
 
 import argoverse.utils.json_utils as json_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 
 import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.bev_rendering_utils as bev_rendering_utils

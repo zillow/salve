@@ -1,7 +1,7 @@
-
 """Utilities to measure IoU between two texture maps or two binary masks."""
 
 import numpy as np
+
 
 def texture_map_iou(f1: np.ndarray, f2: np.ndarray) -> float:
     """floor texture maps
