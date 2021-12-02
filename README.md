@@ -68,7 +68,11 @@ python scripts/export_alignment_hypotheses.py --num_processes {NUM. DESIRED PROC
 
 Run HoHoNet inference and render BEV images:
 ```bash
-python scripts/render_dataset_bev.py
+python scripts/render_dataset_bev.py --num_processes {NUM. DESIRED PROCS.} \
+    --raw_dataset_dir {PATH TO ZIND} \
+    --hypotheses_save_root {PATH TO PRE-GENERATED ALIGNMENT HYPOTHESES} \
+    --depth_save_root {PATH TO WHERE DEPTH MAPS WILL BE SAVED TO}\
+    --bev_save_root {PATH WHERE BEV TEXTURE MAPS WILL BE SAVED TO}
 ```
 
 and then sending them to the model for scoring:
