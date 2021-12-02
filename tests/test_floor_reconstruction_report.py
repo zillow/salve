@@ -6,7 +6,7 @@ from argoverse.utils.sim2 import Sim2
 
 import afp.common.posegraph2d as posegraph2d
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
-
+from afp.common.posegraph2d import PoseGraph2d
 
 """
 # aligned
@@ -56,7 +56,7 @@ Mean translation error: 0.1, Mean rotation error: 1.3
 """
 
 
-def test_from_wSi_list() -> None:
+def test_from_est_floor_pose_graph() -> None:
     """Ensure we can correctly create a FloorReconstructionReport from pose graph optimization output for Building 1210, Floor 02 of ZinD."""
 
     wSi_list = [
@@ -155,7 +155,8 @@ def test_from_wSi_list() -> None:
     gt_floor_pg = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
     plot_save_dir = "dummy_dir"
 
-    report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pg, plot_save_dir=plot_save_dir)
+    est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pg)
+    report = FloorReconstructionReport.from_est_floor_pose_graph(est_floor_pose_graph, gt_floor_pg, plot_save_dir=plot_save_dir)
     
     #assert np.isclose(report.avg_abs_rot_err, 9999)
     assert np.isclose(report.avg_abs_trans_err, 0.05, atol=1e-2)
@@ -163,6 +164,6 @@ def test_from_wSi_list() -> None:
 
 
 if __name__ == "__main__":
-    test_from_wSi_list()
+    test_from_est_floor_pose_graph()
 
 
