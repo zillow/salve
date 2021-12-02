@@ -1,4 +1,3 @@
-
 """
 Tools for aligning room predictions to dominant axes.
 
@@ -112,13 +111,13 @@ def get_dominant_direction_from_point_cloud(point_cloud: np.ndarray) -> np.ndarr
         dominant_angle:
     """
     N = point_cloud.shape[0]
-    point_cloud_3d = np.zeros((N,3))
-    point_cloud_3d[:,:2] = point_cloud
+    point_cloud_3d = np.zeros((N, 3))
+    point_cloud_3d[:, :2] = point_cloud
 
     wuprightRw = ellipsoid_utils.get_alignment_rotation_matrix_from_svd(point_cloud_3d)
 
     # only consider the xy plane.
-    theta_deg = rotation_utils.rotmat2theta_deg(wuprightRw[:2,:2])
+    theta_deg = rotation_utils.rotmat2theta_deg(wuprightRw[:2, :2])
     theta_deg = theta_deg % 90
     if theta_deg > 45:
         theta_deg = theta_deg - 90
@@ -131,12 +130,12 @@ def get_dominant_direction_from_point_cloud(point_cloud: np.ndarray) -> np.ndarr
 def align_pairs_by_vanishing_angle(
     i2Si1_dict: Dict[Tuple[int, int], Sim2],
     gt_floor_pose_graph: PoseGraph2d,
-    per_edge_wdo_dict: Dict[Tuple[int,int], EdgeWDOPair],
+    per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair],
     visualize: bool = False,
 ) -> Dict[Tuple[int, int], Sim2]:
     """
 
-    Note: 
+    Note:
     - rotating in place about the room center yields wrong results.
     - the rotation must be about a specific point (not about the origin).
     - The rotation must be about the W/D/O object (we choose the midpoint here).
@@ -157,13 +156,13 @@ def align_pairs_by_vanishing_angle(
     pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes
 
     for (i1, i2), i2Si1 in i2Si1_dict.items():
-        edge_wdo_pair = per_edge_wdo_dict[(i1,i2)]
+        edge_wdo_pair = per_edge_wdo_dict[(i1, i2)]
         i2rSi1 = align_pair_measurement_by_vanishing_angle(i1, i2, i2Si1, edge_wdo_pair, pano_dict_inferred, visualize)
         if i2rSi1 is None:
             # requested correction was too large.
             continue
 
-        i2Si1_dict[(i1,i2)] = i2rSi1
+        i2Si1_dict[(i1, i2)] = i2rSi1
 
         if visualize:
             plt.subplot(1, 2, 2)
@@ -196,8 +195,8 @@ def align_pair_measurement_by_vanishing_angle(
     alignment_object = edge_wdo_pair.alignment_object
     i1_wdo_idx = edge_wdo_pair.i1_wdo_idx
     i1wdocenter_i1fr = getattr(pano_dict_inferred[i1], alignment_object + "s")[i1_wdo_idx].centroid
-    #i1wdocenter_i1fr = getattr(gt_floor_pose_graph.nodes[i1], alignment_object + "s")[i1_wdo_idx].centroid
-    i1wdocenter_i2fr = i2Si1.transform_from(i1wdocenter_i1fr.reshape(1,2)).squeeze()
+    # i1wdocenter_i1fr = getattr(gt_floor_pose_graph.nodes[i1], alignment_object + "s")[i1_wdo_idx].centroid
+    i1wdocenter_i2fr = i2Si1.transform_from(i1wdocenter_i1fr.reshape(1, 2)).squeeze()
 
     # vertsi1 = gt_floor_pose_graph.nodes[i1].room_vertices_local_2d
     # vertsi2 = gt_floor_pose_graph.nodes[i2].room_vertices_local_2d
@@ -213,8 +212,8 @@ def align_pair_measurement_by_vanishing_angle(
         draw_polygon(vertsi2, color="g", linewidth=1)
 
         # mark the WDO center on the plot
-        plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='+', zorder=3)
-        plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color='k', marker='.', zorder=3)
+        plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color="k", marker="+", zorder=3)
+        plt.scatter(i1wdocenter_i2fr[0], i1wdocenter_i2fr[1], 200, color="k", marker=".", zorder=3)
         plt.axis("equal")
 
     dominant_angle_method = "vp"
@@ -246,27 +245,26 @@ def align_pair_measurement_by_vanishing_angle(
 
     if np.absolute(i2r_theta_i2) > MAX_ALLOWED_CORRECTION_DEG:
         print(f"Skipping for too large of a correction -> {i2r_theta_i2:.1f} deg.")
-        
+
         if visualize:
             plt.show()
             plt.close("all")
         return None
 
-    #print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
+    # print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
     i2r_R_i2 = rotation_utils.rotmat2d(theta_deg=i2r_theta_i2)
     i2r_S_i2 = Sim2(R=i2r_R_i2, t=np.zeros(2), s=1.0)
     # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
 
-    vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(
-        vertsi1_i2fr, rotmat=i2r_R_i2, center_pt=i1wdocenter_i2fr
-    )
+    vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(vertsi1_i2fr, rotmat=i2r_R_i2, center_pt=i1wdocenter_i2fr)
     # note: computing i2rSi2.compose(i2Si1) as:
     # and then i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
-    #   DOES NOT WORK! 
+    #   DOES NOT WORK!
     i2rTi1 = compute_i2Ti1(pts1=vertsi1, pts2=vertsi1_i2fr_r)
     i2rSi1 = Sim2(R=i2rTi1.rotation().matrix(), t=i2rTi1.translation(), s=1.0)
 
     return i2rSi1
+
 
 def compute_vp_correction(i2Si1: Sim2, vp_i1: float, vp_i2: float) -> float:
     """

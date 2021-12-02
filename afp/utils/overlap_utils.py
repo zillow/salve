@@ -17,7 +17,11 @@ def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
     Reference: https://stackoverflow.com/questions/49558464/shrink-polygon-using-corner-coordinates
 
     Args:
-        shrink_factor: shrink by 10%
+        polygon: polygon to shrink in size.
+        shrink_factor: percentage by which to shrink polygon, e.g. 0.10 corresponds to shrinking by 10%
+
+    Returns:
+        polygon_shrunk:
     """
     xs = list(polygon.exterior.coords.xy[0])
     ys = list(polygon.exterior.coords.xy[1])
@@ -25,7 +29,6 @@ def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
     x_center = 0.5 * min(xs) + 0.5 * max(xs)
     y_center = 0.5 * min(ys) + 0.5 * max(ys)
     min_corner = Point(min(xs), min(ys))
-    max_corner = Point(max(xs), max(ys))
     center = Point(x_center, y_center)
     shrink_distance = center.distance(min_corner) * shrink_factor
 
@@ -60,7 +63,6 @@ def eliminate_duplicates_2d(px: np.ndarray, py: np.ndarray) -> Tuple[np.ndarray,
     We compare indices to ensure that deleted values are exactly
     adjacent to each other in the polyline sequence.
     """
-    num_pts = px.shape[0]
     assert px.shape[0] == py.shape[0]
     px_dup_inds = get_duplicate_indices_1d(px)
     py_dup_inds = get_duplicate_indices_1d(py)

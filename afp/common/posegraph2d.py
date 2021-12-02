@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import argoverse.utils.json_utils as json_utils
-import gtsfm.utils.geometry_comparisons as gtsfm_geometry_comparisons
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
@@ -328,7 +327,6 @@ class PoseGraph2d(NamedTuple):
 
         # align the pose graphs
         aligned_bTi_list_est, aSb = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
-        # aligned_bTi_list_est, aSb = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
 
         #afp.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=aligned_bTi_list_est)
 

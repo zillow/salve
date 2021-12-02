@@ -4,7 +4,6 @@ ray from camera to W/D/O midpoint.
 """
 
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 
 from afp.common.pano_data import WDO
 

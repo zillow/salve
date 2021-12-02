@@ -187,11 +187,23 @@ def align_rooms_by_wd(
                     #     plt.scatter(-all_wd_verts_1[:,0], all_wd_verts_1[:,1], 10, color='k', marker='+')
                     #     plt.scatter(-all_wd_verts_2[:,0], all_wd_verts_2[:,1], 10, color='g', marker='+')
 
-                    #     plot_room_walls(pano1_obj)
-                    #     plot_room_walls(pano2_obj)
+                        # plot_room_walls(pano1_obj)
+                        # plot_room_walls(pano2_obj)
 
-                    #     plt.plot(-pano1_wd.polygon_vertices_local_3d[:,0], pano1_wd.polygon_vertices_local_3d[:,1], color="r", linewidth=5, alpha=0.2)
-                    #     plt.plot(-pano2_wd_.polygon_vertices_local_3d[:,0], pano2_wd_.polygon_vertices_local_3d[:,1], color="b", linewidth=5, alpha=0.2)
+                        # plt.plot(
+                        #     -pano1_wd.polygon_vertices_local_3d[:,0],
+                        #     pano1_wd.polygon_vertices_local_3d[:,1],
+                        #     color="r",
+                        #     linewidth=5,
+                        #     alpha=0.2
+                        # )
+                        # plt.plot(
+                        #     -pano2_wd_.polygon_vertices_local_3d[:,0],
+                        #     pano2_wd_.polygon_vertices_local_3d[:,1],
+                        #     color="b",
+                        #     linewidth=5,
+                        #     alpha=0.2
+                        # )
 
                     #     plt.axis("equal")
                     #     plt.title("Step 1: Before alignment")

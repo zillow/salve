@@ -17,7 +17,6 @@ except:
 
 import argoverse.utils.cv2_plotting_utils as cv2_plotting_utils
 import imageio
-from argoverse.utils.se2 import SE2
 from argoverse.utils.sim2 import Sim2
 
 # from vis_zind_annotations import rotmat2d

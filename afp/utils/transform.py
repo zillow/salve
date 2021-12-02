@@ -1,4 +1,3 @@
-
 """
 Utilities for data augmentation and preprocessing.
 """
@@ -48,7 +47,9 @@ class ComposeQuadruplet(object):
     def __init__(self, transforms: List[Callable]) -> None:
         self.transforms = transforms
 
-    def __call__(self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray) -> TensorQuadruplet:
+    def __call__(
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
+    ) -> TensorQuadruplet:
         """ """
         for t in self.transforms:
             image1, image2, image3, image4 = t(image1, image2, image3, image4)
@@ -64,7 +65,13 @@ class ComposeSextuplet(object):
         self.transforms = transforms
 
     def __call__(
-        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray, image5: np.ndarray, image6: np.ndarray
+        self,
+        image1: np.ndarray,
+        image2: np.ndarray,
+        image3: np.ndarray,
+        image4: np.ndarray,
+        image5: np.ndarray,
+        image6: np.ndarray,
     ) -> TensorSextuplet:
         """ """
         for t in self.transforms:
@@ -99,7 +106,9 @@ class ToTensorPair(object):
 
 class ToTensorQuadruplet(object):
     # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
-    def __call__(self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray) -> TensorQuadruplet:
+    def __call__(
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
+    ) -> TensorQuadruplet:
         """ """
         if not all([isinstance(img, np.ndarray) for img in [image1, image2, image3, image4]]):
             raise RuntimeError("segtransform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
@@ -118,7 +127,13 @@ class ToTensorQuadruplet(object):
 class ToTensorSextuplet(object):
     # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
     def __call__(
-        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray, image5: np.ndarray, image6: np.ndarray
+        self,
+        image1: np.ndarray,
+        image2: np.ndarray,
+        image3: np.ndarray,
+        image4: np.ndarray,
+        image5: np.ndarray,
+        image6: np.ndarray,
     ) -> TensorSextuplet:
         """ """
         if not all([isinstance(img, np.ndarray) for img in [image1, image2, image3, image4, image5, image6]]):
@@ -170,9 +185,7 @@ class NormalizeQuadruplet(object):
         self.mean = mean
         self.std = std
 
-    def __call__(
-        self, image1: Tensor, image2: Tensor, image3: Tensor, image4: Tensor
-    ) -> TensorQuadruplet:
+    def __call__(self, image1: Tensor, image2: Tensor, image3: Tensor, image4: Tensor) -> TensorQuadruplet:
         """ """
         for t, m, s in zip(image1, self.mean, self.std):
             t.sub_(m).div_(s)
@@ -200,7 +213,9 @@ class NormalizeSextuplet(object):
         self.mean = mean
         self.std = std
 
-    def __call__(self, image1: Tensor, image2: Tensor, image3: Tensor, image4: Tensor, image5: Tensor, image6: Tensor) -> TensorSextuplet:
+    def __call__(
+        self, image1: Tensor, image2: Tensor, image3: Tensor, image4: Tensor, image5: Tensor, image6: Tensor
+    ) -> TensorSextuplet:
         """ """
         for t, m, s in zip(image1, self.mean, self.std):
             t.sub_(m).div_(s)
@@ -232,8 +247,8 @@ class ResizePair(object):
     def __call__(self, image1: np.ndarray, image2: np.ndarray) -> ArrayPair:
         """ """
         h, w = self.size
-        image1 = cv2.resize(image1, (w,h), interpolation=cv2.INTER_LINEAR)
-        image2 = cv2.resize(image2, (w,h), interpolation=cv2.INTER_LINEAR)
+        image1 = cv2.resize(image1, (w, h), interpolation=cv2.INTER_LINEAR)
+        image2 = cv2.resize(image2, (w, h), interpolation=cv2.INTER_LINEAR)
 
         return image1, image2
 
@@ -244,13 +259,15 @@ class ResizeQuadruplet(object):
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
 
-    def __call__(self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray) -> ArrayQuadruplet:
+    def __call__(
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
+    ) -> ArrayQuadruplet:
         """ """
         h, w = self.size
-        image1 = cv2.resize(image1, (w,h), interpolation=cv2.INTER_LINEAR)
-        image2 = cv2.resize(image2, (w,h), interpolation=cv2.INTER_LINEAR)
-        image3 = cv2.resize(image3, (w,h), interpolation=cv2.INTER_LINEAR)
-        image4 = cv2.resize(image4, (w,h), interpolation=cv2.INTER_LINEAR)
+        image1 = cv2.resize(image1, (w, h), interpolation=cv2.INTER_LINEAR)
+        image2 = cv2.resize(image2, (w, h), interpolation=cv2.INTER_LINEAR)
+        image3 = cv2.resize(image3, (w, h), interpolation=cv2.INTER_LINEAR)
+        image4 = cv2.resize(image4, (w, h), interpolation=cv2.INTER_LINEAR)
 
         return image1, image2, image3, image4
 
@@ -262,16 +279,22 @@ class ResizeSextuplet(object):
         self.size = size
 
     def __call__(
-        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray, image5: np.ndarray, image6: np.ndarray
+        self,
+        image1: np.ndarray,
+        image2: np.ndarray,
+        image3: np.ndarray,
+        image4: np.ndarray,
+        image5: np.ndarray,
+        image6: np.ndarray,
     ) -> ArraySextuplet:
         """ """
         h, w = self.size
-        image1 = cv2.resize(image1, (w,h), interpolation=cv2.INTER_LINEAR)
-        image2 = cv2.resize(image2, (w,h), interpolation=cv2.INTER_LINEAR)
-        image3 = cv2.resize(image3, (w,h), interpolation=cv2.INTER_LINEAR)
-        image4 = cv2.resize(image4, (w,h), interpolation=cv2.INTER_LINEAR)
-        image5 = cv2.resize(image5, (w,h), interpolation=cv2.INTER_LINEAR)
-        image6 = cv2.resize(image6, (w,h), interpolation=cv2.INTER_LINEAR)
+        image1 = cv2.resize(image1, (w, h), interpolation=cv2.INTER_LINEAR)
+        image2 = cv2.resize(image2, (w, h), interpolation=cv2.INTER_LINEAR)
+        image3 = cv2.resize(image3, (w, h), interpolation=cv2.INTER_LINEAR)
+        image4 = cv2.resize(image4, (w, h), interpolation=cv2.INTER_LINEAR)
+        image5 = cv2.resize(image5, (w, h), interpolation=cv2.INTER_LINEAR)
+        image6 = cv2.resize(image6, (w, h), interpolation=cv2.INTER_LINEAR)
 
         return image1, image2, image3, image4, image5, image6
 
@@ -363,6 +386,7 @@ class CropBase(object):
 
 class CropPair(CropBase):
     """ """
+
     def __call__(self, image1: np.ndarray, image2: np.ndarray) -> ArrayPair:
         """ """
         h, w, _ = image1.shape
@@ -394,7 +418,9 @@ class CropPair(CropBase):
 class CropQuadruplet(CropBase):
     """ """
 
-    def __call__(self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray) -> ArrayQuadruplet:
+    def __call__(
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
+    ) -> ArrayQuadruplet:
         """ """
         h, w, _ = image1.shape
         pad_h = max(self.crop_h - h, 0)
@@ -430,7 +456,13 @@ class CropSextuplet(CropBase):
     """ """
 
     def __call__(
-        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray, image5: np.ndarray, image6: np.ndarray
+        self,
+        image1: np.ndarray,
+        image2: np.ndarray,
+        image3: np.ndarray,
+        image4: np.ndarray,
+        image5: np.ndarray,
+        image6: np.ndarray,
     ) -> ArraySextuplet:
         """ """
         h, w, _ = image1.shape
@@ -467,23 +499,15 @@ class CropSextuplet(CropBase):
         return image1, image2, image3, image4, image5, image6
 
 
-
-def pad_image(img: np.ndarray, pad_h: int, pad_w: int, padding_vals: Union[int,Tuple[int,int,int]]) -> np.ndarray:
+def pad_image(img: np.ndarray, pad_h: int, pad_w: int, padding_vals: Union[int, Tuple[int, int, int]]) -> np.ndarray:
     """ """
     pad_h_half = int(pad_h / 2)
     pad_w_half = int(pad_w / 2)
 
     img = cv2.copyMakeBorder(
-        img,
-        pad_h_half,
-        pad_h - pad_h_half,
-        pad_w_half,
-        pad_w - pad_w_half,
-        cv2.BORDER_CONSTANT,
-        value=padding_vals
+        img, pad_h_half, pad_h - pad_h_half, pad_w_half, pad_w - pad_w_half, cv2.BORDER_CONSTANT, value=padding_vals
     )
     return img
-
 
 
 # class RandRotate(object):
@@ -513,6 +537,7 @@ def pad_image(img: np.ndarray, pad_h: int, pad_w: int, padding_vals: Union[int,T
 #             label = cv2.warpAffine(label, matrix, (w, h), flags=cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=self.ignore_label)
 #         return image, label
 
+
 class RandomHorizontalFlipPair(object):
     def __init__(self, p: float = 0.5):
         self.p = p
@@ -530,7 +555,9 @@ class RandomHorizontalFlipQuadruplet(object):
     def __init__(self, p: float = 0.5):
         self.p = p
 
-    def __call__(self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray) -> ArrayQuadruplet:
+    def __call__(
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
+    ) -> ArrayQuadruplet:
         """ """
         if random.random() < self.p:
             image1 = cv2.flip(image1, 1)
@@ -546,7 +573,13 @@ class RandomHorizontalFlipSextuuplet(object):
         self.p = p
 
     def __call__(
-        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray, image5: np.ndarray, image6: np.ndarray
+        self,
+        image1: np.ndarray,
+        image2: np.ndarray,
+        image3: np.ndarray,
+        image4: np.ndarray,
+        image5: np.ndarray,
+        image6: np.ndarray,
     ) -> ArraySextuplet:
         """ """
         if random.random() < self.p:
@@ -564,9 +597,7 @@ class RandomVerticalFlipPair(object):
     def __init__(self, p: float = 0.5):
         self.p = p
 
-    def __call__(
-        self, image1: np.ndarray, image2: np.ndarray
-    ) -> ArrayPair:
+    def __call__(self, image1: np.ndarray, image2: np.ndarray) -> ArrayPair:
         """ """
         if random.random() < self.p:
             image1 = cv2.flip(image1, 0)
@@ -597,7 +628,13 @@ class RandomVerticalFlipSextuplet(object):
         self.p = p
 
     def __call__(
-        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray, image5: np.ndarray, image6: np.ndarray
+        self,
+        image1: np.ndarray,
+        image2: np.ndarray,
+        image3: np.ndarray,
+        image4: np.ndarray,
+        image5: np.ndarray,
+        image6: np.ndarray,
     ) -> ArraySextuplet:
         """ """
         if random.random() < self.p:
@@ -622,9 +659,9 @@ class RandomVerticalFlipSextuplet(object):
 
 
 class PhotometricShiftQuadruplet(object):
-    def __init__(self, jitter_types: List[str] = ["brightness","contrast","saturation","hue"]) -> None:
+    def __init__(self, jitter_types: List[str] = ["brightness", "contrast", "saturation", "hue"]) -> None:
         """
-        brightness (float or tuple of python:float (min, max)) – How much to jitter brightness. 
+        brightness (float or tuple of python:float (min, max)) – How much to jitter brightness.
         brightness_factor is chosen uniformly from [max(0, 1 - brightness), 1 + brightness] or the given [min, max].
         Should be non negative numbers.
 
@@ -652,32 +689,32 @@ class PhotometricShiftQuadruplet(object):
         self.jitter_types = jitter_types
 
         self.brightness_jitter = 0.5 if "brightness" in jitter_types else 0
-        self.contrast_jitter = 0.5  if "contrast" in jitter_types else 0
-        self.saturation_jitter = 0.5  if "saturation" in jitter_types else 0
-        self.hue_jitter = 0.05  if "hue" in jitter_types else 0
+        self.contrast_jitter = 0.5 if "contrast" in jitter_types else 0
+        self.saturation_jitter = 0.5 if "saturation" in jitter_types else 0
+        self.hue_jitter = 0.05 if "hue" in jitter_types else 0
 
     def __call__(
-            self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
-        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         If the image is torch Tensor, it is expected to have […, 3, H, W] shape, where … means an arbitrary number of leading dimensions.
-        
+
         """
         jitter = torchvision.transforms.ColorJitter(
             brightness=self.brightness_jitter,
             contrast=self.contrast_jitter,
             saturation=self.saturation_jitter,
-            hue=self.hue_jitter
+            hue=self.hue_jitter,
         )
 
         imgs = [image1, image2, image3, image4]
         jittered_imgs = []
         for img in imgs:
             # HWC -> CHW
-            img_pytorch = torch.from_numpy(img).permute(2,0,1)
+            img_pytorch = torch.from_numpy(img).permute(2, 0, 1)
             img_pytorch = jitter(img_pytorch)
             # CHW -> HWC
-            jittered_imgs.append(img_pytorch.numpy().transpose(1,2,0))
+            jittered_imgs.append(img_pytorch.numpy().transpose(1, 2, 0))
 
         image1, image2, image3, image4 = jittered_imgs
         return image1, image2, image3, image4
