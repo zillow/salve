@@ -79,6 +79,21 @@ Run the unit tests:
 pytest tests/
 ```
 
+## Download ZInD
+
+Register on Bridge API and request access. Then copy the server token and run the following commands:
+
+```bash
+git clone https://github.com/zillow/zind.git
+cd zind
+python download_data.py --num_process 10 --verbose --output_folder {SAVE_DIR} --server_token {BRIDGE_API_SERVER_TOKEN}
+```
+
+For example, `SAVE_DIR` could be `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`, and `BRIDGE_API_SERVER_TOKEN` could be a 32-character alphanumeric sequence.
+
+On DGX, you can find `ZInD` stored here:
+`/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
+
 ## Running Reconstruction
 
 Make sure you are within the conda environment (`afp-v1`).
