@@ -4,10 +4,9 @@
 
 from typing import List, Optional
 
+import gtsfm.visualization.open3d_vis_utils as open3d_vis_utils
 import numpy as np
 import open3d
-# import below is from gtsfm
-import visualization.open3d_vis_utils as open3d_vis_utils
 from colour import Color
 from gtsam import Pose3
 
