@@ -42,28 +42,6 @@ class FloorReconstructionReport:
         summary_str += f"Floorplan IoU {floorplan_iou:.2f}"
         return summary_str
 
-    @classmethod
-    def from_wSi_list(
-        cls,
-        wSi_list: List[Optional[Sim2]],
-        gt_floor_pose_graph: PoseGraph2d,
-        plot_save_dir: str,
-        plot_save_fpath: str = None,
-    ) -> "FloorReconstructionReport":
-        """ """
-
-        # TODO: try spanning tree version, vs. Shonan version
-        wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
-        wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
-
-        est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph)
-
-        return FloorReconstructionReport.from_est_floor_pose_graph(
-            est_floor_pose_graph=est_floor_pose_graph,
-            gt_floor_pose_graph=gt_floor_pose_graph,
-            plot_save_dir=plot_save_dir,
-            plot_save_fpath=plot_save_fpath,
-        ), est_floor_pose_graph
 
     @classmethod
     def from_est_floor_pose_graph(
@@ -71,7 +49,7 @@ class FloorReconstructionReport:
         est_floor_pose_graph: PoseGraph2d,
         gt_floor_pose_graph: PoseGraph2d,
         plot_save_dir: str,
-        plot_save_fpath: str,
+        plot_save_fpath: Optional[str] = None,
     ) -> "FloorReconstructionReport":
         """Create a report from an estimated pose graph for a single floor."""
         num_localized_panos = len(est_floor_pose_graph.nodes)
@@ -79,7 +57,6 @@ class FloorReconstructionReport:
         percent_panos_localized = num_localized_panos / num_floor_panos * 100
         print(f"Localized {percent_panos_localized:.2f}% of panos: {num_localized_panos} / {num_floor_panos}")
 
-        #import pdb; pdb.set_trace()
         # aligned_est_floor_pose_graph = est_floor_pose_graph
         aligned_est_floor_pose_graph, _ = est_floor_pose_graph.align_by_Sim3_to_ref_pose_graph(
             ref_pose_graph=gt_floor_pose_graph
