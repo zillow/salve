@@ -70,7 +70,7 @@ class BEVParams:
 def test_bevimg_Sim2_world() -> None:
     """Ensure that class constructor works, and Sim(2) generated is correct."""
     # 10 meters x 10 meters in total.
-    params = BEVParams(img_h = 20, img_w = 20, meters_per_px = 0.5)
+    params = BEVParams(img_h=20, img_w=20, meters_per_px=0.5)
 
     # fmt: off
     world_pts = np.array(
