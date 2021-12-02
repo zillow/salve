@@ -8,9 +8,18 @@ from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 import networkx as nx
 
+import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 from afp.algorithms.cycle_consistency import TwoViewEstimationReport
 from afp.common.edge_classification import EdgeClassification
 from afp.common.posegraph2d import PoseGraph2d
+
+# colors that can be used for coloring nodes or edges
+PLUM1 = [173, 127, 168]
+SKYBLUE = [135, 206, 250]
+GREEN = [0, 140, 25]
+CYAN = [0, 255, 255]
+
+DEFAULT_RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
 
 def draw_graph_topology(
@@ -61,14 +70,20 @@ def draw_graph_topology(
 
 
 def draw_multigraph(
-    measurements: List[EdgeClassification], gt_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5
+    measurements: List[EdgeClassification], input_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5, raw_dataset_dir: str = DEFAULT_RAW_DATASET_DIR
 ) -> None:
-    """
+    """Draw the topology of a pose graph, with colored nodes and colored edges.
+
+    If the input pose graph is an estimated pose graph, some cameras may not be localized. In this case, we may
+    want to render the remaining nodes at the GT locations.
+
     Args:
         measurements
         gt_floor_pose_graph
         confidence_threshold
+        raw_dataset_dir:
     """
+
     edges = []
     edge_colors = []
 
@@ -90,10 +105,17 @@ def draw_multigraph(
             m.i1 = i1
             m.i2 = i2
 
-        edge_color = "g" if m.y_true == 1 else "r"
-        weight = m.prob
-        weight = 5 if m.y_true == 1 else 1
+        #EDGE_COLOR = SKYBLUE
+        EDGE_COLOR = CYAN
+        
+        edge_color = [v/255 for v in EDGE_COLOR] # "g" if m.y_true == 1 else "r"
+        weight = m.prob * 1.5
+        # weight = 5 if m.y_true == 1 else 1
         G.add_edge(m.i1, m.i2, color=edge_color, weight=weight)
+
+    NODE_COLOR = [v/255 for v in GREEN]
+    node_color_map = [NODE_COLOR for node in G]  
+    node_sizes = [15 for node in G]
 
     edges = G.edges()
 
@@ -104,14 +126,37 @@ def draw_multigraph(
         colors.append(attrib_dict["color"])
         weight.append(attrib_dict["weight"])
 
+    floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
+        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
+    )
+    true_gt_floor_pose_graph =  floor_pose_graphs[gt_floor_pose_graph.floor_id]
+
     nodes = list(G.nodes)
+    node_positions = {}
+    for v in nodes:
+        if v in gt_floor_pose_graph.nodes:
+            pos = input_floor_pose_graph.nodes[v].global_Sim2_local.translation
+        else:
+            pos = true_gt_floor_pose_graph.nodes[v].global_Sim2_local.translation
+
+        node_positions[v] = pos
+
     nx.drawing.nx_pylab.draw_networkx(
         G=G,
-        pos={v: gt_floor_pose_graph.nodes[v].global_Sim2_local.translation for v in nodes},
+        pos=node_positions,
         edgelist=edges,
         edge_color=colors,
         width=weight,
+        with_labels=False,
+        node_color=node_color_map,
+        node_size = node_sizes
     )
+    building_id = input_floor_pose_graph.building_id
+    floor_id = input_floor_pose_graph.floor_id
 
     plt.axis("equal")
-    plt.show()
+    #plt.show()
+    plt.tight_layout()
+    save_fpath = f"multigraph_{building_id}_{floor_id}.pdf"
+    plt.savefig(save_fpath, dpi=500)
+    plt.close("all")
