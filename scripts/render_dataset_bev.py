@@ -278,65 +278,62 @@ def render_pairs(
 
 
 if __name__ == "__main__":
-    """ """
+    """
+    Depth maps are stored on the following nodes at the following places:
+    - locally: "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps" 
+    - DGX: "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps" 
+    - se1-001: "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps",
 
+    Hypotheses are saved on the following nodes at the following places:
+    - se1-001:
+        w/ inferred WDO and inferred layout:
+            "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+        w/ GT WDO + GT layout:
+            "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+
+    BEV texture maps are saved to the following locations ("bev_save_root"):
+        "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
+        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
+        "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
+        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
+        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v3"
+        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs_filledpoly"
+        "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
+        "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
+        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
+        "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
+        "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
+        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
+        "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"  # BEST
+        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_23_debug"
+
+        from GT WDO and GT layout:
+            "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_processes", type=int, default=15, help="Number of processes to use for parallel rendering.")
     parser.add_argument("--depth_save_root",
         type=str,
-        # "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps" # (on DGX)
-        # "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps" # (on local machine)
-        default="/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps", # on se1-001
+        required=True,
         help="Path where depth maps are stored (and will be saved to, if not computed yet)."
     )
-
-
-    # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_06_25"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_07"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_w_wdo_idxs"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v2_w_wdo_idxs"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_07_11_alignment_hypotheses_2021_08_04_Sim3"
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_16_SE2"
-    # hypotheses_save_root = "/mnt/data/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
-    # hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_17_SE2"
-    
-    # w/ inferred WDO and inferred layout
-    # hypotheses_save_root = (
-    #     "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    # )
-
-    # w/ GT WDO + GT layout
-    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-
-
-
-    # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    # raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
-
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
-    # bev_save_root = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v3"
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs_filledpoly"
-    # bev_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
-    # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
-    # bev_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
-    # bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"  # BEST
-    # bev_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_23_debug"
-
-    # from GT WDO and GT layout
-    bev_save_root = "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    parser.add_argument("--hypotheses_save_root",
+        type=str,
+        required=True,
+        help="Path to where alignment hypotheses are saved on disk."
+    )
+    parser.add_argument("--raw_dataset_dir",
+        type=str,
+        # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05" # (on DGX)
+        # "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05" # (on local machine)
+        default="/home/johnlam/zind_bridgeapi_2021_10_05",
+        help="Path to where ZInD dataset is stored (directly downloaded from Bridge API)."
+    )
+    parser.add_argument("--bev_save_root",
+        type=str,
+        required=True,
+        help="Directory where BEV texture maps should be written to (directory will be created at this path)."
+    )
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
     # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
@@ -349,10 +346,10 @@ if __name__ == "__main__":
 
     render_pairs(
         num_processes=args.num_processes,
-        depth_save_root=depth_save_root,
-        bev_save_root=bev_save_root,
-        raw_dataset_dir=raw_dataset_dir,
-        hypotheses_save_root=hypotheses_save_root,
+        depth_save_root=args.depth_save_root,
+        bev_save_root=args.bev_save_root,
+        raw_dataset_dir=args.raw_dataset_dir,
+        hypotheses_save_root=args.hypotheses_save_root,
         layout_save_root=layout_save_root,
         render_modalities=render_modalities
     )
