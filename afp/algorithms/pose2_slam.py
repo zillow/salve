@@ -38,6 +38,27 @@ ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
 MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
 
 
+@dataclass
+class BearingRangeMeasurement:
+    """Bearing is provided in degrees.
+
+    Args:
+        l_idx: landmark index.
+    """
+
+    pano_id: int
+    l_idx: int
+    bearing_deg: float
+    range: float
+
+
+@dataclass
+class OdometryMeasurement:
+    i1: int
+    i2: int
+    i2Ti1: Pose2
+
+
 def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]:
     """Does not require an initial estimate.
 
@@ -87,28 +108,6 @@ def test_estimate_poses_lago() -> None:
     }
 
     wTi_list_computed = estimate_poses_lago(i2Ti1_dict)
-
-
-
-@dataclass
-class BearingRangeMeasurement:
-    """Bearing is provided in degrees.
-
-    Args:
-        l_idx: landmark index.
-    """
-
-    pano_id: int
-    l_idx: int
-    bearing_deg: float
-    range: float
-
-
-@dataclass
-class OdometryMeasurement:
-    i1: int
-    i2: int
-    i2Ti1: Pose2
 
 
 def planar_slam(
