@@ -53,6 +53,14 @@ pip install -e .
 - We use Facebook's `hydra` library for configuration files.
 - We use the [`rdp`](https://github.com/fhirschmann/rdp) library for polygon simplification.
 
+
+## Verify Installation
+
+Run the unit tests:
+```bash
+pytest tests/
+```
+
 ## Running Reconstruction
 
 Download and unzip the Madori-V1 HorizonNet predictions from [Google Drive here](https://drive.google.com/file/d/1VBTBYIaFSHDtP31_FnM6vII3_p1On3tE/view?usp=sharing).
