@@ -33,11 +33,28 @@ or on Mac
 conda env create -f environment_mac.yml
 ```
 
-We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. Pre-built python wheels for `GTSAM` are available for download [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1126472520) on Github under "Artifacts" (there is no need to build GTSAM from scratch). The GTSAM libraries on `pypi` are out of date. You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
+We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. Pre-built python wheels for `GTSAM` are available for download [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1482405025) on Github under "Artifacts" (there is no need to build GTSAM from scratch). The GTSAM libraries on `pypi` are out of date. You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
+
+You should use the Python 3.8 wheel, either looking for a URL with the name (for Linux):
+```
+gtsam-4.1.0-cp38-cp38-manylinux2014_x86_64.whl
+```
+or for Mac:
+```
+wheels-macos-python@3.8
+```
 
 Then, install the Python wheel for GTSAM via 
 ```
 pip install /path/to/wheel/file.whl
+```
+
+Install GTSFM:
+```bash
+cd ..
+git clone https://github.com/borglab/gtsfm.git
+cd gtsfm
+pip install -e .
 ```
 
 **Rendering Training/Testing Data** If you'd like to render training or testing data, clone the `HoHoNet` repo.
@@ -46,6 +63,7 @@ pip install /path/to/wheel/file.whl
 
 ```bash
 git clone https://github.com/mseg-dataset/mseg-semantic.git
+cd mseg-semantic
 pip install -e .
 ```
 
@@ -87,11 +105,22 @@ git clone https://gitlab.zgtools.net/johnlam/jlambert-auto-floorplan.git
 
 Set `SALVE_REPO_FPATH` to wherever you have cloned `jlambert-auto-floorplan`
 
+
+
 Run HoHoNet inference and render BEV texture maps:
 ```bash
 cd ..
 git clone https://github.com/sunset1995/HoHoNet.git
 cd HoHoNet
+```
+
+Now download the HoHoNet model here: 
+```bash
+./{SALVE_REPO_FPATH}/scripts/download_monodepth_model.sh
+```
+
+Now run:
+```bash
 export PYTHONPATH=./
 
 python {SALVE_REPO_FPATH}/scripts/render_dataset_bev.py --num_processes {NUM. DESIRED PROCS.} \
