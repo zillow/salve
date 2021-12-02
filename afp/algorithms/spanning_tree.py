@@ -232,7 +232,18 @@ def ransac_spanning_trees(
 def compute_hypothesis_errors(
     high_conf_measurements: List[RelativePoseMeasurement], wSi_list: List[Optional[Sim2]]
 ) -> Tuple[float, float, float, float]:
-    """ """
+    """Measure the quality of global poses (from a single random spanning tree) vs. input measurements.
+
+    Args:
+        high_conf_measurements
+        wSi_list
+
+    Returns:
+        avg_rot_error: average rotation error (in degrees) per edge/measurement.
+        med_rot_error: median rotation error (in degrees) per edge/measurement.
+        avg_trans_error: average translation error per edge/measurement.
+        med_trans_error: median translation error per edge/measurement.
+    """
     rot_errors = []
     trans_errors = []
     # count the number of inliers / error against ALL measurements now.
