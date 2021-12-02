@@ -136,10 +136,7 @@ def planar_slam(
     Returns:
         wTi_list:
     """
-    # TODO: use robust noise model.
     # measurement_noise = gtsam.noiseModel.Isotropic.Sigma(IMG_MEASUREMENT_DIM, MEASUREMENT_NOISE_SIGMA)
-    # if self._robust_measurement_noise:
-    #     measurement_noise = gtsam.noiseModel.Robust(gtsam.noiseModel.mEstimator.Huber(1.345), measurement_noise)
 
     # Create noise models
     PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))
@@ -342,7 +339,17 @@ def execute_planar_slam(
             continue
         wSi_list[i] = Sim2(R=wTi.rotation().matrix(), t=wTi.translation(), s=1.0)
 
-    report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pg, plot_save_dir=plot_save_dir)
+
+    est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pg)
+    report = FloorReconstructionReport.from_est_floor_pose_graph(
+        est_floor_pose_graph,
+        gt_floor_pose_graph=gt_floor_pg,
+        plot_save_dir=plot_save_dir,
+        plot_save_fpath: str)
+    
+    #import afp.utils.graph_rendering_utils as graph_rendering_utils
+    #graph_rendering_utils.draw_multigraph(measurements, est_floor_pose_graph, confidence_threshold=0.93)
+
     return report
 
 
