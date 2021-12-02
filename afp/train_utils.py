@@ -5,7 +5,7 @@ Shared utilities for model training/testing.
 
 import logging
 from pathlib import Path
-from typing import Callable, List, Tuple
+from typing import Callable, Tuple
 
 import torch
 from mseg_semantic.utils.avg_meter import AverageMeter

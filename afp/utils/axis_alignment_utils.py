@@ -5,13 +5,12 @@ Tools for aligning room predictions to dominant axes.
 Can use vanishing points, PCA or polgon edge angles.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.ellipsoid as ellipsoid_utils
 import matplotlib.pyplot as plt
 import numpy as np
-import rdp
 from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point3, Point3Pairs, Pose2, Similarity3
 
@@ -253,7 +252,7 @@ def align_pair_measurement_by_vanishing_angle(
             plt.close("all")
         return None
 
-    print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
+    #print(f"Rotate by {i2r_theta_i2:.2f} deg.", )
     i2r_R_i2 = rotation_utils.rotmat2d(theta_deg=i2r_theta_i2)
     i2r_S_i2 = Sim2(R=i2r_R_i2, t=np.zeros(2), s=1.0)
     # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)

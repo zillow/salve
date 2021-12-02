@@ -6,18 +6,14 @@ a single connected component.
 import copy
 import math
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-import gtsam
 import gtsfm.utils.graph as graph_utils
 import gtsfm.utils.logger as logger_utils
 import networkx as nx
 import numpy as np
 import scipy
-from argoverse.utils.json_utils import read_json_file
 from argoverse.utils.sim2 import Sim2
-from gtsam import Point3, Pose2, Rot2, Rot3, Unit3
 
 import afp.utils.rotation_utils as rotation_utils
 from afp.common.edge_classification import EdgeClassification

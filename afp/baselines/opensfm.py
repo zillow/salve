@@ -372,7 +372,9 @@ def run_opensfm_over_all_zind() -> None:
 
     # building_id = "1442"
     # floor_id = "floor_01"
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+    #raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()

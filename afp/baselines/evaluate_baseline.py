@@ -8,14 +8,9 @@ Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
 
 import glob
 import os
-import shutil
-from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional, Tuple
 
-import gtsam
 import gtsfm.utils.geometry_comparisons as geometry_comparisons
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,7 +25,6 @@ import afp.dataset.zind_partition as zind_partition
 import afp.visualization.utils as vis_utils
 from afp.baselines.openmvg import OPENMVG_DEMO_ROOT
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
-from afp.common.posegraph2d import PoseGraph2d
 from afp.common.posegraph3d import PoseGraph3d
 from afp.dataset.zind_partition import DATASET_SPLITS
 from afp.utils.logger_utils import get_logger

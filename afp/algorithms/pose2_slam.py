@@ -11,6 +11,7 @@ L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
 for graph-based simultaneous localization and mapping, RSS, 2011.
 """
 
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 import gtsam
@@ -18,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point2, Point3, Pose2, PriorFactorPose2, Values
-from gtsam.symbol_shorthand import X, L
+from gtsam.symbol_shorthand import L, X
 
 import afp.algorithms.data_association as data_association
 import afp.common.edge_classification as edge_classification
@@ -87,9 +88,6 @@ def test_estimate_poses_lago() -> None:
 
     wTi_list_computed = estimate_poses_lago(i2Ti1_dict)
 
-
-from gtsam.symbol_shorthand import L, X
-from dataclasses import dataclass
 
 
 @dataclass
@@ -256,7 +254,7 @@ def execute_planar_slam(
         verbose:
 
     Returns:
-        report
+        report: reconstruction report.
     """
     if (not optimize_poses_only) or use_axis_alignment:
         raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
@@ -297,8 +295,7 @@ def execute_planar_slam(
 
     # Add Bearing-Range measurements to different landmarks
     # angle to reach landmark, from given pose.
-    # for each (s,e)
-
+    # for each start and end vertex of W/D/O, denoted by (s,e)
     landmark_measurements = []
     landmark_positions_init = {}
 
@@ -373,7 +370,15 @@ def draw_coordinate_frame(wTi: Pose2, text: str) -> None:
 
 
 def bearing_range_from_vertex(v: Tuple[float, float]) -> float:
-    """Return bearing in degrees and range."""
+    """Return bearing in degrees and range.
+
+    Args:
+        v: coordinate in Cartesian frame.
+
+    Returns:
+        bearing: angle (in degrees) to vertex/landmark
+        range: distance (in 2d) to vertex/landmark.
+    """
     x, y = v
     bearing_rad = np.arctan2(y, x)
     range = np.linalg.norm(v)

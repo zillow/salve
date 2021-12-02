@@ -1,5 +1,6 @@
 
-"""
+"""Translation direction filtering via Minimum Feedback Arc Set (MFAS).
+
 Reference: https://github.com/borglab/gtsfm/blob/master/gtsfm/averaging/translation/averaging_1dsfm.py
 """
 

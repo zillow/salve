@@ -81,7 +81,7 @@ def draw_multigraph(
 
     Args:
         measurements
-        gt_floor_pose_graph
+        input_floor_pose_graph: poses where graph nodes will be plotted.
         confidence_threshold
         raw_dataset_dir:
     """
@@ -129,14 +129,14 @@ def draw_multigraph(
         weight.append(attrib_dict["weight"])
 
     floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
+        query_building_id=input_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
     )
-    true_gt_floor_pose_graph = floor_pose_graphs[gt_floor_pose_graph.floor_id]
+    true_gt_floor_pose_graph = floor_pose_graphs[input_floor_pose_graph.floor_id]
 
     nodes = list(G.nodes)
     node_positions = {}
     for v in nodes:
-        if v in gt_floor_pose_graph.nodes:
+        if v in input_floor_pose_graph.nodes:
             pos = input_floor_pose_graph.nodes[v].global_Sim2_local.translation
         else:
             pos = true_gt_floor_pose_graph.nodes[v].global_Sim2_local.translation

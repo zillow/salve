@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-from gtsam import Point3, Pose2, Pose3, Point3Pairs, Rot2, Rot3, Similarity3
+from gtsam import Pose3, Point3Pairs, Similarity3
 
 import afp.utils.rotation_utils as rotation_utils
 

@@ -308,7 +308,7 @@ class PoseGraph2d(NamedTuple):
 
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
 
-        mean_rot_err, mean_trans_err = ransac.compute_pose_errors_3d(aTi_list_gt, aligned_bTi_list_est)
+        mean_rot_err, mean_trans_err, rot_errors, trans_errors = ransac.compute_pose_errors_3d(aTi_list_gt, aligned_bTi_list_est)
         return mean_rot_err, mean_trans_err, rot_errors, trans_errors
 
 
@@ -671,10 +671,3 @@ if __name__ == "__main__":
     """ """
     raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
     # export_dataset_pose_graphs(raw_dataset_dir)
-
-    # test_measure_avg_rel_rotation_err()
-    # test_measure_avg_abs_rotation_err()
-    # test_measure_avg_rel_rotation_err_unestimated()
-    # test_measure_abs_pose_error()
-
-    test_measure_abs_pose_error_shifted()

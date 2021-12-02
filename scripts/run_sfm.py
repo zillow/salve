@@ -18,12 +18,9 @@ import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-from gtsam import Rot2, Pose2
-
-from gtsam import Point3, Point3Pairs, Similarity3
+from gtsam import Point3, Point3Pairs, Pose2, Rot2, Similarity3
 
 import afp.algorithms.cycle_consistency as cycle_utils
-import afp.algorithms.mfas as mfas
 import afp.algorithms.pose2_slam as pose2_slam
 import afp.algorithms.rotation_averaging as rotation_averaging
 import afp.algorithms.spanning_tree as spanning_tree
@@ -188,8 +185,6 @@ def get_conf_thresholded_edges(
     #     gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=False
     # )
     # print(f"\tMean relative rotation error {mean_rel_rot_err:.2f} deg.")
-
-    # mfas.run_mfas(wRi_list, i2Ui1_dict)
 
     print(f"most confident was correct {np.array(most_confident_was_correct).mean():.2f}")
 
@@ -762,8 +757,8 @@ if __name__ == "__main__":
     # method = "growing_consensus"
     # method = "filtered_spanning_tree"
     # method = "random_spanning_trees"
-    # method = "pose2_slam"
-    method = "pgo"
+    method = "pose2_slam"
+    # method = "pgo"
 
     use_axis_alignment = True
     allowed_wdo_types = ["door", "window", "opening"]  #    ["window"] #  ["opening"] # ["door"] #

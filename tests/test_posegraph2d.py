@@ -259,3 +259,10 @@ def test_measure_abs_pose_error_shifted() -> None:
 
 if __name__ == "__main__":
     test_convert_Sim3_to_Sim2()
+
+    # test_measure_avg_rel_rotation_err()
+    # test_measure_avg_abs_rotation_err()
+    # test_measure_avg_rel_rotation_err_unestimated()
+    # test_measure_abs_pose_error()
+
+    # test_measure_abs_pose_error_shifted()

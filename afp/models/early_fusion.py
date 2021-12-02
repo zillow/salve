@@ -2,7 +2,7 @@
 Early-fusion ResNet architecture.
 """
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 from torch import nn, Tensor

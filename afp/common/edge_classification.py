@@ -5,7 +5,7 @@ import glob
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import argoverse.utils.json_utils as json_utils
 import numpy as np
