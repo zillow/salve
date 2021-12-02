@@ -18,9 +18,7 @@ import argoverse.utils.json_utils as json_utils
 import argoverse.utils.subprocess_utils as subprocess_utils
 from gtsam import Pose3, Rot3, Similarity3
 
-# import below is from gtsfm
-import visualization.open3d_vis_utils as open3d_vis_utils
-
+from afp.dataset.zind_partition import DATASET_SPLITS
 from afp.utils.logger_utils import get_logger
 from afp.baselines.sfm_reconstruction import SfmReconstruction
 
@@ -295,74 +293,6 @@ def load_opensfm_reconstructions_from_json(
     return reconstructions
 
 
-def test_measure_opensfm_localization_accuracy():
-    pass
-
-    # TODO: write unit test
-
-    reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/skydio-32/reconstruction.json"
-
-    import pdb
-
-    pdb.set_trace()
-    reconstructions = load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
-
-    for r, reconstruction in enumerate(reconstructions):
-
-        fnames = [
-            "S1014644.JPG",
-            "S1014645.JPG",
-            "S1014646.JPG",
-            "S1014647.JPG",
-            "S1014648.JPG",
-            "S1014649.JPG",
-            "S1014650.JPG",
-            "S1014651.JPG",
-            "S1014652.JPG",
-            "S1014653.JPG",
-            "S1014654.JPG",
-            "S1014655.JPG",
-            "S1014656.JPG",
-            "S1014684.JPG",
-            "S1014685.JPG",
-            "S1014686.JPG",
-            "S1014687.JPG",
-            "S1014688.JPG",
-            "S1014689.JPG",
-            "S1014690.JPG",
-            "S1014691.JPG",
-            "S1014692.JPG",
-            "S1014693.JPG",
-            "S1014694.JPG",
-            "S1014695.JPG",
-            "S1014696.JPG",
-            "S1014724.JPG",
-            "S1014725.JPG",
-            "S1014726.JPG",
-            "S1014734.JPG",
-            "S1014735.JPG",
-            "S1014736.JPG",
-        ]
-
-        # point_cloud = np.zeros((0,3))
-        # rgb = np.zeros((0,3))
-
-        point_cloud = reconstruction.points
-        rgb = reconstruction.rgb
-
-        wTi_list = [reconstruction.pose_dict[fname] if fname in reconstruction.pose_dict else None for fname in fnames]
-        N = len(wTi_list)
-        # import pdb; pdb.set_trace()
-        fx = reconstruction.camera.focal * 1000
-        px = reconstruction.camera.width / 2
-        py = reconstruction.camera.height / 2
-        from gtsam import Cal3Bundler
-
-        calibrations = [Cal3Bundler(fx=fx, k1=0, k2=0, u0=px, v0=py)] * N
-        args = SimpleNamespace(**{"point_rendering_mode": "point"})
-        open3d_vis_utils.draw_scene_open3d(point_cloud, rgb, wTi_list, calibrations, args)
-
-
 def run_opensfm_over_all_zind() -> None:
     """ """
     OVERRIDES_FPATH = "/Users/johnlam/Downloads/OpenSfM/data/camera_models_overrides.json"
@@ -370,16 +300,17 @@ def run_opensfm_over_all_zind() -> None:
     OPENSFM_REPO_ROOT = "/Users/johnlam/Downloads/OpenSfM"
     # reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
 
-    # building_id = "1442"
-    # floor_id = "floor_01"
-    #raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
-
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
     for building_id in building_ids:
+
+        # we are only evaluating OpenSfM on ZInD's test split.
+        if building_id not in DATASET_SPLITS["test"]:
+            continue
+
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         for floor_id in floor_ids:
@@ -390,7 +321,7 @@ def run_opensfm_over_all_zind() -> None:
                 if len(pano_fpaths) == 0:
                     continue
 
-                FLOOR_OPENSFM_DATADIR = f"{OPENSFM_REPO_ROOT}/data/ZinD_{building_id}_{floor_id}__2021_09_13"
+                FLOOR_OPENSFM_DATADIR = f"{OPENSFM_REPO_ROOT}/data/ZinD_{building_id}_{floor_id}__2021_12_02_BridgeAPI"
                 os.makedirs(f"{FLOOR_OPENSFM_DATADIR}/images", exist_ok=True)
                 reconstruction_json_fpath = f"{FLOOR_OPENSFM_DATADIR}/reconstruction.json"
 
@@ -403,12 +334,23 @@ def run_opensfm_over_all_zind() -> None:
                 # See https://opensfm.readthedocs.io/en/latest/using.html#providing-your-own-camera-parameters
                 shutil.copyfile(OVERRIDES_FPATH, f"{FLOOR_OPENSFM_DATADIR}/camera_models_overrides.json")
 
-                # import pdb; pdb.set_trace()
-                cmd = f"bin/opensfm_run_all data/ZinD_{building_id}_{floor_id}__2021_09_13 2>&1 | tee {FLOOR_OPENSFM_DATADIR}/opensfm.log"
+                cmd = f"bin/opensfm_run_all {FLOOR_OPENSFM_DATADIR} 2>&1 | tee {FLOOR_OPENSFM_DATADIR}/opensfm.log"
                 print(cmd)
                 subprocess_utils.run_command(cmd)
 
-                # shutil.rmtree()
+                # delete copy of all of the copies of the panos
+                shutil.rmtree(dst_dir)
+
+                # take up way too much space!
+                features_dir = f"{FLOOR_OPENSFM_DATADIR}/features"
+                shutil.rmtree(features_dir)
+
+                # contains resampled-perspective images and depth maps.
+                undistorted_depthmaps_dir = f"{FLOOR_OPENSFM_DATADIR}/undistorted/depthmaps"
+                shutil.rmtree(undistorted_depthmaps_dir)
+
+                undistorted_imgs_dir = f"{FLOOR_OPENSFM_DATADIR}/undistorted/images"
+                shutil.rmtree(undistorted_imgs_dir)
 
                 # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
                 # measure_algorithm_localization_accuracy(
