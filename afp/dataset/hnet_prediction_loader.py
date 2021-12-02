@@ -26,6 +26,12 @@ from afp.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
 from afp.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
 from afp.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
+# path to batch of unzipped prediction files, from Yuguang
+# RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
+# RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/mnt/data/johnlam/zind2_john"
+# RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/home/johnlam/zind2_john"
+RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/Users/johnlam/Downloads/zind2_john"
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -40,7 +46,9 @@ MODEL_NAMES = [
 # could also try partial manhattanization (separate model) -- get link from Yuguang
 
 
-def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str) -> None:
+def load_inferred_floor_pose_graphs(
+    query_building_id: str, raw_dataset_dir: str, predictions_data_root: str = RMX_MADORI_V1_PREDICTIONS_DIRPATH
+) -> Optional[Dict[str, PoseGraph2d]]:
     """
 
     Note: we read in mapping from spreadsheet, mapping from their ZInD index to these guid
@@ -56,13 +64,11 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
         query_building_id: string representing ZinD building ID to fetch the per-floor inferred pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
         raw_dataset_dir:
-    """
-    # data_root = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
 
-    # path to batch of unzipped prediction files, from Yuguang
-    data_root = "/Users/johnlam/Downloads/zind2_john"
-    # data_root = "/mnt/data/johnlam/zind2_john"
-    # data_root = "/home/johnlam/zind2_john"
+    Returns:
+        floor_pose_graphs: mapping from floor_id to predicted pose graph
+            (without poses, but just W/D/O predictions and layout prediction)
+    """
 
     pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
     # pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
@@ -100,14 +106,15 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
         #     continue
 
         pano_guids = [
-            Path(dirpath).stem for dirpath in glob.glob(f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/*")
+            Path(dirpath).stem
+            for dirpath in glob.glob(f"{predictions_data_root}/{building_guid}/floor_map/{building_guid}/pano/*")
         ]
         if len(pano_guids) == 0:
             # e.g. building '0258' is missing predictions.
             print(f"No Pano GUIDs provided for {building_guid} (ZinD Building {zind_building_id}).")
             return None
 
-        floor_map_json_fpath = f"{data_root}/{building_guid}/floor_map.json"
+        floor_map_json_fpath = f"{predictions_data_root}/{building_guid}/floor_map.json"
         if not Path(floor_map_json_fpath).exists():
             print(f"JSON file missing for {zind_building_id}")
             return None
@@ -157,7 +164,7 @@ def load_inferred_floor_pose_graphs(query_building_id: str, raw_dataset_dir: str
             # for model_name in model_names:
             # print(f"\tLoaded {model_name} prediction for Pano {i}")
             model_prediction_fpath = (
-                f"{data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
+                f"{predictions_data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
             )
             if not Path(model_prediction_fpath).exists():
                 print(
