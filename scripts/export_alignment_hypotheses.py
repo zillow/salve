@@ -24,7 +24,7 @@ import afp.utils.rotation_utils as rotation_utils
 import afp.utils.wdo_alignment as wdo_alignment_utils
 from afp.common.pano_data import FloorData, PanoData
 from afp.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
-
+from afp.common.posegraph2d import REDTEXT, ENDCOLOR
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
 HEADER = "\033[95m"
@@ -79,9 +79,9 @@ def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2, wdo_alignment_object: str) -> bo
     """Check if two rigid body transformations are equal up to a tolerance.
 
     Args:
-        i2Ti1:
-        i2Ti1_:
-        wdo_alignment_object
+        i2Ti1: first relative pose.
+        i2Ti1_: second relative pose.
+        wdo_alignment_object: type of W/D/O (either door, window, or opening)
 
     Returns:
         boolean indicating whether the two input transformations are equal up to a tolerance.
@@ -324,10 +324,10 @@ def export_single_building_wdo_alignment_hypotheses(
         logger.info(f"floor_n_valid_configurations: {floor_n_valid_configurations}")
         logger.info(f"floor_n_invalid_configurations: {floor_n_invalid_configurations}")
 
-    print(f"{OKGREEN} Building {building_id}: ")
+    print(f"{OKGREEN} Building {building_id}: " + ENDCOLOR)
     for floor_id, gt_is_valid_arr in floor_gt_is_valid_report_dict.items():
-        print(f"{OKGREEN} {floor_id}: {np.mean(gt_is_valid_arr):.2f} over {len(gt_is_valid_arr)} alignment pairs.")
-    print(HEADER)
+        print(f"{OKGREEN} {floor_id}: {np.mean(gt_is_valid_arr):.2f} over {len(gt_is_valid_arr)} alignment pairs." + ENDCOLOR)
+    print(HEADER + ENDCOLOR)
 
 
 def export_alignment_hypotheses_to_json(
