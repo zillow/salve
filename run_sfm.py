@@ -403,7 +403,13 @@ def get_edge_accuracy(
 
 
 def run_incremental_reconstruction(
-    hypotheses_save_root: str, serialized_preds_json_dir: str, raw_dataset_dir: str
+    hypotheses_save_root: str,
+    serialized_preds_json_dir: str,
+    raw_dataset_dir: str,
+    method: str,
+    confidence_threshold: float,
+    use_axis_alignment: bool,
+    allowed_wdo_types: List[str]
 ) -> None:
     """
     Can get multi-graph out of classification model.
@@ -418,23 +424,10 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-    # method = "spanning_tree"
-    # method = "SE2_cycles"
-    # method = "growing_consensus"
-    # method = "filtered_spanning_tree"
-    # method = "random_spanning_trees"
-    # method = "pose2_slam"
-    method = "pgo"
-
-    # TODO: add axis alignment.
-
-    use_axis_alignment = False
-    confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
-    allowed_wdo_types = ["door", "window", "opening"] #    ["window"] #  ["opening"] # ["door"] # 
 
     allowed_wdo_types_summary = "_".join(allowed_wdo_types)
     plot_save_dir = (
-        f"{Path(serialized_preds_json_dir).name}___2021_11_03_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
+        f"{Path(serialized_preds_json_dir).name}___2021_12_02_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
     )
     os.makedirs(plot_save_dir, exist_ok=True)
 
@@ -711,9 +704,9 @@ if __name__ == "__main__":
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
-    # hypotheses_save_root = (
-    #     "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    # )
+    hypotheses_save_root = (
+        "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    )
 
     # 186 tours, low-res, RGB only floor and ceiling. custom hacky val split
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
@@ -726,9 +719,9 @@ if __name__ == "__main__":
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
     
     # ceiling + floor
-    # serialized_preds_json_dir = (
-    #     "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
-    # )
+    serialized_preds_json_dir = (
+        "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    )
     # serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
 
 
@@ -750,13 +743,32 @@ if __name__ == "__main__":
     # "/data/johnlam/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test109buildings_2021_11_16"
 
     # GT WDO + GT Layout, ResNet-152
-    hypotheses_save_root = (
-        "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-    )
-    serialized_preds_json_dir = (
-        "/Users/johnlam/Downloads/2021_11_23_ResNet152floorceiling_GT_WDO_350tours_serialized_edge_classifications_2021_11_24"
-    )
+    # hypotheses_save_root = (
+    #     "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    # )
+    # serialized_preds_json_dir = (
+    #     "/Users/johnlam/Downloads/2021_11_23_ResNet152floorceiling_GT_WDO_350tours_serialized_edge_classifications_2021_11_24"
+    # )
 
-    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, args.raw_dataset_dir)
+    # method = "spanning_tree"
+    # method = "SE2_cycles"
+    # method = "growing_consensus"
+    # method = "filtered_spanning_tree"
+    # method = "random_spanning_trees"
+    # method = "pose2_slam"
+    method = "pgo"
+
+    # TODO: add axis alignment.
+
+    use_axis_alignment = True
+    confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
+    allowed_wdo_types = ["door", "window", "opening"] #    ["window"] #  ["opening"] # ["door"] # 
+
+    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, args.raw_dataset_dir,
+        method,
+        confidence_threshold,
+        use_axis_alignment,
+        allowed_wdo_types
+    )
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
