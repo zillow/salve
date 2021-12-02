@@ -280,14 +280,16 @@ def render_pairs(
 if __name__ == "__main__":
     """ """
 
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_processes", type=int, default=15, help="Number of processes to use for parallel rendering.")
-    args = parser.parse_args()
+    parser.add_argument("--depth_save_root",
+        type=str,
+        # "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps" # (on DGX)
+        # "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps" # (on local machine)
+        default="/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps", # on se1-001
+        help="Path where depth maps are stored (and will be saved to, if not computed yet)."
+    )
 
-    # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    # depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    depth_save_root = "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/jlambert-auto-floorplan/verifier_dataset_2021_06_21"
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_06_25"
@@ -313,12 +315,6 @@ if __name__ == "__main__":
     hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
 
 
-    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # raw_dataset_dir = "/mnt/data/johnlam/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # raw_dataset_dir = DO NOT USE "/mnt/data/zhiqiangw/ZInD_final_07_11/complete_07_10_new"
-    # raw_dataset_dir = "/mnt/data/johnlam/complete_07_10_new"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     # raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     # raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
@@ -349,6 +345,7 @@ if __name__ == "__main__":
     # layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout"
 
     render_modalities = ["rgb_texture"] # ["layout"]
+    args = parser.parse_args()
 
     render_pairs(
         num_processes=args.num_processes,
