@@ -194,7 +194,7 @@ flake8 --max-line-length 120 --ignore E201,E202,E203,E231,W291,W293,E303,W391,E4
 ```
 
 ```bash
-pytest tests --cov afp --ignore {}
+pytest tests --cov afp --ignore tests/test_export_alignment_hypotheses.py
 coverage report
 ```
 
