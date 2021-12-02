@@ -1,4 +1,3 @@
-
 """
 Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph.
 """
@@ -70,7 +69,10 @@ def draw_graph_topology(
 
 
 def draw_multigraph(
-    measurements: List[EdgeClassification], input_floor_pose_graph: PoseGraph2d, confidence_threshold: float = 0.5, raw_dataset_dir: str = DEFAULT_RAW_DATASET_DIR
+    measurements: List[EdgeClassification],
+    input_floor_pose_graph: PoseGraph2d,
+    confidence_threshold: float = 0.5,
+    raw_dataset_dir: str = DEFAULT_RAW_DATASET_DIR,
 ) -> None:
     """Draw the topology of a pose graph, with colored nodes and colored edges.
 
@@ -105,16 +107,16 @@ def draw_multigraph(
             m.i1 = i1
             m.i2 = i2
 
-        #EDGE_COLOR = SKYBLUE
+        # EDGE_COLOR = SKYBLUE
         EDGE_COLOR = CYAN
-        
-        edge_color = [v/255 for v in EDGE_COLOR] # "g" if m.y_true == 1 else "r"
+
+        edge_color = [v / 255 for v in EDGE_COLOR]  # "g" if m.y_true == 1 else "r"
         weight = m.prob * 1.5
         # weight = 5 if m.y_true == 1 else 1
         G.add_edge(m.i1, m.i2, color=edge_color, weight=weight)
 
-    NODE_COLOR = [v/255 for v in GREEN]
-    node_color_map = [NODE_COLOR for node in G]  
+    NODE_COLOR = [v / 255 for v in GREEN]
+    node_color_map = [NODE_COLOR for node in G]
     node_sizes = [15 for node in G]
 
     edges = G.edges()
@@ -129,7 +131,7 @@ def draw_multigraph(
     floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
         query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
     )
-    true_gt_floor_pose_graph =  floor_pose_graphs[gt_floor_pose_graph.floor_id]
+    true_gt_floor_pose_graph = floor_pose_graphs[gt_floor_pose_graph.floor_id]
 
     nodes = list(G.nodes)
     node_positions = {}
@@ -149,13 +151,13 @@ def draw_multigraph(
         width=weight,
         with_labels=False,
         node_color=node_color_map,
-        node_size = node_sizes
+        node_size=node_sizes,
     )
     building_id = input_floor_pose_graph.building_id
     floor_id = input_floor_pose_graph.floor_id
 
     plt.axis("equal")
-    #plt.show()
+    # plt.show()
     plt.tight_layout()
     save_fpath = f"multigraph_{building_id}_{floor_id}.pdf"
     plt.savefig(save_fpath, dpi=500)
