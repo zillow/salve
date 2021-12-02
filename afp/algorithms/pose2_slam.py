@@ -24,6 +24,8 @@ import afp.algorithms.data_association as data_association
 import afp.common.edge_classification as edge_classification
 import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 import afp.utils.axis_alignment_utils as axis_alignment_utils
+import afp.utils.graph_rendering_utils as graph_rendering_utils
+from afp.common.posegraph2d import PoseGraph2d
 from afp.common.edge_classification import EdgeClassification
 from afp.common.edgewdopair import EdgeWDOPair
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
@@ -344,10 +346,8 @@ def execute_planar_slam(
     report = FloorReconstructionReport.from_est_floor_pose_graph(
         est_floor_pose_graph,
         gt_floor_pose_graph=gt_floor_pg,
-        plot_save_dir=plot_save_dir,
-        plot_save_fpath: str)
-    
-    #import afp.utils.graph_rendering_utils as graph_rendering_utils
+        plot_save_dir=plot_save_dir
+    )
     #graph_rendering_utils.draw_multigraph(measurements, est_floor_pose_graph, confidence_threshold=0.93)
 
     return report
@@ -355,6 +355,11 @@ def execute_planar_slam(
 
 def draw_coordinate_frame(wTi: Pose2, text: str) -> None:
     """Draw a 2d coordinate frame using matplotlib."""
+    """
+    Args:
+        wTi: camera pose in global frame.
+        text:
+    """
     # camera center
     cc = wTi.translation()
     plt.text(cc[0], cc[1], text)
