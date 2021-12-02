@@ -71,7 +71,7 @@ class WDO:
         """ """
         x1, y1 = self.pt1
         x2, y2 = self.pt2
-        return np.array([[x1, y1, bottom_z], [x2, y2, top_z]])
+        return np.array([[x1, y1, self.bottom_z], [x2, y2, self.top_z]])
 
     @property
     def vertices_global_3d(self) -> np.ndarray:
