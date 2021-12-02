@@ -1,5 +1,6 @@
-"""
-Script to train CNN models.
+"""Script to train CNN models. Pytorch DataParallel is employed.
+
+Configure the `home_dir` directory below for the location where log files will be saved.
 """
 
 import argparse
