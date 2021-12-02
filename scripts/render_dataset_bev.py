@@ -185,30 +185,34 @@ def render_building_floor_pairs(
 
                 if "layout" not in render_modalities:
                     continue
-                if surface_type == "floor":
+                
+                # only rasterize layout for `floor'.
+                # If `ceiling', we'll skip, since will be identical rendering to `floor`.
+                if surface_type != "floor":
+                    continue
 
-                    building_layout_save_dir = f"{layout_save_root}/{label_type}/{building_id}"
-                    os.makedirs(building_layout_save_dir, exist_ok=True)
+                building_layout_save_dir = f"{layout_save_root}/{label_type}/{building_id}"
+                os.makedirs(building_layout_save_dir, exist_ok=True)
 
-                    # change to layout dir
-                    layout_fpath1 = f"{building_layout_save_dir}/{bev_fname1}"
-                    layout_fpath2 = f"{building_layout_save_dir}/{bev_fname2}"
+                # change to layout dir
+                layout_fpath1 = f"{building_layout_save_dir}/{bev_fname1}"
+                layout_fpath2 = f"{building_layout_save_dir}/{bev_fname2}"
 
-                    if Path(layout_fpath1).exists() and Path(layout_fpath2).exists():
-                        print("Both layout images already exist, skipping...")
-                        continue
+                if Path(layout_fpath1).exists() and Path(layout_fpath2).exists():
+                    print("Both layout images already exist, skipping...")
+                    continue
 
-                    # skip for ceiling, since would be duplicate.
-                    layoutimg1, layoutimg2 = bev_rendering_utils.rasterize_room_layout_pair(
-                        i2Ti1=i2Ti1,
-                        floor_pose_graph=floor_pose_graph,
-                        building_id=building_id,
-                        floor_id=floor_id,
-                        i1=i1,
-                        i2=i2,
-                    )
-                    imageio.imwrite(layout_fpath1, layoutimg1)
-                    imageio.imwrite(layout_fpath2, layoutimg2)
+                # skip for ceiling, since would be duplicate.
+                layoutimg1, layoutimg2 = bev_rendering_utils.rasterize_room_layout_pair(
+                    i2Ti1=i2Ti1,
+                    floor_pose_graph=floor_pose_graph,
+                    building_id=building_id,
+                    floor_id=floor_id,
+                    i1=i1,
+                    i2=i2,
+                )
+                imageio.imwrite(layout_fpath1, layoutimg1)
+                imageio.imwrite(layout_fpath2, layoutimg2)
 
 
 def render_pairs(
