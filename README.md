@@ -161,7 +161,7 @@ python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST}
 
 Now, pass the front-end measurements to SfM:
 ```bash
-python run_sfm.py --raw_dataset_dir {PATH TO ZIND}
+python scripts/run_sfm.py --raw_dataset_dir {PATH TO ZIND}
 ```
 
 ## Pretrained Models
