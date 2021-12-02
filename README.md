@@ -44,7 +44,7 @@ or for Mac:
 wheels-macos-python@3.8
 ```
 
-Then, install the Python wheel for GTSAM via 
+Then, make sure you are within the conda environment (`afp-v1`), and install the Python wheel for GTSAM via 
 ```
 pip install /path/to/wheel/file.whl
 ```
@@ -80,6 +80,8 @@ pytest tests/
 ```
 
 ## Running Reconstruction
+
+Make sure you are within the conda environment (`afp-v1`).
 
 Download and unzip the Madori-V1 HorizonNet predictions from [Google Drive here](https://drive.google.com/file/d/1VBTBYIaFSHDtP31_FnM6vII3_p1On3tE/view?usp=sharing).
 
