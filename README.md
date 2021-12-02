@@ -57,8 +57,11 @@ pip install -e .
 
 Download and unzip the Madori-V1 HorizonNet predictions:
 ```bash
-
+unzip {}
+RMX_MADORI_V1_PREDICTIONS_DIRPATH = {}
 ```
+First, set `RMX_MADORI_V1_PREDICTIONS_DIRPATH` inside `afp/dataset/hnet_prediction_loader.py`.
+Next, set `PANO_MAPPING_TSV_FPATH` also inside `afp/dataset/hnet_prediction_loader.py`.
 
 Run SALVe model inference by first generating alignment hypotheses:
 ```bash
