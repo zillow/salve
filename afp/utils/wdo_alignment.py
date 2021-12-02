@@ -34,7 +34,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.utils.logger_utils as logger_utils
 import afp.utils.overlap_utils as overlap_utils
 import afp.utils.se2_estimation as se2_estimation
 import afp.utils.sim3_estimation as sim3_estimation

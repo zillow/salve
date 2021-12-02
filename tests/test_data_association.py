@@ -4,6 +4,7 @@ Unit tests on data association.
 """
 
 import afp.algorithms.data_association as data_association
+import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
 from afp.common.edge_classification import EdgeClassification
 
 
@@ -352,10 +353,8 @@ def test_perform_data_association() -> None:
     building_id = "0544"
     floor_id = "floor_01"
 
-    from read_prod_predictions import load_inferred_floor_pose_graphs
-
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    floor_pose_graphs = load_inferred_floor_pose_graphs(
+    floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
         query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
     )
     pano_dict_inferred = floor_pose_graphs[floor_id].nodes
