@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-from afp.utils.rotation_utils import rotmat2d
+import afp.utils.rotation_utils as rotation_utils
 
 
 RED = [1, 0, 0]
@@ -272,7 +272,7 @@ class PanoData:
         Returns:
             wdo_objs_seen_on_floor
         """
-        # hohopano_Sim2_zindpano = Sim2(R=rotmat2d(-90), t=np.zeros(2), s=1.0)
+        # hohopano_Sim2_zindpano = Sim2(R=rotation_utils.rotmat2d(-90), t=np.zeros(2), s=1.0)
 
         assert coord_frame in ["worldmetric", "worldnormalized" "local"]
 
@@ -397,7 +397,7 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Si
     theta_deg = transform_data["rotation"]
 
     # note: to account for reflection, we swap the sign here to use R^T
-    R = rotmat2d(-theta_deg)
+    R = rotation_utils.rotmat2d(-theta_deg)
 
     assert np.allclose(R.T @ R, np.eye(2))
 
