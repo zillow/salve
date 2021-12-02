@@ -689,7 +689,12 @@ if __name__ == "__main__":
         default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05",
         help="where ZInD dataset is stored on disk (after download from Bridge API)",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--confidence_threshold",
+        type=float,
+        default=0.93,
+        help="Minimum required SALVe network confidence to accept a prediction.",
+    )
 
     # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
     # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
@@ -758,15 +763,15 @@ if __name__ == "__main__":
     # method = "pose2_slam"
     method = "pgo"
 
-    # TODO: add axis alignment.
-
     use_axis_alignment = True
-    confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
     allowed_wdo_types = ["door", "window", "opening"] #    ["window"] #  ["opening"] # ["door"] # 
+
+    args = parser.parse_args()
+    print("Run SfM with settings:", args)
 
     run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, args.raw_dataset_dir,
         method,
-        confidence_threshold,
+        args.confidence_threshold,
         use_axis_alignment,
         allowed_wdo_types
     )
