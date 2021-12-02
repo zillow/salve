@@ -8,7 +8,7 @@ import glob
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import argoverse.utils.json_utils as json_utils
 import cv2
