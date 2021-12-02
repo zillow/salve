@@ -4,6 +4,7 @@ https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_p
 Must happen after rotation averaging.
 """
 
+import argparse
 import copy
 import glob
 import os
@@ -346,296 +347,6 @@ def find_max_degree_vertex(i2Ti1_dict: Dict[Tuple[int, int], Any]) -> int:
     return seed_node
 
 
-def growing_consensus(
-    building_id: str,
-    floor_id: str,
-    i2Si1_dict: Dict[Tuple[int, int], Sim2],
-    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
-    i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
-    gt_edges,
-    two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
-    gt_floor_pose_graph: PoseGraph2d,
-) -> None:
-    """Implements a variant of the Growing Consensus" algorithm described below:
-
-    Reference:
-    https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Son_Solving_Small-Piece_Jigsaw_CVPR_2016_paper.pdf
-
-    Args:
-    """
-    i2Ri1_dict = {(i1, i2): i2Si1.rotation for (i1, i2), i2Si1 in i2Si1_dict.items()}
-
-    seed_node = find_max_degree_vertex(i2Si1_dict)
-    unused_triplets = cycle_utils.extract_triplets(i2Si1_dict)
-    unused_triplets = set(unused_triplets)
-
-    seed_cycle_errors = []
-    # compute cycle errors for each triplet connected to seed_node
-    connected_triplets = [t for t in unused_triplets if seed_node in t]
-    for triplet in connected_triplets:
-        cycle_error, _, _ = cycle_utils.compute_rot_cycle_error(
-            i2Ri1_dict,
-            cycle_nodes=triplet,
-            two_view_reports_dict=two_view_reports_dict,
-            verbose=True,
-        )
-        seed_cycle_errors.append(cycle_error)
-
-    import pdb
-
-    pdb.set_trace()
-
-    min_error_triplet_idx = np.argmin(np.array(seed_cycle_errors))
-    seed_triplet = connected_triplets[min_error_triplet_idx]
-    # find one with low cycle_error
-
-    unused_triplets.remove(seed_triplet)
-
-    edges = [(i0, i1), (i1, i2), (i0, i2)]
-
-    i2Si1_dict_consensus = {edge: i2Si1_dict[edge] for edge in edges}
-
-    while True:
-        candidate_consensus = copy.deepcopy(i2Si1_dict_consensus)
-
-        for triplet in unused_triplets:
-            import pdb
-
-            pdb.set_trace()
-
-        # can we do this? i3Ui3 = i3Ri2 * i2Ui3 = i2Ri1 * i1Ui3 (cycle is 3->1->2)
-
-        # compute all cycle errors with these new edges added
-        # if all errors are low, then:
-        # unused_triplets.remove(triplet)
-
-
-def build_filtered_spanning_tree(
-    building_id: str,
-    floor_id: str,
-    i2Si1_dict: Dict[Tuple[int, int], Sim2],
-    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
-    i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
-    gt_edges,
-    two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
-    gt_floor_pose_graph: PoseGraph2d,
-    plot_save_dir: str,
-) -> None:
-    """Uses chained cycle consistency."""
-    graph_rendering_utils.draw_graph_topology(
-        edges=list(i2Ri1_dict.keys()),
-        gt_floor_pose_graph=gt_floor_pose_graph,
-        two_view_reports_dict=two_view_reports_dict,
-        title=f"Building {building_id} {floor_id}: topology after CNN prediction of positives",
-        show_plot=False,
-        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_CNN_predicted_positives.jpg",
-    )
-
-    i2Ri1_dict, i2Ui1_dict_consistent = cycle_utils.filter_to_rotation_cycle_consistent_edges(
-        i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, visualize=False
-    )
-    graph_rendering_utils.draw_graph_topology(
-        edges=list(i2Ri1_dict.keys()),
-        gt_floor_pose_graph=gt_floor_pose_graph,
-        two_view_reports_dict=two_view_reports_dict,
-        title=f"Building {building_id} {floor_id}: topology after rot. cycle consistency filtering",
-        show_plot=False,
-        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_rot_cycle_consistency.jpg",
-    )
-
-    filtered_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
-    print(f"\tFiltered by rot cycles Edge Acc = {filtered_edge_acc:.2f}")
-
-    cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
-    print(
-        f"After triplet rot cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
-    )
-
-    # # could count how many nodes or edges never appeared in any triplet
-    # triplets = cycle_utils.extract_triplets(i2Ri1_dict)
-    # dropped_edges = set(i2Ri1_dict.keys()) - set(i2Ri1_dict_consistent.keys())
-    # print("Dropped ")
-
-    wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict)
-    if wRi_list is None:
-        print(f"Rotation averaging failed, because {len(i2Ri1_dict)} measurements provided.")
-        print()
-        print()
-
-        report = FloorReconstructionReport(
-            avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
-        )
-        return None, report
-    # TODO: measure the error in rotations
-
-    # filter to rotations that are consistent with global
-    i2Ri1_dict = filter_measurements_to_absolute_rotations(
-        wRi_list, i2Ri1_dict, max_allowed_deviation=5, two_view_reports_dict=two_view_reports_dict
-    )
-    graph_rendering_utils.draw_graph_topology(
-        edges=list(i2Ri1_dict.keys()),
-        gt_floor_pose_graph=gt_floor_pose_graph,
-        two_view_reports_dict=two_view_reports_dict,
-        title=f"Building {building_id} {floor_id}: topology after filtering relative by global",
-        show_plot=False,
-        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_relative_by_global.jpg",
-    )
-
-    cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Ri1_dict.keys())
-    print(
-        f"After filtering by rel. vs. composed abs., the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
-    )
-
-    consistent_edge_acc = get_edge_accuracy(edges=i2Ri1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
-    print(f"\tFiltered relative by abs. rotation deviation Edge Acc = {consistent_edge_acc:.2f}")
-
-    est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
-    mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
-        gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=False
-    )
-    print(f"\tMean relative rotation error {mean_rel_rot_err:.2f} deg.")
-
-    # remove the edges that we deem to be outliers
-    outlier_edges = set(i2Si1_dict.keys()) - set(i2Ri1_dict.keys())
-    for outlier_edge in outlier_edges:
-        del i2Si1_dict[outlier_edge]
-
-    i2Si1_dict_consistent = cycle_utils.filter_to_translation_cycle_consistent_edges(
-        wRi_list, i2Si1_dict, translation_cycle_thresh=0.25, two_view_reports_dict=two_view_reports_dict
-    )
-
-    graph_rendering_utils.draw_graph_topology(
-        edges=list(i2Si1_dict_consistent.keys()),
-        gt_floor_pose_graph=gt_floor_pose_graph,
-        two_view_reports_dict=two_view_reports_dict,
-        title=f"Building {building_id} {floor_id}: topology after filtering by translations",
-        show_plot=False,
-        save_fpath=f"{plot_save_dir}/{building_id}_{floor_id}_topology_after_filtering_translations.jpg",
-    )
-
-    cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
-    print(
-        f"After triplet trans. cycle filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
-    )
-
-    filtered_edge_acc = get_edge_accuracy(
-        edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
-    )
-    print(f"\tFiltered by trans. cycle Edge Acc = {filtered_edge_acc:.2f}")
-
-    labels = np.array([two_view_reports_dict[(i1, i2)].gt_class for (i1, i2) in i2Si1_dict_consistent.keys()])
-    num_fps_for_st = (labels == 0).sum()
-    print(f"{num_fps_for_st} FPs were fed to spanning tree.")
-
-    wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
-
-    if wSi_list is None:
-        print(f"Could not build spanning tree, since {len(i2Si1_dict_consistent)} edges in i2Si1 dictionary.")
-        print()
-        print()
-
-        report = FloorReconstructionReport(
-            avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
-        )
-        return None, report
-
-    report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
-    return i2Si1_dict_consistent, report
-
-
-def filter_measurements_to_absolute_rotations(
-    wRi_list: List[Optional[np.ndarray]],
-    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
-    max_allowed_deviation: float = 5.0,
-    verbose: bool = False,
-    two_view_reports_dict=None,
-    visualize: bool = False,
-) -> Dict[Tuple[int, int], np.ndarray]:
-    """
-    Simulate the relative pose measurement, given the global rotations:
-    wTi0 = (wRi0, wti0). wTi1 = (wRi1, wti1) -> wRi0, wRi1 -> i1Rw * wRi0 -> i1Ri0_ vs. i1Ri0
-
-    Reference: See FilterViewPairsFromOrientation()
-    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_orientation.h
-    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_orientation.cc
-
-    Theia also uses a 5 degree threshold:
-    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/reconstruction_estimator_options.h#L122
-
-    Args:
-        wRi_list:
-        i2Ri1_dict:
-        max_allowed_deviation:
-        verbose:
-        two_view_reports_dict:
-        visualize:
-
-    Returns:
-        i2Ri1_dict_consistent:
-    """
-    deviations = []
-    is_gt_edge = []
-
-    edges = i2Ri1_dict.keys()
-
-    i2Ri1_dict_consistent = {}
-
-    for (i1, i2) in edges:
-
-        if wRi_list[i1] is None or wRi_list[i2] is None:
-            continue
-
-        # find estimate, given absolute values
-        wTi1 = wRi_list[i1]
-        wTi2 = wRi_list[i2]
-        i2Ri1_inferred = wTi2.T @ wTi1
-
-        i2Ri1_measured = i2Ri1_dict[(i1, i2)]
-
-        theta_deg_inferred = rotation_utils.rotmat2theta_deg(i2Ri1_inferred)
-        theta_deg_measured = rotation_utils.rotmat2theta_deg(i2Ri1_measured)
-
-        if verbose:
-            print(f"\tPano pair ({i1},{i2}): Measured {theta_deg_measured:.1f} vs. Inferred {theta_deg_inferred:.1f}")
-
-        # need to wrap around at 360
-        err = rotation_utils.wrap_angle_deg(theta_deg_inferred, theta_deg_measured)
-        if err < max_allowed_deviation:
-            i2Ri1_dict_consistent[(i1, i2)] = i2Ri1_measured
-
-        if two_view_reports_dict is not None:
-            is_gt_edge.append(two_view_reports_dict[(i1, i2)].gt_class)
-            deviations.append(err)
-
-    if two_view_reports_dict is not None and visualize:
-        deviations = np.array(deviations)
-        is_gt_edge = np.array(is_gt_edge)
-        misclassified_errs = deviations[is_gt_edge == 0]
-        plt.figure(figsize=(16, 5))
-        plt.subplot(1, 2, 1)
-        plt.hist(misclassified_errs, bins=30)
-        plt.ylabel("Counts")
-        plt.xlabel("Deviation from measurement (degrees)")
-        plt.title("False Positive Edge")
-        plt.ylim(0, deviations.size)
-        plt.xlim(0, 180)
-
-        correct_classified_errs = deviations[is_gt_edge == 1]
-        plt.subplot(1, 2, 2)
-        plt.hist(correct_classified_errs, bins=30)
-        plt.title("GT edge")
-        plt.ylim(0, deviations.size)
-        plt.xlim(0, 180)
-
-        plt.suptitle("Filtering rot avg result to be consistent with measurements")
-        plt.show()
-
-    print(
-        f"\tFound that {len(i2Ri1_dict_consistent)} of {len(i2Ri1_dict)} rotations were consistent w/ global rotations"
-    )
-    return i2Ri1_dict_consistent
-
-
 def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
     """ """
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{hypotheses_save_root}/*")]
@@ -697,6 +408,9 @@ def run_incremental_reconstruction(
     """
     Can get multi-graph out of classification model.
 
+    We optionally apply axis alignment pre-processing before evaluation. Axis-alignment cannot be added via
+    post-processing, as in that case translations will not be updated.
+
     Args:
         hypotheses_save_root: path to directory where alignment hypotheses are saved as JSON files.
         serialized_preds_json_dir: path to directory where model predictions (per edge) have been serialized as JSON.
@@ -714,7 +428,7 @@ def run_incremental_reconstruction(
 
     # TODO: add axis alignment.
 
-    use_axis_alignment = True
+    use_axis_alignment = False
     confidence_threshold = 0.93  # 8 # 0.98  # 0.95 # 0.95 # 0.90 # 0.95 # 1.01 #= 0.95
     allowed_wdo_types = ["door", "window", "opening"] #    ["window"] #  ["opening"] # ["door"] # 
 
@@ -817,15 +531,18 @@ def run_incremental_reconstruction(
             f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
         )
 
-        # TODO: apply axis alignment pre-processing (or post-processing) before evaluation
-
         if method == "spanning_tree":
 
             if use_axis_alignment:
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
-            report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
+            est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pose_graph)
+            report = FloorReconstructionReport.from_est_floor_pose_graph(
+                est_floor_pose_graph,
+                gt_floor_pose_graph,
+                plot_save_dir=plot_save_dir
+            )
             reconstruction_reports.append(report)
 
         elif method in ["pose2_slam", "pgo"]:
@@ -869,7 +586,12 @@ def run_incremental_reconstruction(
             wSi_list = spanning_tree.ransac_spanning_trees(
                 high_conf_measurements_rel, num_hypotheses=100, min_num_edges_for_hypothesis=None
             )
-            report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
+            est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pose_graph)
+            report = FloorReconstructionReport.from_est_floor_pose_graph(
+                est_floor_pose_graph,
+                gt_floor_pose_graph,
+                plot_save_dir=plot_save_dir
+            )
             reconstruction_reports.append(report)
 
         elif method == "filtered_spanning_tree":
@@ -966,6 +688,15 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
 
 
 if __name__ == "__main__":
+    """ """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--raw_dataset_dir",
+        type=str,
+        default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05",
+        help="where ZInD dataset is stored on disk (after download from Bridge API)",
+    )
+    args = parser.parse_args()
 
     # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
     # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
@@ -980,10 +711,9 @@ if __name__ == "__main__":
 
     # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    hypotheses_save_root = (
-        "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    )
+    # hypotheses_save_root = (
+    #     "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    # )
 
     # 186 tours, low-res, RGB only floor and ceiling. custom hacky val split
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
@@ -996,9 +726,9 @@ if __name__ == "__main__":
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
     
     # ceiling + floor
-    serialized_preds_json_dir = (
-        "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
-    )
+    # serialized_preds_json_dir = (
+    #     "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    # )
     # serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
 
 
@@ -1019,12 +749,14 @@ if __name__ == "__main__":
     # )
     # "/data/johnlam/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test109buildings_2021_11_16"
 
-    #test_compute_i2Ti1()
-    #test_compute_i2Ti1_from_rotation_in_place()
-    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, raw_dataset_dir)
+    # GT WDO + GT Layout, ResNet-152
+    hypotheses_save_root = (
+        "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    )
+    serialized_preds_json_dir = (
+        "/Users/johnlam/Downloads/2021_11_23_ResNet152floorceiling_GT_WDO_350tours_serialized_edge_classifications_2021_11_24"
+    )
 
-    #test_get_dominant_direction_from_point_cloud()
-
-    #test_align_pairs_by_vanishing_angle()
+    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, args.raw_dataset_dir)
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
