@@ -1,4 +1,3 @@
-
 """Parameters for creating bird's eye view images."""
 
 import numpy as np
@@ -58,7 +57,6 @@ class BEVParams:
         self.xlims = xlims
         self.ylims = ylims
 
-
     @property
     def bevimg_Sim2_world(self) -> Sim2:
         """
@@ -70,31 +68,31 @@ class BEVParams:
 
 
 def test_bevimg_Sim2_world() -> None:
-	"""Ensure that class constructor works, and Sim(2) generated is correct."""
-	# 10 meters x 10 meters in total.
-	params = BEVParams(img_h = 20, img_w = 20, meters_per_px = 0.5)
+    """Ensure that class constructor works, and Sim(2) generated is correct."""
+    # 10 meters x 10 meters in total.
+    params = BEVParams(img_h = 20, img_w = 20, meters_per_px = 0.5)
 
-	# fmt: off
-	world_pts = np.array(
-		[
-			[2,2],
-			[-5,-5],
-			[5,5] # out of bounds
-		]
-	)
-	# fmt: on
-	img_pts = params.bevimg_Sim2_world.transform_from(world_pts)
+    # fmt: off
+    world_pts = np.array(
+        [
+            [2,2],
+            [-5,-5],
+            [5,5] # out of bounds
+        ]
+    )
+    # fmt: on
+    img_pts = params.bevimg_Sim2_world.transform_from(world_pts)
 
-	# fmt: off
-	expected_img_pts = np.array(
-		[
-			[14,14],
-			[0,0],
-			[20,20]
-		]
-	)
-	# fmt: on
-	assert np.allclose(img_pts, expected_img_pts)
+    # fmt: off
+    expected_img_pts = np.array(
+        [
+            [14,14],
+            [0,0],
+            [20,20]
+        ]
+    )
+    # fmt: on
+    assert np.allclose(img_pts, expected_img_pts)
 
 
 def get_line_width_by_resolution(resolution: float) -> int:
@@ -131,4 +129,3 @@ def test_get_line_width_by_resolution() -> None:
     line_width = get_line_width_by_resolution(resolution=0.02)
     assert line_width == 8
     assert isinstance(line_width, int)
-
