@@ -43,7 +43,10 @@ class BearingRangeMeasurement:
     """Bearing is provided in degrees.
 
     Args:
+        pano_id: panorama ID
         l_idx: landmark index.
+        bearing_deg: angle to landmark, in degrees.
+        range: distance to landmark.
     """
 
     pano_id: int
@@ -54,6 +57,12 @@ class BearingRangeMeasurement:
 
 @dataclass
 class OdometryMeasurement:
+    """
+    Args:
+        i1: unique ID of panorama 1
+        i2: unique ID of panorama 2
+        i2Ti1: relative pose
+    """
     i1: int
     i2: int
     i2Ti1: Pose2
