@@ -8,7 +8,7 @@ import os
 from multiprocessing import Pool
 from pathlib import Path
 from types import SimpleNamespace
-from typing import List
+from typing import List, Optional
 
 import argoverse.utils.json_utils as json_utils
 import cv2
@@ -59,7 +59,7 @@ def render_building_floor_pairs(
     raw_dataset_dir: str,
     building_id: str,
     floor_id: str,
-    layout_save_root: str,
+    layout_save_root: Optional[str],
     render_modalities: List[str]
 ) -> None:
     """Render BEV texture maps for a single floor of a single ZinD building.
@@ -73,7 +73,7 @@ def render_building_floor_pairs(
         raw_dataset_dir: path to ZinD dataset.
         building_id: unique ID of ZinD building.
         floor_id: unique ID of floor.
-        layout_save_root:
+        layout_save_root: if rendering rasterized layout, all images will be saved under this directory.
         render_modalities: either "rgb_texture" or "layout", or both
     """
     if "layout" in render_modalities:
@@ -217,7 +217,7 @@ def render_pairs(
     bev_save_root: str,
     raw_dataset_dir: str,
     hypotheses_save_root: str,
-    layout_save_root: str,
+    layout_save_root: Optional[str],
     render_modalities: List[str],
 ) -> None:
     """Render BEV texture maps for all floors of all ZinD buildings.
