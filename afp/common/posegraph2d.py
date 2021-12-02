@@ -137,6 +137,20 @@ class PoseGraph2d(NamedTuple):
             scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE,
         )
 
+
+    @classmethod
+    def from_wSi_list(cls, wSi_list: List[Optional[Sim2]], gt_floor_pose_graph: "PoseGraph2d") -> "PoseGraph2d":
+        """Create a 2d pose graph, given a subset of global poses, and ground truth pose graph.
+
+        GT pose graph input provides only GT W/D/O and GT Layout, not poses.
+        """
+        # TODO: try spanning tree version, vs. Shonan version
+        wRi_list = [wSi.rotation if wSi else None for wSi in wSi_list]
+        wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
+
+        return PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph)
+
+
     def as_3d_pose_graph(self) -> List[Optional[Pose3]]:
         """
 
