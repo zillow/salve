@@ -75,7 +75,7 @@ def get_conf_thresholded_edges(
         i2Si1_dict: Similarity(2) for each edge.
         i2Ri1_dict: 2d relative rotation for each edge
         i2ti1_dict: 2d relative translation for each edge.
-        two_view_reports_dict: 
+        two_view_reports_dict:
         gt_edges: list of tuples (i1,i2) representing all edges in true adjacency graph.
         per_edge_wdo_dict: mapping from edge (i1,i2) to EdgeWDOPair information.
         high_conf_measurements: all measurements of sufficient confidence, even if forming a multigraph.
@@ -409,7 +409,7 @@ def run_incremental_reconstruction(
     method: str,
     confidence_threshold: float,
     use_axis_alignment: bool,
-    allowed_wdo_types: List[str]
+    allowed_wdo_types: List[str],
 ) -> None:
     """
     Can get multi-graph out of classification model.
@@ -424,11 +424,8 @@ def run_incremental_reconstruction(
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
-
     allowed_wdo_types_summary = "_".join(allowed_wdo_types)
-    plot_save_dir = (
-        f"{Path(serialized_preds_json_dir).name}___2021_12_02_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
-    )
+    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2021_12_02_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
@@ -478,7 +475,9 @@ def run_incremental_reconstruction(
 
         render_multigraph = False
         if render_multigraph:
-            graph_rendering_utils.draw_multigraph(measurements, gt_floor_pose_graph, confidence_threshold=confidence_threshold)
+            graph_rendering_utils.draw_multigraph(
+                measurements, gt_floor_pose_graph, confidence_threshold=confidence_threshold
+            )
 
         (
             i2Si1_dict,
@@ -494,7 +493,9 @@ def run_incremental_reconstruction(
         )
         # TODO: edge accuracy doesn't mean anything (too many FPs). Use average error on each edge, instead.
 
-        pdf, cdf = graph_utils.analyze_cc_distribution(nodes=list(gt_floor_pose_graph.nodes.keys()), edges=list(i2Si1_dict.keys()))
+        pdf, cdf = graph_utils.analyze_cc_distribution(
+            nodes=list(gt_floor_pose_graph.nodes.keys()), edges=list(i2Si1_dict.keys())
+        )
         pdfs.append(pdf)
         cdfs.append(cdf)
 
@@ -527,14 +528,14 @@ def run_incremental_reconstruction(
         if method == "spanning_tree":
 
             if use_axis_alignment:
-                i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
+                i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
+                    i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict
+                )
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pose_graph)
             report = FloorReconstructionReport.from_est_floor_pose_graph(
-                est_floor_pose_graph,
-                gt_floor_pose_graph,
-                plot_save_dir=plot_save_dir
+                est_floor_pose_graph, gt_floor_pose_graph, plot_save_dir=plot_save_dir
             )
             reconstruction_reports.append(report)
 
@@ -542,7 +543,9 @@ def run_incremental_reconstruction(
             # graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
 
             if use_axis_alignment:
-                i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict)
+                i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
+                    i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict
+                )
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             report = pose2_slam.execute_planar_slam(
@@ -581,9 +584,7 @@ def run_incremental_reconstruction(
             )
             est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pose_graph)
             report = FloorReconstructionReport.from_est_floor_pose_graph(
-                est_floor_pose_graph,
-                gt_floor_pose_graph,
-                plot_save_dir=plot_save_dir
+                est_floor_pose_graph, gt_floor_pose_graph, plot_save_dir=plot_save_dir
             )
             reconstruction_reports.append(report)
 
@@ -654,7 +655,9 @@ def run_incremental_reconstruction(
 
 def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -> None:
     """ """
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     max_num_ccs = max([len(pdf) for pdf in pdfs])
 
     avg_pdf = np.zeros((max_num_ccs))
@@ -663,11 +666,11 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
     for pdf, cdf in zip(pdfs, cdfs):
         C = pdf.shape[0]
 
-        #pad the rest (long tail) of the PDF with 0s
+        # pad the rest (long tail) of the PDF with 0s
         padded_pdf = np.zeros(max_num_ccs)
         padded_pdf[:C] = pdf
 
-        #pad the rest of the CDF with 1s
+        # pad the rest of the CDF with 1s
         padded_cdf = np.ones(max_num_ccs)
         padded_cdf[:C] = cdf
 
@@ -722,13 +725,12 @@ if __name__ == "__main__":
 
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
     # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
-    
+
     # ceiling + floor
     serialized_preds_json_dir = (
         "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
     )
     # serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
-
 
     # floor-only, ResNet-152
     # serialized_preds_json_dir = (
@@ -764,16 +766,19 @@ if __name__ == "__main__":
     method = "pgo"
 
     use_axis_alignment = True
-    allowed_wdo_types = ["door", "window", "opening"] #    ["window"] #  ["opening"] # ["door"] # 
+    allowed_wdo_types = ["door", "window", "opening"]  #    ["window"] #  ["opening"] # ["door"] #
 
     args = parser.parse_args()
     print("Run SfM with settings:", args)
 
-    run_incremental_reconstruction(hypotheses_save_root, serialized_preds_json_dir, args.raw_dataset_dir,
+    run_incremental_reconstruction(
+        hypotheses_save_root,
+        serialized_preds_json_dir,
+        args.raw_dataset_dir,
         method,
         args.confidence_threshold,
         use_axis_alignment,
-        allowed_wdo_types
+        allowed_wdo_types,
     )
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
