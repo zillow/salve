@@ -1,5 +1,5 @@
 """
-Converts an inference result to PanoData and PoseGraph2d objects. Also supports rendering the inference
+Converts a HorizonNet inference result to PanoData and PoseGraph2d objects. Also supports rendering the inference
 result with oracle pose.
 """
 
@@ -26,11 +26,16 @@ from afp.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
 from afp.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
 from afp.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
-# path to batch of unzipped prediction files, from Yuguang
+# Path to batch of unzipped prediction files, from Yuguang
 # RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
 # RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/mnt/data/johnlam/zind2_john"
 # RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/home/johnlam/zind2_john"
 RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/Users/johnlam/Downloads/zind2_john"
+
+# Path to CSV w/ info about prod-->ZInD remapping.
+# PANO_MAPPING_TSV_FPATH = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+# PANO_MAPPING_TSV_FPATH = "/home/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+PANO_MAPPING_TSV_FPATH = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -69,11 +74,7 @@ def load_inferred_floor_pose_graphs(
         floor_pose_graphs: mapping from floor_id to predicted pose graph
             (without poses, but just W/D/O predictions and layout prediction)
     """
-
-    pano_mapping_tsv_fpath = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-    # pano_mapping_tsv_fpath = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-    # pano_mapping_tsv_fpath = "/home/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-    pano_mapping_rows = csv_utils.read_csv(pano_mapping_tsv_fpath, delimiter=",")
+    pano_mapping_rows = csv_utils.read_csv(PANO_MAPPING_TSV_FPATH, delimiter=",")
 
     # Note: pano_guid is unique across the entire dataset.
     panoguid_to_panoid = {}
