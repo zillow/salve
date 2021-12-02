@@ -1,5 +1,3 @@
-
-
 """Utilities for data-association for landmark-based SLAM.
 
 We create a wrapper around GTSFM's data association routines and `Keypoints' data structure.
@@ -12,7 +10,8 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 from gtsfm.common.keypoints import Keypoints
-#from gtsfm.common.sfm_track import SfmTrack2d
+
+# from gtsfm.common.sfm_track import SfmTrack2d
 
 from afp.common.sfm_track import SfmTrack2d
 from afp.common.edge_classification import EdgeClassification
@@ -47,7 +46,9 @@ def get_kpt_idx(wdo_idx: int, wdo_object_type: str, pano_data: PanoData) -> int:
     return kpt_idx
 
 
-def perform_data_association(measurements: List[EdgeClassification], pano_dict_inferred: Dict[int, PanoData]) -> List[SfmTrack2d]:
+def perform_data_association(
+    measurements: List[EdgeClassification], pano_dict_inferred: Dict[int, PanoData]
+) -> List[SfmTrack2d]:
     """Perform data association by first creating landmarks and graph, and then running Union-Find w/ GTSFM/GTSAM.
 
     Args:
@@ -59,9 +60,9 @@ def perform_data_association(measurements: List[EdgeClassification], pano_dict_i
     """
     num_panos = max(pano_dict_inferred.keys()) + 1
 
-    EMPTY_KEYPOINTS = Keypoints(coordinates=np.zeros((0,2)))
+    EMPTY_KEYPOINTS = Keypoints(coordinates=np.zeros((0, 2)))
     # we can think of 2d landmarks as keypoints.
-    keypoints_list = [ EMPTY_KEYPOINTS ] * num_panos
+    keypoints_list = [EMPTY_KEYPOINTS] * num_panos
     for i, pano_data in pano_dict_inferred.items():
         keypoints = []
         # order as openings, windows, doors
@@ -73,7 +74,7 @@ def perform_data_association(measurements: List[EdgeClassification], pano_dict_i
                 keypoints.append(e)
 
         # must be 2-dimensional array for SfmTrack's union-find to not reject it.
-        keypoints_list[i] = Keypoints(coordinates=np.array(keypoints).reshape(-1,2)) 
+        keypoints_list[i] = Keypoints(coordinates=np.array(keypoints).reshape(-1, 2))
 
     matches_dict = defaultdict(list)
 
@@ -88,12 +89,12 @@ def perform_data_association(measurements: List[EdgeClassification], pano_dict_i
         # by convention here, end vertex is always 1 greater than start vertex index.
         e_1 = s_1 + 1
         e_2 = s_2 + 1
-        
+
         if m.configuration == "rotated":
-            matches_dict[(i1, i2)] += [(s_1, e_2)] # 1's start vertex, corresponds to 2's END vertex.
+            matches_dict[(i1, i2)] += [(s_1, e_2)]  # 1's start vertex, corresponds to 2's END vertex.
             matches_dict[(i1, i2)] += [(e_1, s_2)]
         else:
-            matches_dict[(i1, i2)] += [(s_1, s_2)] # 1's start vertex corresponds to 2's START vertex.
+            matches_dict[(i1, i2)] += [(s_1, s_2)]  # 1's start vertex corresponds to 2's START vertex.
             matches_dict[(i1, i2)] += [(e_1, e_2)]
 
         # i1_s, i1_e = get_ith_wdo_room_endpoints_from_pano(
@@ -103,19 +104,21 @@ def perform_data_association(measurements: List[EdgeClassification], pano_dict_i
         #     pano_data=pano_dict_inferred[m.i2], i=j, alignment_object=alignment_object, use_rotated=m.configuration == "rotated"
         # )
 
-    matches_dict = {k: np.array(v) for k,v in matches_dict.items()}
-    #tracks_2d = SlamFeatureTrack2d.generate_tracks_from_pairwise_matches(matches_dict)
-    
+    matches_dict = {k: np.array(v) for k, v in matches_dict.items()}
+    # tracks_2d = SlamFeatureTrack2d.generate_tracks_from_pairwise_matches(matches_dict)
+
     tracks_2d = SfmTrack2d.generate_tracks_from_pairwise_matches(matches_dict, keypoints_list)
     return tracks_2d
 
 
-def get_ith_wdo_room_endpoints_from_pano(pano_data: PanoData, i: int, alignment_object: str, use_rotated: bool) -> Tuple[float,float]:
+def get_ith_wdo_room_endpoints_from_pano(
+    pano_data: PanoData, i: int, alignment_object: str, use_rotated: bool
+) -> Tuple[float, float]:
     """
     Args:
-        pano_data: 
-        i: 
-        alignment_object: 
+        pano_data:
+        i:
+        alignment_object:
         use_rotated:
 
     Returns:
