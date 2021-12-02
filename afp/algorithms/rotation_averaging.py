@@ -16,8 +16,6 @@ from gtsam import (
     Pose2,
     ShonanAveraging2,
     ShonanAveragingParameters2,
-    ShonanAveraging3,
-    ShonanAveragingParameters3,
 )
 
 from afp.utils.rotation_utils import rotmat2theta_deg
