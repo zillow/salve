@@ -140,7 +140,7 @@ Now run:
 ```bash
 export PYTHONPATH=./
 
-python {SALVE_REPO_FPATH}/scripts/render_dataset_bev.py --num_processes {NUM. DESIRED PROCS.} \
+python {SALVE_REPO_DIRPATH}/scripts/render_dataset_bev.py --num_processes {NUM. DESIRED PROCS.} \
     --raw_dataset_dir {PATH TO ZIND} \
     --hypotheses_save_root {PATH TO PRE-GENERATED ALIGNMENT HYPOTHESES} \
     --depth_save_root {PATH TO WHERE DEPTH MAPS WILL BE SAVED TO}\
@@ -186,3 +186,35 @@ python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
 Additional Notes:
 - Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
 (in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
+
+## Run Static Analysis of Codebase
+
+```bash
+flake8 --max-line-length 120 --ignore E201,E202,E203,E231,W291,W293,E303,W391,E402,W503,E731 afp
+```
+
+```bash
+pytest tests --cov afp --ignore {}
+coverage report
+```
+
+## Running SfM Baselines
+
+In the paper, we compare with OpenMVG and OpenSfM. You can run these baselines yourself as follows.
+
+**OpenSfM**: First, clone the repository:
+```bash
+git clone https://github.com/mapillary/OpenSfM.git
+cd OpenSfM
+```
+Now, build the library/binaries, as described [here](https://opensfm.org/docs/building.html).
+
+Next, inside the `OpenSfM` directory, now run:
+```bash
+python {SALVE_REPO_DIRPATH}/afp/baselines/opensfm.py
+```
+
+**OpenMVG**: 
+```bash
+python {SALVE_REPO_DIRPATH}/afp/baselines/openmvg.py
+```
