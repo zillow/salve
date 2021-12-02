@@ -43,4 +43,5 @@ dependencies:
     - yacs # for HoHoNet
     - open3d
     - networkx>=2.6.3
+    - pytest-cov
 
