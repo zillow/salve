@@ -55,7 +55,10 @@ pip install -e .
 
 ## Running Reconstruction
 
-Download and unzip the Madori-V1 HorizonNet predictions:
+Download and unzip the Madori-V1 HorizonNet predictions from [Google Drive here](https://drive.google.com/file/d/1VBTBYIaFSHDtP31_FnM6vII3_p1On3tE/view?usp=sharing).
+
+Download the (prod pano GUID) -> (ZInD pano filename) mapping information from [Google Drive here](https://drive.google.com/file/d/1ALPLDWPA8K7taNuxReOt0RiaJ1AlIEY1/view?usp=sharing).
+
 ```bash
 unzip {}
 RMX_MADORI_V1_PREDICTIONS_DIRPATH = {}
@@ -106,3 +109,7 @@ python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
 - Maybe use different schema for Madori-V1 files.
 - Find missing Madori-V1.
 - 
+
+Additional Notes:
+- Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
+(in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
