@@ -7,6 +7,32 @@ import afp.algorithms.data_association as data_association
 from afp.common.edge_classification import EdgeClassification
 
 
+def test_get_kpt_idx() -> None:
+    """For 1 opening and 3 windows, and no doors, get keypoint index.
+
+    [s] - openings
+    [e]
+    [s] - windows
+    [e]
+    [s]
+    [e]
+    [s]
+    [e]
+    """
+    from types import SimpleNamespace
+
+    # fill with dummy objects
+    pano_data = SimpleNamespace(
+        openings=[None],
+        windows=[None,None,None],
+        doors=[]
+    )
+    wdo_idx = 1
+    wdo_object_type = "window"
+    kpt_idx = data_association.get_kpt_idx(wdo_idx, wdo_object_type, pano_data)
+    assert kpt_idx == 4
+
+
 # These come from building 0544, floor_01.
 MEASUREMENTS = [
     EdgeClassification(i1=18, i2=24, prob=0.9995291233062744, y_hat=1, y_true=0, pair_idx='1781', wdo_pair_uuid='opening_1_2', configuration='identity'),
