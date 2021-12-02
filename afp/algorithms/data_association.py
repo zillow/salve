@@ -51,7 +51,7 @@ def perform_data_association(measurements: List[EdgeClassification], pano_dict_i
     """Perform data association by first creating landmarks and graph, and then running Union-Find w/ GTSFM/GTSAM.
 
     Args:
-        measurements:
+        measurements: high-confidence relative pose measurements, after scoring by SALVe.
         pano_dict_inferred:
 
     Returns:
