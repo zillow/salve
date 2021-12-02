@@ -36,7 +36,8 @@ from argoverse.utils.sim2 import Sim2
 
 import afp.utils.logger_utils as logger_utils
 import afp.utils.overlap_utils as overlap_utils
-import afp.utils.sim3_align_dw as sim3_align_dw  # TODO: rename module to more informative name
+import afp.utils.se2_estimation as se2_estimation
+import afp.utils.sim3_estimation as sim3_estimation
 from afp.common.pano_data import  PanoData, WDO
 
 
@@ -203,9 +204,9 @@ def align_rooms_by_wd(
                     # import pdb; pdb.set_trace()
 
                     if transform_type == AlignTransformType.SE2:
-                        i2Ti1, aligned_pts1 = sim3_align_dw.align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
+                        i2Ti1, aligned_pts1 = se2_estimation.align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
                     elif transform_type == AlignTransformType.Sim3:
-                        i2Ti1, aligned_pts1 = sim3_align_dw.align_points_sim3(pano2_wd_pts, pano1_wd_pts)
+                        i2Ti1, aligned_pts1 = sim3_estimation.align_points_sim3(pano2_wd_pts, pano1_wd_pts)
                     else:
                         raise RuntimeError
 
