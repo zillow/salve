@@ -1,7 +1,5 @@
 
-"""
-Data structure to hold an SfM reconstruction, produced by OpenMVG or OpenSfM.
-"""
+"""Data structure to hold an SfM reconstruction, as produced by OpenMVG or OpenSfM."""
 
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -23,7 +21,7 @@ class SfmReconstruction:
 
     @property
     def wTi_list(self) -> np.ndarray:
-        """ """
+        """Convert dictionary of poses to an ordered list of poses (some of which may be None)."""
         N = max(self.pose_dict.values()) + 1
-        wTi_list = [reconstruction.pose_dict.get(i, None) for i in range(N)]
+        wTi_list = [self.pose_dict.get(i, None) for i in range(N)]
         return wTi_list

@@ -6,9 +6,6 @@ Reference: https://stackoverflow.com/questions/2281850/timeout-function-if-it-ta
 """
 
 import signal
-import time
-
-import pytest
 
 
 class timeout:
@@ -29,18 +26,3 @@ class timeout:
         """ """
         signal.alarm(0)
 
-
-def test_timeout() -> None:
-    """Ensure that timeout decorator/scope works properly."""
-    # should time out
-    with pytest.raises(TimeoutError):
-        with timeout(seconds=3):
-            time.sleep(4)
-
-    # should not time out
-    with timeout(seconds=5):
-        time.sleep(4)
-
-
-if __name__ == "__main__":
-    test_timeout()

@@ -1,10 +1,9 @@
 
-"""
-Utilities for working with 2d and 3d rotation matrices.
-"""
+"""Utilities for working with 2d and 3d rotation matrices."""
 
 import numpy as np
 from gtsam import Rot3
+
 
 def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
     """
@@ -33,18 +32,6 @@ def rotmat2d(theta_deg: float) -> np.ndarray:
     return R
 
 
-def test_rotmat2d() -> None:
-    """ """
-    for _ in range(1000):
-
-        theta = np.random.rand() * 360
-        R = rotmat2d(theta)
-        computed = R.T @ R
-        #print(np.round(computed, 1))
-        expected = np.eye(2)
-        assert np.allclose(computed, expected)
-
-
 def rotmat2theta_deg(R: np.ndarray) -> float:
     """Recover the rotation angle `theta` (in degrees) from the 2d rotation matrix.
     Note: the first column of the rotation matrix R provides sine and cosine of theta,
@@ -57,9 +44,19 @@ def rotmat2theta_deg(R: np.ndarray) -> float:
     return float(np.rad2deg(theta_rad))
 
 
-def wrap_angle_deg(angle1: float, angle2: float):
-    """
+def wrap_angle_deg(angle1: float, angle2: float) -> float:
+    """Find the minimum angular difference between two input angles.
+
+    We must wrap around at 0 degrees and 360 degrees.
+
     https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
+
+    Args:
+        angle1: angle 1 (in degrees)
+        angle2: angle 2 (in degrees)
+
+    Returns:
+        minimum angular difference (in degrees)
     """
     # mod n will wrap x to [0,n)
     diff = (angle2 - angle1 + 180) % 360 - 180
@@ -89,59 +86,3 @@ def angle_is_equal(angle1: float, angle2: float, atol: float) -> bool:
 
     return np.absolute(diff) <= atol
   
-
-def test_angle_is_equal() -> None:
-    """
-    """
-    angle1 = -177.8
-    angle2 =  179.5
-    import pdb; pdb.set_trace()
-    assert angle_is_equal(angle1, angle2, atol=5.0)
-
-    angle1 = -170
-    angle2 = 170
-    assert not angle_is_equal(angle1, angle2, atol=5.0)
-
-    angle1 = -170
-    angle2 = 180
-    assert angle_is_equal(angle1, angle2, atol=10.0)
-
-    angle1 = 5
-    angle2 = 11
-    assert not angle_is_equal(angle1, angle2, atol=5.0)
-
-    angle1 = -5
-    angle2 = -11
-    assert not angle_is_equal(angle1, angle2, atol=5.0)
-
-    angle1 = -5
-    angle2 = -9
-    assert angle_is_equal(angle1, angle2, atol=5.0)
-
-
-def test_wrap_angle_deg() -> None:
-    """ """
-    angle1 = 180
-    angle2 = -180
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 0
-
-    angle1 = -180
-    angle2 = 180
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 0
-
-    angle1 = -45
-    angle2 = -47
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 2
-
-    angle1 = 1
-    angle2 = -1
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 2
-
-    angle1 = 10
-    angle2 = 11.5
-    orientation_err = wrap_angle_deg(angle1, angle2)
-    assert orientation_err == 1.5
