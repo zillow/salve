@@ -16,12 +16,6 @@ Code is organized under the `afp` directory as follows:
     - `utils`: utilities for rasterization, rendering graphs, Sim(3) alignment, precision/recall computation, and more.
 
 
-# Installation
-To install the Auto-Floorplan (`afp`) library, run:
-```
-pip install -e .
-```
-
 # Dependencies
 
 We use Conda to manage dependencies. Please install the environment on Linux using:
@@ -57,6 +51,7 @@ cd gtsfm
 pip install -e .
 ```
 
+
 **Rendering Training/Testing Data** If you'd like to render training or testing data, clone the `HoHoNet` repo.
 
 **Libraries for evaluation** We use `AvgMeter` classes from `mseg-semantic`. Install as follows:
@@ -71,6 +66,12 @@ pip install -e .
 - We use Facebook's `hydra` library for configuration files.
 - We use the [`rdp`](https://github.com/fhirschmann/rdp) library for polygon simplification.
 
+
+## Installation
+To install the Auto-Floorplan (`afp`) library, run:
+```
+pip install -e .
+```
 
 ## Verify Installation
 
