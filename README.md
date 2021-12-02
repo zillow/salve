@@ -80,16 +80,35 @@ python scripts/export_alignment_hypotheses.py --num_processes {NUM. DESIRED PROC
     --raw_dataset_dir {PATH TO ZIND} --hypotheses_save_root {DIRECTORY WHERE TO DUMP OUTPUT}
 ```
 
-Run HoHoNet inference and render BEV images:
+Next, clone the repository: 
 ```bash
-python scripts/render_dataset_bev.py --num_processes {NUM. DESIRED PROCS.} \
+git clone https://gitlab.zgtools.net/johnlam/jlambert-auto-floorplan.git
+```
+
+Set `SALVE_REPO_FPATH` to wherever you have cloned `jlambert-auto-floorplan`
+
+Run HoHoNet inference and render BEV texture maps:
+```bash
+cd ..
+git clone https://github.com/sunset1995/HoHoNet.git
+cd HoHoNet
+export PYTHONPATH=./
+
+python {SALVE_REPO_FPATH}/scripts/render_dataset_bev.py --num_processes {NUM. DESIRED PROCS.} \
     --raw_dataset_dir {PATH TO ZIND} \
     --hypotheses_save_root {PATH TO PRE-GENERATED ALIGNMENT HYPOTHESES} \
     --depth_save_root {PATH TO WHERE DEPTH MAPS WILL BE SAVED TO}\
     --bev_save_root {PATH WHERE BEV TEXTURE MAPS WILL BE SAVED TO}
 ```
 
-and then sending them to the model for scoring:
+If you see an error message like:
+```
+HoHoNet's lib could not be loaded, skipping...
+Exception:  No module named 'lib'
+```
+then you have not configured `HoHoNet` properly above.
+
+Next, send the pairs of BEV texture maps to the model for scoring:
 ```bash
 python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST}
 ```
