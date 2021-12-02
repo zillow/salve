@@ -1,5 +1,6 @@
 
 """
+Reference: https://github.com/borglab/gtsfm/blob/master/gtsfm/averaging/translation/averaging_1dsfm.py
 """
 
 from typing import Dict, List, Tuple
@@ -70,7 +71,7 @@ def run_mfas(wRi_list_2d: List[np.ndarray], i2Ui1_dict_2d: Dict[Tuple[int,int], 
     # compute outlier weights using MFAS
     outlier_weights = []
 
-    # TODO(ayush): parallelize this step.
+    # TODO: parallelize this step.
     for direction in projection_directions:
         algorithm = MFAS(w_i2Ui1_measurements, direction)
         outlier_weights.append(algorithm.computeOutlierWeights())
