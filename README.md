@@ -156,24 +156,19 @@ Exception:  No module named 'lib'
 ```
 then you have not configured `HoHoNet` properly above.
 
-Next, send the pairs of BEV texture maps to the model for scoring:
+Next, we'll send the pairs of BEV texture maps to the model for scoring. You should have pass the folder where the model checkpoint is stored as `model_save_dirpath`. You can create this yourself (if performing inference with a pretrained model), or it would be automatically created during training.
+
 ```bash
 python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
     --model_results_dir {} --config_fpath {PATH TO YAML MODEL CONFIG} \
     --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
 
-For example, if your model results where saved to:
+For example, if your model checkpoint was stored in a directory accessible at:
 ```
 /data/johnlam/models_for_lambert/2021_11_19_21_42_11
 ```
-which is a directory which contains a config file there (yaml), and a pytorch model checkpoint (.pth), and JSON results:
-```
- train_ckpt.pth
- results-2021_11_19_21_42_11-2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.json
- 2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml
-```
-then we would use via CLI
+and contained pytorch model checkpoint (.pth) `train_ckpt.pth`, then we would use via CLI
 ```
 --model_results_dir /data/johnlam/models_for_lambert/2021_11_19_21_42_11
 ```
@@ -181,7 +176,9 @@ In the config you'll see a line:
 ```
     data_root: /data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres
 ```
-this should be replaced with `bev_save_root` where renderings were saved to, above.
+this should be replaced with `bev_save_root` where renderings were saved to, above. When running `scripts/test.py`, the YAML’s `model_save_dirpath` will be ignored, since this is only used at training time.
+
+Please note that `serialization_save_dir` is a new directory created at inference time, where predictions on the val or test set will be cached as JSON.
 
 Now, pass the front-end measurements to SfM:
 ```bash
@@ -199,6 +196,13 @@ python scripts/run_sfm.py --raw_dataset_dir {PATH TO ZIND}
 ```bash
 python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
     --config_name {FILE NAME OF YAML CONFIG under afp/configs/}
+```
+
+A directory will be created which contains the config file used for training (yaml), and a pytorch model checkpoint (.pth), and JSON results, e.g.:
+```
+ train_ckpt.pth
+ results-2021_11_19_21_42_11-2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.json
+ 2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml
 ```
 
 ## TODOs:
