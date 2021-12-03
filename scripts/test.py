@@ -303,12 +303,12 @@ if __name__ == "__main__":
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
-    ckpt_fpath = glob.glob(f"{model_results_dir}/*.pth")[0]
-    train_results_fpath = glob.glob(f"{model_results_dir}/*.json")[0]
+    ckpt_fpath = glob.glob(f"{opts.model_results_dir}/*.pth")[0]
+    train_results_fpath = glob.glob(f"{opts.model_results_dir}/*.json")[0]
 
     # plot_metrics(json_fpath=train_results_fpath)
 
-    config_name = Path(config_fpath).name
+    config_name = Path(opts.config_fpath).name
 
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the afp module
@@ -323,7 +323,7 @@ if __name__ == "__main__":
 
     split = "test"
     save_viz = False
-    evaluate_model(serialization_save_dir, ckpt_fpath, args, split, save_viz)
+    evaluate_model(opts.serialization_save_dir, ckpt_fpath, args, split, save_viz)
 
     train_results_json = json_utils.read_json_file(train_results_fpath)
     val_mAccs = train_results_json["val_mAcc"]
