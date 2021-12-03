@@ -699,7 +699,15 @@ if __name__ == "__main__":
         "--method",
         type=float,
         required=True,
-        choices=["spanning_tree", "SE2_cycles", "growing_consensus", "filtered_spanning_tree", "random_spanning_trees", "pose2_slam", "pgo"],
+        choices=[
+            "spanning_tree",
+            "SE2_cycles",
+            "growing_consensus",
+            "filtered_spanning_tree",
+            "random_spanning_trees",
+            "pose2_slam",
+            "pgo",
+        ],
         help="Global aggregation method.",
     )
     parser.add_argument(
@@ -708,10 +716,8 @@ if __name__ == "__main__":
         required=True,
         help="Directory where serialized predictions should be saved to.",
     )
-    parser.add_argument("--hypotheses_save_root",
-        type=str,
-        required=True,
-        help="Path to where alignment hypotheses are saved on disk."
+    parser.add_argument(
+        "--hypotheses_save_root", type=str, required=True, help="Path to where alignment hypotheses are saved on disk."
     )
     use_axis_alignment = True
     allowed_wdo_types = ["door", "window", "opening"]  #    ["window"] #  ["opening"] # ["door"] #
