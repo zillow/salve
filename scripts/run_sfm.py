@@ -1,7 +1,6 @@
-"""
-Another translation-based filtering step is 1dsfm projection directions:
-https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_relative_translation.cc
-Must happen after rotation averaging.
+"""Threshold front-end measurements and run back-end optimization to compute global poses.
+
+Visualizations are saved for each floor.
 """
 
 import argparse

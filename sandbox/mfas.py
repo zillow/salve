@@ -2,6 +2,10 @@
 """Translation direction filtering via Minimum Feedback Arc Set (MFAS).
 
 Reference: https://github.com/borglab/gtsfm/blob/master/gtsfm/averaging/translation/averaging_1dsfm.py
+
+This translation-based filtering step is 1dsfm projection directions:
+https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_relative_translation.cc
+Must happen after global rotations are available, e.g. from rotation averaging.
 """
 
 from typing import Dict, List, Tuple
