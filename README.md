@@ -122,7 +122,7 @@ Next, clone the repository:
 git clone https://gitlab.zgtools.net/johnlam/jlambert-auto-floorplan.git
 ```
 
-Set `SALVE_REPO_FPATH` to wherever you have cloned `jlambert-auto-floorplan`
+Set `SALVE_REPO_DIRPATH` to wherever you have cloned `jlambert-auto-floorplan`
 
 
 
@@ -135,7 +135,7 @@ cd HoHoNet
 
 Now download the HoHoNet model here: 
 ```bash
-./{SALVE_REPO_FPATH}/scripts/download_monodepth_model.sh
+./{SALVE_REPO_DIRPATH}/scripts/download_monodepth_model.sh
 ```
 
 Now run:
