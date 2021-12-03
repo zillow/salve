@@ -163,6 +163,7 @@ python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
     --model_results_dir {} --config_fpath {PATH TO YAML MODEL CONFIG} \
     --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
+Please note that the YAML config must be the path to a config in `afp/configs/*`.
 
 For example, if your model checkpoint was stored in a directory accessible at:
 ```
@@ -209,7 +210,7 @@ A directory will be created which contains the config file used for training (ya
 
 - Maybe use different schema for Madori-V1 files.
 - Find missing Madori-V1.
-- 
+- Keep your training config and inference config in different files.  (Or different sections of the same file.)
 
 Additional Notes:
 - Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
