@@ -154,7 +154,17 @@ def save_edge_classifications_to_disk(
     fp0: torch.Tensor,
     fp1: torch.Tensor,
 ) -> None:
-    """ """
+    """Serialize model predictions for each alignment hypothesis. Each batch will be saved to its own JSON file.
+
+    Args:
+        serialization_save_dir: Directory where serialized predictions should be saved to.
+        batch_idx: index of batch, among all batches (e.g. 3rd batch of 2000 batches).
+        y_hat: tensor of shape (B,) representing model's predicted most likely class index for each example.
+        y_true: tensor of shape (B,) representing ground truth class index for each example.
+        probs:
+        fp0: list of length (B,) representing file path to panorama 1 (of image pair).
+        fp1: list of length (B,) representing file path to panorama 2 (of image pair).
+    """
     n = y_hat.shape[0]
     save_dict = {
         "y_hat": y_hat.cpu().numpy().tolist(),
@@ -291,10 +301,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
-   
+
     parser.add_argument("--model_results_dir", type=str, required=True, help="Directory where model results are saved.")
     parser.add_argument("--config_fpath", type=str, required=True, help="Path to config file.")
-    parser.add_argument("--serialization_save_dir", type=str, required=True, help="Directory where serialized predictions should be saved to.")
+    parser.add_argument(
+        "--serialization_save_dir",
+        type=str,
+        required=True,
+        help="Directory where serialized predictions should be saved to.",
+    )
 
     opts = parser.parse_args()
 
