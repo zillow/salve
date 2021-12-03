@@ -298,12 +298,17 @@ def plot_metrics(json_fpath: str) -> None:
 
 
 if __name__ == "__main__":
+    """
+    TODO: prevent user from passing arbitrary YAML config location (must edit the one under afp/configs/)
+    """
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
 
     parser.add_argument("--model_results_dir", type=str, required=True, help="Directory where model results are saved.")
-    parser.add_argument("--config_fpath", type=str, required=True, help="Path to config file.")
+    parser.add_argument(
+        "--config_fpath", type=str, required=True, help="Path to config file. Note: this must be under afp/configs/"
+    )
     parser.add_argument(
         "--serialization_save_dir",
         type=str,
