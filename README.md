@@ -163,6 +163,26 @@ python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
     --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
 
+For example, if your model results where saved to:
+```
+/data/johnlam/models_for_lambert/2021_11_19_21_42_11
+```
+which is a directory which contains a config file there (yaml), and a pytorch model checkpoint (.pth), and JSON results:
+```
+ train_ckpt.pth
+ results-2021_11_19_21_42_11-2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.json
+ 2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml
+```
+then we would use via CLI
+```
+--model_results_dir /data/johnlam/models_for_lambert/2021_11_19_21_42_11
+```
+In the config you'll see a line:
+```
+    data_root: /data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres
+```
+this should be replaced with `bev_save_root` where renderings were saved to, above.
+
 Now, pass the front-end measurements to SfM:
 ```bash
 python scripts/run_sfm.py --raw_dataset_dir {PATH TO ZIND}
