@@ -2,7 +2,7 @@
 Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
 
 # TODO: only measure localization precision for connected components with 3+ cameras. (or measure separately)
-# 2-camera connected components should alawys achieve perfect translation alignment under Sim(3)? (TODO: write unit tests).
+# 2-camera connected components should always achieve perfect translation alignment under Sim(3)? (TODO: write unit tests).
 (not true -- close -- but rotation also plays a role in it.)
 """
 
