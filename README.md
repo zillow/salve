@@ -104,7 +104,7 @@ Download and unzip the Madori-V1 HorizonNet predictions from [Google Drive here]
 Download the (prod pano GUID) -> (ZInD pano filename) mapping information from [Google Drive here](https://drive.google.com/file/d/1ALPLDWPA8K7taNuxReOt0RiaJ1AlIEY1/view?usp=sharing).
 
 ```bash
-unzip {}
+unzip {PATH_TO_HORIZONNET PREDS ZIP FILE}/zind2_john.zip
 RMX_MADORI_V1_PREDICTIONS_DIRPATH = {}
 ```
 First, set `RMX_MADORI_V1_PREDICTIONS_DIRPATH` inside `afp/dataset/hnet_prediction_loader.py`.
@@ -157,7 +157,7 @@ then you have not configured `HoHoNet` properly above.
 
 Next, send the pairs of BEV texture maps to the model for scoring:
 ```bash
-python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST}
+python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST} --model_results_dir {} --config_fpath {} --serialization_save_dir {}
 ```
 
 Now, pass the front-end measurements to SfM:
