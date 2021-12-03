@@ -17,6 +17,7 @@ from gtsam import Rot3, Pose3
 
 from afp.baselines.sfm_reconstruction import SfmReconstruction
 from afp.common.posegraph2d import REDTEXT, ENDCOLOR
+from afp.dataset.zind_partition import DATASET_SPLITS
 from afp.utils.function_timeout import timeout
 
 
@@ -194,12 +195,17 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
 def run_openmvg_all_tours() -> None:
     """Run OpenMVG in spherical geometry mode, over all tours inside ZinD."""
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
     for building_id in building_ids:
+
+         # we are only evaluating OpenMVG on ZInD's test split.
+        if building_id not in DATASET_SPLITS["test"]:
+            continue
+
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         try:
@@ -211,8 +217,10 @@ def run_openmvg_all_tours() -> None:
         for floor_id in floor_ids:
             print(f"Running OpenMVG on {building_id}, {floor_id}")
 
-            matches_dirpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
-            reconstruction_json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
+            FLOOR_OPENMVG_DATADIR = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_12_02"
+
+            matches_dirpath = f"{FLOOR_OPENMVG_DATADIR}/matches"
+            reconstruction_json_fpath = f"{FLOOR_OPENMVG_DATADIR}/reconstruction/sfm_data.json"
             if Path(reconstruction_json_fpath).exists() or Path(matches_dirpath).exists():
                 print(f"\tResults already exists for Building {building_id}, {floor_id}, skipping...")
                 continue
@@ -223,8 +231,6 @@ def run_openmvg_all_tours() -> None:
             if len(pano_fpaths) == 0:
                 print(REDTEXT + f"\tFloor {floor_id} does not exist for building {building_id}, skipping" + ENDCOLOR)
                 continue
-
-            FLOOR_OPENMVG_DATADIR = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21"
             
             os.makedirs(f"{FLOOR_OPENMVG_DATADIR}/images", exist_ok=True)
 
@@ -245,7 +251,6 @@ def run_openmvg_all_tours() -> None:
             )
             # delete copy of all of the copies of the panos
             shutil.rmtree(dst_dir)
-
 
 
 if __name__ == "__main__":
