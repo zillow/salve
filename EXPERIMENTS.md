@@ -1,8 +1,7 @@
 
-
-    # ResNet-18, floor and ceiling, RGB-only
-    # model_results_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
-    # model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"
+## ResNet-18, floor and ceiling, RGB-only
+- `model_results_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"`
+- `model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_26_08_38_09"`
 
     # ResNet-50, floor and ceiling, RGB-only
     # model_results_dir = "/mnt/data/johnlam/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26"
