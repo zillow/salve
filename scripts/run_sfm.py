@@ -696,76 +696,15 @@ if __name__ == "__main__":
         help="Minimum required SALVe network confidence to accept a prediction.",
     )
 
-    # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
-    # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug"
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications"
-
-    # # training, v2
-    # # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_28_serialized_edge_classifications"
-
-    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # # vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
-
-    # hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_alignment_hypotheses_2021_07_14_v3_w_wdo_idxs"
-
-    # hypotheses_save_root = (
-    #     "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    # )
-
-    # 186 tours, low-res, RGB only floor and ceiling. custom hacky val split
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"
-
-    # 373 training tours, low-res, RGB only floor and ceiling, true ZinD train/val/test split
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications"
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26_serialized_edge_classifications_v2_more_rendered"
-
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
-
-    # ceiling + floor
-    # serialized_preds_json_dir = (
-    #     "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
-    # )
-    # serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"
-
-    # floor-only, ResNet-152
-    # serialized_preds_json_dir = (
-    #     "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09"
-    # )
-
-    # # ceiling-only, ResNet-152
-    # serialized_preds_json_dir = (
-    #     "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12"
-    # )
-    # /data/johnlam/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test109buildings_2021_11_16
-
-    # #layout-only, ResNet-152, 15/50 epochs complete
-    # serialized_preds_json_dir = (
-    #     "/Users/johnlam/Downloads/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test2021_11_15"
-    # )
-    # "/data/johnlam/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test109buildings_2021_11_16"
-
-    # GT WDO + GT Layout, ResNet-152
-    hypotheses_save_root = (
-        "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    parser.add_argument(
+        "--method",
+        type=float,
+        required=True,
+        choices=["spanning_tree", "SE2_cycles", "growing_consensus", "filtered_spanning_tree", "random_spanning_trees", "pose2_slam", "pgo"],
+        help="Global aggregation method.",
     )
-    # serialized_preds_json_dir = (
-    #     "/Users/johnlam/Downloads/2021_11_23_ResNet152floorceiling_GT_WDO_350tours_serialized_edge_classifications_2021_11_24"
-    # )
 
-    # GT WDO + GT Layout, trained on 817 tours, ResNet-152
-    serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_11_29_ResNet152floorceiling_GT_WDO_817tours_serialized_edge_classifications_2021_12_02"
-
-    # method = "spanning_tree"
-    # method = "SE2_cycles"
-    # method = "growing_consensus"
-    # method = "filtered_spanning_tree"
-    # method = "random_spanning_trees"
-    #method = "pose2_slam"
-    method = "pgo"
-
-    use_axis_alignment = False
+    use_axis_alignment = True
     allowed_wdo_types = ["door", "window", "opening"]  #    ["window"] #  ["opening"] # ["door"] #
 
     args = parser.parse_args()
