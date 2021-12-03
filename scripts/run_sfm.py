@@ -695,7 +695,6 @@ if __name__ == "__main__":
         default=0.93,
         help="Minimum required SALVe network confidence to accept a prediction.",
     )
-
     parser.add_argument(
         "--method",
         type=float,
@@ -703,7 +702,17 @@ if __name__ == "__main__":
         choices=["spanning_tree", "SE2_cycles", "growing_consensus", "filtered_spanning_tree", "random_spanning_trees", "pose2_slam", "pgo"],
         help="Global aggregation method.",
     )
-
+    parser.add_argument(
+        "--serialized_preds_json_dir",
+        type=str,
+        required=True,
+        help="Directory where serialized predictions should be saved to.",
+    )
+    parser.add_argument("--hypotheses_save_root",
+        type=str,
+        required=True,
+        help="Path to where alignment hypotheses are saved on disk."
+    )
     use_axis_alignment = True
     allowed_wdo_types = ["door", "window", "opening"]  #    ["window"] #  ["opening"] # ["door"] #
 
@@ -711,10 +720,10 @@ if __name__ == "__main__":
     print("Run SfM with settings:", args)
 
     run_incremental_reconstruction(
-        hypotheses_save_root,
-        serialized_preds_json_dir,
+        args.hypotheses_save_root,
+        args.serialized_preds_json_dir,
         args.raw_dataset_dir,
-        method,
+        args.method,
         args.confidence_threshold,
         use_axis_alignment,
         allowed_wdo_types,
