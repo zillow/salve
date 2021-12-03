@@ -66,5 +66,5 @@
 
 ## ResNet-152, GT WDO and GT layout (817 tours)
 - `model_results_dir = johnlam@se1-rmx-gpu-002:/data/johnlam/ZinD_trained_models_2021_11_29/2021_11_29_21_08_01`
-- `config_fpath = "2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml"`
-- `serialization_save_dir`
+- `config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_29/2021_11_29_21_08_01/2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml"`
+- `serialization_save_dir = /data/johnlam/2021_11_29_ResNet152floorceiling_GT_WDO_817tours_serialized_edge_classifications_2021_12_02"`
