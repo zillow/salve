@@ -183,8 +183,9 @@ Please note that `serialization_save_dir` is a new directory created at inferenc
 
 Now, pass the front-end measurements to SfM:
 ```bash
-python scripts/run_sfm.py --raw_dataset_dir {PATH TO ZIND}
+python scripts/run_sfm.py --raw_dataset_dir {PATH TO ZIND} --method pgo
 ```
+Above, we use pose-graph optimization (`pgo`) as the global aggregation method for relative poses.
 
 ## Pretrained Models
 
