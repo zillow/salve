@@ -158,7 +158,9 @@ then you have not configured `HoHoNet` properly above.
 
 Next, send the pairs of BEV texture maps to the model for scoring:
 ```bash
-python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST} --model_results_dir {} --config_fpath {} --serialization_save_dir {}
+python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
+    --model_results_dir {} --config_fpath {PATH TO YAML MODEL CONFIG} \
+    --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
 
 Now, pass the front-end measurements to SfM:
