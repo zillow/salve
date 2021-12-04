@@ -11,7 +11,7 @@ import numpy as np
 from afp.dataset.zind_partition import DATASET_SPLITS
 
 
-def main():
+def count_floor_stats_per_home():
     """
     Train: 2168 floors, 1.72 floors per building. #Panos per floor: 24.92
     Val: 278 floors, 1.77 floors per building. #Panos per floor: 23.97
@@ -70,5 +70,13 @@ def main():
     print(f"mean_num_floors: {mean_num_floors:.2f}")
 
 
+def count_avg_number_wdo_per_pano() -> None:
+    """ """
+
+    dirpath = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65/1529/floor_02/incorrect_alignment"
+
+
+
 if __name__ == "__main__":
-    main()
+    # count_floor_stats_per_home()
+    count_avg_number_wdo_per_pano()
