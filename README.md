@@ -1,4 +1,4 @@
-# jlambert-auto-floorplan
+# SALVe: Semantic Alignment Verification for Floorplan Reconstruction from Sparse Panoramas
 
 Code for the Auto-Floorplan (AFP) 2021 Internship project within RMX group.
 
