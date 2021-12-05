@@ -112,8 +112,11 @@ Next, set `PANO_MAPPING_TSV_FPATH` also inside `afp/dataset/hnet_prediction_load
 
 Run SALVe model inference by first generating alignment hypotheses:
 ```bash
-python scripts/export_alignment_hypotheses.py --num_processes {NUM. DESIRED PROCS.} \
-    --raw_dataset_dir {PATH TO ZIND} --hypotheses_save_root {DIRECTORY WHERE TO DUMP OUTPUT}
+python scripts/export_alignment_hypotheses.py \
+    --num_processes {NUM. DESIRED PROCS.} \
+    --raw_dataset_dir {PATH TO ZIND} \
+    --hypotheses_save_root {DIRECTORY WHERE TO DUMP OUTPUT} \
+    --wdo_source horizon_net
 ```
 Using 20-30 processes is recommended, and even with 30 processes, the generation may take 1-2 hours to complete.
 
