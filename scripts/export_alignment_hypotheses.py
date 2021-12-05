@@ -407,8 +407,17 @@ if __name__ == "__main__":
         default="/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
         help="where JSON files with alignment hypotheses will be saved to.",
     )
+    parser.add_argument(
+        "--wdo_source",
+        type=str,
+        required=True,
+        choices=["horizon_net","ground_truth"],
+        help="Where to pull W/D/O and layout (either inferred from HorizonNet, or taken from annotated ground truth)"
+    )
     args = parser.parse_args()
-    use_inferred_wdos_layout = False
+
+    # if the W/D/O source is not HorizonNet, then we'll fall back to using annotated GT W/D/O.
+    use_inferred_wdos_layout = args.wdo_source == "horizon_net"
 
     export_alignment_hypotheses_to_json(
         args.num_processes, args.raw_dataset_dir, args.hypotheses_save_root, use_inferred_wdos_layout
