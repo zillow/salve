@@ -232,19 +232,6 @@ def count_panos_on_floor(raw_dataset_dir: str, building_id: str, floor_id: str) 
     return len(pano_fpaths)
 
 
-def test_count_panos_on_floor() -> None:
-    """Ensure that the number of panoramas on a floor is counted correctly."""
-
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
-    building_id = "379"
-
-    num_floor0_panos = count_panos_on_floor(raw_dataset_dir, building_id, floor_id="floor_00")
-    assert num_floor0_panos == 8
-
-    num_floor1_panos = count_panos_on_floor(raw_dataset_dir, building_id, floor_id="floor_01")
-    assert num_floor1_panos == 13
-
-
 def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> None:
     """Analyze the accuracy of global pose estimation (camera localization) from a third-party SfM algorithm.
 
@@ -438,7 +425,7 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, save_dir: str) -> None:
     """Evaluate the OpenMVG output files (dumped sfm_data.json) from every tour against ZinD ground truth.
 
     Args:
-        raw_dataset_dir:
+        raw_dataset_dir: Path to where ZInD dataset is stored (directly downloaded from Bridge API).
         save_dir:
     """
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
@@ -447,16 +434,10 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, save_dir: str) -> None:
 
     counter = 0
 
-    for building_id in building_ids[::-1]:
+    for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
-        try:
-            new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(building_id))])
-        except Exception as e:
-            print(f"Exception for Building {building_id}: ", e)
-            continue
-        new_building_id = new_building_ids[0]
-        if new_building_id not in DATASET_SPLITS["test"]:
+        if building_id not in DATASET_SPLITS["test"]:
             continue
 
         for floor_id in floor_ids:
@@ -497,18 +478,16 @@ def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str
     """Evaluate the OpenSfM output files from every tour against ZinD ground truth. JSON summaries are saved to disk.
 
     Args:
-        raw_dataset_dir Path to where ZInD dataset is stored (directly downloaded from Bridge API).
-        opensfm_results_dir: Location where OpenSfM results are saved.
+        raw_dataset_dir: Path to where ZInD dataset is stored (directly downloaded from Bridge API).
+        opensfm_results_dir: Location where OpenSfM results are saved, e.g. if the reconstruction result was saved to
+            /Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json, then the input arg should
+            be /Users/johnlam/Downloads/OpenSfM/data
+        save_dir: directory where to store JSON result summaries and visualizations.
     """
-
-    # reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
-
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
     reconstruction_reports = []
-
-    counter = 0
 
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
@@ -517,17 +496,11 @@ def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str
             continue
 
         for floor_id in floor_ids:
-
-            # try:
             src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
             pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
 
             if len(pano_fpaths) == 0:
                 continue
-
-            # counter += 1
-            # if counter > 500:
-            #     continue
 
             print(f"On Building {building_id}, {floor_id}")
 
@@ -551,9 +524,6 @@ def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str
             #     continue
 
     print("OpenSfM test set eval complete.")
-    import pdb
-
-    pdb.set_trace()
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
 
@@ -668,7 +638,7 @@ if __name__ == "__main__":
         "--save_dir",
         type=str,
         default="/srv/scratch/jlambert30/salve/ZInD_results_2021_12_11",
-        help="Where to store JSON result summaries and visualizations.",
+        help="Directory where to store JSON result summaries and visualizations.",
     )
     args = parser.parse_args()
 
