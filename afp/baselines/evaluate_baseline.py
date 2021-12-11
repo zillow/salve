@@ -83,10 +83,6 @@ def get_openmvg_T_zillow() -> Pose3:
 
     """
     # in radians
-    # Rx = 0.0  # -np.pi/2 # -90 deg.
-    # Ry = -np.pi / 2  # 0.0
-    # Rz = 0.0  # - np.pi/2 # 90 deg.
-
     Rx = np.pi / 2
     Ry = 0.0
     Rz = 0.0
@@ -128,11 +124,11 @@ def measure_algorithm_localization_accuracy(
     something quite different in the context of SfM.
 
     Args:
-        building_id:
-        floor_id:
-        raw_dataset_dir:
-        algorithm_name
-        save_dir
+        building_id: unique ID of ZinD building.
+        floor_id: unique ID of floor.
+        raw_dataset_dir: path to ZinD dataset.
+        algorithm_name: 
+        save_dir: where to save JSON results, floorplan visualizations, IoU visualizations, and serialized poses.
         reconstruction_json_fpath:
 
     Returns:
@@ -619,10 +615,6 @@ def main(args: Namespace) -> None:
     json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
     analyze_algorithm_results(json_results_dir, raw_dataset_dir)
     """
-
-    # For OpenMVG
-    # run_openmvg_all_tours()
-
     # reconstruction_json_fpath = "/Users/johnlam/Downloads/openmvg_demo/ZinD_1183_floor_01__2021_09_21/reconstruction/sfm_data.json"
     # building_id = "1183"
     # floor_id = "floor_01"
