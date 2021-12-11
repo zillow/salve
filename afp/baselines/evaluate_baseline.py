@@ -31,7 +31,6 @@ from afp.common.posegraph3d import PoseGraph3d
 from afp.dataset.zind_partition import DATASET_SPLITS
 from afp.utils.logger_utils import get_logger
 
-
 try:
     import afp.visualization.utils as vis_utils
 except Exception as e:
@@ -103,7 +102,7 @@ def save_empty_json_results_file(results_dir: str, building_id: str, floor_id: s
             "mean_abs_trans_err": np.nan,
         }
     ]
-    floor_results_dir = f"ZinD_{building_id}_{floor_id}__2021_12_02"
+    floor_results_dir = f"ZinD_{building_id}_{floor_id}__2021_12_02/result_summaries"
     os.makedirs(f"{floor_results_dir}", exist_ok=True)
     json_save_fpath = (
         f"{results_dir}/{building_id}_{floor_id}.json"
@@ -167,11 +166,10 @@ def measure_algorithm_localization_accuracy(
             opensfm_T_zillow = get_opensfm_T_zillow()
             algocam_T_zillowcam = opensfm_T_zillow
             # world frame <-> opensfm camera <-> zillow camera
+        
         elif algorithm_name == "openmvg":
-
             openmvg_T_zillowcam = get_openmvg_T_zillow()
             algocam_T_zillowcam = openmvg_T_zillowcam
-            # algocam_T_zillowcam = Pose3()
 
         bTi_list_est = [bTi.compose(algocam_T_zillowcam) if bTi is not None else None for bTi in bTi_list_est]
 
@@ -603,9 +601,9 @@ def main(args: Namespace) -> None:
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
 
-    analyze_algorithm_results(
-        raw_dataset_dir=args.raw_dataset_dir, json_results_dir=f"{args.save_dir}/result_summaries"
-    )
+    # analyze_algorithm_results(
+    #     raw_dataset_dir=args.raw_dataset_dir, json_results_dir=f"{args.save_dir}/result_summaries"
+    # )
 
     # visualize_side_by_side()
 
@@ -625,7 +623,7 @@ if __name__ == "__main__":
         default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
         #default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
         # default="/Users/johnlam/Downloads/OpenSfM/data/OpenSfM_results_2021_12_02_BridgeAPI"
-        help="Location where OpenSfM or OpenMVG results are saved (default would be to ~/OpenSfM/data or OPENMVG_DEMO_ROOT).",
+        help="Location where OpenSfM or OpenMVG raw JSON results are saved (default would be to ~/OpenSfM/data or OPENMVG_DEMO_ROOT).",
     )
     parser.add_argument(
         "--baseline_name",
