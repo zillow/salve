@@ -103,7 +103,8 @@ def save_empty_json_results_file(results_dir: str, building_id: str, floor_id: s
             "mean_abs_trans_err": np.nan,
         }
     ]
-    os.makedirs(f"{results_dir}", exist_ok=True)
+    floor_results_dir = f"ZinD_{building_id}_{floor_id}__2021_12_02"
+    os.makedirs(f"{floor_results_dir}", exist_ok=True)
     json_save_fpath = (
         f"{results_dir}/{building_id}_{floor_id}.json"
     )
@@ -140,9 +141,9 @@ def measure_algorithm_localization_accuracy(
     elif algorithm_name == "openmvg":
         reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(building_id, floor_id)
         if len(reconstructions[0].pose_dict) == 0:
-            import pdb; pdb.set_trace()
-            save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
-            return
+            #import pdb; pdb.set_trace()
+            #save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
+            return FloorReconstructionReport(avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0)
 
     if len(reconstructions) == 0:
         return FloorReconstructionReport(avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0)
@@ -449,8 +450,11 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
 
             # whether we want consider failed reconstructions
             if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
-                import pdb; pdb.set_trace()
-                save_empty_json_results_file(openmvg_results_dir, building_id, floor_id, algorithm_name="openmvg")
+                #import pdb; pdb.set_trace()
+                #save_empty_json_results_file(openmvg_results_dir, building_id, floor_id)
+                reconstruction_reports.append(
+                    FloorReconstructionReport(avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0)
+                )
 
             if not Path(reconstruction_json_fpath).exists():
                 continue
