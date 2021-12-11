@@ -119,6 +119,7 @@ def measure_algorithm_localization_accuracy(
     floor_id: str,
     raw_dataset_dir: str,
     algorithm_name: str,
+    save_dir: str,
     reconstruction_json_fpath: Optional[str] = None,
 ) -> FloorReconstructionReport:
     """Evaluate reconstruction from a single floor against GT poses, via Sim(3) alignment.
@@ -131,6 +132,7 @@ def measure_algorithm_localization_accuracy(
         floor_id:
         raw_dataset_dir:
         algorithm_name
+        save_dir
         reconstruction_json_fpath:
 
     Returns:
@@ -197,7 +199,7 @@ def measure_algorithm_localization_accuracy(
             reconstruction.points.shape[0],
         )
 
-        viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_12_11_largest"
+        viz_save_dir = f"{save_dir}/viz_largest_cc"
         # viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_11_09_largest/{building_id}_{floor_id}"
         os.makedirs(viz_save_dir, exist_ok=True)
         plot_save_fpath = f"{viz_save_dir}/{algorithm_name}_reconstruction_{r}.jpg"
@@ -220,7 +222,7 @@ def measure_algorithm_localization_accuracy(
         }
         floor_results_dicts.append(floor_results_dict)
 
-    summary_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results_2021_12_11"
+    summary_save_dir = f"{save_dir}/result_summaries"
     os.makedirs(summary_save_dir, exist_ok=True)
     json_save_fpath = f"{summary_save_dir}/{building_id}_{floor_id}.json"
     json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
@@ -438,10 +440,13 @@ def get_buildingid_floorid_from_json_fpath(fpath: str) -> Tuple[str, str]:
     return building_id, floor_id
 
 
-def eval_openmvg_errors_all_tours() -> None:
-    """Evaluate the OpenMVG output files (dumped sfm_data.json) from every tour against ZinD ground truth."""
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+def eval_openmvg_errors_all_tours(raw_dataset_dir: str, save_dir: str) -> None:
+    """Evaluate the OpenMVG output files (dumped sfm_data.json) from every tour against ZinD ground truth.
 
+    Args:
+        raw_dataset_dir:
+        save_dir:
+    """
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
     reconstruction_reports = []
@@ -485,6 +490,7 @@ def eval_openmvg_errors_all_tours() -> None:
                 floor_id=floor_id,
                 raw_dataset_dir=raw_dataset_dir,
                 algorithm_name="openmvg",
+                save_dir=save_dir,
                 reconstruction_json_fpath=None,  # reconstruction_json_fpath,
             )
             reconstruction_reports.append(report)
@@ -493,7 +499,7 @@ def eval_openmvg_errors_all_tours() -> None:
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
 
-def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str) -> None:
+def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str, save_dir: str) -> None:
     """Evaluate the OpenSfM output files from every tour against ZinD ground truth. JSON summaries are saved to disk.
 
     Args:
@@ -540,6 +546,7 @@ def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str
                 floor_id=floor_id,
                 raw_dataset_dir=raw_dataset_dir,
                 algorithm_name="opensfm",
+                save_dir=save_dir,
                 reconstruction_json_fpath=reconstruction_json_fpath,
             )
             reconstruction_reports.append(report)
@@ -625,7 +632,9 @@ def main(args: Namespace) -> None:
     if args.baseline_name == "opensfm":
         if not Path(args.opensfm_results_dir).exists():
             raise RuntimeError("Results directory does not exist.")
-        eval_opensfm_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir, opensfm_results_dir=args.opensfm_results_dir)
+        eval_opensfm_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir,
+            opensfm_results_dir=args.opensfm_results_dir,
+            save_dir=args.save_dir)
 
     elif args.baseline_name == "openmvg":
         eval_openmvg_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir)
@@ -657,5 +666,12 @@ if __name__ == "__main__":
         required=True,
         help="Name of SfM library/algorithm to evaluate"
     )
+    parser.add_argument("--save_dir",
+        type=str,
+        default="/srv/scratch/jlambert30/salve/ZInD_results_2021_12_11",
+        help="Where to store JSON result summaries and visualizations."
+    )
     args = parser.parse_args()
+
+    args.save_dir += f"_{args.baseline_name}"
     main(args)
