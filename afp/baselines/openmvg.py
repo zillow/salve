@@ -35,17 +35,17 @@ def panoid_from_key(key: str) -> int:
     return int(Path(key).stem.split("_")[-1])
 
 
-def load_openmvg_reconstructions_from_json(building_id: str, floor_id: str) -> List[SfmReconstruction]:
+def load_openmvg_reconstructions_from_json(json_fpath: str, building_id: str, floor_id: str) -> List[SfmReconstruction]:
     """Read OpenMVG-specific format ("sfm_data.json") to AutoFloorPlan generic types.
 
     Args:
         building_id: unique ID for ZinD building.
         floor_id: unique ID for floor of a ZinD building.
+        reconstruction_fpath: path to reconstruction/sfm_data.json file
 
     Returns:
         reconstructions
     """
-    json_fpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
     data = json_utils.read_json_file(json_fpath)
 
     assert data["sfm_data_version"] == "0.3"

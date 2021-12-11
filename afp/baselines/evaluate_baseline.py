@@ -114,7 +114,7 @@ def measure_algorithm_localization_accuracy(
     raw_dataset_dir: str,
     algorithm_name: str,
     save_dir: str,
-    reconstruction_json_fpath: Optional[str] = None,
+    reconstruction_json_fpath: str
 ) -> FloorReconstructionReport:
     """Evaluate reconstruction from a single floor against GT poses, via Sim(3) alignment.
 
@@ -136,7 +136,7 @@ def measure_algorithm_localization_accuracy(
         reconstructions = opensfm_utils.load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
 
     elif algorithm_name == "openmvg":
-        reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(building_id, floor_id)
+        reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(reconstruction_json_fpath, building_id, floor_id)
         if len(reconstructions[0].pose_dict) == 0:
             # import pdb; pdb.set_trace()
             # save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
@@ -464,7 +464,7 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
                 raw_dataset_dir=raw_dataset_dir,
                 algorithm_name="openmvg",
                 save_dir=save_dir,
-                reconstruction_json_fpath=None,  # reconstruction_json_fpath,
+                reconstruction_json_fpath=reconstruction_json_fpath,
             )
             reconstruction_reports.append(report)
 
