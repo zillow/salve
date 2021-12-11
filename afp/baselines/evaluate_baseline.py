@@ -92,7 +92,7 @@ def get_openmvg_T_zillow() -> Pose3:
     return openmvg_T_zillow
 
 
-def save_empty_json_results_file(building_id: str, floor_id: str, algorithm_name: str) -> None:
+def save_empty_json_results_file(results_dir: str, building_id: str, floor_id: str, algorithm_name: str) -> None:
     """ """
     floor_results_dicts = [
         {
@@ -103,9 +103,9 @@ def save_empty_json_results_file(building_id: str, floor_id: str, algorithm_name
             "mean_abs_trans_err": np.nan,
         }
     ]
-    os.makedirs(f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results", exist_ok=True)
+    os.makedirs(f"{results_dir}", exist_ok=True)
     json_save_fpath = (
-        f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results/{building_id}_{floor_id}.json"
+        f"{results_dir}/{building_id}_{floor_id}.json"
     )
     json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
 
@@ -140,10 +140,8 @@ def measure_algorithm_localization_accuracy(
     elif algorithm_name == "openmvg":
         reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(building_id, floor_id)
         if len(reconstructions[0].pose_dict) == 0:
+            import pdb; pdb.set_trace()
             save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
-            import pdb
-
-            pdb.set_trace()
             return
 
     if len(reconstructions) == 0:
@@ -421,18 +419,19 @@ def get_buildingid_floorid_from_json_fpath(fpath: str) -> Tuple[str, str]:
     return building_id, floor_id
 
 
-def eval_openmvg_errors_all_tours(raw_dataset_dir: str, save_dir: str) -> None:
+def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str, save_dir: str) -> None:
     """Evaluate the OpenMVG output files (dumped sfm_data.json) from every tour against ZinD ground truth.
 
     Args:
         raw_dataset_dir: Path to where ZInD dataset is stored (directly downloaded from Bridge API).
+        openmvg_results_dir:
         save_dir:
     """
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
     reconstruction_reports = []
 
-    counter = 0
+    import pdb; pdb.set_trace()
 
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
@@ -441,24 +440,21 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, save_dir: str) -> None:
             continue
 
         for floor_id in floor_ids:
-            matches_dirpath = f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
+            matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
             if not Path(matches_dirpath).exists():
                 continue
 
             reconstruction_json_fpath = (
-                f"{OPENMVG_DEMO_ROOT}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
+                f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
             )
 
             # whether we want consider failed reconstructions
             if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
-                save_empty_json_results_file(building_id, floor_id, algorithm_name="openmvg")
+                import pdb; pdb.set_trace()
+                save_empty_json_results_file(openmvg_results_dir, building_id, floor_id, algorithm_name="openmvg")
 
             if not Path(reconstruction_json_fpath).exists():
                 continue
-
-            # counter += 1
-            # if counter > 100:
-            #     break
 
             report = measure_algorithm_localization_accuracy(
                 building_id=building_id,
@@ -595,11 +591,11 @@ def main(args: Namespace) -> None:
         if not Path(args.opensfm_results_dir).exists():
             raise RuntimeError("Results directory does not exist.")
         eval_opensfm_errors_all_tours(
-            raw_dataset_dir=args.raw_dataset_dir, opensfm_results_dir=args.opensfm_results_dir, save_dir=args.save_dir
+            raw_dataset_dir=args.raw_dataset_dir, opensfm_results_dir=args.results_dir, save_dir=args.save_dir
         )
 
     elif args.baseline_name == "openmvg":
-        eval_openmvg_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir)
+        eval_openmvg_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir, openmvg_results_dir=args.results_dir, save_dir=args.save_dir)
 
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
@@ -621,11 +617,12 @@ if __name__ == "__main__":
         help="Path to where ZInD dataset is stored (directly downloaded from Bridge API).",
     )
     parser.add_argument(
-        "--opensfm_results_dir",
+        "--results_dir",
         type=str,
-        default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
+        default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
+        #default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
         # default="/Users/johnlam/Downloads/OpenSfM/data/OpenSfM_results_2021_12_02_BridgeAPI"
-        help="Location where OpenSfM results are saved (default would be to ~/OpenSfM/data).",
+        help="Location where OpenSfM or OpenMVG results are saved (default would be to ~/OpenSfM/data or OPENMVG_DEMO_ROOT).",
     )
     parser.add_argument(
         "--baseline_name",
