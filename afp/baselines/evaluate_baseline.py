@@ -584,22 +584,15 @@ def visualize_side_by_side() -> None:
 
 
 def main(args: Namespace) -> None:
-    """ """
-
     """
     # for OpenSFM -- analyze error results dumped to JSON files.
     json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
-    analyze_algorithm_results(json_results_dir, raw_dataset_dir)
     """
-    # reconstruction_json_fpath = "/Users/johnlam/Downloads/openmvg_demo/ZinD_1183_floor_01__2021_09_21/reconstruction/sfm_data.json"
-    # building_id = "1183"
-    # floor_id = "floor_01"
 
-    # reconstruction_json_fpath
+    if not Path(args.results_dir).exists():
+        raise RuntimeError("Results directory does not exist.")
 
     if args.baseline_name == "opensfm":
-        if not Path(args.opensfm_results_dir).exists():
-            raise RuntimeError("Results directory does not exist.")
         eval_opensfm_errors_all_tours(
             raw_dataset_dir=args.raw_dataset_dir, opensfm_results_dir=args.results_dir, save_dir=args.save_dir
         )
@@ -631,8 +624,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--results_dir",
         type=str,
-        default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
-        # default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
+        #default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
+        default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
         # default="/Users/johnlam/Downloads/OpenSfM/data/OpenSfM_results_2021_12_02_BridgeAPI"
         help="Location where OpenSfM or OpenMVG raw JSON results are saved (default would be to ~/OpenSfM/data or OPENMVG_DEMO_ROOT).",
     )
