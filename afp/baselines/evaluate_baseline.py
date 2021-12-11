@@ -439,12 +439,12 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
 
         import pdb; pdb.set_trace()
         for floor_id in floor_ids:
-            matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
+            matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/matches" 
             if not Path(matches_dirpath).exists():
                 continue
 
             reconstruction_json_fpath = (
-                f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_09_21/reconstruction/sfm_data.json"
+                f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/reconstruction/sfm_data.json"
             )
 
             # whether we want consider failed reconstructions
