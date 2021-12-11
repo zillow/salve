@@ -104,9 +104,7 @@ def save_empty_json_results_file(results_dir: str, building_id: str, floor_id: s
     ]
     floor_results_dir = f"ZinD_{building_id}_{floor_id}__2021_12_02/result_summaries"
     os.makedirs(f"{floor_results_dir}", exist_ok=True)
-    json_save_fpath = (
-        f"{results_dir}/{building_id}_{floor_id}.json"
-    )
+    json_save_fpath = f"{results_dir}/{building_id}_{floor_id}.json"
     json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
 
 
@@ -140,9 +138,11 @@ def measure_algorithm_localization_accuracy(
     elif algorithm_name == "openmvg":
         reconstructions = openmvg_utils.load_openmvg_reconstructions_from_json(building_id, floor_id)
         if len(reconstructions[0].pose_dict) == 0:
-            #import pdb; pdb.set_trace()
-            #save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
-            return FloorReconstructionReport(avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0)
+            # import pdb; pdb.set_trace()
+            # save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
+            return FloorReconstructionReport(
+                avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0
+            )
 
     if len(reconstructions) == 0:
         return FloorReconstructionReport(avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0)
@@ -166,7 +166,7 @@ def measure_algorithm_localization_accuracy(
             opensfm_T_zillow = get_opensfm_T_zillow()
             algocam_T_zillowcam = opensfm_T_zillow
             # world frame <-> opensfm camera <-> zillow camera
-        
+
         elif algorithm_name == "openmvg":
             openmvg_T_zillowcam = get_openmvg_T_zillow()
             algocam_T_zillowcam = openmvg_T_zillowcam
@@ -436,9 +436,11 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
         if building_id not in DATASET_SPLITS["test"]:
             continue
 
-        import pdb; pdb.set_trace()
+        import pdb
+
+        pdb.set_trace()
         for floor_id in floor_ids:
-            matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/matches" 
+            matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/matches"
             if not Path(matches_dirpath).exists():
                 continue
 
@@ -448,10 +450,12 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
 
             # whether we want consider failed reconstructions
             if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
-                #import pdb; pdb.set_trace()
-                #save_empty_json_results_file(openmvg_results_dir, building_id, floor_id)
+                # import pdb; pdb.set_trace()
+                # save_empty_json_results_file(openmvg_results_dir, building_id, floor_id)
                 reconstruction_reports.append(
-                    FloorReconstructionReport(avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0)
+                    FloorReconstructionReport(
+                        avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0
+                    )
                 )
 
             if not Path(reconstruction_json_fpath).exists():
@@ -596,7 +600,9 @@ def main(args: Namespace) -> None:
         )
 
     elif args.baseline_name == "openmvg":
-        eval_openmvg_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir, openmvg_results_dir=args.results_dir, save_dir=args.save_dir)
+        eval_openmvg_errors_all_tours(
+            raw_dataset_dir=args.raw_dataset_dir, openmvg_results_dir=args.results_dir, save_dir=args.save_dir
+        )
 
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
@@ -621,7 +627,7 @@ if __name__ == "__main__":
         "--results_dir",
         type=str,
         default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
-        #default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
+        # default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
         # default="/Users/johnlam/Downloads/OpenSfM/data/OpenSfM_results_2021_12_02_BridgeAPI"
         help="Location where OpenSfM or OpenMVG raw JSON results are saved (default would be to ~/OpenSfM/data or OPENMVG_DEMO_ROOT).",
     )
