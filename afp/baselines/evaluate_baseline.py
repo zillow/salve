@@ -342,14 +342,14 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
     print("Mean num_dropped_cameras_per_floor: ", np.mean(num_dropped_cameras_per_floor))
     print("Median num_dropped_cameras_per_floor: ", np.median(num_dropped_cameras_per_floor))
 
-    print("Mean percent_reconstructed_cameras_per_floor: ", np.mean(percent_reconstructed_cameras_per_floor))
-    print("Median percent_reconstructed_cameras_per_floor: ", np.median(percent_reconstructed_cameras_per_floor))
+    print(f"Mean percent_reconstructed_cameras_per_floor: {np.mean(percent_reconstructed_cameras_per_floor)}")
+    print(f"Median percent_reconstructed_cameras_per_floor: {np.median(percent_reconstructed_cameras_per_floor)}")
 
-    print("Mean of Avg. Rot. Error within CC: ", np.nanmean(avg_rot_err_per_cc))
-    print("Median of Avg. Rot. Error within CC: ", np.nanmedian(avg_rot_err_per_cc))
+    print(f"Mean of Avg. Rot. Error within CC: {np.nanmean(avg_rot_err_per_cc)}")
+    print(f"Median of Avg. Rot. Error within CC: {np.nanmedian(avg_rot_err_per_cc)}")
 
-    print("Mean of Avg. Trans. Error within CC: ", np.nanmean(avg_trans_err_per_cc))
-    print("Median of Avg. Trans. Error within CC: ", np.nanmedian(avg_trans_err_per_cc))
+    print(f"Mean of Avg. Trans. Error within CC: {np.nanmean(avg_trans_err_per_cc):.3f}")
+    print(f"Median of Avg. Trans. Error within CC: {np.nanmedian(avg_trans_err_per_cc):.3f}")
 
     plt.hist(avg_trans_err_per_cc, bins=np.linspace(0, 5, 20))
     plt.ylabel("Counts")
