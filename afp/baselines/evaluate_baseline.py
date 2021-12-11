@@ -616,9 +616,14 @@ def main(args: Namespace) -> None:
 
     # reconstruction_json_fpath
 
-    eval_opensfm_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir, opensfm_results_dir=args.opensfm_results_dir)
+    if args.baseline_name == "opensfm":
+        if not Path(args.opensfm_results_dir).exists():
+            raise RuntimeError("Results directory does not exist.")
+        eval_opensfm_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir, opensfm_results_dir=args.opensfm_results_dir)
 
-    #eval_openmvg_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir)
+    elif args.baseline_name == "openmvg":
+        eval_openmvg_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir)
+    
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
     # analyze_algorithm_results(json_results_dir, args.raw_dataset_dir)
@@ -629,16 +634,22 @@ def main(args: Namespace) -> None:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--raw_dataset_dir",
+        type=str,
+        default="/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05",
+        help="Path to where ZInD dataset is stored (directly downloaded from Bridge API)."
+    )
     parser.add_argument("--opensfm_results_dir",
         type=str,
         default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
         #default="/Users/johnlam/Downloads/OpenSfM/data/OpenSfM_results_2021_12_02_BridgeAPI"
         help="Location where OpenSfM results are saved (default would be to ~/OpenSfM/data)."
     )
-    parser.add_argument("--raw_dataset_dir",
+    parser.add_argument("--baseline_name",
         type=str,
-        default="/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05",
-        help="Path to where ZInD dataset is stored (directly downloaded from Bridge API)."
+        choices=["opensfm", "openmvg"],
+        required=True,
+        help="Name of SfM library/algorithm to evaluate"
     )
     args = parser.parse_args()
-    main(raw_dataset_dir=args.raw_dataset_dir)
+    main(args)
