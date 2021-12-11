@@ -6,8 +6,10 @@ Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
 (not true -- close -- but rotation also plays a role in it.)
 """
 
+import argparse
 import glob
 import os
+from argparse import Namespace
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -22,6 +24,7 @@ import afp.baselines.openmvg as openmvg_utils
 import afp.common.floor_reconstruction_report as floor_reconstruction_report
 import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_partition as zind_partition
+import afp.utils.ransac as ransac
 import afp.visualization.utils as vis_utils
 from afp.baselines.openmvg import OPENMVG_DEMO_ROOT
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
@@ -174,7 +177,7 @@ def measure_algorithm_localization_accuracy(
         # vis_utils.plot_3d_poses(aTi_list_gt, bTi_list_est)
 
         # align it to the 2d pose graph using Sim(3)
-        aligned_bTi_list_est, _ = geometry_comparisons.align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
+        aligned_bTi_list_est, _ = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
         # vis_utils.plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
 
@@ -188,7 +191,7 @@ def measure_algorithm_localization_accuracy(
             reconstruction.points.shape[0],
         )
 
-        viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_11_09_largest"
+        viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_12_11_largest"
         # viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_11_09_largest/{building_id}_{floor_id}"
         os.makedirs(viz_save_dir, exist_ok=True)
         plot_save_fpath = f"{viz_save_dir}/{algorithm_name}_reconstruction_{r}.jpg"
@@ -211,7 +214,7 @@ def measure_algorithm_localization_accuracy(
         }
         floor_results_dicts.append(floor_results_dict)
 
-    summary_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results_2021_11_09"
+    summary_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_results_2021_12_11"
     os.makedirs(summary_save_dir, exist_ok=True)
     json_save_fpath = f"{summary_save_dir}/{building_id}_{floor_id}.json"
     json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
@@ -484,12 +487,15 @@ def eval_openmvg_errors_all_tours() -> None:
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
 
-def eval_opensfm_errors_all_tours() -> None:
-    """Evaluate the OpenSfM output files from every tour against ZinD ground truth."""
-    OPENSFM_REPO_ROOT = "/Users/johnlam/Downloads/OpenSfM"
-    # reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
+def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str) -> None:
+    """Evaluate the OpenSfM output files from every tour against ZinD ground truth. JSON summaries are saved to disk.
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
+    Args:
+        raw_dataset_dir Path to where ZInD dataset is stored (directly downloaded from Bridge API).
+        opensfm_results_dir: Location where OpenSfM results are saved.
+    """
+
+    # reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
 
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
@@ -501,14 +507,7 @@ def eval_opensfm_errors_all_tours() -> None:
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
-        try:
-            new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(building_id))])
-        except Exception as e:
-            print(f"Exception for Building {building_id}: ", e)
-            continue
-
-        new_building_id = new_building_ids[0]
-        if new_building_id not in DATASET_SPLITS["test"]:
+        if building_id not in DATASET_SPLITS["test"]:
             continue
 
         for floor_id in floor_ids:
@@ -524,9 +523,9 @@ def eval_opensfm_errors_all_tours() -> None:
             # if counter > 500:
             #     continue
 
-            print(f"On New Building {new_building_id} Old Building {building_id}, {floor_id}")
+            print(f"On Building {building_id}, {floor_id}")
 
-            FLOOR_OPENSFM_DATADIR = f"{OPENSFM_REPO_ROOT}/data/ZinD_{building_id}_{floor_id}__2021_09_13"
+            FLOOR_OPENSFM_DATADIR = f"{opensfm_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02_BridgeAPI"
             reconstruction_json_fpath = f"{FLOOR_OPENSFM_DATADIR}/reconstruction.json"
 
             # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
@@ -599,9 +598,8 @@ def visualize_side_by_side() -> None:
         plt.show()
 
 
-def main() -> None:
+def main(args: Namespace) -> None:
     """ """
-    raw_dataset_dir = "/Users/johnlam/Downloads/complete_07_10_new"
 
     """
     # for OpenSFM -- analyze error results dumped to JSON files.
@@ -618,15 +616,29 @@ def main() -> None:
 
     # reconstruction_json_fpath
 
-    # eval_opensfm_errors_all_tours()
+    eval_opensfm_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir, opensfm_results_dir=args.opensfm_results_dir)
 
-    eval_openmvg_errors_all_tours()
+    #eval_openmvg_errors_all_tours(raw_dataset_dir=args.raw_dataset_dir)
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
-    # analyze_algorithm_results(json_results_dir, raw_dataset_dir)
+    # analyze_algorithm_results(json_results_dir, args.raw_dataset_dir)
 
     # visualize_side_by_side()
 
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--opensfm_results_dir",
+        type=str,
+        default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
+        #default="/Users/johnlam/Downloads/OpenSfM/data/OpenSfM_results_2021_12_02_BridgeAPI"
+        help="Location where OpenSfM results are saved (default would be to ~/OpenSfM/data)."
+    )
+    parser.add_argument("--raw_dataset_dir",
+        type=str,
+        default="/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05",
+        help="Path to where ZInD dataset is stored (directly downloaded from Bridge API)."
+    )
+    args = parser.parse_args()
+    main(raw_dataset_dir=args.raw_dataset_dir)
