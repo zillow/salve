@@ -247,14 +247,14 @@ def test_count_panos_on_floor() -> None:
     assert num_floor1_panos == 13
 
 
-def analyze_algorithm_results(json_results_dir: str, raw_dataset_dir: str) -> None:
+def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> None:
     """Analyze the accuracy of global pose estimation (camera localization) from a third-party SfM algorithm.
 
     Analzes the average completeness of the recovered poses, and global pose estimation precision.
 
     Args:
-        json_results_dir:
-        raw_dataset_dir
+        raw_dataset_dir: path to ZinD dataset.
+        json_results_dir: directory where per-floor JSON result summaries are stored.
     """
     num_ccs_per_floor = []
     # stats below are aggregated over all CCs, independent of which floor or building they came from.
@@ -558,7 +558,9 @@ def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str
 
 
 def visualize_side_by_side() -> None:
-    """ """
+    """
+    Visualize SALVe results side-by-side with OpenSfM and OpenMVG results.
+    """
     import imageio
 
     openmvg_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_viz_2021_11_09_largest"
@@ -567,19 +569,17 @@ def visualize_side_by_side() -> None:
 
     for openmvg_fpath in glob.glob(f"{openmvg_dir}/*.jpg"):
 
-        old_building_floor_id = Path(openmvg_fpath).stem
-        k = old_building_floor_id.find("_floor")
-        old_building_id = old_building_floor_id[:k]
-        floor_id = old_building_floor_id[k + 1 :]
+        building_floor_id = Path(openmvg_fpath).stem
+        k = building_floor_id.find("_floor")
+        building_id = building_floor_id[:k]
+        floor_id = building_floor_id[k + 1 :]
 
-        new_building_ids = zind_partition.map_old_zind_ids_to_new_ids(old_ids=[str(int(old_building_id))])
-        new_building_id = new_building_ids[0]
-        if new_building_id not in DATASET_SPLITS["test"]:
+        if building_id not in DATASET_SPLITS["test"]:
             continue
 
-        print(f"On Test ID {new_building_id}")
-        opensfm_fpath = f"{opensfm_dir}/{old_building_id}_{floor_id}.jpg"
-        afp_fpath = f"{afp_dir}/{new_building_id}_{floor_id}.jpg"
+        print(f"On Test ID {building_id}")
+        opensfm_fpath = f"{opensfm_dir}/{building_id}_{floor_id}.jpg"
+        afp_fpath = f"{afp_dir}/{building_id}_{floor_id}.jpg"
 
         if not Path(opensfm_fpath).exists():
             print("\tOpenSfM result missing.")
@@ -633,7 +633,8 @@ def main(args: Namespace) -> None:
     
     # then analyze the mean statistics
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
-    # analyze_algorithm_results(json_results_dir, args.raw_dataset_dir)
+    
+    analyze_algorithm_results(raw_dataset_dir=args.raw_dataset_dir, json_results_dir=f"{args.save_dir}/result_summaries")
 
     # visualize_side_by_side()
 
