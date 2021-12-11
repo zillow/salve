@@ -431,14 +431,13 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
     building_ids.sort()
     reconstruction_reports = []
 
-    import pdb; pdb.set_trace()
-
     for building_id in building_ids:
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         if building_id not in DATASET_SPLITS["test"]:
             continue
 
+        import pdb; pdb.set_trace()
         for floor_id in floor_ids:
             matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_09_21/matches"
             if not Path(matches_dirpath).exists():
