@@ -254,3 +254,22 @@ python {SALVE_REPO_DIRPATH}/afp/baselines/opensfm.py
 ```bash
 python {SALVE_REPO_DIRPATH}/afp/baselines/openmvg.py
 ```
+
+Next, evaluate the OpenSfM results:
+```python
+python {SALVE_REPO_DIRPATH}/afp/baselines/evaluate_baseline.py \
+    --algorithm_name opensfm \
+    --raw_dataset_dir {PATH_TO_ZIND} \
+    --opensfm_results_dir {PATH TO WHERE OPENSFM SCRIPT DUMPED RECONSTRUCTION RESULTS} \
+    --save_dir {WHERE TO SAVE VISUALIZATIONS/RESULT SUMMARIES }
+```
+
+and for OpenMVG:
+```python
+python {SALVE_REPO_DIRPATH}/afp/baselines/evaluate_baseline.py \
+    --algorithm_name openmvg \
+    --raw_dataset_dir {PATH_TO_ZIND} \
+    --opensfm_results_dir {PATH TO WHERE OPENMVG SCRIPT DUMPED RECONSTRUCTION RESULTS} \
+    --save_dir {WHERE TO SAVE VISUALIZATIONS/RESULT SUMMARIES }
+```
+
