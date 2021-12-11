@@ -506,7 +506,7 @@ def run_incremental_reconstruction(
             )
 
             report = FloorReconstructionReport(
-                avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0
+                avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0, floorplan_iou=0.0
             )
             reconstruction_reports.append(report)
             continue
