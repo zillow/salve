@@ -25,12 +25,18 @@ import afp.common.floor_reconstruction_report as floor_reconstruction_report
 import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_partition as zind_partition
 import afp.utils.ransac as ransac
-import afp.visualization.utils as vis_utils
 from afp.baselines.openmvg import OPENMVG_DEMO_ROOT
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
 from afp.common.posegraph3d import PoseGraph3d
 from afp.dataset.zind_partition import DATASET_SPLITS
 from afp.utils.logger_utils import get_logger
+
+
+try:
+    import afp.visualization.utils as vis_utils
+except Exception as e:
+    print("Open3D could not be loaded, skipping...")
+    print("Exception: ", e)
 
 
 logger = get_logger()
