@@ -141,11 +141,11 @@ def measure_algorithm_localization_accuracy(
             # import pdb; pdb.set_trace()
             # save_empty_json_results_file(building_id, floor_id, algorithm_name=algorithm_name)
             return FloorReconstructionReport(
-                avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0
+                avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0, floorplan_iou=0.0
             )
 
     if len(reconstructions) == 0:
-        return FloorReconstructionReport(avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0)
+        return FloorReconstructionReport(avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0, floorplan_iou=0.0)
 
     gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
@@ -437,21 +437,25 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
             continue
 
         for floor_id in floor_ids:
+
             matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/matches"
             if not Path(matches_dirpath).exists():
+                # this floor doesn't exist in ZInD, so skip.
                 continue
+
+            print(f"On Building {building_id}, {floor_id}")
 
             reconstruction_json_fpath = (
                 f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/reconstruction/sfm_data.json"
             )
 
-            # whether we want consider failed reconstructions
+            # whether we want consider failed reconstructions (when OpenMVG times out / runs indefinitely)
             if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
                 # import pdb; pdb.set_trace()
                 # save_empty_json_results_file(openmvg_results_dir, building_id, floor_id)
                 reconstruction_reports.append(
                     FloorReconstructionReport(
-                        avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0
+                        avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0, floorplan_iou=0.0
                     )
                 )
 
