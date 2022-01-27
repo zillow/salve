@@ -304,7 +304,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
     parser.add_argument(
-        "--config_name", type=str, required=True, help="File name of config file (not file path!). Should end in .yaml"
+        "--config_name",
+        type=str,
+        required=True,
+        help="File name of config file under afp/configs/* (not file path!). Should end in .yaml",
     )
     opts = parser.parse_args()
 
