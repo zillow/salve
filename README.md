@@ -38,7 +38,7 @@ or for Mac:
 wheels-macos-python@3.8
 ```
 
-Then, make sure you are within the conda environment (`afp-v1`), and install the Python wheel for GTSAM via 
+Then, make sure you are within the conda environment (`afp-v1`), and install the Python wheel for GTSAM via
 ```
 pip install /path/to/wheel/file.whl
 ```
@@ -120,7 +120,7 @@ python scripts/export_alignment_hypotheses.py \
 ```
 Using 20-30 processes is recommended, and even with 30 processes, the generation may take 1-2 hours to complete.
 
-Next, clone the repository: 
+Next, clone the repository:
 ```bash
 git clone https://gitlab.zgtools.net/johnlam/jlambert-auto-floorplan.git
 ```
@@ -136,7 +136,7 @@ git clone https://github.com/sunset1995/HoHoNet.git
 cd HoHoNet
 ```
 
-Now download the HoHoNet model here: 
+Now download the HoHoNet model here:
 ```bash
 ./{SALVE_REPO_DIRPATH}/scripts/download_monodepth_model.sh
 ```
@@ -213,6 +213,12 @@ A directory will be created which contains the config file used for training (ya
  2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml
 ```
 
+## Floor Map Stitching
+
+```
+python stitch_floor_plan.py --output-dir output_folder --path-cluters ../tests/test_data/example_input_stiching/cluster_pred.json --pred-dir ../tests/test_data/example_input_stiching/pano/ --path-gt ../tests/test_data/example_input_stiching/floor_map_gt.json
+```
+
 ## TODOs:
 
 - Maybe use different schema for Madori-V1 files.
@@ -250,7 +256,7 @@ Next, inside the `OpenSfM` directory, now run:
 python {SALVE_REPO_DIRPATH}/afp/baselines/opensfm.py
 ```
 
-**OpenMVG**: 
+**OpenMVG**:
 ```bash
 python {SALVE_REPO_DIRPATH}/afp/baselines/openmvg.py
 ```
@@ -272,4 +278,3 @@ python {SALVE_REPO_DIRPATH}/afp/baselines/evaluate_baseline.py \
     --opensfm_results_dir {PATH TO WHERE OPENMVG SCRIPT DUMPED RECONSTRUCTION RESULTS} \
     --save_dir {WHERE TO SAVE VISUALIZATIONS/RESULT SUMMARIES }
 ```
-
