@@ -17,8 +17,7 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage
-
-from numpy.fft import fft2, ifft2
+import torch
 
 
 def find_keypoint_matches_sift(im1_gray: np.ndarray, im2_gray: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -400,11 +399,27 @@ def align_by_fft_phase_correlation(im0: np.ndarray, im1: np.ndarray):
     cross_power_spectrum = (f0 * f1.conjugate()) / (abs(f0) * abs(f1.conjugate()))
     ir = abs(np.fft.ifft2(cross_power_spectrum))
 
+    # ----- debug -----
+    # response = np.fft.ifft2(f0 * f1)
+    # peak = np.unravel_index(np.argmax(response), response.shape)
+    # peak = np.unravel_index(np.argmax(cross_power_spectrum), cross_power_spectrum.shape)
+    # print("Peak at: ", peak)
+    import pdb; pdb.set_trace()
+    plt.subplot(1,2,1)
+    plt.imshow(ir)
+    plt.subplot(1,2,2)
+    dilated_ir = cv2.dilate(ir * 255, kernel=np.ones((2,2), np.uint8), iterations=20)
+    plt.imshow(dilated_ir)
+    plt.show()
+    # ----- debug -----
+
     # find location of peak, converting 1d index to 2d index (By default, the index is into the flattened array).
     ty, tx = np.unravel_index(np.argmax(ir), (H, W))
     if ty > H // 2:
+        print("Entered here")
         ty -= H
     if tx > W // 2:
+        print("Entered here")
         tx -= W
 
     t = np.array([tx, ty])
@@ -426,8 +441,9 @@ def align_by_fft_phase_correlation(im0: np.ndarray, im1: np.ndarray):
 
     plt.subplot(1, 3, 3)
     plt.title("Aligned Image 1")
-    plt.imshow(im1_aligned)
-
+    # plt.imshow(im1_aligned)
+    blended = blend_images(im0, im1_aligned)
+    plt.imshow(blended)
     plt.show()
 
 
@@ -444,7 +460,22 @@ def phase_correlation_scikit_image(im1: np.ndarray, im2: np.ndarray):
     """
     H, W, C = im1.shape
 
-    shifts, error, phase_diff = skimage.registration.phase_cross_correlation(reference_image=im1, moving_image=im2)
+    # reference_mask = None
+    # moving_mask = None
+
+    reference_mask = im1 != 0
+    moving_mask = im2 != 0
+
+    if reference_mask is not None and moving_mask is not None:
+        import pdb
+
+        pdb.set_trace()
+        shifts = skimage.registration.phase_cross_correlation(
+            reference_image=im1, moving_image=im2, reference_mask=reference_mask, moving_mask=moving_mask
+        )
+    else:
+        shifts, error, phase_diff = skimage.registration.phase_cross_correlation(reference_image=im1, moving_image=im2)
+
     ty, tx, tc = shifts
 
     t = np.array([tx, ty])
@@ -480,10 +511,36 @@ def blend_images(im1: np.ndarray, im2: np.ndarray) -> np.ndarray:
     return mean_img.astype(np.uint8)
 
 
+def cross_correlation(im1: np.ndarray, im2: np.ndarray):
+    """ """
+    H, W, C = im1.shape
+
+    # HWC -> CHW
+    im1 = torch.from_numpy(im1).permute(2, 0, 1).type(torch.float32)
+    im2 = torch.from_numpy(im2).permute(2, 0, 1).type(torch.float32)
+
+    im1 = im1.reshape(1, 3, H, W)
+    weight = im2.reshape(1, 3, H, W)
+
+    padH = 200
+    padW = 200
+
+    response = torch.nn.functional.conv2d(input=im1, weight=weight, padding=(padH, padW))
+
+    response = response.squeeze().numpy()
+
+    #import pdb; pdb.set_trace()
+
+    plt.imshow(response)
+
+    plt.savefig("response.jpg", dpi=500)
+    plt.show()
+
+
 if __name__ == "__main__":
 
-    fpath1 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_03_pano_57.jpg"
-    fpath2 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_07_pano_56.jpg"
+    # fpath1 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_03_pano_57.jpg"
+    # fpath2 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_07_pano_56.jpg"
 
     # fpath1 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/0382/pair_39___opening_2_2_identity_floor_rgb_floor_02_partial_room_07_pano_11.jpg"
     # fpath2 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/0382/pair_39___opening_2_2_identity_floor_rgb_floor_02_partial_room_02_pano_62.jpg"
@@ -497,16 +554,28 @@ if __name__ == "__main__":
     # fpath1 = "/Users/johnlambert/Desktop/im1_crane_mast_bottom_cropped.png"
     # fpath2 = "/Users/johnlambert/Desktop/im2_crane_mast_bottom_cropped.png"
 
+    # img_dir = "/srv/scratch/jlambert30/salve/demo_sandbox"
+    img_dir = "/Users/johnlambert/Desktop"
+
+    fpath1 = f"{img_dir}/im1_floor_pair154.png"
+    fpath2 = f"{img_dir}/im2_floor_pair154.png"
+
     # Read the images to be aligned
     # im1 = cv2.imread(fpath1)
     # im2 = cv2.imread(fpath2)
-    im1 = imageio.imread(fpath1)
-    im2 = imageio.imread(fpath2)
+
+    # removes alpha channel
+    im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
+    im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
+
+    import pdb; pdb.set_trace()
 
     # photometric_alignment(im1, im2)
     # feature_align(im1, im2)
     # rotation_cross_correlation_align(im1, im2)
     # gradient_based_alignment(im1, im2)
 
-    # align_by_fft_phase_correlation(im1, im2)
-    phase_correlation_scikit_image(im1, im2)
+    align_by_fft_phase_correlation(im1, im2)
+    # phase_correlation_scikit_image(im1, im2)
+
+    #cross_correlation(im1, im2)
