@@ -305,10 +305,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
 
-    parser.add_argument("--model_results_dir", type=str, required=True, help="Directory where model results are saved.")
     parser.add_argument(
-        "--config_fpath", type=str, required=True, help="Path to config file. Note: this must be under afp/configs/"
+        "--model_results_dir",
+        type=str,
+        required=True,
+        help="Path to directory where trained model and training logs are saved.",
     )
+    parser.add_argument(
+        "--config_name",
+        type=str,
+        required=True,
+        help="File name of config file under afp/configs/* (not file path!). Should end in .yaml",
+    )
+
     parser.add_argument(
         "--serialization_save_dir",
         type=str,
@@ -328,11 +337,9 @@ if __name__ == "__main__":
 
     # plot_metrics(json_fpath=train_results_fpath)
 
-    config_name = Path(opts.config_fpath).name
-
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the afp module
-        cfg = hydra.compose(config_name=config_name)
+        cfg = hydra.compose(config_name=args.config_name)
         args = instantiate(cfg.TrainingConfig)
 
     # # use single-GPU for inference?
