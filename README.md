@@ -163,7 +163,8 @@ Next, we'll send the pairs of BEV texture maps to the model for scoring. You sho
 
 ```bash
 python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
-    --model_results_dir {} --config_fpath {PATH TO YAML MODEL CONFIG} \
+    --model_results_dir {PATH TO FOLDER CONTAINING TRAINED MODEL}\
+    --config_fpath {PATH TO YAML MODEL CONFIG} \
     --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
 Please note that the YAML config must be the path to a config in `afp/configs/*`.
