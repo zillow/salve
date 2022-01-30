@@ -1,4 +1,3 @@
-
 """
 Shared utilities for model training/testing.
 """
@@ -20,7 +19,7 @@ from afp.training_config import TrainingConfig
 from afp.dataset.zind_data import ZindData
 
 
-#logger = get_logger()
+# logger = get_logger()
 # logger = logging.getLogger(__name__)
 
 
@@ -34,7 +33,7 @@ def cross_entropy_forward(
     x4: Tensor,
     x5: Tensor,
     x6: Tensor,
-    is_match: Tensor
+    is_match: Tensor,
 ) -> Tuple[Tensor, Tensor]:
     """ """
     if split == "train":
@@ -60,7 +59,7 @@ def print_time_remaining(batch_time: AverageMeter, current_iter: int, max_iter: 
     remain_time = remain_iter * batch_time.avg
     t_m, t_s = divmod(remain_time, 60)
     t_h, t_m = divmod(t_m, 60)
-    remain_time = '{:02d}:{:02d}:{:02d}'.format(int(t_h), int(t_m), int(t_s))
+    remain_time = "{:02d}:{:02d}:{:02d}".format(int(t_h), int(t_m), int(t_s))
     logging.info(f"\tRemain {remain_time}")
 
 
@@ -114,22 +113,20 @@ def get_train_transform(args: TrainingConfig) -> Callable:
     # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
     # random crops to prevent memorization
 
-    transform_list = [
-        Resize(size=(args.resize_h, args.resize_w))
-    ]
+    transform_list = [Resize(size=(args.resize_h, args.resize_w))]
 
     if args.apply_photometric_augmentation:
-        transform_list += [
-            transform.PhotometricShift(jitter_types = ["brightness","contrast","saturation","hue"])
-        ]
+        transform_list += [transform.PhotometricShift(jitter_types=["brightness", "contrast", "saturation", "hue"])]
 
-    transform_list.extend([
-        Crop(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
-        RandomHorizontalFlip(),
-        RandomVerticalFlip(),
-        ToTensor(),
-        Normalize(mean=mean, std=std)
-    ])
+    transform_list.extend(
+        [
+            Crop(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
+            RandomHorizontalFlip(),
+            RandomVerticalFlip(),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+        ]
+    )
     logging.info("Train transform_list: " + str(transform_list))
     return Compose(transform_list)
 
@@ -163,7 +160,7 @@ def get_val_test_transform(args: TrainingConfig) -> Callable:
         Resize((args.resize_h, args.resize_w)),
         Crop(size=(args.train_h, args.train_w), crop_type="center", padding=mean),
         ToTensor(),
-        Normalize(mean=mean, std=std)
+        Normalize(mean=mean, std=std),
     ]
 
     return Compose(transform_list)
@@ -179,17 +176,13 @@ def get_img_transform_list(args: TrainingConfig, split: str):
 
     return split_transform
 
+
 def get_optimizer(args: TrainingConfig, model: nn.Module) -> torch.optim.Optimizer:
     """ """
     if args.optimizer_algo == "adam":
-        optimizer = torch.optim.Adam(
-            model.parameters(),
-            lr=args.base_lr,
-            weight_decay=args.weight_decay
-        )
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.base_lr, weight_decay=args.weight_decay)
     else:
         raise RuntimeError("Unknown optimizer")
-
 
     return optimizer
 
@@ -198,13 +191,9 @@ def get_dataloader(args: TrainingConfig, split: str) -> torch.utils.data.DataLoa
     """ """
     data_transform = get_img_transform_list(args, split=split)
 
-    split_data = ZindData(
-        split=split,
-        transform=data_transform,
-        args=args
-    )
+    split_data = ZindData(split=split, transform=data_transform, args=args)
 
-    drop_last = True if split=="train" else False
+    drop_last = True if split == "train" else False
     sampler = None
     shuffle = True if split == "train" else False
 
@@ -215,7 +204,7 @@ def get_dataloader(args: TrainingConfig, split: str) -> torch.utils.data.DataLoa
         num_workers=args.workers,
         pin_memory=True,
         drop_last=drop_last,
-        sampler=sampler
+        sampler=sampler,
     )
     return split_loader
 
@@ -235,12 +224,12 @@ def get_model(args: TrainingConfig) -> nn.Module:
     return model
 
 
-def unnormalize_img(input: Tensor, mean: Tuple[float,float,float], std: Tuple[float,float,float]) -> None:
+def unnormalize_img(input: Tensor, mean: Tuple[float, float, float], std: Tuple[float, float, float]) -> None:
     """Undo the normalization operation on a normalized tensor.
 
     Note: we pass in by reference a Pytorch tensor.
     """
-    for t,m,s in zip(input, mean, std):
+    for t, m, s in zip(input, mean, std):
         t.mul_(s).add_(m)
 
 
@@ -249,12 +238,12 @@ def load_model_checkpoint(ckpt_fpath: str, model: nn.Module, args: TrainingConfi
     if not Path(ckpt_fpath).exists():
         raise RuntimeError(f"=> no checkpoint found at {ckpt_fpath}")
 
-    #Alternatively, get device from print(next(model.parameters()).device)
+    # Alternatively, get device from print(next(model.parameters()).device)
 
-    #map_location = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # map_location = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"=> loading checkpoint '{ckpt_fpath}'")
-    checkpoint = torch.load(ckpt_fpath)#, map_location=map_location)
-    model.load_state_dict(checkpoint['state_dict'], strict=True) #False)
+    checkpoint = torch.load(ckpt_fpath)  # , map_location=map_location)
+    model.load_state_dict(checkpoint["state_dict"], strict=True)  # False)
     print(f"=> loaded checkpoint '{ckpt_fpath}'")
 
     return model

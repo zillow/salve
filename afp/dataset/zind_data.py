@@ -192,8 +192,11 @@ def get_available_building_ids(dataset_root: str) -> List[str]:
 def make_dataset(
     split: str, data_root: str, args: TrainingConfig
 ) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
-    """
-    Note: is_match = 1 means True.
+    """Gather a list of all examples within a dataset split.
+
+    Returns:
+        data_list: list of tuples, where each tuple represents file paths + GT labels for a single example.
+            Note: is_match = 1 means True.
     """
     if not Path(data_root).exists():
         raise RuntimeError("Dataset root directory does not exist on this machine. Exitting...")
@@ -275,7 +278,8 @@ class ZindData(Dataset):
     def __getitem__(
         self, index: int
     ) -> Union[TensorTwoTupleWithPaths, TensorFourTupleWithPaths, TensorSixTupleWithPaths]:
-        """
+        """Fetch info associated w/ a single example, either from the train, val, or test set.
+
         Note: is_match = 1 means True.
         """
         if self.modalities == ["layout"]:
