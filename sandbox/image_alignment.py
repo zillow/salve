@@ -8,6 +8,10 @@ http://xanthippi.ceid.upatras.gr/people/evangelidis/george_files/PAMI_2008.pdf
 Other option: RASL, https://github.com/welch/rasl
                     https://github.com/kokerf/imageAlign
                     https://github.com/arashabedin/Image-Alignment
+                    https://github.com/YoshiRi/ImRegPOC/tree/master/python_package
+
+An FFT-based technique for translation, rotation, and scale-invariant image registration
+B.S. Reddy; B.N. Chatterji
 """
 
 from typing import Tuple
@@ -368,7 +372,96 @@ def rotation_cross_correlation_align(im1: np.ndarray, im2: np.ndarray):
     return rotated, rotationMatrix
 
 
-def align_by_fft_phase_correlation(im0: np.ndarray, im1: np.ndarray):
+def test_align_by_fft_phase_correlation_zind_bev() -> None:
+    """ """
+    img_dir = "/Users/johnlambert/Desktop"
+
+    fpath1 = f"{img_dir}/im1_floor_pair154.png"
+    fpath2 = f"{img_dir}/im2_floor_pair154.png"
+
+    # removes alpha channel
+    im0 = cv2.imread(fpath1)[:, :, ::-1].copy()
+    im1 = cv2.imread(fpath2)[:, :, ::-1].copy()
+
+    i1Hi0 = align_by_fft_phase_correlation(im0, im1)
+    plot_warped_triplet(im0, im1, i1Hi0)
+
+    i1Hi0_expected = np.array(
+        [
+            [  1.,   0., 326.],
+            [  0.,   1., -98.]
+        ])
+    # to move from 0->1, shift pixels right and up
+    assert np.allclose(i1Hi0, i1Hi0_expected)
+
+def test_align_by_fft_phase_correlation_crane_mast() -> None:
+    """ """
+    fpath1 = "/Users/johnlambert/Desktop/im1_crane_mast_bottom_cropped.png"
+    fpath2 = "/Users/johnlambert/Desktop/im2_crane_mast_bottom_cropped.png"
+
+    # removes alpha channel
+    im0 = cv2.imread(fpath1)[:, :, ::-1].copy()
+    im1 = cv2.imread(fpath2)[:, :, ::-1].copy()
+
+    i1Hi0 = align_by_fft_phase_correlation(im0, im1)
+    plot_warped_triplet(im0, im1, i1Hi0)
+    i1Hi0_expected = np.array(
+        [
+            [  1.,   0., -1.],
+            [  0.,   1., 260.]
+        ])
+    # to move from 0->1, shift pixels down.
+    assert np.allclose(i1Hi0, i1Hi0_expected)
+
+def test_align_by_fft_phase_correlation_lund_door() -> None:
+    """ """
+    fpath1 = "/Users/johnlambert/Desktop/im1_door_cropped.png"
+    fpath2 = "/Users/johnlambert/Desktop/im2_door_cropped.png"
+
+    # removes alpha channel
+    im0 = cv2.imread(fpath1)[:, :, ::-1].copy()
+    im1 = cv2.imread(fpath2)[:, :, ::-1].copy()
+
+    i1Hi0 = align_by_fft_phase_correlation(im0, im1)
+    import pdb; pdb.set_trace()
+    plot_warped_triplet(im0, im1, i1Hi0)
+
+    i1Hi0_expected = np.array(
+        [
+            [  1.,   0., -168.],
+            [  0.,   1., 0.]
+        ])
+    # to move from 0->1, shift pixels left.
+    assert np.allclose(i1Hi0, i1Hi0_expected)
+
+
+def plot_warped_triplet(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray) -> None:
+    """ """
+    im0 = np.pad(im0, pad_width=((500,500),(500,500),(0,0)))
+    im1 = np.pad(im1, pad_width=((500,500),(500,500),(0,0)))
+
+    H, W, _ = im1.shape
+
+    im1_aligned = cv2.warpAffine(src=im1, M=i1Hi0, dsize=(W, H), flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP)
+
+    # Show final output
+    plt.subplot(1, 3, 1)
+    plt.title("Image 0")
+    plt.imshow(im0)
+
+    plt.subplot(1, 3, 2)
+    plt.title("Image 1")
+    plt.imshow(im1)
+    
+    plt.subplot(1, 3, 3)
+    plt.title("Aligned Image 1")
+    # plt.imshow(im1_aligned)
+    blended = blend_images(im0, im1_aligned)
+    plt.imshow(blended)
+    plt.show()
+
+
+def align_by_fft_phase_correlation(im0_rgb: np.ndarray, im1_rgb: np.ndarray):
     """FFT phase correlation. Translation only.
 
     The Fourier transform of a convolution of two signals is the pointwise product of their Fourier transforms.
@@ -384,13 +477,18 @@ def align_by_fft_phase_correlation(im0: np.ndarray, im1: np.ndarray):
                 https://github.com/YoshiRi/ImRegPOC
                 https://cgcooke.github.io/Blog/computer%20vision/nuketown84/2020/12/19/FFT-Phase-Correlation.html
     """
-    H, W, C = im0.shape
+    im0_padded = np.pad(im0_rgb, pad_width=((1000,2000),(1000,2000),(0,0)))
+    im1_padded = np.pad(im1_rgb, pad_width=((1000,2000),(1000,2000),(0,0)))
+
+
 
     # Convert images to grayscale
-    im0 = cv2.cvtColor(im0, cv2.COLOR_BGR2GRAY)
-    im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
+    im0 = cv2.cvtColor(im0_padded, cv2.COLOR_BGR2GRAY)
+    im1 = cv2.cvtColor(im1_padded, cv2.COLOR_BGR2GRAY)
 
     H, W = im0.shape
+
+    # import pdb; pdb.set_trace()
 
     f0 = np.fft.fft2(im0)
     f1 = np.fft.fft2(im1)
@@ -399,22 +497,24 @@ def align_by_fft_phase_correlation(im0: np.ndarray, im1: np.ndarray):
     cross_power_spectrum = (f0 * f1.conjugate()) / (abs(f0) * abs(f1.conjugate()))
     ir = abs(np.fft.ifft2(cross_power_spectrum))
 
-    # ----- debug -----
-    # response = np.fft.ifft2(f0 * f1)
-    # peak = np.unravel_index(np.argmax(response), response.shape)
-    # peak = np.unravel_index(np.argmax(cross_power_spectrum), cross_power_spectrum.shape)
-    # print("Peak at: ", peak)
-    import pdb; pdb.set_trace()
-    plt.subplot(1,2,1)
-    plt.imshow(ir)
-    plt.subplot(1,2,2)
-    dilated_ir = cv2.dilate(ir * 255, kernel=np.ones((2,2), np.uint8), iterations=20)
-    plt.imshow(dilated_ir)
-    plt.show()
-    # ----- debug -----
-
     # find location of peak, converting 1d index to 2d index (By default, the index is into the flattened array).
     ty, tx = np.unravel_index(np.argmax(ir), (H, W))
+
+    # # ----- debug -----
+    # # response = np.fft.ifft2(f0 * f1)
+    # # peak = np.unravel_index(np.argmax(response), response.shape)
+    # # peak = np.unravel_index(np.argmax(cross_power_spectrum), cross_power_spectrum.shape)
+    # # print("Peak at: ", peak)
+    # #import pdb; pdb.set_trace()
+    # plt.subplot(1,2,1)
+    # plt.imshow(ir)
+    # plt.subplot(1,2,2)
+    # dilated_ir = cv2.dilate(ir * 255, kernel=np.ones((2,2), np.uint8), iterations=3)
+    # print(f"Maximum at (ty,tx)=({ty},{tx})")
+    # plt.imshow(dilated_ir)
+    # plt.show()
+    # ----- debug -----
+
     if ty > H // 2:
         print("Entered here")
         ty -= H
@@ -422,29 +522,12 @@ def align_by_fft_phase_correlation(im0: np.ndarray, im1: np.ndarray):
         print("Entered here")
         tx -= W
 
-    t = np.array([tx, ty])
+    t = -1 * np.array([tx, ty])
+    print("Translation after adjustment: i0Hi1= ", t)
 
-    warp_matrix = np.eye(2, 3)
-    warp_matrix[:, 2] = -t
-    im1_aligned = cv2.warpAffine(src=im1, M=warp_matrix, dsize=(W, H), flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP)
-
-    print("Translation: ", t)
-
-    # Show final output
-    plt.subplot(1, 3, 1)
-    plt.title("Image 0")
-    plt.imshow(im0)
-
-    plt.subplot(1, 3, 2)
-    plt.title("Image 1")
-    plt.imshow(im1)
-
-    plt.subplot(1, 3, 3)
-    plt.title("Aligned Image 1")
-    # plt.imshow(im1_aligned)
-    blended = blend_images(im0, im1_aligned)
-    plt.imshow(blended)
-    plt.show()
+    i1Hi0 = np.eye(2, 3)
+    i1Hi0[:, 2] = t
+    return i1Hi0
 
 
 def phase_correlation_scikit_image(im1: np.ndarray, im2: np.ndarray):
@@ -467,9 +550,6 @@ def phase_correlation_scikit_image(im1: np.ndarray, im2: np.ndarray):
     moving_mask = im2 != 0
 
     if reference_mask is not None and moving_mask is not None:
-        import pdb
-
-        pdb.set_trace()
         shifts = skimage.registration.phase_cross_correlation(
             reference_image=im1, moving_image=im2, reference_mask=reference_mask, moving_mask=moving_mask
         )
@@ -568,14 +648,19 @@ if __name__ == "__main__":
     im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
     im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
+
 
     # photometric_alignment(im1, im2)
     # feature_align(im1, im2)
     # rotation_cross_correlation_align(im1, im2)
     # gradient_based_alignment(im1, im2)
 
-    align_by_fft_phase_correlation(im1, im2)
+    # align_by_fft_phase_correlation(im1, im2)
     # phase_correlation_scikit_image(im1, im2)
 
     #cross_correlation(im1, im2)
+
+    test_align_by_fft_phase_correlation_zind_bev()
+    test_align_by_fft_phase_correlation_crane_mast()
+    test_align_by_fft_phase_correlation_lund_door()
