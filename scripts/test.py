@@ -339,7 +339,7 @@ if __name__ == "__main__":
 
     with hydra.initialize_config_module(config_module="afp.configs"):
         # config is relative to the afp module
-        cfg = hydra.compose(config_name=args.config_name)
+        cfg = hydra.compose(config_name=opts.config_name)
         args = instantiate(cfg.TrainingConfig)
 
     # # use single-GPU for inference?
