@@ -478,7 +478,8 @@ def align_by_fft_rotated_phase_correlation(im0_rgb: np.ndarray, im1_rgb: np.ndar
 
     #angles = [0,90,180,270] # every 90 deg
     #angles = np.linspace(0,350,36) # every 10 deg, don't repeat last coord.
-    angles = range(0,360) # every 1 deg
+    angles = np.linspace(0,355,72) # every 5 deg
+    #angles = range(0,360) # every 1 deg
     scores = np.zeros(len(angles))
 
     for i, theta_deg in enumerate(angles):
@@ -950,6 +951,30 @@ def test_log_polar_fft() -> None:
         log_polar_fft(im1, im2)
 
 
+def test_rotated_fft() -> None:
+    """ """
+    from types import SimpleNamespace
+    import afp.dataset.zind_data as zind_data
+
+    args_dict = {"modalities": ["floor_rgb_texture"]}
+    data_root = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    data_list = zind_data.make_dataset(split="test", data_root=data_root, args=SimpleNamespace(**args_dict))
+
+    from collections import defaultdict
+    score_dict = defaultdict(list)
+
+    for i, (fpath1, fpath2, label_idx) in enumerate(data_list):
+
+        print(f"On {i}/{len(data_list)}")
+        print(f"Current label: {label_idx}")
+
+        im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
+        im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
+
+        i1Hi0, _ = align_by_fft_rotated_phase_correlation(im1, im2)
+        plot_warped_triplet(im1, im2, i1Hi0, title="Using best alignment")
+
+
 if __name__ == "__main__":
 
     fpath1 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_03_pano_57.jpg"
@@ -998,7 +1023,7 @@ if __name__ == "__main__":
     # test_align_by_fft_phase_correlation_crane_mast()
     # test_align_by_fft_phase_correlation_lund_door()
 
-    test_align_by_fft_rotated_phase_correlation_zind_bev()
+    # test_align_by_fft_rotated_phase_correlation_zind_bev()
 
     # i1Hi0, _ = align_by_fft_rotated_phase_correlation(im1, im2)
     # plot_warped_triplet(im1, im2, i1Hi0, title="Using best alignment")
@@ -1009,3 +1034,4 @@ if __name__ == "__main__":
 
     #test_log_polar_fft()
 
+    test_rotated_fft()
