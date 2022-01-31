@@ -216,8 +216,11 @@ A directory will be created which contains the config file used for training (ya
 
 ## Floor Map Stitching
 
-```
-python stitch_floor_plan.py --output-dir output_folder --path-cluters ../tests/test_data/example_input_stiching/cluster_pred.json --pred-dir ../tests/test_data/example_input_stiching/pano/ --path-gt ../tests/test_data/example_input_stiching/floor_map_gt.json
+```bash
+python scripts/stitch_floor_plan.py --output-dir output_folder \
+    --path-clusters ../tests/test_data/example_input_stiching/cluster_pred.json \
+    --pred-dir ../tests/test_data/example_input_stiching/pano/ \
+    --path-gt ../tests/test_data/example_input_stiching/floor_map_gt.json
 ```
 
 ## TODOs:
