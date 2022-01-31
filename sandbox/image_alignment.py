@@ -860,9 +860,8 @@ def tune_thresholds():
 
         im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
         im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
-        #score = verify_cross_correlation_pytorch(im1, im2)
-
-        score = verify_phase_correlation_numpy(im1, im2)
+        score = verify_cross_correlation_pytorch(im1, im2)
+        # score = verify_phase_correlation_numpy(im1, im2)
 
         score_dict[label_idx].append(score)
 
@@ -875,6 +874,80 @@ def tune_thresholds():
     plt.hist(score_dict[1], bins=20) #np.linspace(0,6000,100))
 
     plt.show()
+
+
+def log_polar_fft(im0_rgb: np.ndarray, im1_rgb: np.ndarray):
+    """
+
+    Extremely inaccurate!
+
+    https://github.com/sthoduka/imreg_fmt
+    https://github.com/matejak/imreg_dft
+    https://imreg-dft.readthedocs.io/en/latest/quickstart.html#quickstart
+
+    """
+    import imreg_dft as ird
+
+    im0 = cv2.cvtColor(im0_rgb, cv2.COLOR_BGR2GRAY)
+    im1 = cv2.cvtColor(im1_rgb, cv2.COLOR_BGR2GRAY)
+
+    im0 = np.pad(im0, pad_width=((500,500),(500,500)))
+    im1 = np.pad(im1, pad_width=((500,500),(500,500)))
+
+    # im1 is the subject image, and the transformed subject image is returned
+    # im0 is the template image.
+    # constraint center is 1, and softness is zero (it is not soft at all)
+    result = ird.similarity(im0, im1, numiter=3, constraints={"scale": [1.0,0]})#, bgval=0.0)
+
+    # contains params for import scipy.ndimage.interpolation as ndii
+
+    plt.figure(figsize=(20,6))
+
+    plt.subplot(1,3,1)
+    plt.imshow(im0_rgb)
+
+    plt.subplot(1,3,2)
+    plt.imshow(im1_rgb)
+
+    plt.subplot(1,3,3)
+    plt.imshow(result["timg"][500:-500, 500:-500])
+    plt.show()
+    
+    # H, W = im0.shape
+    # theta_deg = result["angle"]
+
+    # i0Hi1 = np.eye(3)
+    # i0Hi1[:2] = cv2.getRotationMatrix2D(center=(W / 2, H / 2), angle=theta_deg, scale=1)
+    # i0Hi1[:2,2] = result["tvec"]
+
+    # im1_aligned = cv2.warpAffine(src=im1, M=i0Hi1[:2,:3], dsize=(W, H), flags=cv2.INTER_LINEAR)
+
+    # plt.subplot(1,4,4)
+    # plt.imshow(im1_aligned)
+    # plt.show()
+
+
+def test_log_polar_fft() -> None:
+    """ """
+    from types import SimpleNamespace
+    import afp.dataset.zind_data as zind_data
+
+    args_dict = {"modalities": ["floor_rgb_texture"]}
+    data_root = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    data_list = zind_data.make_dataset(split="test", data_root=data_root, args=SimpleNamespace(**args_dict))
+
+    from collections import defaultdict
+    score_dict = defaultdict(list)
+
+    for i, (fpath1, fpath2, label_idx) in enumerate(data_list):
+
+        print(f"On {i}/{len(data_list)}")
+        print(f"Current label: {label_idx}")
+
+        im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
+        im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
+
+        log_polar_fft(im1, im2)
 
 
 if __name__ == "__main__":
@@ -925,10 +998,14 @@ if __name__ == "__main__":
     # test_align_by_fft_phase_correlation_crane_mast()
     # test_align_by_fft_phase_correlation_lund_door()
 
-    #test_align_by_fft_rotated_phase_correlation_zind_bev()
+    test_align_by_fft_rotated_phase_correlation_zind_bev()
 
     # i1Hi0, _ = align_by_fft_rotated_phase_correlation(im1, im2)
     # plot_warped_triplet(im1, im2, i1Hi0, title="Using best alignment")
 
 
-    tune_thresholds()
+    #tune_thresholds()
+    #log_polar_fft()
+
+    #test_log_polar_fft()
+
