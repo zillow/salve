@@ -14,6 +14,7 @@ An FFT-based technique for translation, rotation, and scale-invariant image regi
 B.S. Reddy; B.N. Chatterji
 """
 
+import copy
 from typing import Tuple
 
 import cv2
@@ -448,8 +449,8 @@ def test_align_by_fft_rotated_phase_correlation_zind_bev() -> None:
     im0 = cv2.imread(fpath1)[:, :, ::-1].copy()
     im1 = cv2.imread(fpath2)[:, :, ::-1].copy()
 
-    i1Hi0, _ = align_by_fft_rotated_phase_correlation(im0, im1)
-    plot_warped_triplet(im0, im1, i1Hi0)
+    i1Hi0, _ = align_by_fft_rotated_phase_correlation(im0.copy(), im1.copy())
+    plot_warped_triplet(im0, im1, i1Hi0, title="Using best alignment")
 
     i1Hi0_expected = np.array(
         [
@@ -481,20 +482,21 @@ def align_by_fft_rotated_phase_correlation(im0_rgb: np.ndarray, im1_rgb: np.ndar
         # import pdb; pdb.set_trace()
 
         H, W = im0_rgb.shape[:2]
+        # See https://docs.opencv.org/3.4/da/d54/group__imgproc__transform.html#gafbbc470ce83812914a70abfb604f4326
         i1Hi0_R = cv2.getRotationMatrix2D(center=(W / 2, H / 2), angle=theta_deg, scale=1)
 
-        im0_rgb_rotated = apply_homography(im0_rgb, i1Hi0=i1Hi0_R)
+        im0_rgb_rotated = apply_homography( copy.deepcopy(im0_rgb), i1Hi0=i1Hi0_R)
         # import pdb; pdb.set_trace()
 
-        print(f"Shape: {im0_rgb_rotated.shape}")
+        #print(f"Shape: {im0_rgb_rotated.shape}")
         # plt.imshow(im0_rgb_rotated); plt.show()
 
         #import pdb; pdb.set_trace()
-        i1Hi0_fft = align_by_fft_phase_correlation(im0_rgb_rotated, im1_rgb)
+        i1Hi0_fft = align_by_fft_phase_correlation(im0_rgb_rotated, copy.deepcopy(im1_rgb))
 
         # compute the confidence score.
-        score = compute_mse_error(im0_rgb_rotated, im1_rgb, i1Hi0_fft)
-        print(f"Error @ {theta_deg}: {score:.2f}")
+        score = compute_mse_error(im0_rgb_rotated, copy.deepcopy(im1_rgb), i1Hi0_fft)
+        #print(f"Error @ {theta_deg}: {score:.2f}")
         scores[i] = score
 
         i1Hi0_R_3x3 = np.eye(3)
@@ -503,13 +505,13 @@ def align_by_fft_rotated_phase_correlation(im0_rgb: np.ndarray, im1_rgb: np.ndar
         i1Hi0_fft_3x3[:2,:] = i1Hi0_fft
         i1Hi0 = i1Hi0_fft_3x3 @ i1Hi0_R_3x3
 
-        plot_warped_triplet(im0_rgb, im1_rgb, i1Hi0)
+        plot_warped_triplet( copy.deepcopy(im0_rgb), copy.deepcopy(im1_rgb), i1Hi0, title=f"Showing alignment for theta={theta_deg} deg.")
 
         if score < best_score:
             best_score = score
             best_i1Hi0 = i1Hi0
 
-    plt.scatter(range(len(errors)), errors, 10, color="r", marker='.')
+    plt.scatter(range(len(scores)), scores, 10, color="r", marker='.')
     plt.xlabel("Rotation angle (Degrees)")
     plt.ylabel("Score")
     plt.show()
@@ -571,36 +573,40 @@ def compute_mse_error(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray) -> fl
     masked_y = im1.astype(np.float32) * joint_mask
 
     error_map = np.absolute(masked_x - masked_y)
-    score = error_map.mean()
+    avg_px_deviation = error_map.mean()
 
-    confidence = (255 - score) / 255
+    confidence = (255 - avg_px_deviation) / 255
 
     # measure amount of sparsity, higher is better
     mask_fill_percent = joint_mask.mean()
+    score = mask_fill_percent
 
     print(f"Deviation Confidence: {confidence:.2f}, Mask fill percent: {mask_fill_percent:.2f}")
 
     plt.figure(figsize=(20,6))
-    plt.subplot(1,5,1)
+    plt.subplot(1,6,1)
     plt.imshow(im0_aligned)
 
-    plt.subplot(1,5,2)
+    plt.subplot(1,6,2)
     plt.imshow(im0_aligned_mask)
 
-    plt.subplot(1,5,3)
+    plt.subplot(1,6,3)
     plt.imshow(im1)
 
-    plt.subplot(1,5,4)
+    plt.subplot(1,6,4)
     plt.imshow(im1_mask)
 
-    plt.subplot(1,5,5)
+    plt.subplot(1,6,5)
+    plt.imshow(joint_mask)
+
+    plt.subplot(1,6,6)
     plt.imshow(error_map.astype(np.uint8))
 
     plt.show()
     return score
 
 
-def plot_warped_triplet(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray) -> None:
+def plot_warped_triplet(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray, title: str = "") -> None:
     """Render a 3-tuple of images (warped image 0, image 1, and blended version of the first two).
 
     Args:
@@ -619,6 +625,7 @@ def plot_warped_triplet(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray) -> 
     im0_aligned = cv2.warpAffine(src=im0, M=i1Hi0[:2,:3], dsize=(W, H), flags=cv2.INTER_LINEAR)
 
     plt.figure(figsize=(20,6))
+    plt.suptitle(title)
     # Show final output
     plt.subplot(1, 3, 1)
     plt.title("Image 0")
