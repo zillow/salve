@@ -23,6 +23,8 @@ import numpy as np
 import skimage
 import torch
 
+import afp.utils.rotation_utils as rotation_utils
+
 
 def find_keypoint_matches_sift(im1_gray: np.ndarray, im2_gray: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -435,19 +437,192 @@ def test_align_by_fft_phase_correlation_lund_door() -> None:
     assert np.allclose(i1Hi0, i1Hi0_expected)
 
 
-def plot_warped_triplet(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray) -> None:
+def test_align_by_fft_rotated_phase_correlation_zind_bev() -> None:
     """ """
+    img_dir = "/Users/johnlambert/Desktop"
+
+    fpath1 = f"{img_dir}/im1_floor_pair154.png"
+    fpath2 = f"{img_dir}/im2_floor_pair154.png"
+
+    # removes alpha channel
+    im0 = cv2.imread(fpath1)[:, :, ::-1].copy()
+    im1 = cv2.imread(fpath2)[:, :, ::-1].copy()
+
+    i1Hi0, _ = align_by_fft_rotated_phase_correlation(im0, im1)
+    plot_warped_triplet(im0, im1, i1Hi0)
+
+    i1Hi0_expected = np.array(
+        [
+            [  1.,   0., 326.],
+            [  0.,   1., -98.]
+        ])
+    # to move from 0->1, shift pixels right and up
+    assert np.allclose(i1Hi0, i1Hi0_expected)
+
+
+def align_by_fft_rotated_phase_correlation(im0_rgb: np.ndarray, im1_rgb: np.ndarray):
+    """
+    Args:
+        im0_rgb: (H,W,3)
+        im1_rgb: (H,W,3)
+
+    Returns:
+        best_i1Hi0: most likely hypothesis
+        best_error: MSE between aligned images; lower is better.
+    """
+    best_score = float("nan")
+    best_i1Hi0 = np.eye(3,3)
+
+    angles = [0,90,180,270] # range(0,360)
+    scores = np.zeros(len(angles))
+
+    for i, theta_deg in enumerate(angles):
+
+        # import pdb; pdb.set_trace()
+
+        H, W = im0_rgb.shape[:2]
+        i1Hi0_R = cv2.getRotationMatrix2D(center=(W / 2, H / 2), angle=theta_deg, scale=1)
+
+        im0_rgb_rotated = apply_homography(im0_rgb, i1Hi0=i1Hi0_R)
+        # import pdb; pdb.set_trace()
+
+        print(f"Shape: {im0_rgb_rotated.shape}")
+        # plt.imshow(im0_rgb_rotated); plt.show()
+
+        #import pdb; pdb.set_trace()
+        i1Hi0_fft = align_by_fft_phase_correlation(im0_rgb_rotated, im1_rgb)
+
+        # compute the confidence score.
+        score = compute_mse_error(im0_rgb_rotated, im1_rgb, i1Hi0_fft)
+        print(f"Error @ {theta_deg}: {score:.2f}")
+        scores[i] = score
+
+        i1Hi0_R_3x3 = np.eye(3)
+        i1Hi0_R_3x3[:2,:] = i1Hi0_R
+        i1Hi0_fft_3x3 = np.eye(3)
+        i1Hi0_fft_3x3[:2,:] = i1Hi0_fft
+        i1Hi0 = i1Hi0_fft_3x3 @ i1Hi0_R_3x3
+
+        plot_warped_triplet(im0_rgb, im1_rgb, i1Hi0)
+
+        if score < best_score:
+            best_score = score
+            best_i1Hi0 = i1Hi0
+
+    plt.scatter(range(len(errors)), errors, 10, color="r", marker='.')
+    plt.xlabel("Rotation angle (Degrees)")
+    plt.ylabel("Score")
+    plt.show()
+
+    # import pdb; pdb.set_trace()
+
+    return best_i1Hi0, best_score
+
+
+def apply_homography(im0: np.ndarray, i1Hi0: np.ndarray) -> np.ndarray:
+    """
+    Args:
+        im0: array of shape (H,W,3)
+        theta_deg: rotation angle to apply to coordinates of im0.
+
+    Returns:
+        im0_rotated: now aligned to frame 1.
+    """
+    #i1Ri0 = rotation_utils.rotmat2d(theta_deg=theta_deg)
+
+    # i1Hi0 = np.eye(2,3)
+    # i1Hi0[:2,:2] = i1Ri0
+
+    H, W = im0.shape[:2]
+
+    # align im0 to im1
+    # See documentation: https://docs.opencv.org/3.4/da/d54/group__imgproc__transform.html#ga0203d9ee5fcd28d40dbc4a1ea4451983
+    # src -> dst mapping
+    im0_rotated = cv2.warpAffine(src=im0, M=i1Hi0, dsize=(W, H), flags=cv2.INTER_LINEAR)
+    return im0_rotated
+
+
+def compute_mse_error(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray) -> float:
+    """
+    Args:
+        im0: (H,W,3)
+        im1: (H,W,3)
+
+    Returns:
+        score: MSE error. Lower is better.
+
+    Maximum error is 
+
+    """
+    H, W, _ = im0.shape
+
+    # align im0 to im1
+    # See documentation: https://docs.opencv.org/3.4/da/d54/group__imgproc__transform.html#ga0203d9ee5fcd28d40dbc4a1ea4451983
+    # src -> dst mapping
+    im0_aligned = cv2.warpAffine(src=im0, M=i1Hi0, dsize=(W, H), flags=cv2.INTER_LINEAR)
+
+    im0_aligned_mask = (im0_aligned[:,:,0] != 0).reshape(H,W,1).astype(np.float32)
+    im1_mask = (im1[:,:,0] != 0).reshape(H,W,1).astype(np.float32)
+
+    joint_mask = (im0_aligned_mask * im1_mask).astype(np.float32)
+
+    # TODO: decide if we should apply a mask first?
+    masked_x = im0_aligned.astype(np.float32) * joint_mask
+    masked_y = im1.astype(np.float32) * joint_mask
+
+    error_map = np.absolute(masked_x - masked_y)
+    score = error_map.mean()
+
+    confidence = (255 - score) / 255
+
+    # measure amount of sparsity, higher is better
+    mask_fill_percent = joint_mask.mean()
+
+    print(f"Deviation Confidence: {confidence:.2f}, Mask fill percent: {mask_fill_percent:.2f}")
+
+    plt.figure(figsize=(20,6))
+    plt.subplot(1,5,1)
+    plt.imshow(im0_aligned)
+
+    plt.subplot(1,5,2)
+    plt.imshow(im0_aligned_mask)
+
+    plt.subplot(1,5,3)
+    plt.imshow(im1)
+
+    plt.subplot(1,5,4)
+    plt.imshow(im1_mask)
+
+    plt.subplot(1,5,5)
+    plt.imshow(error_map.astype(np.uint8))
+
+    plt.show()
+    return score
+
+
+def plot_warped_triplet(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray) -> None:
+    """Render a 3-tuple of images (warped image 0, image 1, and blended version of the first two).
+
+    Args:
+        im0: array of shape (H,W,3)
+        im1: array of shape (H,W,3)
+        i1Hi0: array of shape (3,3)
+
+    """
     im0 = np.pad(im0, pad_width=((500,500),(500,500),(0,0)))
     im1 = np.pad(im1, pad_width=((500,500),(500,500),(0,0)))
 
     H, W, _ = im1.shape
 
-    im1_aligned = cv2.warpAffine(src=im1, M=i1Hi0, dsize=(W, H), flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP)
+    # See documentation: https://docs.opencv.org/3.4/da/d54/group__imgproc__transform.html#ga0203d9ee5fcd28d40dbc4a1ea4451983
+    # src -> dst mapping
+    im0_aligned = cv2.warpAffine(src=im0, M=i1Hi0[:2,:3], dsize=(W, H), flags=cv2.INTER_LINEAR)
 
+    plt.figure(figsize=(20,6))
     # Show final output
     plt.subplot(1, 3, 1)
     plt.title("Image 0")
-    plt.imshow(im0)
+    plt.imshow(im0_aligned)
 
     plt.subplot(1, 3, 2)
     plt.title("Image 1")
@@ -456,7 +631,7 @@ def plot_warped_triplet(im0: np.ndarray, im1: np.ndarray, i1Hi0: np.ndarray) -> 
     plt.subplot(1, 3, 3)
     plt.title("Aligned Image 1")
     # plt.imshow(im1_aligned)
-    blended = blend_images(im0, im1_aligned)
+    blended = blend_images(im0_aligned, im1)
     plt.imshow(blended)
     plt.show()
 
@@ -479,8 +654,6 @@ def align_by_fft_phase_correlation(im0_rgb: np.ndarray, im1_rgb: np.ndarray):
     """
     im0_padded = np.pad(im0_rgb, pad_width=((1000,2000),(1000,2000),(0,0)))
     im1_padded = np.pad(im1_rgb, pad_width=((1000,2000),(1000,2000),(0,0)))
-
-
 
     # Convert images to grayscale
     im0 = cv2.cvtColor(im0_padded, cv2.COLOR_BGR2GRAY)
@@ -619,8 +792,8 @@ def cross_correlation(im1: np.ndarray, im2: np.ndarray):
 
 if __name__ == "__main__":
 
-    # fpath1 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_03_pano_57.jpg"
-    # fpath2 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_07_pano_56.jpg"
+    fpath1 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_03_pano_57.jpg"
+    fpath2 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0382/pair_154___door_1_0_rotated_ceiling_rgb_floor_03_partial_room_07_pano_56.jpg"
 
     # fpath1 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/0382/pair_39___opening_2_2_identity_floor_rgb_floor_02_partial_room_07_pano_11.jpg"
     # fpath2 = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/0382/pair_39___opening_2_2_identity_floor_rgb_floor_02_partial_room_02_pano_62.jpg"
@@ -637,8 +810,8 @@ if __name__ == "__main__":
     # img_dir = "/srv/scratch/jlambert30/salve/demo_sandbox"
     img_dir = "/Users/johnlambert/Desktop"
 
-    fpath1 = f"{img_dir}/im1_floor_pair154.png"
-    fpath2 = f"{img_dir}/im2_floor_pair154.png"
+    # fpath1 = f"{img_dir}/im1_floor_pair154.png"
+    # fpath2 = f"{img_dir}/im2_floor_pair154.png"
 
     # Read the images to be aligned
     # im1 = cv2.imread(fpath1)
@@ -661,6 +834,10 @@ if __name__ == "__main__":
 
     #cross_correlation(im1, im2)
 
-    test_align_by_fft_phase_correlation_zind_bev()
-    test_align_by_fft_phase_correlation_crane_mast()
-    test_align_by_fft_phase_correlation_lund_door()
+    # test_align_by_fft_phase_correlation_zind_bev()
+    # test_align_by_fft_phase_correlation_crane_mast()
+    # test_align_by_fft_phase_correlation_lund_door()
+
+    #test_align_by_fft_rotated_phase_correlation_zind_bev()
+
+    align_by_fft_rotated_phase_correlation(im1, im2)
