@@ -858,28 +858,30 @@ def tune_thresholds():
     from collections import defaultdict
     score_dict = defaultdict(list)
 
-    thresh = 1500
+    #thresh = 1500
 
-    y_pred = []
-    y_true = []
-    for i, (fpath1, fpath2, label_idx) in enumerate(data_list):
+    for thresh in [500,1000,1500,2000,2500,3000]:
 
-        print(f"On {i}/{len(data_list)}")
+        y_pred = []
+        y_true = []
+        for i, (fpath1, fpath2, label_idx) in enumerate(data_list):
 
-        im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
-        im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
-        score = verify_cross_correlation_pytorch(im1, im2)
-        # score = verify_phase_correlation_numpy(im1, im2)
+            if i % 1000 == 0:
+                print(f"On {i}/{len(data_list)}")
 
-        score_dict[label_idx].append(score)
+            im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
+            im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
+            score = verify_cross_correlation_pytorch(im1, im2)
+            # score = verify_phase_correlation_numpy(im1, im2)
 
-        y_true.append(label_idx)
-        yhat = int(score > thresh)
-        y_pred.append(yhat)
+            score_dict[label_idx].append(score)
 
-    import pdb; pdb.set_trace()
-    prec, rec, _ =  pr_utils.compute_precision_recall(np.array(y_true), np.array(y_pred))
-    print(f"Prec = {prec:.2f}, Rec={rec:.2f} @ thresh={thresh}")
+            y_true.append(label_idx)
+            yhat = int(score > thresh)
+            y_pred.append(yhat)
+
+        prec, rec, _ =  pr_utils.compute_precision_recall(np.array(y_true), np.array(y_pred))
+        print(f"Prec = {prec:.2f}, Rec={rec:.2f} @ thresh={thresh}")
 
     plt.subplot(1,2,1)
     plt.title("Mismatch")

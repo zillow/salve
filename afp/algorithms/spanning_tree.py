@@ -3,7 +3,6 @@ Utilities for greedily assembling a spanning tree, by shortest paths to an origi
 a single connected component.
 """
 
-import copy
 import math
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -16,7 +15,6 @@ import scipy
 from argoverse.utils.sim2 import Sim2
 
 import afp.utils.rotation_utils as rotation_utils
-from afp.common.edge_classification import EdgeClassification
 from afp.common.posegraph2d import REDTEXT, ENDCOLOR
 
 logger = logger_utils.get_logger()

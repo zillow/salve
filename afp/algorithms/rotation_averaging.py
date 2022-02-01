@@ -2,12 +2,10 @@
 Wrapper around GTSAM's Shonan rotation averaging.
 """
 
-import copy
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import gtsam
 import gtsfm.utils.logger as logger_utils
-import matplotlib.pyplot as plt
 import numpy as np
 from gtsam import (
     BetweenFactorPose2,
