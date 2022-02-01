@@ -16,13 +16,15 @@ except Exception as e:
 def infer_depth(args):
 
     update_config(config, args)
-    device = 'cuda' if config.cuda else 'cpu'
+    device = "cuda" if config.cuda else "cpu"
 
     # Parse input paths
     rgb_lst = glob.glob(args.inp)
     if len(rgb_lst) == 0:
-        print('No images found')
-        import sys; sys.exit()
+        print("No images found")
+        import sys
+
+        sys.exit()
 
     # Init model
     model_file = importlib.import_module(config.model.file)
@@ -35,39 +37,39 @@ def infer_depth(args):
     with torch.no_grad():
         for path in tqdm(rgb_lst):
             rgb = imread(path)
-            x = torch.from_numpy(rgb).permute(2,0,1)[None].float() / 255.
+            x = torch.from_numpy(rgb).permute(2, 0, 1)[None].float() / 255.0
             if x.shape[2:] != config.dataset.common_kwargs.hw:
-                x = torch.nn.functional.interpolate(x, config.dataset.common_kwargs.hw, mode='area')
+                x = torch.nn.functional.interpolate(x, config.dataset.common_kwargs.hw, mode="area")
             x = x.to(device)
             pred_depth = net.infer(x)
             if not torch.is_tensor(pred_depth):
-                pred_depth = pred_depth.pop('depth')
+                pred_depth = pred_depth.pop("depth")
 
             fname = os.path.splitext(os.path.split(path)[1])[0]
             imwrite(
-                os.path.join(args.out, f'{fname}.depth.png'),
-                pred_depth.mul(1000).squeeze().cpu().numpy().astype(np.uint16)
+                os.path.join(args.out, f"{fname}.depth.png"),
+                pred_depth.mul(1000).squeeze().cpu().numpy().astype(np.uint16),
             )
 
             visualize = False
             if visualize:
                 import matplotlib.pyplot as plt
-                plt.imshow( pred_depth.mul(1000).squeeze().cpu().numpy().astype(np.uint16) )
+
+                plt.imshow(pred_depth.mul(1000).squeeze().cpu().numpy().astype(np.uint16))
                 plt.show()
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # Parse args & config
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--cfg', required=True)
-    parser.add_argument('--pth', required=True)
-    parser.add_argument('--out', required=True)
-    parser.add_argument('--inp', required=True)
-    parser.add_argument('opts',
-                        help='Modify config options using the command-line',
-                        default=None, nargs=argparse.REMAINDER)
+    parser.add_argument("--cfg", required=True)
+    parser.add_argument("--pth", required=True)
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--inp", required=True)
+    parser.add_argument(
+        "opts", help="Modify config options using the command-line", default=None, nargs=argparse.REMAINDER
+    )
     args = parser.parse_args()
-    
+
     infer_depth(args)
