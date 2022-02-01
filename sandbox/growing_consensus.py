@@ -1,5 +1,9 @@
 
+"""Growing Consensus Algorithm.
 
+Reference:
+https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Son_Solving_Small-Piece_Jigsaw_CVPR_2016_paper.pdf
+"""
 
 def main() -> None:
     """ """
@@ -14,8 +18,6 @@ def main() -> None:
         two_view_reports_dict,
         gt_floor_pose_graph,
     )
-
-
 
 
 def find_max_degree_vertex(i2Ti1_dict: Dict[Tuple[int, int], Any]) -> int:
@@ -39,7 +41,6 @@ def find_max_degree_vertex(i2Ti1_dict: Dict[Tuple[int, int], Any]) -> int:
     return seed_node
 
 
-
 def growing_consensus(
     building_id: str,
     floor_id: str,
@@ -51,9 +52,6 @@ def growing_consensus(
     gt_floor_pose_graph: PoseGraph2d,
 ) -> None:
     """Implements a variant of the Growing Consensus" algorithm described below:
-
-    Reference:
-    https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Son_Solving_Small-Piece_Jigsaw_CVPR_2016_paper.pdf
 
     Args:
     """

@@ -21,6 +21,13 @@ def render_building(
     """For a single building, render each floor.
 
     floor_map_json has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'
+
+    Args:
+        building_id: unique ID of ZInD building.
+        pano_dir:
+        json_annot_fpath: path to GT annotation file (zind_data.json) for this building.
+        viz_save_dir: directory where visualizations will be saved to.
+        raw_dataset_dir: dirpath to downloaded ZInD dataset.
     """
     floor_map_json = json_utils.read_json_file(json_annot_fpath)
 
@@ -69,7 +76,7 @@ def render_building(
         #     for floor_id, zfm_poly_list in zfm_dict.items():
 
 
-def export_pano_visualizations(raw_dataset_dir: str, viz_save_dir: str) -> None:
+def export_floorplan_visualizations(raw_dataset_dir: str, viz_save_dir: str) -> None:
     """For all buildings, render each floor."""
 
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
@@ -106,4 +113,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    export_pano_visualizations(args.raw_dataset_dir, args.viz_save_dir)
+    export_floorplan_visualizations(args.raw_dataset_dir, args.viz_save_dir)

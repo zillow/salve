@@ -109,6 +109,7 @@ RMX_MADORI_V1_PREDICTIONS_DIRPATH = {}
 ```
 First, set `RMX_MADORI_V1_PREDICTIONS_DIRPATH` inside `afp/dataset/hnet_prediction_loader.py`.
 Next, set `PANO_MAPPING_TSV_FPATH` also inside `afp/dataset/hnet_prediction_loader.py`.
+Next, set `RAW_DATASET_DIR` in `afp/algorithms/pose2_slam.py` and in `afp/utils/axis_alignment_utils.py` and in `afp/utils/graph_rendering_utils.py`.
 
 Run SALVe model inference by first generating alignment hypotheses:
 ```bash
@@ -216,8 +217,11 @@ A directory will be created which contains the config file used for training (ya
 
 ## Floor Map Stitching
 
-```
-python stitch_floor_plan.py --output-dir output_folder --path-cluters ../tests/test_data/example_input_stiching/cluster_pred.json --pred-dir ../tests/test_data/example_input_stiching/pano/ --path-gt ../tests/test_data/example_input_stiching/floor_map_gt.json
+```bash
+python scripts/stitch_floor_plan.py --output-dir output_folder \
+    --path-clusters ../tests/test_data/example_input_stiching/cluster_pred.json \
+    --pred-dir ../tests/test_data/example_input_stiching/pano/ \
+    --path-gt ../tests/test_data/example_input_stiching/floor_map_gt.json
 ```
 
 ## TODOs:

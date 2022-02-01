@@ -36,7 +36,8 @@ RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/srv/scratch/jlambert30/salve/zind2_john"
 # Path to CSV w/ info about prod-->ZInD remapping.
 # PANO_MAPPING_TSV_FPATH = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
 # PANO_MAPPING_TSV_FPATH = "/home/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-PANO_MAPPING_TSV_FPATH = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+# PANO_MAPPING_TSV_FPATH = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
+PANO_MAPPING_TSV_FPATH = "/srv/scratch/jlambert30/salve/Yuguang_ZinD_prod_mapping_exported_panos.csv"
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent

@@ -32,6 +32,10 @@ from afp.common.edgewdopair import EdgeWDOPair
 from afp.common.floor_reconstruction_report import FloorReconstructionReport
 
 
+#RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
+
+
 # Create noise models
 PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))  # np.array([1e-6, 1e-6, 1e-8])
 ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
@@ -127,22 +131,24 @@ def planar_slam(
     optimize_poses_only: bool,
     use_robust: bool = True,
 ) -> Tuple[List[Optional[Pose2]], Dict[int, Point2]]:
-    """
+    """Execute SLAM in the 2d plane.
 
-    See https://github.com/borglab/gtsam/blob/develop/python/gtsam/examples/PlanarSLAMExample.py
-
-    using odometry measurements and bearing-range (laser) measurements
+    Uses odometry measurements and possibly also bearing-range measurements.
+    Based on:
+    https://github.com/borglab/gtsam/blob/develop/python/gtsam/examples/PlanarSLAMExample.py
 
     Args:
-        wTi_list_init:
+        wTi_list_init: initialization for global poses.
         i2Ti1_measurement: odometry measurements
-        landmark_positions_init
-        landmark_measurements
+        landmark_positions_init:
+        landmark_measurements:
         optimize_poses_only: whether to ignore landmarks and perform pose-graph optimization only.
         use_robust: whether to use robust optimization (Huber loss).
 
     Returns:
-        wTi_list:
+        wTi_list: list of length (N,) representing optimized global poses.
+        landmark_positions: mapping from landmark ID to 2d position.
+            Note: returns an empty dict if landmarks were not used (i.e. for PGO-only case).
     """
     # measurement_noise = gtsam.noiseModel.Isotropic.Sigma(IMG_MEASUREMENT_DIM, MEASUREMENT_NOISE_SIGMA)
 
@@ -265,9 +271,8 @@ def execute_planar_slam(
         report: reconstruction report.
     """
     if (not optimize_poses_only) or use_axis_alignment:
-        raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+            query_building_id=building_id, raw_dataset_dir=RAW_DATASET_DIR
         )
         pano_dict_inferred = floor_pose_graphs[floor_id].nodes
 
@@ -337,9 +342,12 @@ def execute_planar_slam(
         # plt.show()
 
     wTi_list, landmark_positions = planar_slam(
-        wTi_list_init, i2Ti1_measurements, landmark_positions_init, landmark_measurements, optimize_poses_only
+        wTi_list_init=wTi_list_init,
+        i2Ti1_measurements=i2Ti1_measurements,
+        landmark_positions_init=landmark_positions_init,
+        landmark_measurements=landmark_measurements,
+        optimize_poses_only=optimize_poses_only
     )
-
     wSi_list = [None] * len(wTi_list)
     for i, wTi in enumerate(wTi_list):
         if wTi is None:
