@@ -221,14 +221,14 @@ def measure_avg_relative_pose_errors(
     relative pose error on each edge (w.r.t. GT poses).
 
     Args:
-        hypotheses_save_root:
+        hypotheses_save_root: Path to where alignment hypotheses are saved on disk.
         building_id: unique ID for ZinD building.
         floor_id: unique ID for floor of a ZinD building.
         verbose:
 
     Returns:
-        mean_rot_err:
-        mean_trans_err:
+        mean_rot_err: average rotation error on each relative pose prediction.
+        mean_trans_err: average translation error on each relative pose prediction.
     """
     rot_errs = []
     trans_errs = []
@@ -320,27 +320,6 @@ def cycles_SE2_spanning_tree(
 
     print()
     print()
-
-
-def find_max_degree_vertex(i2Ti1_dict: Dict[Tuple[int, int], Any]) -> int:
-    """Find the node inside of a graph G=(V,E) with highest degree.
-
-    Args:
-        i2Ti1_dict: edges E of a graph G=(V,E)
-
-    Returns:
-        seed_node: integer id of
-    """
-    # find the seed (vertex with highest degree)
-    adj_list = cycle_utils.create_adjacency_list(i2Ti1_dict)
-    seed_node = -1
-    max_neighbors = 0
-    for v, neighbors in adj_list.items():
-        if len(neighbors) > max_neighbors:
-            seed_node = v
-            max_neighbors = len(neighbors)
-
-    return seed_node
 
 
 def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
