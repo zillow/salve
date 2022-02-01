@@ -157,6 +157,8 @@ def align_pairs_by_vanishing_angle(
 
     for (i1, i2), i2Si1 in i2Si1_dict.items():
         edge_wdo_pair = per_edge_wdo_dict[(i1, i2)]
+        # move to rotated i2's coordinate frame (i2r)
+        # p_i2r = i2r_S_i1 * p_i1
         i2rSi1 = align_pair_measurement_by_vanishing_angle(i1, i2, i2Si1, edge_wdo_pair, pano_dict_inferred, visualize)
         if i2rSi1 is None:
             # requested correction was too large.

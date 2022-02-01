@@ -524,7 +524,7 @@ def align_by_fft_rotated_phase_correlation(im0_rgb: np.ndarray, im1_rgb: np.ndar
         duration = end - start
         print(f"Validating a single angle took {duration:.2f} sec")
 
-    plt.scatter(range(len(scores)), scores, 10, color="r", marker='.')
+    plt.scatter(angles, scores, 10, color="r", marker='.')
     plt.xlabel("Rotation angle (Degrees)")
     plt.ylabel("Score")
     plt.show()
@@ -967,6 +967,9 @@ def test_rotated_fft() -> None:
 
         print(f"On {i}/{len(data_list)}")
         print(f"Current label: {label_idx}")
+
+        if label_idx == 1:
+            continue
 
         im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
         im2 = cv2.imread(fpath2)[:, :, ::-1].copy()

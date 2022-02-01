@@ -66,6 +66,8 @@ def get_conf_thresholded_edges(
         confidence_threshold: minimum confidence to treat a model's prediction as a positive.
         building_id: unique ID for ZinD building.
         floor_id: unique ID for floor of a ZinD building.
+        gt_floor_pose_graph: ground truth pose graph for this particular building floor, to allow
+            computation of per-edge errors w.r.t. GT.
 
     Returns:
         i2Si1_dict: Similarity(2) for each edge.
@@ -372,9 +374,10 @@ def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
                         incorrect_Sim2 = Sim2.from_json(incorrect_Sim2_fpath)
 
                         if np.isclose(correct_Sim2.theta_deg, incorrect_Sim2.theta_deg, atol=0.1):
-                            print(
-                                f"{building_id} {floor_id}: Correct {correct_Sim2.theta_deg:.1f} vs {incorrect_Sim2.theta_deg:.1f}, Correct {np.round(correct_Sim2.translation,2)} vs {np.round(incorrect_Sim2.translation,2)}"
-                            )
+                            print_str = f"{building_id} {floor_id}: Correct {correct_Sim2.theta_deg:.1f}"
+                            print_str += f" vs {incorrect_Sim2.theta_deg:.1f}, Correct {np.round(correct_Sim2.translation,2)}"
+                            print_str += f" vs {np.round(incorrect_Sim2.translation,2)}"
+                            print(print_str)
 
                     print()
                     print()
@@ -415,6 +418,10 @@ def run_incremental_reconstruction(
         hypotheses_save_root: path to directory where alignment hypotheses are saved as JSON files.
         serialized_preds_json_dir: path to directory where model predictions (per edge) have been serialized as JSON.
         raw_dataset_dir: path to directory where the full ZinD dataset is stored (in raw form as downloaded from Bridge API).
+        method: Global pose aggregation method (e.g. `pgo`, `spanning_tree`, etc.)
+        confidence_threshold: Minimum required SALVe network confidence to accept a prediction.
+        use_axis_alignment:
+        allowed_wdo_types: types of W/D/O objects to use for localization (only these edge types will be inserted into the graph).
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
@@ -440,7 +447,14 @@ def run_incremental_reconstruction(
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
 
-        # continue
+        is_demo = (building_id == "0564" and floor_id == "floor_01") or \
+                  (building_id == "0519" and floor_id == "floor_01") or \
+                  (building_id == "1214" and floor_id == "floor_01") or \
+                  (building_id == "0308" and floor_id == "floor_02") or \
+                  (building_id == "0438" and floor_id == "floor_01") or \
+                  (building_id == "0715" and floor_id == "floor_01")
+        if not is_demo:
+            continue
 
         visualize_confidence_histograms = False
         if visualize_confidence_histograms:
@@ -584,7 +598,8 @@ def run_incremental_reconstruction(
 
         elif method == "filtered_spanning_tree":
             # filtered by cycle consistency.
-            i2Si1_dict_consistent, report = build_filtered_spanning_tree(
+            import sandbox.filtered_spanning_tree as filtered_spanning_tree
+            i2Si1_dict_consistent, report = filtered_spanning_tree.build_filtered_spanning_tree(
                 building_id,
                 floor_id,
                 i2Si1_dict,
@@ -648,11 +663,11 @@ def run_incremental_reconstruction(
 
 
 def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -> None:
-    """
+    """Summarize PDFs and CDFs of per-floor connected component distributions into a single PDF and CDF.
 
     Args:
-        pdfs:
-        cdfs:
+        pdfs: probability distribution function for each building floor.
+        cdfs: cumulative distribution function for each building floor.
     """
     max_num_ccs = max([len(pdf) for pdf in pdfs])
 
