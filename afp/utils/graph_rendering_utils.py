@@ -2,6 +2,7 @@
 Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph.
 """
 
+import os
 from typing import Dict, List, Tuple
 
 import matplotlib.pyplot as plt
@@ -74,6 +75,7 @@ def draw_multigraph(
     input_floor_pose_graph: PoseGraph2d,
     confidence_threshold: float = 0.5,
     raw_dataset_dir: str = DEFAULT_RAW_DATASET_DIR,
+    save_dir: str = "./"
 ) -> None:
     """Draw the topology of a pose graph, with colored nodes and colored edges (allowed edges are conf.-thresholded).
 
@@ -85,6 +87,7 @@ def draw_multigraph(
         input_floor_pose_graph: poses where graph nodes will be plotted.
         confidence_threshold: minimum required predicted confidence by model to plot an edge.
         raw_dataset_dir: path to where ZInD has been downloaded on disk, from Bridge API.
+        save_dir: experiment directory, which will be parent directory for visualizations subdir.
     """
 
     edges = []
@@ -160,8 +163,8 @@ def draw_multigraph(
     plt.axis("equal")
     # plt.show()
     plt.tight_layout()
-    save_dir = f"thresholded_multigraphs_conf{confidence_threshold}"
-    os.makedirs(save_dir, exist_ok=True)
-    save_fpath = f"{save_dir}/multigraph_{building_id}_{floor_id}.pdf"
+    multigraph_save_dir = os.path.join(save_dir, f"thresholded_multigraphs_conf{confidence_threshold}")
+    os.makedirs(multigraph_save_dir, exist_ok=True)
+    save_fpath = os.path.join(multigraph_save_dir, f"multigraph_{building_id}_{floor_id}.pdf")
     plt.savefig(save_fpath, dpi=500)
     plt.close("all")

@@ -427,7 +427,7 @@ def run_incremental_reconstruction(
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     allowed_wdo_types_summary = "_".join(allowed_wdo_types)
-    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2021_12_02_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
+    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2022_02_01_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
@@ -465,7 +465,7 @@ def run_incremental_reconstruction(
         render_multigraph = True
         if render_multigraph:
             graph_rendering_utils.draw_multigraph(
-                measurements, gt_floor_pose_graph, confidence_threshold=confidence_threshold
+                measurements, gt_floor_pose_graph, confidence_threshold=confidence_threshold, save_dir=plot_save_dir
             )
 
         (
