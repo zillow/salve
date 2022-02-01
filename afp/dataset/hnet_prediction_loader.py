@@ -3,24 +3,20 @@ Converts a HorizonNet inference result to PanoData and PoseGraph2d objects. Also
 result with oracle pose.
 """
 
-import copy
 import glob
 import os
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import argoverse.utils.json_utils as json_utils
 import cv2
 import imageio
 import matplotlib.pyplot as plt
-import numpy as np
 
 import afp.common.floor_reconstruction_report as floor_reconstruction_report
 import afp.common.posegraph2d as posegraph2d
 import afp.dataset.zind_data as zind_data
 import afp.utils.csv_utils as csv_utils
-from afp.common.pano_data import PanoData, WDO
 from afp.common.posegraph2d import PoseGraph2d
 from afp.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
 from afp.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
