@@ -75,7 +75,7 @@ def draw_multigraph(
     confidence_threshold: float = 0.5,
     raw_dataset_dir: str = DEFAULT_RAW_DATASET_DIR,
 ) -> None:
-    """Draw the topology of a pose graph, with colored nodes and colored edges.
+    """Draw the topology of a pose graph, with colored nodes and colored edges (allowed edges are conf.-thresholded).
 
     If the input pose graph is an estimated pose graph, some cameras may not be localized. In this case, we may
     want to render the remaining nodes at the GT locations.
