@@ -179,7 +179,6 @@ def get_conf_thresholded_edges(
         # TODO: fix this
         # mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=verbose)
 
-    # #import pdb; pdb.set_trace()
     # wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict)
     # est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
     # mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
@@ -217,6 +216,9 @@ def measure_avg_relative_pose_errors(
 
     Created for evaluation of measurements without an estimated pose graph (only edges). Can be multiple edges (multigraph)
     between two nodes.
+
+    Note: edge accuracy doesn't mean anything (too many FPs from noisy GT). A much more reliable metric is the average
+    relative pose error on each edge (w.r.t. GT poses).
 
     Args:
         hypotheses_save_root:
@@ -287,10 +289,8 @@ def cycles_SE2_spanning_tree(
     """ """
     i2Si1_dict_consistent = cycle_utils.filter_to_SE2_cycle_consistent_edges(i2Si1_dict, two_view_reports_dict)
 
-    filtered_edge_acc = get_edge_accuracy(
-        edges=i2Si1_dict_consistent.keys(), two_view_reports_dict=two_view_reports_dict
-    )
-    print(f"\tFiltered by SE(2) cycles Edge Acc = {filtered_edge_acc:.2f}")
+    filtered_edge_error = float("inf") # compute error w.r.t. GT from i2Si1_dict_consistent
+    print(f"\tFiltered by SE(2) cycles Edge Acc = {filtered_edge_error:.2f}")
 
     wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
 
@@ -383,20 +383,38 @@ def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
                     print()
 
 
-def get_edge_accuracy(
-    edges: List[Tuple[int, int]], two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport]
-) -> float:
-    """Compute the average accuracy per-edge (as classified by GT supervision).
+def plot_confidence_histograms(measurements: List[EdgeClassification]) -> None:
+    """Create a histogram of network confidences for each of the following groups separately:
+    (True Positives), (False Positives), (False Negatives), (True Negatives).
 
-    We check the GT for each predicted (i.e. allowed) edge.
+    Useful for tuning confidence thresholds. TPs should ideally have all high confidences,
+    and TNs should have all low confidences.
+
+    Args:
+        measurements: possible relative pose hypotheses, before confidence thresholding is applied.
     """
-    preds = []
-    # what is the purity of what comes out?
-    for (i1, i2) in edges:
-        preds.append(two_view_reports_dict[(i1, i2)].gt_class)
+    probs = np.array([m.prob for m in measurements])
+    y_true_array = np.array([m.y_true for m in measurements])
+    y_hat_array = np.array([m.y_hat for m in measurements])
+    is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true_array, y_hat_array)
 
-    acc = np.mean(preds)
-    return acc
+    plt.subplot(2, 2, 1)
+    plt.hist(probs[is_TP], bins=30)  # 15 bins are too few, to see 98%-99% confidence bin
+    plt.title("TP")
+
+    plt.subplot(2, 2, 2)
+    plt.hist(probs[is_FP], bins=30)
+    plt.title("FP")
+
+    plt.subplot(2, 2, 3)
+    plt.hist(probs[is_FN], bins=30)
+    plt.title("FN")
+
+    plt.subplot(2, 2, 4)
+    plt.hist(probs[is_TN], bins=30)
+    plt.title("TN")
+
+    plt.show()
 
 
 def run_incremental_reconstruction(
@@ -408,11 +426,15 @@ def run_incremental_reconstruction(
     use_axis_alignment: bool,
     allowed_wdo_types: List[str],
 ) -> None:
-    """
-    Can get multi-graph out of classification model.
+    """Run the global optimization stage on confidence-thresholded relative pose hypotheses, in the largest CC.
+
+    Note: Can get multi-graph out of classification model.
 
     We optionally apply axis alignment pre-processing before evaluation. Axis-alignment cannot be added via
     post-processing, as in that case translations will not be updated.
+
+    Note: edge accuracy doesn't mean anything (too many FPs from noisy GT). A much more reliable metric is the average
+    relative pose error on each edge (w.r.t. GT poses).
 
     Args:
         hypotheses_save_root: path to directory where alignment hypotheses are saved as JSON files.
@@ -437,6 +459,7 @@ def run_incremental_reconstruction(
 
     averaged_wdo_type_counter = defaultdict(list)
 
+    # probability distribution function & cumulative dist. fn of #panos in first N CCs, for each building floor.
     pdfs = []
     cdfs = []
 
@@ -458,28 +481,7 @@ def run_incremental_reconstruction(
 
         visualize_confidence_histograms = False
         if visualize_confidence_histograms:
-            probs = np.array([m.prob for m in measurements])
-            y_true_array = np.array([m.y_true for m in measurements])
-            y_hat_array = np.array([m.y_hat for m in measurements])
-            is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true_array, y_hat_array)
-
-            plt.subplot(2, 2, 1)
-            plt.hist(probs[is_TP], bins=30)  # 15 bins are too few, to see 98%-99% confidence bin
-            plt.title("TP")
-
-            plt.subplot(2, 2, 2)
-            plt.hist(probs[is_FP], bins=30)
-            plt.title("FP")
-
-            plt.subplot(2, 2, 3)
-            plt.hist(probs[is_FN], bins=30)
-            plt.title("FN")
-
-            plt.subplot(2, 2, 4)
-            plt.hist(probs[is_TN], bins=30)
-            plt.title("TN")
-
-            plt.show()
+            plot_confidence_histograms(measurements)
 
         render_multigraph = False
         if render_multigraph:
@@ -499,7 +501,6 @@ def run_incremental_reconstruction(
         ) = get_conf_thresholded_edges(
             measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id, gt_floor_pose_graph
         )
-        # TODO: edge accuracy doesn't mean anything (too many FPs). Use average error on each edge, instead.
 
         pdf, cdf = graph_utils.analyze_cc_distribution(
             nodes=list(gt_floor_pose_graph.nodes.keys()), edges=list(i2Si1_dict.keys())
@@ -507,32 +508,27 @@ def run_incremental_reconstruction(
         pdfs.append(pdf)
         cdfs.append(cdf)
 
+        # update statistics about average edge type from W/D/O-based edges, and log a summary.
         for wdo_type, percent in wdo_type_counter.items():
             averaged_wdo_type_counter[wdo_type].append(percent)
-
         print("On average, over all tours, WDO types used were:")
         for wdo_type, percents in averaged_wdo_type_counter.items():
             print(REDTEXT + f"For {wdo_type}, {np.mean(percents)*100:.1f}%" + ENDCOLOR)
 
         if len(high_conf_measurements) == 0:
-            print(
-                f"Skip Building {building_id}, {floor_id} -> no high conf measurements from {len(measurements)} measurements."
-            )
-
+            print_str = f"Skip global optimization for Building {building_id}, {floor_id}"
+            print_str += f" -> no high conf. measurements from {len(measurements)} measurements."
+            print(print_str)
             report = FloorReconstructionReport(
                 avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0, floorplan_iou=0.0
             )
             reconstruction_reports.append(report)
             continue
 
-        unfiltered_edge_acc = get_edge_accuracy(edges=i2Si1_dict.keys(), two_view_reports_dict=two_view_reports_dict)
-        print(f"\tUnfiltered Edge Acc = {unfiltered_edge_acc:.2f}")
-
         cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
         print(
             f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
         )
-
         if method == "spanning_tree":
 
             if use_axis_alignment:
@@ -551,6 +547,7 @@ def run_incremental_reconstruction(
             # graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
 
             if use_axis_alignment:
+                # TODO(johnwlambert): why align here, if we will align later?
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
                     i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict
                 )
