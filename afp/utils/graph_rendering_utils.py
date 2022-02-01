@@ -80,9 +80,9 @@ def draw_multigraph(
     want to render the remaining nodes at the GT locations.
 
     Args:
-        measurements
+        measurements: possible relative pose hypotheses, before confidence thresholding is applied.
         input_floor_pose_graph: poses where graph nodes will be plotted.
-        confidence_threshold
+        confidence_threshold: minimum required predicted confidence by model to plot an edge.
         raw_dataset_dir:
     """
 
