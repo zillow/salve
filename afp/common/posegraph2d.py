@@ -136,7 +136,6 @@ class PoseGraph2d(NamedTuple):
             scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE,
         )
 
-
     @classmethod
     def from_wSi_list(cls, wSi_list: List[Optional[Sim2]], gt_floor_pose_graph: "PoseGraph2d") -> "PoseGraph2d":
         """Create a 2d pose graph, given a subset of global poses, and ground truth pose graph.
@@ -148,7 +147,6 @@ class PoseGraph2d(NamedTuple):
         wti_list = [wSi.translation if wSi else None for wSi in wSi_list]
 
         return PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph)
-
 
     def as_3d_pose_graph(self) -> List[Optional[Pose3]]:
         """
@@ -174,10 +172,7 @@ class PoseGraph2d(NamedTuple):
 
     @classmethod
     def from_wRi_wti_lists(
-        cls,
-        wRi_list: List[np.ndarray],
-        wti_list: List[np.ndarray],
-        gt_floor_pg: "PoseGraph2d"
+        cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], gt_floor_pg: "PoseGraph2d"
     ) -> "PoseGraph2d":
         """
         2x2
@@ -227,7 +222,6 @@ class PoseGraph2d(NamedTuple):
             scale_meters_per_coordinate=ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE,
         )
 
-
     @classmethod
     def from_aligned_est_poses_and_inferred_layouts(
         cls, aligned_est_floor_pose_graph: "PoseGraph2d", inferred_floor_pose_graph: "PoseGraph2d"
@@ -264,7 +258,7 @@ class PoseGraph2d(NamedTuple):
             building_id=aligned_est_floor_pose_graph.building_id,
             floor_id=aligned_est_floor_pose_graph.floor_id,
             nodes=nodes,
-            scale_meters_per_coordinate=aligned_est_floor_pose_graph.scale_meters_per_coordinate
+            scale_meters_per_coordinate=aligned_est_floor_pose_graph.scale_meters_per_coordinate,
         )
         return inferred_aligned_pg
 
@@ -275,7 +269,7 @@ class PoseGraph2d(NamedTuple):
     def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float, np.ndarray, np.ndarray]:
         """
         Args:
-            gt_floor_pg: 
+            gt_floor_pg:
 
         Returns:
             mean_rot_err: average rotation error per camera, measured in degrees.
@@ -286,14 +280,18 @@ class PoseGraph2d(NamedTuple):
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
         bTi_list_est = self.as_3d_pose_graph()
 
-        mean_rot_err, mean_trans_err, rot_errors, trans_errors = ransac.compute_pose_errors_3d(aTi_list_gt, bTi_list_est)
+        mean_rot_err, mean_trans_err, rot_errors, trans_errors = ransac.compute_pose_errors_3d(
+            aTi_list_gt, bTi_list_est
+        )
         return mean_rot_err, mean_trans_err, rot_errors, trans_errors
 
-    def measure_unaligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float, np.ndarray, np.ndarray]:
+    def measure_unaligned_abs_pose_error(
+        self, gt_floor_pg: "PoseGraph2d"
+    ) -> Tuple[float, float, np.ndarray, np.ndarray]:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
 
         Args:
-            gt_floor_pg: 
+            gt_floor_pg:
 
         Returns:
             mean_rot_err: average rotation error per camera, measured in degrees.
@@ -307,9 +305,10 @@ class PoseGraph2d(NamedTuple):
 
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
 
-        mean_rot_err, mean_trans_err, rot_errors, trans_errors = ransac.compute_pose_errors_3d(aTi_list_gt, aligned_bTi_list_est)
+        mean_rot_err, mean_trans_err, rot_errors, trans_errors = ransac.compute_pose_errors_3d(
+            aTi_list_gt, aligned_bTi_list_est
+        )
         return mean_rot_err, mean_trans_err, rot_errors, trans_errors
-
 
     def align_by_Sim3_to_ref_pose_graph(self, ref_pose_graph: "PoseGraph2d") -> "PoseGraph2d":
         """
@@ -323,19 +322,18 @@ class PoseGraph2d(NamedTuple):
         pad_len = len(aTi_list_ref) - len(bTi_list_est)
         bTi_list_est.extend([None] * pad_len)
 
-        #afp.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=bTi_list_est)
+        # afp.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=bTi_list_est)
 
         # align the pose graphs
         aligned_bTi_list_est, aSb = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
 
-        #afp.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=aligned_bTi_list_est)
+        # afp.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=aligned_bTi_list_est)
 
         # TODO(johnwlambert): assumes all nodes have the same scale, which is not true.
         random_ref_pano_id = list(ref_pose_graph.nodes.keys())[0]
         gt_scale = ref_pose_graph.nodes[random_ref_pano_id].global_Sim2_local.scale
-        aligned_est_pose_graph = self.apply_Sim3(a_Sim3_b = aSb, gt_scale=gt_scale)
+        aligned_est_pose_graph = self.apply_Sim3(a_Sim3_b=aSb, gt_scale=gt_scale)
         return aligned_est_pose_graph, aligned_bTi_list_est
-
 
     def apply_Sim3(self, a_Sim3_b: Similarity3, gt_scale: float) -> "PoseGraph2d":
         """Create a new pose instance of the entire pose graph, after applying a Similarity(2) transform to every pose.
@@ -354,7 +352,9 @@ class PoseGraph2d(NamedTuple):
             b_Sim2_i = aligned_est_pose_graph.nodes[i].global_Sim2_local
             a_Sim2_i = a_Sim2_b.compose(b_Sim2_i)
             # equivalent of `transformFrom()` on Pose2 object.
-            pano_data_i.global_Sim2_local = Sim2(R=a_Sim2_i.rotation, t=a_Sim2_i.translation * a_Sim2_i.scale, s=gt_scale)
+            pano_data_i.global_Sim2_local = Sim2(
+                R=a_Sim2_i.rotation, t=a_Sim2_i.translation * a_Sim2_i.scale, s=gt_scale
+            )
 
             for j in range(len(pano_data_i.windows)):
                 pano_data_i.windows[j] = pano_data_i.windows[j].apply_Sim2(a_Sim2_b, gt_scale=gt_scale)
@@ -369,7 +369,6 @@ class PoseGraph2d(NamedTuple):
             aligned_est_pose_graph.nodes[i] = pano_data_i
 
         return aligned_est_pose_graph
-
 
     def measure_avg_abs_rotation_err(self, gt_floor_pg: "PoseGraph2d") -> float:
         """Measure how the absolute poses satisfy the individual binary measurement constraints.
@@ -444,7 +443,6 @@ class PoseGraph2d(NamedTuple):
         print(REDTEXT + "Rotation Errors: " + str(np.round(errs, 1)) + ENDCOLOR)
 
         return mean_err
-
 
     def draw_edge(self, i1: int, i2: int, color: str) -> None:
         """ """
@@ -567,11 +565,9 @@ class PoseGraph2d(NamedTuple):
 
 
 def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
-    """Convert a Similarity(3) object to a Similarity(2) object by.
-
-    """
+    """Convert a Similarity(3) object to a Similarity(2) object by."""
     # we only care about the rotation about the upright Z axis
-    a_Rot2_b = a_Sim3_b.rotation().matrix()[:2,:2]
+    a_Rot2_b = a_Sim3_b.rotation().matrix()[:2, :2]
     theta_deg = rotation_utils.rotmat2theta_deg(a_Rot2_b)
 
     rx, ry, rz = Rotation.from_matrix(a_Sim3_b.rotation().matrix()).as_euler("xyz", degrees=True)
@@ -579,14 +575,18 @@ def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
     MAX_ALLOWED_RX_DEV = 0.1
     MAX_ALLOWED_RY_DEV = 0.1
     if np.absolute(rx) > MAX_ALLOWED_RX_DEV or np.absolute(ry) > MAX_ALLOWED_RY_DEV:
-        import pdb; pdb.set_trace()
+        import pdb
+
+        pdb.set_trace()
 
     assert np.isclose(rz, theta_deg, atol=0.1)
 
     atb = a_Sim3_b.translation()
     MAX_ALLOWED_TZ_DEG = 0.1
     if np.absolute(atb[2]) > MAX_ALLOWED_TZ_DEG:
-        import pdb; pdb.set_trace()
+        import pdb
+
+        pdb.set_trace()
 
     a_Sim2_b = Sim2(R=a_Rot2_b, t=atb[:2], s=a_Sim3_b.scale())
     return a_Sim2_b
@@ -662,7 +662,6 @@ def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> 
     json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
     floor_pg_dict = get_single_building_pose_graphs(building_id, pano_dir, json_annot_fpath)
     return floor_pg_dict[floor_id]
-
 
 
 if __name__ == "__main__":
