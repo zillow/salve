@@ -19,4 +19,5 @@ class Pose:
         self.position = position
         self.rotation = rotation
 
+
 ORIGIN_POSE = Pose(position=Point2d(x=0, y=0), rotation=0)

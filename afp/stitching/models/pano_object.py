@@ -129,7 +129,9 @@ class PanoObject:
             )
 
         if not isinstance(predictions["wdo"], list) or not isinstance(predictions["wdo"][0], list):
-            raise Exception(f"InvalidDwoFromPrediction: Received unexpected input wdo prediction for panoid {self.panoid}.")
+            raise Exception(
+                f"InvalidDwoFromPrediction: Received unexpected input wdo prediction for panoid {self.panoid}."
+            )
 
     def _load_predictions(self, loader: AbstractLoader, prediction_types: List[str]):
         # TODO: Implement file loading status.

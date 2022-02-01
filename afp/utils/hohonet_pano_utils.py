@@ -1,4 +1,3 @@
-
 """
 Utility for converting equirectangular panorama coordinates to spherical coordinates.
 Specifically for the HoHoNet coordinate system (not for ZinD coordinate systems).
@@ -7,6 +6,7 @@ see https://github.com/sunset1995/PanoPlane360
 """
 
 import numpy as np
+
 
 def get_uni_sphere_xyz(H: int, W: int) -> np.ndarray:
     """Equirectangular proj. pixel coordinates to spherical coordinates (theta, phi).
@@ -38,7 +38,7 @@ def get_uni_sphere_xyz(H: int, W: int) -> np.ndarray:
     phi *= np.pi
 
     z = -np.sin(phi)
-    r = np.cos(phi) # TODO: explain why this is not sin(phi)
+    r = np.cos(phi)  # TODO: explain why this is not sin(phi)
     y = r * np.sin(theta)
     x = r * np.cos(theta)
     sphere_xyz = np.stack([x, y, z], -1)

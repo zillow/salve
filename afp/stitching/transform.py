@@ -25,6 +25,7 @@ def rotate_xys_clockwise(xys: List[Point2d], rotation_deg: float) -> List[Point2
     xys_transformed = [Point2d(x=xy[0], y=xy[1]) for xy in xys_transformed_array]
     return xys_transformed
 
+
 def uv_to_xyz(uv: Point2d) -> Point3d:
     """
     Compute coordinate xyz from texture coordinate uv, assuming length of
@@ -89,6 +90,7 @@ def transform_xy_by_pose(xy: Point2d, pose: Pose) -> Point2d:
     x_final = x_rot + pose.position.x
     y_final = y_rot + pose.position.y
     return Point2d(x=x_final, y=y_final)
+
 
 def project_xy_by_pose(xy: Point2d, pose: Pose) -> Point2d:
     x_translated = xy.x - pose.position.x
@@ -259,7 +261,11 @@ def generate_2d_tranformation_matrix_from_room_to_floor(x: float, y: float, rota
 
     @return mat_floor_from_room - np.array 3 x 3.
     """
-    mat_floor_from_room = gen_homogeneous_transformation_matrix_for_2d([-x, y], np.deg2rad(-rotation), scale,)
+    mat_floor_from_room = gen_homogeneous_transformation_matrix_for_2d(
+        [-x, y],
+        np.deg2rad(-rotation),
+        scale,
+    )
     return mat_floor_from_room
 
 
@@ -274,7 +280,7 @@ def reproject_uvs_to(uvs1_projected, wall_conf1, panoid, start_id):
     start = 0
     changes = []
     for j in range(512):
-        if direction[j] != direction[j+1]:
+        if direction[j] != direction[j + 1]:
             changes.append([start, j])
             start = j + 1
     if changes[-1][1] != 511:
@@ -291,44 +297,50 @@ def reproject_uvs_to(uvs1_projected, wall_conf1, panoid, start_id):
         else:
             sections.append(change)
 
-    original_us = np.arange(0.5/RES, (RES+0.5)/RES, 1.0/RES)
+    original_us = np.arange(0.5 / RES, (RES + 0.5) / RES, 1.0 / RES)
     final_vs = np.zeros(RES)
     final_cs = np.zeros(RES)
     for i_section, section in enumerate(sections):
-        us = [uv.x for uv in uvs1_projected[section[0]: section[1]+1]]
-        vs = [uv.y for uv in uvs1_projected[section[0]: section[1]+1]]
-        confs = wall_conf1[section[0]: section[1]+1]
+        us = [uv.x for uv in uvs1_projected[section[0] : section[1] + 1]]
+        vs = [uv.y for uv in uvs1_projected[section[0] : section[1] + 1]]
+        confs = wall_conf1[section[0] : section[1] + 1]
 
         fv = interpolate.interp1d(us, vs)
         fc = interpolate.interp1d(us, confs)
 
         is_polarized = False
         if min(us) < 0.1 and max(us) > 0.9:
-            us_low = [uv.x for uv in uvs1_projected[section[0]: section[1]+1] if uv.x < 0.5]
-            us_high = [uv.x for uv in uvs1_projected[section[0]: section[1]+1] if uv.x > 0.5]
+            us_low = [uv.x for uv in uvs1_projected[section[0] : section[1] + 1] if uv.x < 0.5]
+            us_high = [uv.x for uv in uvs1_projected[section[0] : section[1] + 1] if uv.x > 0.5]
             if min(us_high) - max(us_low) > 0.1:
                 is_polarized = True
 
         if not is_polarized:
-            start_u_idx = math.ceil((min(us) - 0.5/RES) / (1/RES))
-            end_u_idx = math.floor((max(us) - 0.5/RES) / (1/RES))
+            start_u_idx = math.ceil((min(us) - 0.5 / RES) / (1 / RES))
+            end_u_idx = math.floor((max(us) - 0.5 / RES) / (1 / RES))
             ranges = [[start_u_idx, end_u_idx]]
         else:
-            start_u_idx = math.ceil((min(us) - 0.5/RES) / (1/RES))
-            end_u_idx = math.floor((max(us) - 0.5/RES) / (1/RES))
-            ranges = [[0, start_u_idx], [end_u_idx, RES-1]]
+            start_u_idx = math.ceil((min(us) - 0.5 / RES) / (1 / RES))
+            end_u_idx = math.floor((max(us) - 0.5 / RES) / (1 / RES))
+            ranges = [[0, start_u_idx], [end_u_idx, RES - 1]]
 
         for [start_u_idx, end_u_idx] in ranges:
-            us_new = original_us[start_u_idx : (end_u_idx+1)]
+            us_new = original_us[start_u_idx : (end_u_idx + 1)]
             try:
                 new_vs = fv(us_new)
                 new_cs = fc(us_new)
             except Exception:
                 # import pdb; pdb.set_trace()
                 continue
-            does_update = ((final_vs[start_u_idx : (end_u_idx+1)] == 0) + (new_vs > final_vs[start_u_idx : (end_u_idx+1)])).astype(float)
-            final_vs[start_u_idx : (end_u_idx+1)] = (does_update) * new_vs + (1 - does_update) * final_vs[start_u_idx : (end_u_idx+1)]
-            final_cs[start_u_idx : (end_u_idx+1)] = (does_update) * new_cs + (1 - does_update) * final_cs[start_u_idx : (end_u_idx+1)]
+            does_update = (
+                (final_vs[start_u_idx : (end_u_idx + 1)] == 0) + (new_vs > final_vs[start_u_idx : (end_u_idx + 1)])
+            ).astype(float)
+            final_vs[start_u_idx : (end_u_idx + 1)] = (does_update) * new_vs + (1 - does_update) * final_vs[
+                start_u_idx : (end_u_idx + 1)
+            ]
+            final_cs[start_u_idx : (end_u_idx + 1)] = (does_update) * new_cs + (1 - does_update) * final_cs[
+                start_u_idx : (end_u_idx + 1)
+            ]
     return final_vs, final_cs
 
 
