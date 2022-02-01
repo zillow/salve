@@ -19,6 +19,9 @@ from afp.common.edgewdopair import EdgeWDOPair
 from afp.common.pano_data import PanoData
 from afp.common.posegraph2d import PoseGraph2d
 
+# RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
+
 
 # This allows angles in the range [84.3, 95.7] to be considered close to 90 degrees.
 MAX_RIGHT_ANGLE_DEVIATION = 0.1
@@ -28,12 +31,14 @@ MAX_ALLOWED_CORRECTION_DEG = 15.0
 def determine_dominant_rotation_angle(poly: np.ndarray) -> Tuple[Optional[float], Optional[float]]:
     """Extracts the dominant rotation angle of a room shape.
 
+    Note: only works for ground truth shapes with close to zero noise.
+
     We find which adjacent edges form close to a right-angle (90 deg.), and for all such edges, we take
     the median of their angle with respect to the x-axis.
     Reference: From visualize_zfm30_data.py
 
     Args:
-        poly: Room shape polygon as a numpy array.
+        poly: Room shape polygon as a numpy array (N,2).
 
     Returns:
         angle: Dominant room shape rotation angle, in degrees, in the range [-45,45]. Returns None if no room
@@ -133,7 +138,7 @@ def align_pairs_by_vanishing_angle(
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair],
     visualize: bool = False,
 ) -> Dict[Tuple[int, int], Sim2]:
-    """
+    """Align a collection of image pairs by vanishing angle, up to a maximum allowed refinement threshold.
 
     Note:
     - rotating in place about the room center yields wrong results.
@@ -141,17 +146,16 @@ def align_pairs_by_vanishing_angle(
     - The rotation must be about the W/D/O object (we choose the midpoint here).
 
     Args:
-        i2Si1_dict:
-        gt_floor_pose_graph:
+        i2Si1_dict: relative pose measurements.
+        gt_floor_pose_graph: ground truth pose graph for specified ZInD floor.
         per_edge_wdo_dict:
-        visualize:
+        visualize: whether to visualize intermediate results.
 
     Returns:
-        i2Si1_dict
+        i2Si1_dict: refined relative pose measurements.
     """
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
+        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=RAW_DATASET_DIR
     )
     pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes
 
@@ -161,7 +165,7 @@ def align_pairs_by_vanishing_angle(
         # p_i2r = i2r_S_i1 * p_i1
         i2rSi1 = align_pair_measurement_by_vanishing_angle(i1, i2, i2Si1, edge_wdo_pair, pano_dict_inferred, visualize)
         if i2rSi1 is None:
-            # requested correction was too large.
+            # requested correction was too large, skip proposed refinement.
             continue
 
         i2Si1_dict[(i1, i2)] = i2rSi1
@@ -181,12 +185,12 @@ def align_pairs_by_vanishing_angle(
 def align_pair_measurement_by_vanishing_angle(
     i1: int, i2: int, i2Si1: Sim2, edge_wdo_pair: EdgeWDOPair, pano_dict_inferred: Dict[int, PanoData], visualize: bool
 ) -> Optional[Sim2]:
-    """
+    """Align a single image pair by their vanishing angles, up to a maximum allowed refinement threshold.
 
     Args:
         i1: panorama ID of camera 1
         i2: panorama ID of camera 2
-        i2Si1:
+        i2Si1: initial relative pose measurement, from possibly noisy W/D/O detections.
         edge_wdo_pair:
         pano_dict_inferred:
 
@@ -300,6 +304,13 @@ def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
 def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
     """
     pts1 and pts2 need NOT be in a common reference frame.
+
+    Args:
+        pts1:
+        pts2:
+
+    Returns:
+        i2Ti1:
     """
 
     # lift to 3d plane
