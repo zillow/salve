@@ -462,7 +462,7 @@ def run_incremental_reconstruction(
         if visualize_confidence_histograms:
             plot_confidence_histograms(measurements)
 
-        render_multigraph = False
+        render_multigraph = True
         if render_multigraph:
             graph_rendering_utils.draw_multigraph(
                 measurements, gt_floor_pose_graph, confidence_threshold=confidence_threshold

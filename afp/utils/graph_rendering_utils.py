@@ -18,7 +18,8 @@ SKYBLUE = [135, 206, 250]
 GREEN = [0, 140, 25]
 CYAN = [0, 255, 255]
 
-DEFAULT_RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+# DEFAULT_RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+DEFAULT_RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
 
 
 def draw_graph_topology(
@@ -83,7 +84,7 @@ def draw_multigraph(
         measurements: possible relative pose hypotheses, before confidence thresholding is applied.
         input_floor_pose_graph: poses where graph nodes will be plotted.
         confidence_threshold: minimum required predicted confidence by model to plot an edge.
-        raw_dataset_dir:
+        raw_dataset_dir: path to where ZInD has been downloaded on disk, from Bridge API.
     """
 
     edges = []
@@ -159,6 +160,8 @@ def draw_multigraph(
     plt.axis("equal")
     # plt.show()
     plt.tight_layout()
-    save_fpath = f"multigraph_{building_id}_{floor_id}.pdf"
+    save_dir = f"thresholded_multigraphs_conf{confidence_threshold}"
+    os.makedirs(save_dir, exist_ok=True)
+    save_fpath = f"{save_dir}/multigraph_{building_id}_{floor_id}.pdf"
     plt.savefig(save_fpath, dpi=500)
     plt.close("all")
