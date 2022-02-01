@@ -449,8 +449,8 @@ def run_incremental_reconstruction(
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
 
-        is_demo = (building_id == "0564" and floor_id == "floor_01") or \
-                  (building_id == "0519" and floor_id == "floor_01") or \
+        #(building_id == "0564" and floor_id == "floor_01") or \
+        is_demo = (building_id == "0519" and floor_id == "floor_01") or \
                   (building_id == "1214" and floor_id == "floor_01") or \
                   (building_id == "0308" and floor_id == "floor_02") or \
                   (building_id == "0438" and floor_id == "floor_01") or \

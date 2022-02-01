@@ -45,7 +45,9 @@ def extract_coordinates_from_shapely_polygon(shape: Polygon) -> List[Point2d]:
     return coords
 
 
-def load_room_shape_polygon_from_predictions(room_shape_pred: dict, uncertainty=None, camera_height=DEFAULT_CAMERA_HEIGHT) -> Polygon:
+def load_room_shape_polygon_from_predictions(
+    room_shape_pred: dict, uncertainty=None, camera_height=DEFAULT_CAMERA_HEIGHT
+) -> Polygon:
     flag = True
     xys = []
     xys_upper = []
@@ -56,9 +58,9 @@ def load_room_shape_polygon_from_predictions(room_shape_pred: dict, uncertainty=
     uvs_lower = []
     for i, corner in enumerate(room_shape_pred):
         if not flag:
-            uvs.append([corner[0]+0.5/1024, corner[1]+0.5/512])
+            uvs.append([corner[0] + 0.5 / 1024, corner[1] + 0.5 / 512])
             if uncertainty:
-                uvs_upper.append([corner[0]+0.5/1024, corner[1]+0.5/512-uncertainty[i]/512])
+                uvs_upper.append([corner[0] + 0.5 / 1024, corner[1] + 0.5 / 512 - uncertainty[i] / 512])
                 # uvs_lower.append([corner[0]+0.5/1024, corner[1]+0.5/512+uncertainty[i]/512])
         flag = not flag
     xys = uv_to_xy_batch(uvs, camera_height)
@@ -78,9 +80,7 @@ def generate_dense_shape(v_vals, uncertainty):
     xys = polygon.boundary.xy
     xys_upper = poly_upper.boundary.xy
     for i in range(len(xys[0])):
-        distances.append(
-            math.sqrt((xys_upper[0][i] - xys[0][i]) ** 2 + (xys_upper[1][i] - xys[1][i]) ** 2)
-        )
+        distances.append(math.sqrt((xys_upper[0][i] - xys[0][i]) ** 2 + (xys_upper[1][i] - xys[1][i]) ** 2))
     return polygon, distances
 
 
@@ -119,7 +119,7 @@ def group_panos_by_room(predictions, location_panos):
 
 def refine_shape_group_start_with(group, start_id, predicted_shapes, wall_confidences, location_panos):
     RES = 512
-    original_us = np.arange(0.5/RES, (RES+0.5)/RES, 1.0/RES)
+    original_us = np.arange(0.5 / RES, (RES + 0.5) / RES, 1.0 / RES)
     panoid = start_id
     # for panoid in group:
     current_shape = predicted_shapes[panoid]
@@ -135,12 +135,7 @@ def refine_shape_group_start_with(group, start_id, predicted_shapes, wall_confid
 
     final_vs_all = {}
     final_cs_all = {}
-    colors = {
-        '9c5d07356f': 'red',
-        '84fe28b6c1': 'blue',
-        '404ed9fcfb': 'yellow',
-        '1a2445a9fe': 'purple'
-    }
+    colors = {"9c5d07356f": "red", "84fe28b6c1": "blue", "404ed9fcfb": "yellow", "1a2445a9fe": "purple"}
     for panoid_1 in group:
         if panoid_1 == panoid:
             continue
@@ -197,12 +192,19 @@ def refine_shape_group_start_with(group, start_id, predicted_shapes, wall_confid
                 current_c = final_cs_all[panoid_new][i]
         xy1_final = uv_to_xy(Point2d(x=u, y=v), DEFAULT_CAMERA_HEIGHT)
         xys1_final.append(Point2d(x=xy1_final.x, y=xy1_final.y))
-        if i > 0 and math.sqrt((xys1_final[i-1].x - xy1_final.x)**2 + (xys1_final[i-1].y - xy1_final.y)**2) > 0.03:
+        if (
+            i > 0
+            and math.sqrt((xys1_final[i - 1].x - xy1_final.x) ** 2 + (xys1_final[i - 1].y - xy1_final.y) ** 2) > 0.03
+        ):
             current_c = 0
-        if i < len(xys1_final)-1 and math.sqrt((xys1_final[i+1].x - xy1_final.x)**2 + (xys1_final[i+1].y - xy1_final.y)**2) > 0.03:
+        if (
+            i < len(xys1_final) - 1
+            and math.sqrt((xys1_final[i + 1].x - xy1_final.x) ** 2 + (xys1_final[i + 1].y - xy1_final.y) ** 2) > 0.03
+        ):
             current_c = 0
         conf1_final.append(current_c)
     return xys1_final, conf1_final
+
 
 def refine_predicted_shape(groups, predicted_shapes, wall_confidences, location_panos, cluster_dir, tour_dir=None):
     fig2 = Figure()
@@ -227,14 +229,16 @@ def refine_predicted_shape(groups, predicted_shapes, wall_confidences, location_
             color = TANGO_COLOR_PALETTE[i_color % 24]
         else:
             color = TANGO_COLOR_PALETTE[(i_color) % 24]
-        color = (color[0]/255, color[1]/255, color[2]/255)
+        color = (color[0] / 255, color[1] / 255, color[2] / 255)
         # panoid = group[0]
 
         # fig1 = Figure()
         # axis1 = fig1.add_subplot(1, 1, 1)
         shapes = []
         for panoid in group:
-            xys_fused, conf_fused = refine_shape_group_start_with(group, panoid, predicted_shapes, wall_confidences, location_panos)
+            xys_fused, conf_fused = refine_shape_group_start_with(
+                group, panoid, predicted_shapes, wall_confidences, location_panos
+            )
             pose0 = location_panos[panoid]
             shape_fused_by_group.append([xys_fused, conf_fused, pose0])
 
@@ -273,6 +277,6 @@ def refine_predicted_shape(groups, predicted_shapes, wall_confidences, location_
     pbar.close()
 
     axis2.set_aspect("equal")
-    path_output = os.path.join(cluster_dir, f'final.png')
-    fig2.savefig(path_output, dpi = 300)
+    path_output = os.path.join(cluster_dir, f"final.png")
+    fig2.savefig(path_output, dpi=300)
     return shape_fused_by_cluster, fig2, cascaded_union(shape_fused_by_cluster_poly)

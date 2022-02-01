@@ -844,9 +844,12 @@ def verify_cross_correlation_pytorch(im1: np.ndarray, im2: np.ndarray):
 
 
 def tune_thresholds():
-    """ """
+    """
+    Assuming aligned images, choose threshold for cross-correlation.
+    """
     from types import SimpleNamespace
     import afp.dataset.zind_data as zind_data
+    import afp.utils.pr_utils as pr_utils
 
     args_dict = {"modalities": ["floor_rgb_texture"]}
     data_root = "/Users/johnlambert/Downloads/salve_data/ZinD_Bridge_API_BEV_2021_10_20_lowres"
@@ -855,16 +858,30 @@ def tune_thresholds():
     from collections import defaultdict
     score_dict = defaultdict(list)
 
-    for i, (fpath1, fpath2, label_idx) in enumerate(data_list):
+    #thresh = 1500
 
-        print(f"On {i}/{len(data_list)}")
+    for thresh in [500,1000,1500,2000,2500,3000]:
 
-        im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
-        im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
-        score = verify_cross_correlation_pytorch(im1, im2)
-        # score = verify_phase_correlation_numpy(im1, im2)
+        y_pred = []
+        y_true = []
+        for i, (fpath1, fpath2, label_idx) in enumerate(data_list):
 
-        score_dict[label_idx].append(score)
+            if i % 1000 == 0:
+                print(f"On {i}/{len(data_list)}")
+
+            im1 = cv2.imread(fpath1)[:, :, ::-1].copy()
+            im2 = cv2.imread(fpath2)[:, :, ::-1].copy()
+            score = verify_cross_correlation_pytorch(im1, im2)
+            # score = verify_phase_correlation_numpy(im1, im2)
+
+            score_dict[label_idx].append(score)
+
+            y_true.append(label_idx)
+            yhat = int(score > thresh)
+            y_pred.append(yhat)
+
+        prec, rec, _ =  pr_utils.compute_precision_recall(np.array(y_true), np.array(y_pred))
+        print(f"Prec = {prec:.2f}, Rec={rec:.2f} @ thresh={thresh}")
 
     plt.subplot(1,2,1)
     plt.title("Mismatch")
@@ -1032,9 +1049,9 @@ if __name__ == "__main__":
     # plot_warped_triplet(im1, im2, i1Hi0, title="Using best alignment")
 
 
-    #tune_thresholds()
+    tune_thresholds()
     #log_polar_fft()
 
     #test_log_polar_fft()
 
-    test_rotated_fft()
+    #test_rotated_fft()

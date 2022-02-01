@@ -1,4 +1,3 @@
-
 """
 Utility to generate potential relative poses by exhaustive pairwise W/D/O alignments.
 
@@ -37,7 +36,7 @@ from argoverse.utils.sim2 import Sim2
 import afp.utils.overlap_utils as overlap_utils
 import afp.utils.se2_estimation as se2_estimation
 import afp.utils.sim3_estimation as sim3_estimation
-from afp.common.pano_data import  PanoData, WDO
+from afp.common.pano_data import PanoData, WDO
 
 
 # (smaller width) / (larger width) must be greater than 0.65 / 1.0 for inferred data.
@@ -187,23 +186,23 @@ def align_rooms_by_wd(
                     #     plt.scatter(-all_wd_verts_1[:,0], all_wd_verts_1[:,1], 10, color='k', marker='+')
                     #     plt.scatter(-all_wd_verts_2[:,0], all_wd_verts_2[:,1], 10, color='g', marker='+')
 
-                        # plot_room_walls(pano1_obj)
-                        # plot_room_walls(pano2_obj)
+                    # plot_room_walls(pano1_obj)
+                    # plot_room_walls(pano2_obj)
 
-                        # plt.plot(
-                        #     -pano1_wd.polygon_vertices_local_3d[:,0],
-                        #     pano1_wd.polygon_vertices_local_3d[:,1],
-                        #     color="r",
-                        #     linewidth=5,
-                        #     alpha=0.2
-                        # )
-                        # plt.plot(
-                        #     -pano2_wd_.polygon_vertices_local_3d[:,0],
-                        #     pano2_wd_.polygon_vertices_local_3d[:,1],
-                        #     color="b",
-                        #     linewidth=5,
-                        #     alpha=0.2
-                        # )
+                    # plt.plot(
+                    #     -pano1_wd.polygon_vertices_local_3d[:,0],
+                    #     pano1_wd.polygon_vertices_local_3d[:,1],
+                    #     color="r",
+                    #     linewidth=5,
+                    #     alpha=0.2
+                    # )
+                    # plt.plot(
+                    #     -pano2_wd_.polygon_vertices_local_3d[:,0],
+                    #     pano2_wd_.polygon_vertices_local_3d[:,1],
+                    #     color="b",
+                    #     linewidth=5,
+                    #     alpha=0.2
+                    # )
 
                     #     plt.axis("equal")
                     #     plt.title("Step 1: Before alignment")

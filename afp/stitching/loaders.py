@@ -51,7 +51,7 @@ class MemoryLoader(AbstractLoader):
 
     def _load_predictions(self):
         folders = os.listdir(self.data_root)
-        panoids = [item for item in folders if len(item) == 10 and not item.startswith('.')]
+        panoids = [item for item in folders if len(item) == 10 and not item.startswith(".")]
         for panoid in panoids:
             self._data["per_pano_predictions"][panoid] = {"rse": {}, "dwo": {}}
             for rse_type in self.data_type["rse"]:

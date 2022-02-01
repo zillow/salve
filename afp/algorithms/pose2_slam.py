@@ -18,7 +18,7 @@ import gtsam
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
-from gtsam import Rot2, Point2, Point3, Pose2, PriorFactorPose2, Values
+from gtsam import Rot2, Point2, Pose2, PriorFactorPose2, Values
 from gtsam.symbol_shorthand import L, X
 
 import afp.algorithms.data_association as data_association
@@ -85,7 +85,7 @@ def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]
     graph = gtsam.NonlinearFactorGraph()
 
     # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model
-    graph.add(gtsam.PriorFactorPose2(X(0), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
+    graph.add(PriorFactorPose2(X(0), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
 
     for (i1, i2), i2Ti1 in i2Ti1_dict.items():
         # Add odometry factors between X1,X2 and X2,X3, respectively
@@ -172,7 +172,7 @@ def planar_slam(
 
     # keys corresponding to unknown variables in the factor graph.
     # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model
-    graph.add(gtsam.PriorFactorPose2(X(origin_pano_id), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
+    graph.add(PriorFactorPose2(X(origin_pano_id), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
 
     # Add odometry factors between poses
     for om in i2Ti1_measurements:

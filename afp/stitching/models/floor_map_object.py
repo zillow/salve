@@ -10,13 +10,13 @@ class FloorMapObject:
         self._generate_room_shape_floor_shape_association()
         self.floor_ids_by_panoid = {}
         self.panoids_by_order = {}
-        for panoid, pano in self.data['panos'].items():
-            order = str(pano['order'])
+        for panoid, pano in self.data["panos"].items():
+            order = str(pano["order"])
             self.panoids_by_order[order] = panoid
 
-        for fsid, floor_shape in self.data['floor_shapes'].items():
-            for rsid, room_shape in floor_shape['room_shapes'].items():
-                for panoid, pano in self.data['room_shapes'][rsid]['panos'].items():
+        for fsid, floor_shape in self.data["floor_shapes"].items():
+            for rsid, room_shape in floor_shape["room_shapes"].items():
+                for panoid, pano in self.data["room_shapes"][rsid]["panos"].items():
                     self.floor_ids_by_panoid[panoid] = fsid
 
     def _generate_room_shape_floor_shape_association(self):
@@ -27,10 +27,10 @@ class FloorMapObject:
 
     def get_panoids_with_floor_number(self, number):
         self.floor_numbers_by_panoid = {}
-        for fsid, floor_shape in self.data['floor_shapes'].items():
-            floor_number = floor_shape['floor_number']
-            for rsid, room_shape in floor_shape['room_shapes'].items():
-                for panoid, pano in self.data['room_shapes'][rsid]['panos'].items():
+        for fsid, floor_shape in self.data["floor_shapes"].items():
+            floor_number = floor_shape["floor_number"]
+            for rsid, room_shape in floor_shape["room_shapes"].items():
+                for panoid, pano in self.data["room_shapes"][rsid]["panos"].items():
                     self.floor_numbers_by_panoid[panoid] = floor_number
         return [panoid for panoid, floor_number in self.floor_numbers_by_panoid.items() if floor_number == number]
 
@@ -71,7 +71,7 @@ class FloorMapObject:
         return self.panoids_by_order[str(order)]
 
     def get_room_shape_global(self, room_shape_id, pose=None):
-        room_shape_original = self.data['room_shapes'][room_shape_id]
+        room_shape_original = self.data["room_shapes"][room_shape_id]
         room_shape = deepcopy(room_shape_original)
         if pose:
             xz = [-pose.position.x, pose.position.y]
@@ -84,31 +84,34 @@ class FloorMapObject:
             rotation = floor_shape_room_shape["rotation"]
             scale = floor_shape_room_shape["scale"]
 
-        for type in ['doors', 'windows', 'openings']:
+        for type in ["doors", "windows", "openings"]:
             for entityid, door in room_shape_original[type].items():
                 position_global = get_global_coords_2d_from_room_cs(
-                    [door['position'][0]['x'], door['position'][0]['y']],
-                    xz[0], xz[1], rotation, scale,
+                    [door["position"][0]["x"], door["position"][0]["y"]],
+                    xz[0],
+                    xz[1],
+                    rotation,
+                    scale,
                 )[0]
-                room_shape[type][entityid]['position'][0] = {
-                    'x': position_global[0], 'y': position_global[1]
-                }
+                room_shape[type][entityid]["position"][0] = {"x": position_global[0], "y": position_global[1]}
                 position_global = get_global_coords_2d_from_room_cs(
-                    [door['position'][1]['x'], door['position'][1]['y']],
-                    xz[0], xz[1], rotation, scale,
+                    [door["position"][1]["x"], door["position"][1]["y"]],
+                    xz[0],
+                    xz[1],
+                    rotation,
+                    scale,
                 )[0]
-                room_shape[type][entityid]['position'][1] = {
-                    'x': position_global[0], 'y': position_global[1]
-                }
+                room_shape[type][entityid]["position"][1] = {"x": position_global[0], "y": position_global[1]}
 
-        room_shape['vertices'] = []
-        for position in room_shape_original['vertices']:
+        room_shape["vertices"] = []
+        for position in room_shape_original["vertices"]:
             position_global = get_global_coords_2d_from_room_cs(
-                [position['x'], position['y']],
-                xz[0], xz[1], rotation, scale,
+                [position["x"], position["y"]],
+                xz[0],
+                xz[1],
+                rotation,
+                scale,
             )[0]
-            room_shape['vertices'].append({
-                'x': position_global[0], 'y': position_global[1]
-            })
+            room_shape["vertices"].append({"x": position_global[0], "y": position_global[1]})
 
         return room_shape
