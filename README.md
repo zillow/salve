@@ -109,6 +109,7 @@ RMX_MADORI_V1_PREDICTIONS_DIRPATH = {}
 ```
 First, set `RMX_MADORI_V1_PREDICTIONS_DIRPATH` inside `afp/dataset/hnet_prediction_loader.py`.
 Next, set `PANO_MAPPING_TSV_FPATH` also inside `afp/dataset/hnet_prediction_loader.py`.
+Next, set `RAW_DATASET_DIR` in `afp/algorithms/pose2_slam.py`.
 
 Run SALVe model inference by first generating alignment hypotheses:
 ```bash
