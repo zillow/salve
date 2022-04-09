@@ -72,7 +72,7 @@ def test_compute_precision_recall_4() -> None:
     # no false positives, but low recall
     assert np.isclose(prec, 0.5)
     assert np.isclose(rec, 0.5)
-    assert np.isclose(mAcc, 2.0)
+    assert np.isclose(mAcc, 0.5)
 
 
 def test_compute_prec_recall_curve() -> None:
