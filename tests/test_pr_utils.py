@@ -48,18 +48,17 @@ def test_compute_precision_recall_2() -> None:
     assert np.isclose(mAcc, 1.0)
     
 
-# def test_compute_precision_recall_3() -> None:
-#     """All correct predictions."""
-#     y_pred = np.array([0,0,0])
-#     y_true = np.array([1,1,0])
+def test_compute_precision_recall_3() -> None:
+    """No positive predictions. 2 incorrect, 1 correct prediction."""
+    y_pred = np.array([0,0,0])
+    y_true = np.array([1,1,0])
 
-#     import pdb; pdb.set_trace()
-#     prec, rec, mAcc = compute_precision_recall(y_true, y_pred)
+    prec, rec, mAcc = pr_utils.compute_precision_recall(y_true, y_pred)
 
-    
-#     # no false positives, but low recall
-#     assert np.isclose(prec, 1.0)
-#     assert np.isclose(rec, 1/3)
+    # no false positives, but low recall
+    assert np.isclose(prec, 0.0)
+    assert np.isclose(rec, 0.0)
+    assert np.isclose(mAcc, 0.5) # 0% acc on class 1, but 100% acc on class 0.
 
 
 def test_compute_precision_recall_4() -> None:
@@ -132,3 +131,15 @@ def test_plot_precision_recall_curve_sklearn2() -> None:
     assert np.allclose(prec, expected_prec)
     assert np.allclose(rec, expected_rec)
     assert np.allclose(thresholds, expected_thresholds)
+
+if __name__ == "__main__":
+
+    # test_compute_precision_recall_1()
+    # test_compute_precision_recall_2()
+    # test_compute_precision_recall_3()
+    # test_compute_precision_recall_4()
+
+    test_compute_prec_recall_curve()
+
+    # test_plot_precision_recall_curve_sklearn1()
+    # test_plot_precision_recall_curve_sklearn2()
