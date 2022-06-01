@@ -1,7 +1,10 @@
+
+""" TODO: ADD DOCSTRING """
+
 from copy import deepcopy
 
-from stitching.transform import get_global_coords_2d_from_room_cs
-from stitching.models.locations import Point2d, Pose
+from salve.stitching.transform import get_global_coords_2d_from_room_cs
+from salve.stitching.models.locations import Point2d, Pose
 
 
 class FloorMapObject:

@@ -1,4 +1,6 @@
-from stitching.models.feature2d import Feature2dU
+""" TODO: ADD DOCSTRING """
+
+from salve.stitching.models.feature2d import Feature2dU
 
 
 class WallFeature:

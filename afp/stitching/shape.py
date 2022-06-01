@@ -1,3 +1,5 @@
+""" TODO: ADD DOCSTRING """
+
 import json
 import os
 from typing import List, Union
@@ -11,16 +13,16 @@ from shapely.geometry import Point, Polygon
 from shapely.ops import cascaded_union
 from tqdm import tqdm
 
-from stitching.constants import DEFAULT_CAMERA_HEIGHT
-from stitching.draw import (
+from salve.stitching.constants import DEFAULT_CAMERA_HEIGHT
+from salve.stitching.draw import (
     draw_camera_in_top_down_canvas,
     draw_shape_in_top_down_canvas,
     draw_shape_in_top_down_canvas_fill,
     TANGO_COLOR_PALETTE,
 )
-from stitching.models.feature2d import Feature2dU, Feature2dXy
-from stitching.models.locations import Point2d
-from stitching.transform import (
+from salve.stitching.models.feature2d import Feature2dU, Feature2dXy
+from salve.stitching.models.locations import Point2d
+from salve.stitching.transform import (
     uv_to_xy,
     uv_to_xy_batch,
     project_xy_by_pose,

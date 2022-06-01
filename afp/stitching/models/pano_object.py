@@ -1,16 +1,18 @@
+""" TODO: ADD DOCSTRING """
+
 from typing import List
 
 import numpy as np
 from schematics.types import StringType
 from shapely.geometry import Point, Polygon
 
-from stitching.utilities import get_dwo_edge_feature2ds_from_prediction
-from stitching.constants import DEFAULT_CAMERA_HEIGHT, WDO_CODE
-from stitching.shape import generate_shapely_polygon_from_room_shape_vertices
-from stitching.transform import ray_cast_by_u, uv_to_xy
-from stitching.io.abstract_loader import AbstractLoader
-from stitching.models.feature2d import Feature2dXy
-from stitching.models.locations import Point2d
+from salve.stitching.utilities import get_dwo_edge_feature2ds_from_prediction
+from salve.stitching.constants import DEFAULT_CAMERA_HEIGHT, WDO_CODE
+from salve.stitching.shape import generate_shapely_polygon_from_room_shape_vertices
+from salve.stitching.transform import ray_cast_by_u, uv_to_xy
+from salve.stitching.io.abstract_loader import AbstractLoader
+from salve.stitching.models.feature2d import Feature2dXy
+from salve.stitching.models.locations import Point2d
 
 SUPPORTED_PREDICTION_CATEGORIES = ["total", "partial_v1", "joint_madori_v1"]
 

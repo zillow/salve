@@ -1,3 +1,5 @@
+""" TODO: ADD DOCSTRING """
+
 import math
 from typing import List, Union
 
@@ -5,7 +7,7 @@ import numpy as np
 from scipy import interpolate
 from shapely.geometry import LineString, Point, Polygon
 
-from stitching.models.locations import Point2d, Point3d, Pose
+from salve.stitching.models.locations import Point2d, Point3d, Pose
 
 
 def rotate_xys_clockwise(xys: List[Point2d], rotation_deg: float) -> List[Point2d]:

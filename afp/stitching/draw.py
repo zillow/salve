@@ -1,3 +1,5 @@
+""" TODO: ADD DOCSTRING """
+
 from typing import List
 
 import math
@@ -7,10 +9,10 @@ from matplotlib.figure import Figure
 from shapely.geometry import Point, Polygon
 from shapely.ops import cascaded_union
 
-from stitching.transform import transform_xy_by_pose
-from stitching.models.feature2d import Feature2dXy
-from stitching.models.locations import ORIGIN_POSE, Pose, Point2d
-from stitching.models.floor_map_object import FloorMapObject
+from salve.stitching.transform import transform_xy_by_pose
+from salve.stitching.models.feature2d import Feature2dXy
+from salve.stitching.models.locations import ORIGIN_POSE, Pose, Point2d
+from salve.stitching.models.floor_map_object import FloorMapObject
 
 matplotlib.use("macOSX")
 
