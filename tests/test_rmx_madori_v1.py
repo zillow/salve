@@ -1,7 +1,7 @@
 """Unit tests to ensure we can properly merge objects that have been split by the panorama seam."""
 
-import afp.dataset.rmx_madori_v1 as madori_utils
-from afp.dataset.rmx_madori_v1 import RmxMadoriV1DWO
+import salve.dataset.rmx_madori_v1 as madori_utils
+from salve.dataset.rmx_madori_v1 import RmxMadoriV1DWO
 
 
 def test_merge_wdos_straddling_img_border_windows() -> None:

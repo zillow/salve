@@ -18,9 +18,9 @@ import argoverse.utils.json_utils as json_utils
 import argoverse.utils.subprocess_utils as subprocess_utils
 from gtsam import Pose3, Rot3, Similarity3
 
-from afp.dataset.zind_partition import DATASET_SPLITS
-from afp.utils.logger_utils import get_logger
-from afp.baselines.sfm_reconstruction import SfmReconstruction
+from salve.dataset.zind_partition import DATASET_SPLITS
+from salve.utils.logger_utils import get_logger
+from salve.baselines.sfm_reconstruction import SfmReconstruction
 
 
 logger = get_logger()

@@ -16,7 +16,7 @@ from gtsam import (
     ShonanAveragingParameters2,
 )
 
-from afp.utils.rotation_utils import rotmat2theta_deg
+from salve.utils.rotation_utils import rotmat2theta_deg
 
 logger = logger_utils.get_logger()
 

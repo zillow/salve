@@ -3,9 +3,9 @@
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.utils.wdo_alignment as wdo_alignment_utils
-from afp.common.pano_data import PanoData, WDO
-from afp.utils.wdo_alignment import AlignTransformType
+import salve.utils.wdo_alignment as wdo_alignment_utils
+from salve.common.pano_data import PanoData, WDO
+from salve.utils.wdo_alignment import AlignTransformType
 
 
 def test_align_rooms_by_wd() -> None:

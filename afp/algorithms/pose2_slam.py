@@ -21,15 +21,15 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point2, Pose2, PriorFactorPose2, Values
 from gtsam.symbol_shorthand import L, X
 
-import afp.algorithms.data_association as data_association
-import afp.common.edge_classification as edge_classification
-import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
-import afp.utils.axis_alignment_utils as axis_alignment_utils
-import afp.utils.graph_rendering_utils as graph_rendering_utils
-from afp.common.posegraph2d import PoseGraph2d
-from afp.common.edge_classification import EdgeClassification
-from afp.common.edgewdopair import EdgeWDOPair
-from afp.common.floor_reconstruction_report import FloorReconstructionReport
+import salve.algorithms.data_association as data_association
+import salve.common.edge_classification as edge_classification
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+import salve.utils.axis_alignment_utils as axis_alignment_utils
+import salve.utils.graph_rendering_utils as graph_rendering_utils
+from salve.common.posegraph2d import PoseGraph2d
+from salve.common.edge_classification import EdgeClassification
+from salve.common.edgewdopair import EdgeWDOPair
+from salve.common.floor_reconstruction_report import FloorReconstructionReport
 
 
 #RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
