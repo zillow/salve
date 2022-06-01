@@ -1,7 +1,7 @@
 
 
 TrainingConfig:
-    _target_: afp.training_config.TrainingConfig
+    _target_: salve.training_config.TrainingConfig
     lr_annealing_strategy: poly
     base_lr: 0.001
     weight_decay: 0.0001
