@@ -1,7 +1,7 @@
 
 """ """
 
-import afp.baselines.evaluate_baseline as eval_utils
+import salve.baselines.evaluate_baseline as eval_utils
 
 def test_count_panos_on_floor() -> None:
     """Ensure that the number of panoramas on a floor is counted correctly."""

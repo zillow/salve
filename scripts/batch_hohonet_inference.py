@@ -14,11 +14,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import List
 
-import afp.utils.hohonet_inference as hohonet_inference_utils
+import salve.utils.hohonet_inference as hohonet_inference_utils
 import imageio
 import numpy as np
 import torch
-from afp.utils.hohonet_inference import HOHONET_CONFIG_FPATH, HOHONET_CKPT_FPATH
+from salve.utils.hohonet_inference import HOHONET_CONFIG_FPATH, HOHONET_CKPT_FPATH
 from tqdm import tqdm
 
 from lib.config import config, update_config

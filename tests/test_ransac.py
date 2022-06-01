@@ -4,7 +4,7 @@ import copy
 import numpy as np
 from gtsam import Pose3, Rot3
 
-import afp.utils.ransac as ransac_utils
+import salve.utils.ransac as ransac_utils
 
 
 def test_ransac_align_poses_sim3_ignore_missing_pureidentity() -> None:

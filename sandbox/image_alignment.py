@@ -25,7 +25,7 @@ import numpy as np
 import skimage
 import torch
 
-import afp.utils.rotation_utils as rotation_utils
+import salve.utils.rotation_utils as rotation_utils
 
 
 def find_keypoint_matches_sift(im1_gray: np.ndarray, im2_gray: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

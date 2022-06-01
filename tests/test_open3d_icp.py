@@ -9,7 +9,7 @@ import numpy as np
 import open3d
 from gtsam import Pose3, Rot3
 
-import afp.baselines.open3d_icp as open3d_icp
+import salve.baselines.open3d_icp as open3d_icp
 
 
 TEST_DATA_ROOT = Path(__file__).resolve().parent / "test_data"

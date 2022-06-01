@@ -5,10 +5,10 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Pose2
 
-import afp.algorithms.spanning_tree as spanning_tree
-import afp.utils.rotation_utils as rotation_utils
-from afp.algorithms.rotation_averaging import globalaveraging2d
-from afp.algorithms.spanning_tree import RelativePoseMeasurement
+import salve.algorithms.spanning_tree as spanning_tree
+import salve.utils.rotation_utils as rotation_utils
+from salve.algorithms.rotation_averaging import globalaveraging2d
+from salve.algorithms.spanning_tree import RelativePoseMeasurement
 
 
 def test_greedily_construct_st():

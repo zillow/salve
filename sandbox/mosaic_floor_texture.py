@@ -15,10 +15,10 @@ import argoverse.utils.json_utils as json_utils
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.algorithms.spanning_tree as spanning_tree
-import afp.utils.bev_rendering_utils as bev_rendering_utils
-import afp.utils.hohonet_inference as hohonet_inference_utils
-from afp.dataset.zind_partition import OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
+import salve.algorithms.spanning_tree as spanning_tree
+import salve.utils.bev_rendering_utils as bev_rendering_utils
+import salve.utils.hohonet_inference as hohonet_inference_utils
+from salve.dataset.zind_partition import OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
 
 
 def panoid_from_fpath(fpath: str) -> int:

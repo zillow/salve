@@ -3,9 +3,9 @@
 Unit tests on data association.
 """
 
-import afp.algorithms.data_association as data_association
-import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
-from afp.common.edge_classification import EdgeClassification
+import salve.algorithms.data_association as data_association
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+from salve.common.edge_classification import EdgeClassification
 
 
 def test_get_kpt_idx() -> None:

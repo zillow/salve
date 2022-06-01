@@ -27,21 +27,7 @@ or on Mac
 conda env create -f environment_mac.yml
 ```
 
-We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. Pre-built python wheels for `GTSAM` are available for download [here](https://github.com/borglab/gtsam-manylinux-build/actions/runs/1482405025) on Github under "Artifacts" (there is no need to build GTSAM from scratch). The GTSAM libraries on `pypi` are out of date. You must be logged in to github.com in order to be able to download them.  If you're not logged in, it shows you them, but you can't download them.
-
-You should use the Python 3.8 wheel, either looking for a URL with the name (for Linux):
-```
-gtsam-4.1.0-cp38-cp38-manylinux2014_x86_64.whl
-```
-or for Mac:
-```
-wheels-macos-python@3.8
-```
-
-Then, make sure you are within the conda environment (`afp-v1`), and install the Python wheel for GTSAM via
-```
-pip install /path/to/wheel/file.whl
-```
+We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. GTSAM is included in the Conda environement.
 
 Install GTSFM:
 ```bash

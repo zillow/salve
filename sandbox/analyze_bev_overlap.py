@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-import afp.dataset.zind_data as zind_data
-import afp.utils.iou_utils as iou_utils
+import salve.dataset.zind_data as zind_data
+import salve.utils.iou_utils as iou_utils
 
 
 def main() -> None:

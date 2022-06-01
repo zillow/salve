@@ -3,7 +3,7 @@
 
 import numpy as np
 
-import afp.utils.graph_utils as graph_utils
+import salve.utils.graph_utils as graph_utils
 
 def test_find_connected_components1() -> None:
     """Two clusters. One has three nodes, the other is a singleton."""

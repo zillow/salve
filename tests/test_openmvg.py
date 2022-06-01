@@ -1,7 +1,7 @@
 
 """Unit tests on OpenMVG related code."""
 
-import afp.baselines.openmvg as openmvg_utils
+import salve.baselines.openmvg as openmvg_utils
 
 
 def test_find_seed_pair() -> None:

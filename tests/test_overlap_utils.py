@@ -8,7 +8,7 @@ import numpy as np
 from argoverse.utils.interpolate import interp_arc
 from shapely.geometry import Point, Polygon
 
-import afp.utils.overlap_utils as overlap_utils
+import salve.utils.overlap_utils as overlap_utils
 
 
 def test_determine_invalid_wall_overlap1() -> None:

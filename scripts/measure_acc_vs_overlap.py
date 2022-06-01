@@ -13,11 +13,11 @@ import numpy as np
 import seaborn as sns
 from argoverse.utils.sim2 import Sim2
 
-import afp.common.edge_classification as edge_classification
-import afp.common.posegraph2d as posegraph2d
-import afp.utils.iou_utils as iou_utils
-import afp.utils.rotation_utils as rotation_utils
-from afp.common.edge_classification import EdgeClassification
+import salve.common.edge_classification as edge_classification
+import salve.common.posegraph2d as posegraph2d
+import salve.utils.iou_utils as iou_utils
+import salve.utils.rotation_utils as rotation_utils
+from salve.common.edge_classification import EdgeClassification
 
 
 def measure_acc_vs_visual_overlap(

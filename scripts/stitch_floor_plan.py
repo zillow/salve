@@ -10,29 +10,28 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from matplotlib.figure import Figure
 
-sys.path.append('../afp')
-from stitching.draw import (
+from salve.stitching.draw import (
     draw_all_room_shapes_with_given_poses_and_shapes,
     draw_dwo_xy_top_down_canvas,
     draw_camera_in_top_down_canvas,
     draw_shape_in_top_down_canvas_fill,
     draw_all_room_shapes_with_poses
 )
-from stitching.transform import (
+from salve.stitching.transform import (
     transform_xy_by_pose,
     ray_cast_and_generate_dwo_xy
 )
-from stitching.loaders import MemoryLoader
-from stitching.models.floor_map_object import FloorMapObject
-from stitching.models.locations import Point2d, Pose
-from stitching.shape import (
+from salve.stitching.loaders import MemoryLoader
+from salve.stitching.models.floor_map_object import FloorMapObject
+from salve.stitching.models.locations import Point2d, Pose
+from salve.stitching.shape import (
     extract_coordinates_from_shapely_polygon,
     load_room_shape_polygon_from_predictions,
     generate_dense_shape,
     group_panos_by_room,
     refine_predicted_shape
 )
-from stitching.ground_truth_utils import (
+from salve.stitching.ground_truth_utils import (
     convert_floor_map_to_localization_cluster,
     align_pred_poses_with_gt
 )

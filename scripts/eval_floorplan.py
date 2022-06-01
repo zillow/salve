@@ -7,10 +7,10 @@ from pathlib import Path
 
 import argoverse.utils.json_utils as json_utils
 
-import afp.common.floor_reconstruction_report as floor_reconstruction_report
-import afp.common.posegraph2d as posegraph2d
-from afp.common.floor_reconstruction_report import FloorReconstructionReport
-from afp.dataset.zind_partition import DATASET_SPLITS
+import salve.common.floor_reconstruction_report as floor_reconstruction_report
+import salve.common.posegraph2d as posegraph2d
+from salve.common.floor_reconstruction_report import FloorReconstructionReport
+from salve.dataset.zind_partition import DATASET_SPLITS
 from read_prod_predictions import load_inferred_floor_pose_graphs
 
 

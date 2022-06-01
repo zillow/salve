@@ -6,7 +6,7 @@ import time
 import imageio
 import matplotlib.pyplot as plt
 
-import afp.utils.transform as transform_utils
+import salve.utils.transform as transform_utils
 
 
 def test_PhotometricShiftQuadruplet() -> None:

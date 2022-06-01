@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import afp.utils.hohonet_pano_utils as hohonet_pano_utils
+import salve.utils.hohonet_pano_utils as hohonet_pano_utils
 
 
 def test_get_uni_sphere_xyz() -> None:

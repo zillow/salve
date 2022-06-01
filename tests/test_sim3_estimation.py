@@ -3,7 +3,7 @@
 
 import numpy as np
 
-import afp.utils.sim3_estimation as sim3_estimation
+import salve.utils.sim3_estimation as sim3_estimation
 
 
 def test_align_points_sim3_horseshoe() -> None:

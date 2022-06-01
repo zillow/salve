@@ -3,7 +3,7 @@
 
 import numpy as np
 
-import afp.utils.se2_estimation as se2_estimation
+import salve.utils.se2_estimation as se2_estimation
 
 
 def test_align_points_SE2() -> None:

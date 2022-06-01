@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import gtsfm.utils.io as json_utils
 import numpy as np
 
-from afp.dataset.zind_partition import DATASET_SPLITS
+from salve.dataset.zind_partition import DATASET_SPLITS
 
 
 def count_floor_stats_per_home(raw_dataset_dir: str):

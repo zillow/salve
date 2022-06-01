@@ -23,8 +23,8 @@ import torch.backends.cudnn as cudnn
 from hydra.utils import instantiate
 from mseg_semantic.utils.avg_meter import AverageMeter, SegmentationAverageMeter
 
-import afp.utils.logger_utils as logger_utils
-import afp.train_utils as train_utils
+import salve.utils.logger_utils as logger_utils
+import salve.train_utils as train_utils
 
 # logger = logger_utils.get_logger()
 

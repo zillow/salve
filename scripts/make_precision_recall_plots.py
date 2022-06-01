@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-import afp.common.edge_classification as edge_classification
-import afp.utils.pr_utils as pr_utils
+import salve.common.edge_classification as edge_classification
+import salve.utils.pr_utils as pr_utils
 
 
 # # ResNet-152 for all 3 models here.

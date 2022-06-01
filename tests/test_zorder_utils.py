@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import afp.utils.zorder_utils as zorder_utils
+import salve.utils.zorder_utils as zorder_utils
 
 
 def test_choose_elevated_repeated_vals_1() -> None:

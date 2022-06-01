@@ -3,7 +3,7 @@
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-from afp.utils.wdo_alignment import AlignmentHypothesis
+from salve.utils.wdo_alignment import AlignmentHypothesis
 
 from scripts.export_alignment_hypotheses import obj_almost_equal  # TODO: fix
 from scripts.export_alignment_hypotheses import prune_to_unique_sim2_objs # TODO: fix

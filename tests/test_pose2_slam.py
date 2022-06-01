@@ -1,11 +1,12 @@
+""" """
 
 import math
 
 import numpy as np
 from gtsam import Point2, Pose2
 
-import afp.algorithms.pose2_slam as pose2_slam
-from afp.algorithms.pose2_slam import BearingRangeMeasurement, OdometryMeasurement
+import salve.algorithms.pose2_slam as pose2_slam
+from salve.algorithms.pose2_slam import BearingRangeMeasurement, OdometryMeasurement
 
 
 def test_planar_slam_pgo_only() -> None:

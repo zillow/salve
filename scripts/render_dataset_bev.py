@@ -16,12 +16,12 @@ import imageio
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.common.posegraph2d as posegraph2d
-import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
-import afp.utils.bev_rendering_utils as bev_rendering_utils
-import afp.utils.hohonet_inference as hohonet_inference_utils
-from afp.common.posegraph2d import PoseGraph2d
-from afp.dataset.zind_partition import DATASET_SPLITS
+import salve.common.posegraph2d as posegraph2d
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+import salve.utils.bev_rendering_utils as bev_rendering_utils
+import salve.utils.hohonet_inference as hohonet_inference_utils
+from salve.common.posegraph2d import PoseGraph2d
+from salve.dataset.zind_partition import DATASET_SPLITS
 
 """
 Nasty depth map estimation failure cases: (from complete_07_10 version)

@@ -1,0 +1,32 @@
+
+
+TrainingConfig:
+    _target_: salve.training_config.TrainingConfig
+    lr_annealing_strategy: poly
+    base_lr: 0.001
+    weight_decay: 0.0001
+    num_ce_classes: 2
+    print_every: 10
+    poly_lr_power: 0.9
+    optimizer_algo: adam
+    num_layers: 18
+    pretrained: True
+    dataparallel: True
+    resize_h: 234
+    resize_w: 234
+    train_h: 224
+    train_w: 224
+    apply_photometric_augmentation: False
+    modalities: ["ceiling_rgb_texture", "floor_rgb_texture"]
+
+    cfg_stem: rgb_only_4tuple
+    num_epochs: 50
+    workers: 16
+    batch_size: 128 #128, # 2, #256,
+
+    #data_root: /Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25
+    data_root: /mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25
+    layout_data_root: 
+    #model_save_dirpath: /Users/johnlam/Downloads/ZinD_trained_models_2021_06_25
+    model_save_dirpath: /mnt/data/johnlam/ZinD_trained_models_2021_06_25
+    gpu_ids:
