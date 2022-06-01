@@ -18,11 +18,11 @@ from gtsam import Point3, Rot2, Rot3, Unit3
 import gtsfm.utils.graph as graph_utils
 import gtsfm.utils.logger as logger_utils
 
-import afp.algorithms.cycle_consistency as cycle_utils
-from afp.algorithms.cycle_consistency import TwoViewEstimationReport
-from afp.algorithms.rotation_averaging import globalaveraging2d
-from afp.algorithms.spanning_tree import greedily_construct_st
-from afp.common.posegraph2d import PoseGraph2d, get_gt_pose_graph, rot2x2_to_Rot3
+import salve.algorithms.cycle_consistency as cycle_utils
+from salve.algorithms.cycle_consistency import TwoViewEstimationReport
+from salve.algorithms.rotation_averaging import globalaveraging2d
+from salve.algorithms.spanning_tree import greedily_construct_st
+from salve.common.posegraph2d import PoseGraph2d, get_gt_pose_graph, rot2x2_to_Rot3
 from vis_depth import rotmat2d
 
 logger = logger_utils.get_logger()

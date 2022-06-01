@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sklearn
 
-from afp.common.edge_classification import EdgeClassification
+from salve.common.edge_classification import EdgeClassification
 
 
 _PathLike = Union[str, "os.PathLike[str]"]

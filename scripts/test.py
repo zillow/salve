@@ -19,10 +19,10 @@ import mseg_semantic.utils.normalization_utils as normalization_utils
 from mseg_semantic.utils.avg_meter import SegmentationAverageMeter
 from torch import nn
 
-import afp.utils.pr_utils as pr_utils
-import afp.train_utils as train_utils
-from afp.training_config import TrainingConfig
-from afp.utils.logger_utils import get_logger
+import salve.utils.pr_utils as pr_utils
+import salve.train_utils as train_utils
+from salve.training_config import TrainingConfig
+from salve.utils.logger_utils import get_logger
 
 
 logger = get_logger()

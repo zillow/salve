@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.common.posegraph2d as posegraph2d
-from afp.common.pano_data import PanoData, FloorData
+import salve.common.posegraph2d as posegraph2d
+from salve.common.pano_data import PanoData, FloorData
 
 
 def render_building(

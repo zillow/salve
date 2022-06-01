@@ -16,7 +16,7 @@ from gtsam import BinaryMeasurementUnit3, BinaryMeasurementsUnit3, MFAS, Unit3
 
 import gtsfm.utils.coordinate_conversions as conversion_utils
 
-import afp.utils.rotation_utils as rotation_utils
+import salve.utils.rotation_utils as rotation_utils
 
 # Hyperparameters for 1D-SFM
 # maximum number of times 1dsfm will project the Unit3's to a 1d subspace for outlier rejection

@@ -4,7 +4,7 @@
 
 import argoverse.utils.subprocess_utils as subprocess_utils
 
-from afp.dataset.zind_partition import DATASET_SPLITS
+from salve.dataset.zind_partition import DATASET_SPLITS
 
 
 MEGATRON_HOSTNAME = "johnlam@172.22.152.131"

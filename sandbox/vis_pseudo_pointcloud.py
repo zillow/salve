@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import imageio
 
-import afp.utils.hohonet_inference as hohonet_inference_utils
+import salve.utils.hohonet_inference as hohonet_inference_utils
 
 
 def render_dataset(bev_save_root: str, raw_dataset_dir: str) -> None:

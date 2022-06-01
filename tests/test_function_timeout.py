@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from afp.utils.function_timeout import timeout
+from salve.utils.function_timeout import timeout
 
 def test_timeout() -> None:
     """Ensure that timeout decorator/scope works properly."""

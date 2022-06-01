@@ -21,14 +21,14 @@ from argoverse.utils.sim2 import Sim2
 
 # from vis_zind_annotations import rotmat2d
 
-import afp.utils.hohonet_pano_utils as hohonet_pano_utils
-import afp.utils.interpolation_utils as interpolation_utils
-import afp.utils.rotation_utils as rotation_utils
-import afp.utils.zorder_utils as zorder_utils
-from afp.common.bevparams import BEVParams, DEFAULT_METERS_PER_PX
-from afp.common.pano_data import WDO
-from afp.common.posegraph2d import PoseGraph2d
-from afp.utils.colormap import colormap
+import salve.utils.hohonet_pano_utils as hohonet_pano_utils
+import salve.utils.interpolation_utils as interpolation_utils
+import salve.utils.rotation_utils as rotation_utils
+import salve.utils.zorder_utils as zorder_utils
+from salve.common.bevparams import BEVParams, DEFAULT_METERS_PER_PX
+from salve.common.pano_data import WDO
+from salve.common.posegraph2d import PoseGraph2d
+from salve.utils.colormap import colormap
 
 
 RED = [255, 0, 0]

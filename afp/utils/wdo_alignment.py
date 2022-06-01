@@ -33,10 +33,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.utils.overlap_utils as overlap_utils
-import afp.utils.se2_estimation as se2_estimation
-import afp.utils.sim3_estimation as sim3_estimation
-from afp.common.pano_data import PanoData, WDO
+import salve.utils.overlap_utils as overlap_utils
+import salve.utils.se2_estimation as se2_estimation
+import salve.utils.sim3_estimation as sim3_estimation
+from salve.common.pano_data import PanoData, WDO
 
 
 # (smaller width) / (larger width) must be greater than 0.65 / 1.0 for inferred data.

@@ -10,8 +10,8 @@ import rdp
 from argoverse.utils.sim2 import Sim2
 from gtsam import Pose2, Rot2
 
-import afp.utils.axis_alignment_utils as axis_alignment_utils
-import afp.utils.rotation_utils as rotation_utils
+import salve.utils.axis_alignment_utils as axis_alignment_utils
+import salve.utils.rotation_utils as rotation_utils
 
 
 def test_determine_dominant_rotation_angle_manhattanroom1() -> None:

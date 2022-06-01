@@ -5,7 +5,7 @@ ray from camera to W/D/O midpoint.
 
 import numpy as np
 
-from afp.common.pano_data import WDO
+from salve.common.pano_data import WDO
 
 
 def compute_width_uncertainty(pano_wd: WDO) -> float:

@@ -13,11 +13,11 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point3, Point3Pairs, Pose2, Similarity3
 
-import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
-import afp.utils.rotation_utils as rotation_utils
-from afp.common.edgewdopair import EdgeWDOPair
-from afp.common.pano_data import PanoData
-from afp.common.posegraph2d import PoseGraph2d
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+import salve.utils.rotation_utils as rotation_utils
+from salve.common.edgewdopair import EdgeWDOPair
+from salve.common.pano_data import PanoData
+from salve.common.posegraph2d import PoseGraph2d
 
 # RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"

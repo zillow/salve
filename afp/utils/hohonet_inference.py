@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 # refers to the HoHoNet repo
-from afp.utils.infer_depth import infer_depth
+from salve.utils.infer_depth import infer_depth
 
 
 

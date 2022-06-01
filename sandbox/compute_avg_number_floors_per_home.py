@@ -8,7 +8,7 @@ from pathlib import Path
 import argoverse.utils.json_utils as json_utils
 import numpy as np
 
-from afp.dataset.zind_partition import DATASET_SPLITS
+from salve.dataset.zind_partition import DATASET_SPLITS
 
 
 def count_floor_stats_per_home():

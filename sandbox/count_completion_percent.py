@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from afp.dataset.zind_partition import DATASET_SPLITS
+from salve.dataset.zind_partition import DATASET_SPLITS
 
 
 EPS = 1e-10

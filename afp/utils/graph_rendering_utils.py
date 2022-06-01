@@ -8,10 +8,10 @@ from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 import networkx as nx
 
-import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
-from afp.algorithms.cycle_consistency import TwoViewEstimationReport
-from afp.common.edge_classification import EdgeClassification
-from afp.common.posegraph2d import PoseGraph2d
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+from salve.algorithms.cycle_consistency import TwoViewEstimationReport
+from salve.common.edge_classification import EdgeClassification
+from salve.common.posegraph2d import PoseGraph2d
 
 # colors that can be used for coloring nodes or edges
 PLUM1 = [173, 127, 168]

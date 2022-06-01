@@ -18,13 +18,13 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from shapely.geometry import LineString
 
-import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
-import afp.utils.logger_utils as logger_utils
-import afp.utils.rotation_utils as rotation_utils
-import afp.utils.wdo_alignment as wdo_alignment_utils
-from afp.common.pano_data import FloorData, PanoData
-from afp.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
-from afp.common.posegraph2d import REDTEXT, ENDCOLOR
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+import salve.utils.logger_utils as logger_utils
+import salve.utils.rotation_utils as rotation_utils
+import salve.utils.wdo_alignment as wdo_alignment_utils
+from salve.common.pano_data import FloorData, PanoData
+from salve.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
+from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
 HEADER = "\033[95m"

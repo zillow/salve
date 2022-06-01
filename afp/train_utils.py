@@ -11,12 +11,12 @@ from mseg_semantic.utils.avg_meter import AverageMeter
 from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
 from torch import nn, Tensor
 
-import afp.utils.transform as transform
-from afp.models.early_fusion import EarlyFusionCEResnet
-from afp.utils.logger_utils import get_logger
+import salve.utils.transform as transform
+from salve.models.early_fusion import EarlyFusionCEResnet
+from salve.utils.logger_utils import get_logger
 
-from afp.training_config import TrainingConfig
-from afp.dataset.zind_data import ZindData
+from salve.training_config import TrainingConfig
+from salve.dataset.zind_data import ZindData
 
 
 # logger = get_logger()

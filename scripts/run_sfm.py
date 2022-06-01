@@ -19,23 +19,23 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Point3Pairs, Pose2, Rot2, Similarity3
 
-import afp.algorithms.cycle_consistency as cycle_utils
-import afp.algorithms.pose2_slam as pose2_slam
-import afp.algorithms.rotation_averaging as rotation_averaging
-import afp.algorithms.spanning_tree as spanning_tree
-import afp.common.edge_classification as edge_classification
-import afp.common.floor_reconstruction_report as floor_reconstruction_report
-import afp.common.posegraph2d as posegraph2d
-import afp.utils.axis_alignment_utils as axis_alignment_utils
-import afp.utils.graph_utils as graph_utils
-import afp.utils.graph_rendering_utils as graph_rendering_utils
-import afp.utils.rotation_utils as rotation_utils
-import afp.utils.pr_utils as pr_utils
-from afp.algorithms.cycle_consistency import TwoViewEstimationReport
-from afp.common.edge_classification import EdgeClassification
-from afp.common.edgewdopair import EdgeWDOPair
-from afp.common.floor_reconstruction_report import FloorReconstructionReport
-from afp.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
+import salve.algorithms.cycle_consistency as cycle_utils
+import salve.algorithms.pose2_slam as pose2_slam
+import salve.algorithms.rotation_averaging as rotation_averaging
+import salve.algorithms.spanning_tree as spanning_tree
+import salve.common.edge_classification as edge_classification
+import salve.common.floor_reconstruction_report as floor_reconstruction_report
+import salve.common.posegraph2d as posegraph2d
+import salve.utils.axis_alignment_utils as axis_alignment_utils
+import salve.utils.graph_utils as graph_utils
+import salve.utils.graph_rendering_utils as graph_rendering_utils
+import salve.utils.rotation_utils as rotation_utils
+import salve.utils.pr_utils as pr_utils
+from salve.algorithms.cycle_consistency import TwoViewEstimationReport
+from salve.common.edge_classification import EdgeClassification
+from salve.common.edgewdopair import EdgeWDOPair
+from salve.common.floor_reconstruction_report import FloorReconstructionReport
+from salve.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
 
 
 def get_conf_thresholded_edges(
