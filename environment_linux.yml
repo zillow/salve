@@ -44,4 +44,5 @@ dependencies:
     - open3d
     - networkx>=2.6.3
     - pytest-cov
+    - gtsam==4.2a7
 
