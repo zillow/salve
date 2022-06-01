@@ -53,13 +53,18 @@ img_pairs = [
 	# 	"/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout/incorrect_alignment/0003/pair_10011___door_0_0_identity_floor_rgb_floor_01_partial_room_13_pano_102.jpg",
 	# 	"/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout/incorrect_alignment/0003/pair_10011___door_0_0_identity_floor_rgb_floor_01_partial_room_16_pano_38.jpg"
 	# )
+	# (
+	# 	"/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout/incorrect_alignment/0003/pair_11023___door_0_0_identity_floor_rgb_floor_01_partial_room_24_pano_3.jpg",
+	# 	"/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout/incorrect_alignment/0003/pair_11023___door_0_0_identity_floor_rgb_floor_01_partial_room_11_pano_71.jpg"
+	# )
 	(
-		"/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout/incorrect_alignment/0003/pair_11023___door_0_0_identity_floor_rgb_floor_01_partial_room_24_pano_3.jpg",
-		"/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout/incorrect_alignment/0003/pair_11023___door_0_0_identity_floor_rgb_floor_01_partial_room_11_pano_71.jpg"
+		"/Users/johnlambert/Downloads/0715_teaser/pair_11___opening_1_0_rotated_floor_rgb_floor_01_partial_room_09_pano_0.jpg",
+		"/Users/johnlambert/Downloads/0715_teaser/pair_11___opening_1_0_rotated_floor_rgb_floor_01_partial_room_04_pano_3.jpg"
 	)
 ]
 
-blended_img_save_fpath = "/Users/johnlam/Downloads/incorrect_alignment_0003_pair_11023___door_0_0_identity_floor_rgb_floor_01_pano3_pano71.jpg"
+blended_img_save_fpath = "0715_teaser_pair_11___opening_1_0_rotated_floor_rgb_floor_01_partial_room_09_pano_0_pano3.jpg"
+#blended_img_save_fpath = "/Users/johnlam/Downloads/incorrect_alignment_0003_pair_11023___door_0_0_identity_floor_rgb_floor_01_pano3_pano71.jpg"
 #blended_img_save_fpath = "/Users/johnlam/Downloads/incorrect_alignment_0003_pair_10011___door_0_0_identity_floor_rgb_floor_01_pano38_pano102.jpg"
 
 # /Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout/gt_alignment_approx/0068/pair_90___door_0_1_rotated_floor_rgb_floor_01_partial_room_07_pano_31.jpg
