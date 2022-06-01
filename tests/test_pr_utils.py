@@ -1,12 +1,12 @@
-
+""" """
 
 from pathlib import Path
 from typing import List
 
 import numpy as np
 
-import afp.utils.pr_utils as pr_utils
-from afp.common.edge_classification import EdgeClassification
+import salve.utils.pr_utils as pr_utils
+from salve.common.edge_classification import EdgeClassification
 
 
 def make_dummy_edge_classification(prob: float, y_hat: int, y_true: int) -> EdgeClassification:

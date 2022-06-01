@@ -3,7 +3,7 @@
 
 import numpy as np
 
-import afp.utils.rotation_utils as rotation_utils
+import salve.utils.rotation_utils as rotation_utils
 
 
 def test_rotmat2d() -> None:

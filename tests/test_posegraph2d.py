@@ -6,9 +6,9 @@ import numpy as np
 from argoverse.utils.sim2 import Sim2
 from gtsam import Pose3, Rot3, Similarity3
 
-import afp.common.posegraph2d as posegraph2d
-import afp.utils.rotation_utils as rotation_utils
-from afp.common.posegraph2d import PoseGraph2d
+import salve.common.posegraph2d as posegraph2d
+import salve.utils.rotation_utils as rotation_utils
+from salve.common.posegraph2d import PoseGraph2d
 
 
 def test_convert_Sim3_to_Sim2() -> None:

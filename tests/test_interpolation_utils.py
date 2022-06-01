@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import afp.utils.interpolation_utils as interpolation_utils
+import salve.utils.interpolation_utils as interpolation_utils
 
 
 def test_interp_dense_grid_from_sparse_collinear() -> None:

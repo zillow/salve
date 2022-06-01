@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import gtsfm.visualization.open3d_vis_utils as open3d_vis_utils
 from gtsam import Cal3Bundler
 
-import afp.baselines.opensfm as opensfm_utils
+import salve.baselines.opensfm as opensfm_utils
 
 
 SKYDIO_32_FNAMES = [

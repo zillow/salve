@@ -3,7 +3,7 @@
 
 import numpy as np
 
-import afp.utils.iou_utils as iou_utils
+import salve.utils.iou_utils as iou_utils
 
 
 def test_texture_map_iou() -> None:

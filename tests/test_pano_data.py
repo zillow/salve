@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from afp.common.pano_data import WDO
+from salve.common.pano_data import WDO
 
 
 def test_get_wd_normal_2d() -> None:
