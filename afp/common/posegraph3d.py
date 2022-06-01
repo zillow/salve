@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 from gtsam import Pose3
 
-from afp.common.posegraph2d import PoseGraph2d
+from salve.common.posegraph2d import PoseGraph2d
 
 
 @dataclass

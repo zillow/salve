@@ -10,13 +10,13 @@ import argoverse.utils.json_utils as json_utils
 import matplotlib.pyplot as plt
 import numpy as np
 
-import afp.dataset.hnet_prediction_loader as hnet_prediction_loader
-import afp.utils.bev_rendering_utils as bev_rendering_utils
-import afp.utils.iou_utils as iou_utils
-from afp.common.bevparams import BEVParams
-from afp.common.posegraph2d import PoseGraph2d
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+import salve.utils.bev_rendering_utils as bev_rendering_utils
+import salve.utils.iou_utils as iou_utils
+from salve.common.bevparams import BEVParams
+from salve.common.posegraph2d import PoseGraph2d
 
-import afp.utils.graph_utils as graph_utils
+import salve.utils.graph_utils as graph_utils
 
 EPS = 1e-10
 

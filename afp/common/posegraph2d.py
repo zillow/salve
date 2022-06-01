@@ -19,9 +19,9 @@ from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Pose3, Similarity3
 from scipy.spatial.transform import Rotation
 
-import afp.utils.ransac as ransac
-import afp.utils.rotation_utils as rotation_utils
-from afp.common.pano_data import FloorData, PanoData
+import salve.utils.ransac as ransac
+import salve.utils.rotation_utils as rotation_utils
+from salve.common.pano_data import FloorData, PanoData
 
 try:
     import afp.visualization.utils

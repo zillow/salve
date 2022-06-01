@@ -15,10 +15,10 @@ import argoverse.utils.subprocess_utils as subprocess_utils
 import numpy as np
 from gtsam import Rot3, Pose3
 
-from afp.baselines.sfm_reconstruction import SfmReconstruction
-from afp.common.posegraph2d import REDTEXT, ENDCOLOR
-from afp.dataset.zind_partition import DATASET_SPLITS
-from afp.utils.function_timeout import timeout
+from salve.baselines.sfm_reconstruction import SfmReconstruction
+from salve.common.posegraph2d import REDTEXT, ENDCOLOR
+from salve.dataset.zind_partition import DATASET_SPLITS
+from salve.utils.function_timeout import timeout
 
 
 OPENMVG_SFM_BIN = "/Users/johnlam/Downloads/openMVG_Build/Darwin-x86_64-RELEASE"

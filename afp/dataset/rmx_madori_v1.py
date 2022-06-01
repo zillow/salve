@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rdp
 
-from afp.common.pano_data import PanoData, WDO
-from afp.common.posegraph2d import PoseGraph2d
-import afp.utils.zind_pano_utils as zind_pano_utils
+from salve.common.pano_data import PanoData, WDO
+from salve.common.posegraph2d import PoseGraph2d
+import salve.utils.zind_pano_utils as zind_pano_utils
 
 
 RAMER_DOUGLAS_PEUCKER_EPSILON = 0.02
@@ -22,7 +22,7 @@ RED = (1.0, 0, 0)
 GREEN = (0, 1.0, 0)
 BLUE = (0, 0, 1.0)
 
-# in accordance with color scheme in afp/common/pano_data.py
+# in accordance with color scheme in salve/common/pano_data.py
 WINDOW_COLOR = RED
 DOOR_COLOR = GREEN
 OPENING_COLOR = BLUE

@@ -11,8 +11,8 @@ import argoverse.utils.json_utils as json_utils
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.common.posegraph2d as posegraph2d
-#import afp.utils.pr_utils as pr_utils # TODO: introduces a dependency cycle, need to refactor
+import salve.common.posegraph2d as posegraph2d
+#import salve.utils.pr_utils as pr_utils # TODO: introduces a dependency cycle, need to refactor
 
 
 @dataclass(frozen=False)

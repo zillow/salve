@@ -7,7 +7,7 @@ from typing import Optional
 import torch
 from torch import nn, Tensor
 
-from afp.models.resnet_factory import get_vanilla_resnet_model, get_resnet_feature_dim
+from salve.models.resnet_factory import get_vanilla_resnet_model, get_resnet_feature_dim
 
 
 class EarlyFusionCEResnet(nn.Module):

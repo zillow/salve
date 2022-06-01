@@ -19,7 +19,7 @@ import numpy as np
 import open3d
 from gtsam import Rot3, Pose3
 
-import afp.utils.bev_rendering_utils as bev_rendering_utils
+import salve.utils.bev_rendering_utils as bev_rendering_utils
 
 
 def xyzrgb_to_open3d_point_cloud(xyzrgb: np.ndarray) -> open3d.geometry.PointCloud:

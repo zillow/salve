@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.sim2 import Sim2
 
-import afp.utils.rotation_utils as rotation_utils
+import salve.utils.rotation_utils as rotation_utils
 
 
 RED = [1, 0, 0]

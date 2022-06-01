@@ -12,8 +12,8 @@ import imageio
 from torch.utils.data import Dataset
 from torch import Tensor
 
-from afp.dataset.zind_partition import DATASET_SPLITS, OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
-from afp.training_config import TrainingConfig
+from salve.dataset.zind_partition import DATASET_SPLITS, OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
+from salve.training_config import TrainingConfig
 
 
 TRAIN_SPLIT_FRACTION = 0.85

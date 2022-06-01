@@ -7,7 +7,7 @@ Taken from https://github.com/zillow/zind/blob/main/zind_partition.json
 from pathlib import Path
 from typing import List
 
-import afp.utils.csv_utils as csv_utils
+import salve.utils.csv_utils as csv_utils
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 

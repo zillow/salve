@@ -14,8 +14,8 @@ import numpy as np
 import scipy
 from argoverse.utils.sim2 import Sim2
 
-import afp.utils.rotation_utils as rotation_utils
-from afp.common.posegraph2d import REDTEXT, ENDCOLOR
+import salve.utils.rotation_utils as rotation_utils
+from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 
 logger = logger_utils.get_logger()
 

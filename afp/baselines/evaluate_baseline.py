@@ -19,17 +19,17 @@ import numpy as np
 import argoverse.utils.json_utils as json_utils
 from gtsam import Pose3, Rot3
 
-import afp.baselines.opensfm as opensfm_utils
-import afp.baselines.openmvg as openmvg_utils
-import afp.common.floor_reconstruction_report as floor_reconstruction_report
-import afp.common.posegraph2d as posegraph2d
-import afp.dataset.zind_partition as zind_partition
-import afp.utils.ransac as ransac
-from afp.baselines.openmvg import OPENMVG_DEMO_ROOT
-from afp.common.floor_reconstruction_report import FloorReconstructionReport
-from afp.common.posegraph3d import PoseGraph3d
-from afp.dataset.zind_partition import DATASET_SPLITS
-from afp.utils.logger_utils import get_logger
+import salve.baselines.opensfm as opensfm_utils
+import salve.baselines.openmvg as openmvg_utils
+import salve.common.floor_reconstruction_report as floor_reconstruction_report
+import salve.common.posegraph2d as posegraph2d
+import salve.dataset.zind_partition as zind_partition
+import salve.utils.ransac as ransac
+from salve.baselines.openmvg import OPENMVG_DEMO_ROOT
+from salve.common.floor_reconstruction_report import FloorReconstructionReport
+from salve.common.posegraph3d import PoseGraph3d
+from salve.dataset.zind_partition import DATASET_SPLITS
+from salve.utils.logger_utils import get_logger
 
 try:
     import afp.visualization.utils as vis_utils

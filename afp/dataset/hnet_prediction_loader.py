@@ -13,14 +13,14 @@ import cv2
 import imageio
 import matplotlib.pyplot as plt
 
-import afp.common.floor_reconstruction_report as floor_reconstruction_report
-import afp.common.posegraph2d as posegraph2d
-import afp.dataset.zind_data as zind_data
-import afp.utils.csv_utils as csv_utils
-from afp.common.posegraph2d import PoseGraph2d
-from afp.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
-from afp.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
-from afp.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
+import salve.common.floor_reconstruction_report as floor_reconstruction_report
+import salve.common.posegraph2d as posegraph2d
+import salve.dataset.zind_data as zind_data
+import salve.utils.csv_utils as csv_utils
+from salve.common.posegraph2d import PoseGraph2d
+from salve.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
+from salve.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
+from salve.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
 # Path to batch of unzipped prediction files, from Yuguang
 # RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
