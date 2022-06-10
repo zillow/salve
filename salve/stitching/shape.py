@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import math
 from matplotlib.figure import Figure
@@ -13,6 +13,7 @@ from shapely.geometry import Point, Polygon
 from shapely.ops import cascaded_union
 from tqdm import tqdm
 
+import salve.stitching.transform as transform_utils
 from salve.stitching.constants import DEFAULT_CAMERA_HEIGHT
 from salve.stitching.draw import (
     draw_camera_in_top_down_canvas,
@@ -22,17 +23,17 @@ from salve.stitching.draw import (
 )
 from salve.stitching.models.feature2d import Feature2dU, Feature2dXy
 from salve.stitching.models.locations import Point2d
-from salve.stitching.transform import (
-    uv_to_xy,
-    uv_to_xy_batch,
-    project_xy_by_pose,
-    reproject_uvs_to,
-    transform_xy_by_pose,
-    xy_to_uv,
-)
 
 
 def generate_shapely_polygon_from_room_shape_vertices(vertices: List[dict]) -> Polygon:
+    """TODO
+
+    Args:
+        vertices: TODO
+
+    Returns:
+        Polygon representing ...
+    """
     xys = []
     for vertex in vertices:
         xys.append([vertex["x"], vertex["y"]])
@@ -40,6 +41,14 @@ def generate_shapely_polygon_from_room_shape_vertices(vertices: List[dict]) -> P
 
 
 def extract_coordinates_from_shapely_polygon(shape: Polygon) -> List[Point2d]:
+    """TODO:
+
+    Args:
+        shape:
+
+    Returns:
+        coords:
+    """
     coords = []
     xys = shape.boundary.xy
     for i in range(len(xys[0])):
@@ -48,8 +57,18 @@ def extract_coordinates_from_shapely_polygon(shape: Polygon) -> List[Point2d]:
 
 
 def load_room_shape_polygon_from_predictions(
-    room_shape_pred: dict, uncertainty=None, camera_height=DEFAULT_CAMERA_HEIGHT
+    room_shape_pred: Dict[str, Any], uncertainty=None, camera_height: float = DEFAULT_CAMERA_HEIGHT
 ) -> Polygon:
+    """TODO
+
+    Args:
+        room_shape_pred
+        uncertainty
+        camera_height
+
+    Returns:
+        Polygon representing ...
+    """
     flag = True
     xys = []
     xys_upper = []
@@ -65,15 +84,25 @@ def load_room_shape_polygon_from_predictions(
                 uvs_upper.append([corner[0] + 0.5 / 1024, corner[1] + 0.5 / 512 - uncertainty[i] / 512])
                 # uvs_lower.append([corner[0]+0.5/1024, corner[1]+0.5/512+uncertainty[i]/512])
         flag = not flag
-    xys = uv_to_xy_batch(uvs, camera_height)
+    xys = transform_utils.uv_to_xy_batch(uvs, camera_height)
     if uncertainty:
-        xys_upper = uv_to_xy_batch(uvs_upper, camera_height)
-        # xys_lower = uv_to_xy_batch(uvs_lower, camera_height)
+        xys_upper = transform_utils.uv_to_xy_batch(uvs_upper, camera_height)
+        # xys_lower = transform_utils.uv_to_xy_batch(uvs_lower, camera_height)
         return Polygon(xys), Polygon(xys_upper)
     return Polygon(xys)
 
 
-def generate_dense_shape(v_vals, uncertainty):
+def generate_dense_shape(v_vals: List[Any], uncertainty: Any) -> Tuple[Any, Any]:
+    """TODO
+
+    Args:
+        v_vals:
+        uncertainty:
+
+    Returns:
+        polygon:
+        distances:
+    """
     vs = np.asarray(v_vals) / 512
     us = np.asarray(range(1024)) / 1024
     uvs = [[us[i], vs[i]] for i in range(1024)]
@@ -86,7 +115,16 @@ def generate_dense_shape(v_vals, uncertainty):
     return polygon, distances
 
 
-def group_panos_by_room(predictions, location_panos):
+def group_panos_by_room(predictions: Any, location_panos: Any) -> List[Any]:
+    """
+
+    Args:
+        predictions:
+        location_panos:
+
+    Returns:
+        groups:
+    """
     print("Running pano grouping by room ... ")
     shapes_global = {}
     graph = nx.Graph()
@@ -96,7 +134,7 @@ def group_panos_by_room(predictions, location_panos):
         xys_transformed = []
         xys = extract_coordinates_from_shapely_polygon(shape)
         for xy in xys:
-            xys_transformed.append(transform_xy_by_pose(xy, pose))
+            xys_transformed.append(transform_utils.transform_xy_by_pose(xy, pose))
         shape_global = Polygon([[xy.x, xy.y] for xy in xys_transformed])
         shapes_global[panoid] = shape_global
         graph.add_node(panoid)
@@ -119,7 +157,22 @@ def group_panos_by_room(predictions, location_panos):
     return groups
 
 
-def refine_shape_group_start_with(group, start_id, predicted_shapes, wall_confidences, location_panos):
+def refine_shape_group_start_with(
+    group: Any, start_id: Any, predicted_shapes: Any, wall_confidences: Any, location_panos: Any
+) -> Tuple[Any, Any]:
+    """TODO
+
+    Args:
+        group: TODO
+        start_id: TODO
+        predicted_shapes: TODO
+        wall_confidences: TODO
+        location_panos: TODO
+
+    Returns:
+        xys1_final: TODO
+        conf1_final: TODO
+    """
     RES = 512
     original_us = np.arange(0.5 / RES, (RES + 0.5) / RES, 1.0 / RES)
     panoid = start_id
@@ -130,7 +183,7 @@ def refine_shape_group_start_with(group, start_id, predicted_shapes, wall_confid
     wall_conf0 = wall_confidences[panoid]
     uvs0 = []
     for xy0 in xys0:
-        uvs0.append(xy_to_uv(xy0, DEFAULT_CAMERA_HEIGHT))
+        uvs0.append(transform_utils.xy_to_uv(xy0, DEFAULT_CAMERA_HEIGHT))
 
     # fig = Figure()
     # axis = fig.add_subplot(1, 1, 1)
@@ -151,24 +204,24 @@ def refine_shape_group_start_with(group, start_id, predicted_shapes, wall_confid
         xys1_projected = []
         uvs1_projected = []
         for xy1 in xys1:
-            xy1_transformed = transform_xy_by_pose(xy1, pose1)
-            xy1_projected = project_xy_by_pose(xy1_transformed, pose0)
+            xy1_transformed = transform_utils.transform_xy_by_pose(xy1, pose1)
+            xy1_projected = transform_utils.project_xy_by_pose(xy1_transformed, pose0)
             xys1_projected.append(xy1_projected)
-            uvs1_projected.append(xy_to_uv(xy1_projected, DEFAULT_CAMERA_HEIGHT))
+            uvs1_projected.append(transform_utils.xy_to_uv(xy1_projected, DEFAULT_CAMERA_HEIGHT))
 
         xys1_projected = [[xy.x, xy.y] for xy in xys1_projected]
         polygon_global = Polygon(xys1_projected)
         if not polygon_global.contains(Point(0, 0)):
             continue
 
-        final_vs, final_cs = reproject_uvs_to(uvs1_projected, wall_conf1, panoid_1, start_id)
+        final_vs, final_cs = transform_utils.reproject_uvs_to(uvs1_projected, wall_conf1, panoid_1, start_id)
 
         final_vs_all[panoid_1] = final_vs
         final_cs_all[panoid_1] = final_cs
 
         xys_render = []
         for i, u in enumerate(original_us):
-            xy_render = uv_to_xy(Point2d(x=u, y=final_vs[i]), DEFAULT_CAMERA_HEIGHT)
+            xy_render = transform_utils.uv_to_xy(Point2d(x=u, y=final_vs[i]), DEFAULT_CAMERA_HEIGHT)
             xys_render.append(xy_render)
 
     #     color = colors[panoid_1] if panoid_1 in colors else 'red'
@@ -192,7 +245,7 @@ def refine_shape_group_start_with(group, start_id, predicted_shapes, wall_confid
             if current_c > final_cs_all[panoid_new][i] and final_vs_all[panoid_new][i] != 0:
                 v = final_vs_all[panoid_new][i]
                 current_c = final_cs_all[panoid_new][i]
-        xy1_final = uv_to_xy(Point2d(x=u, y=v), DEFAULT_CAMERA_HEIGHT)
+        xy1_final = transform_utils.uv_to_xy(Point2d(x=u, y=v), DEFAULT_CAMERA_HEIGHT)
         xys1_final.append(Point2d(x=xy1_final.x, y=xy1_final.y))
         if (
             i > 0
@@ -208,7 +261,29 @@ def refine_shape_group_start_with(group, start_id, predicted_shapes, wall_confid
     return xys1_final, conf1_final
 
 
-def refine_predicted_shape(groups, predicted_shapes, wall_confidences, location_panos, cluster_dir, tour_dir=None):
+def refine_predicted_shape(
+    groups: Any,
+    predicted_shapes: Any,
+    wall_confidences: Any,
+    location_panos: Any,
+    cluster_dir: Any,
+    tour_dir: Any = None,
+) -> Tuple[Any, Any, Any]:
+    """TODO
+
+    Args:
+        groups: TODO
+        predicted_shapes: TODO
+        wall_confidences: TODO
+        location_panos: TODO
+        cluster_dir: TODO
+        tour_dir: TODO
+
+    Returns:
+        shape_fused_by_cluster: TODO
+        fig2: TODO
+        Cascaded union of ...
+    """
     fig2 = Figure()
     axis2 = fig2.add_subplot(1, 2, 1)
 
@@ -250,7 +325,7 @@ def refine_predicted_shape(groups, predicted_shapes, wall_confidences, location_
 
             xys_fused_transformed = []
             for xy in xys_fused:
-                xys_fused_transformed.append(transform_xy_by_pose(xy, pose0))
+                xys_fused_transformed.append(transform_utils.transform_xy_by_pose(xy, pose0))
             shapes.append(Polygon([[xy.x, xy.y] for xy in xys_fused_transformed]))
 
             # draw_shape_in_top_down_canvas(axis, xys_fused, 'black', pose=pose0)

@@ -1,13 +1,22 @@
 """ TODO: ADD DOCSTRING """
 
 from copy import deepcopy
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from salve.stitching.constants import WDO_CODE
 from salve.stitching.models.feature2d import Feature2dU
 
 
-def get_dwo_edge_feature2ds_from_prediction(preds: dict, height: float) -> List[List[Feature2dU]]:
+def get_dwo_edge_feature2ds_from_prediction(preds: Dict[str, Any], height: float) -> List[List[Feature2dU]]:
+    """TODO
+
+    Args:
+        preds: TODO
+        height: TODO
+
+    Returns:
+        features: TODO
+    """
     features = []
     for wdo in preds["wdo"][0]:
         type = WDO_CODE[int(wdo[0]) - 1]

@@ -1,10 +1,19 @@
 """ TODO: ADD DOCSTRING """
 
-from copy import deepcopy
 import math
+from copy import deepcopy
+from typing import Any
 
 
-def convert_floor_map_to_localization_cluster(floor_map_object):
+def convert_floor_map_to_localization_cluster(floor_map_object: Any) -> Any:
+    """TODO
+
+    Args:
+        floor_map_object: TODO
+
+    Returns:
+       clusters_all: TODO
+    """
     clusters_all = []
     for fsid, floor_shape in floor_map_object.data["floor_shapes"].items():
         clusters = {}
@@ -23,7 +32,16 @@ def convert_floor_map_to_localization_cluster(floor_map_object):
     return clusters_all
 
 
-def align_pred_poses_with_gt(floor_map_object, cluster):
+def align_pred_poses_with_gt(floor_map_object: Any, cluster: Any) -> Any:
+    """We align two pose graphs by SE(2), not Sim(2), setting first pose of each to the same pose??
+
+    Args:
+        floor_map_object: TODO
+        cluster: TODO
+
+    Returns:
+        new_cluster:
+    """
     cluster_gt = {}
     for panoid in cluster["panos"]:
         pose_gt = floor_map_object.get_pano_global_pose(panoid)
@@ -63,3 +81,12 @@ def align_pred_poses_with_gt(floor_map_object, cluster):
         }
 
     return new_cluster
+
+
+def test_align_pred_poses_with_gt() -> None:
+    """ """
+    floor_map_object = None
+    cluster = None
+    new_cluster = align_pred_poses_with_gt(floor_map_object=floor_map_object, cluster=cluster)
+    assert False
+

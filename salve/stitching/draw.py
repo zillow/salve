@@ -1,9 +1,10 @@
 """ TODO: ADD DOCSTRING """
 
-from typing import List
+from typing import Any, Dict, List, Optional, Tuple
 
 import math
 import matplotlib
+import matplotlib.pyplot as plt
 from matplotlib.axes import SubplotBase
 from matplotlib.figure import Figure
 from shapely.geometry import Point, Polygon
@@ -48,7 +49,15 @@ TANGO_COLOR_PALETTE = [
 ]
 
 
-def draw_dwo_xy_top_down_canvas(axis, fig, filename, dwos_cluster_all):
+def draw_dwo_xy_top_down_canvas(axis: plt.Axes, fig, filename: str, dwos_cluster_all: Dict[int, Any]) -> None:
+    """TODO
+
+    Args:
+        axis: TODO
+        fig: TODO
+        filename: TODO
+        dwos_cluster_all: TODO
+    """
     colors = {
         "door": "red",
         "window": "blue",
@@ -58,7 +67,6 @@ def draw_dwo_xy_top_down_canvas(axis, fig, filename, dwos_cluster_all):
         for dwo in dwos:
             x = [dwo[0].x, dwo[1].x]
             y = [dwo[0].y, dwo[1].y]
-            # import pdb; pdb.set_trace()
             axis.plot(x, y, color=colors[dwo[2]], linewidth=0.8)
 
     axis.set_aspect("equal")
@@ -66,8 +74,23 @@ def draw_dwo_xy_top_down_canvas(axis, fig, filename, dwos_cluster_all):
 
 
 def draw_shape_in_top_down_canvas(
-    axis: SubplotBase, xys: List[Feature2dXy], color: str, confidences=None, pose: Pose = ORIGIN_POSE, linewidth=2
-):
+    axis: SubplotBase,
+    xys: List[Feature2dXy],
+    color: str,
+    confidences: Optional[List[float]] = None,
+    pose: Pose = ORIGIN_POSE,
+    linewidth: float = 2,
+) -> None:
+    """TODO:
+
+    Args:
+        axis: TODO
+        xys: TODO
+        color: TODO
+        confidences: TODO
+        pose: TODO
+        linewidth: TODO
+    """
     if pose:
         xys_transformed = []
         for xy in xys:
@@ -104,7 +127,17 @@ def draw_shape_in_top_down_canvas(
             #     axis.plot(x[i:(i+2)], y[i:(i+2)], color='white', linewidth=linewidth)
 
 
-def draw_shape_in_top_down_canvas_fill(axis: SubplotBase, xys: List[Feature2dXy], color: str, pose: Pose = ORIGIN_POSE):
+def draw_shape_in_top_down_canvas_fill(
+    axis: SubplotBase, xys: List[Feature2dXy], color: str, pose: Pose = ORIGIN_POSE
+) -> None:
+    """TODO
+
+    Args:
+        axis: TODO
+        xys: TODO
+        color: TODO
+        pose: TODO
+    """
     if pose:
         xys_transformed = []
         for xy in xys:
@@ -116,13 +149,36 @@ def draw_shape_in_top_down_canvas_fill(axis: SubplotBase, xys: List[Feature2dXy]
     axis.fill(x, y, color=color)
 
 
-def draw_camera_in_top_down_canvas(axis: SubplotBase, pose: Pose, color: str, size: int = 40):
+def draw_camera_in_top_down_canvas(axis: SubplotBase, pose: Pose, color: str, size: int = 40) -> None:
+    """TODO:
+
+    Args:
+        axis: TODO
+        pose: 2d pose of a camera, as (x,y,theta).
+        color: TODO
+        size: TODO
+    """
     axis.scatter(pose.position.x, pose.position.y, s=size, facecolors="none", edgecolors=color, linewidths=1)
 
 
 def draw_all_room_shapes_with_given_poses_and_shapes(
-    filename, floor_map, panoid_refs, predictions, confidences, poses, groups
-):
+    filename: str, floor_map: Any, panoid_refs: Any, predictions: Any, confidences: Any, poses: Any, groups: Any
+) -> Tuple[plt.Axes, Figure]:
+    """TODO
+
+    Args:
+        filename:
+        floor_map:
+        panoid_refs:
+        predictions:
+        confidences:
+        poses:
+        groups:
+
+    Returns:
+        axis:
+        fig:
+    """
     floor_map_obj = FloorMapObject(floor_map)
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
@@ -142,8 +198,10 @@ def draw_all_room_shapes_with_given_poses_and_shapes(
             # draw_shape_in_top_down_canvas(axis, shape, "black", confidences=confidence, pose=pose, linewidth=0.5)
             # draw_camera_in_top_down_canvas(axis, pose, (color[0]/255, color[1]/255, color[2]/255), size=20)
 
-            draw_shape_in_top_down_canvas(axis, shape, "black", confidences=confidence, pose=pose, linewidth=0.5)
-            draw_camera_in_top_down_canvas(axis, pose, "blue", size=20)
+            draw_shape_in_top_down_canvas(
+                axis, xys=shape, color="black", confidences=confidence, pose=pose, linewidth=0.5
+            )
+            draw_camera_in_top_down_canvas(axis, pose=pose, color="blue", size=20)
 
     # axis.set_xlim([-1.1, 1.7])
     # axis.set_ylim([-1.5, 2.5])
@@ -152,7 +210,21 @@ def draw_all_room_shapes_with_given_poses_and_shapes(
     return [axis, fig]
 
 
-def draw_all_room_shapes_with_poses(filename, floor_map, panoid_refs, arkit_points=[], axis=None):
+def draw_all_room_shapes_with_poses(
+    filename: str, floor_map: Any, panoid_refs: Any, arkit_points: List[Any] = [], axis=None
+) -> Any:
+    """TODO
+
+    Args:
+        filename:
+        floor_map:
+        panoid_refs:
+        arkit_points:
+        axis:
+
+    Returns:
+        TODO
+    """
     if not axis:
         fig = Figure()
         axis = fig.add_subplot(1, 1, 1)
