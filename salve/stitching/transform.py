@@ -1,7 +1,7 @@
 """ TODO: ADD DOCSTRING """
 
 import math
-from typing import List, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import interpolate
@@ -11,12 +11,16 @@ from salve.stitching.models.locations import Point2d, Point3d, Pose
 
 
 def rotate_xys_clockwise(xys: List[Point2d], rotation_deg: float) -> List[Point2d]:
-    """
-    Rotate a list of xy coordinates around origin clockwise, by rotation_deg.
+    """Rotate a list of xy coordinates around origin clockwise, by rotation_deg.
+
     Note that FMA room shape CS is clockwise.
-    @param xys: list of xy coordinates
-    @param rotation_deg: degree
-    @return: list of rotated xy coordinates
+
+    Args:
+        xys: list of xy coordinates
+        rotation_deg: degree
+
+    Returns:
+        xys_transformed: list of rotated xy coordinates
     """
     xys_array = np.array([[xy.x, xy.y] for xy in xys])
     rotation_rad = math.radians(rotation_deg)
@@ -29,11 +33,14 @@ def rotate_xys_clockwise(xys: List[Point2d], rotation_deg: float) -> List[Point2
 
 
 def uv_to_xyz(uv: Point2d) -> Point3d:
-    """
-    Compute coordinate xyz from texture coordinate uv, assuming length of
+    """Compute coordinate xyz from texture coordinate uv, assuming length of
     vector xyz is 1. Z axis points up. Horizontal rotation goes clockwise.
-    @param uv:
-    @return xyz:
+
+    Args:
+        uv:
+
+    Returns:
+        xyz: 3d point representing ...
     """
     theta = math.pi - uv.y * math.pi
     # u = 0 is the left edge of panorama canvas. u = 0 happens when atan(x, y) = pi.
@@ -45,6 +52,14 @@ def uv_to_xyz(uv: Point2d) -> Point3d:
 
 
 def u_to_xy(u: float) -> Point2d:
+    """TODO
+
+    Args:
+        u:
+
+    Returns:
+        2d point representing ...
+    """
     # Compute xy coordinate from texture coordinate u, assuming length of
     # vector xy is 1.
     # u = 0 is the left edge of panorama canvas. u = 0 happens when atan(x, y) = pi.
@@ -53,7 +68,15 @@ def u_to_xy(u: float) -> Point2d:
 
 
 def uv_to_xy(uv: Point2d, height: float) -> Point2d:
-    # Compute coordinate xy from texture coordinate uv, given camera height.
+    """Compute coordinate xy from texture coordinate uv, given camera height.
+
+    Args:
+        uv: TODO
+        height: TODO
+
+    Returns:
+        2d point representing ....
+    """
     xyz = uv_to_xyz(uv)
     scale = -height / xyz.z
     x = xyz.x * scale
@@ -61,7 +84,15 @@ def uv_to_xy(uv: Point2d, height: float) -> Point2d:
     return Point2d(x=x, y=y)
 
 
-def uv_to_xy_batch(uvs, height: float):
+def uv_to_xy_batch(uvs: List[Any], height: float) -> List[Any]:
+    """
+    Args:
+        uvs: TODO
+        height: TODO
+
+    Returns:
+        xys: TODO
+    """
     uvs_arr = np.array(uvs)
     theta_arr = (math.pi - uvs_arr[:, 1] * math.pi).reshape(len(uvs), 1)
     phi_arr = (((uvs_arr[:, 0] + 0.5) % 1.0) * math.pi * 2.0).reshape(len(uvs), 1)
@@ -76,8 +107,15 @@ def uv_to_xy_batch(uvs, height: float):
 
 
 def xy_to_uv(xy: Point2d, height: float) -> Point2d:
-    # Compute texture coordinate uv from Cartesian coordinate xy,
-    # given camera height.
+    """Compute texture coordinate uv from Cartesian coordinate xy, given camera height.
+
+    Args:
+        xy
+        height
+
+    Returns:
+
+    """
     u = xy_to_u(xy)
     depth = np.linalg.norm((xy.x, xy.y))
     v = 1.0 - math.atan(depth / height) / math.pi
@@ -85,6 +123,15 @@ def xy_to_uv(xy: Point2d, height: float) -> Point2d:
 
 
 def transform_xy_by_pose(xy: Point2d, pose: Pose) -> Point2d:
+    """TODO
+
+    Args:
+        xy: TODO
+        pose: TODO
+
+    Returns:
+        2d point representing ....
+    """
     # Rotate clockwise around origin [0, 0] and translate by pose.position.
     rot_rad = math.radians(-pose.rotation)
     x_rot = xy.x * math.cos(rot_rad) - xy.y * math.sin(rot_rad)
@@ -95,6 +142,15 @@ def transform_xy_by_pose(xy: Point2d, pose: Pose) -> Point2d:
 
 
 def project_xy_by_pose(xy: Point2d, pose: Pose) -> Point2d:
+    """TODO:
+
+    Args:
+        xy: TODO
+        pose: TODO
+
+    Returns:
+        2d point representing
+    """
     x_translated = xy.x - pose.position.x
     y_translated = xy.y - pose.position.y
     rot_rad = math.radians(pose.rotation)
@@ -104,28 +160,42 @@ def project_xy_by_pose(xy: Point2d, pose: Pose) -> Point2d:
 
 
 def xy_to_depth(xy: Point2d) -> float:
-    """
-    Compute a xy point depth from origin.
-    @param xy: Input coordinate
-    @return: depth number value
+    """Compute a xy point depth from origin.
+
+    Args:
+        xy: Input coordinate
+
+    Returns:
+        depth number value
     """
     x, y = xy.x, xy.y
     return math.sqrt(x * x + y * y)
 
 
 def xy_to_u(xy: Point2d) -> float:
-    # Compute coordinate u from Cartesian coordinate xy.
-    # u = 0 is the left edge of panorama canvas. u = 0 happens when atan(x, y) = pi.
+    """Compute coordinate u from Cartesian coordinate xy.
+
+    Note: u = 0 is the left edge of panorama canvas. u = 0 happens when atan(x, y) = pi.
+
+    Args:
+        xy: TODO
+
+    Returns:
+        TODO
+    """
     return (math.atan2(xy.x, xy.y) / math.pi + 1.0) / 2.0
 
 
-def ray_cast_by_u(u: float, shape: Polygon) -> Union[Point2d, None]:
-    """
-    Ray cast from origin of the shape CS. The orientation of the ray is defined by u.
+def ray_cast_by_u(u: float, shape: Polygon) -> Optional[Point2d]:
+    """Ray cast from origin of the shape CS. The orientation of the ray is defined by u.
     Returns the closest intersection of the ray.
-    @param u: U coordinate to define the ray orientation
-    @param shape: Shapely polygon.
-    @return: If no hit, return None. If there's a hit, return an xy coordinate.
+
+    Args:
+        u: U coordinate to define the ray orientation
+        shape: Shapely polygon.
+
+    Returns:
+        If no hit, return None. If there's a hit, return an xy coordinate.
     """
     xy = u_to_xy(u)
     vector_from = Point([0, 0])
@@ -152,12 +222,32 @@ def ray_cast_by_u(u: float, shape: Polygon) -> Union[Point2d, None]:
 
 
 def is_point_between_line_endpoints(point: Point, line: LineString, buffer_size: float = 1e-4) -> bool:
-    # Check if a point is between the 2 endpoints of the input line segment.
-    # The checking includes a buffer zone to avoid floating error.
+    """Check if a point is between the 2 endpoints of the input line segment.
+
+    The checking includes a buffer zone to avoid floating error.
+
+    Args:
+        point: TODO
+        line: TODO
+        buffer_size: TODO
+
+    Returns:
+        Boolean indicating whether ...
+    """
     return line.distance(point) < buffer_size
 
 
-def line_segment_intersection(line1: LineString, line2: LineString, buffer_size: float = 1e-4) -> Point:
+def line_segment_intersection(line1: LineString, line2: LineString, buffer_size: float = 1e-4) -> Optional[Point]:
+    """TODO
+
+    Args:
+        line1: TODO
+        line2: TODO
+        buffer_size: TODO
+
+    Returns:
+        intersect: TODO, or None if doesn't exist.
+    """
     # TODO: Refactor this function, to not use line_intersection_infinite. Refactor to
     # extend line segment with buffer, then compute line segment intersection.
 
@@ -173,7 +263,15 @@ def line_segment_intersection(line1: LineString, line2: LineString, buffer_size:
     return None
 
 
-def line_intersection_infinite(line1_orig: LineString, line2_orig: LineString) -> Point:
+def line_intersection_infinite(line1_orig: LineString, line2_orig: LineString) -> Optional[Point]:
+    """
+    Args:
+        line1_orig
+        line2_orig
+
+    Returns:
+        intersect: TODO ... or None, if doesn't exist.
+    """
     # Extending the both walls
     MAX_POSSIBLE_LENGTH = 10000000
     p11 = Point(
@@ -201,13 +299,20 @@ def line_intersection_infinite(line1_orig: LineString, line2_orig: LineString) -
     return None
 
 
-def get_global_coords_2d_from_room_cs(pano_xy, x, y, rotation, scale=1):
+def get_global_coords_2d_from_room_cs(pano_xy: Any, x: Any, y: Any, rotation: Any, scale: float = 1) -> Any:
     """
     Generate 2D coordinates (xz) of room vertices in global CS.
     Since y axis points up, we have parameter names xzs in this function.
 
-    @param mat_global_from_floor - 3 x 3 numpy array of 2D homogeneous transformation matrix.
-    @return xzs_global - [[x1, z1], [x2, z2], ...]
+    Args:
+        pano_xy: TODO
+        x: TODO
+        y: TODO
+        rotation: TODO
+        scale: TODO
+
+    @returns:
+        xzs_floor: [[x1, z1], [x2, z2], ...] ???? (or maybe wrong)
     """
     # TODO: Change docstring style to https://google.github.io/styleguide/pyguide.html#383-functions-and-methods
     mat_floor_from_room = generate_2d_tranformation_matrix_from_room_to_floor(x, y, rotation, scale)
@@ -219,13 +324,16 @@ def get_global_coords_2d_from_room_cs(pano_xy, x, y, rotation, scale=1):
     return xzs_floor
 
 
-def gen_homogeneous_transformation_matrix_for_2d(shift, rot_rad: float, scale: float):
-    """
-    Compute the transformation matrix of applying scale -> rotation -> translation
-    on 2D homogeneous coordinate.
+def gen_homogeneous_transformation_matrix_for_2d(shift: Any, rot_rad: float, scale: float) -> np.ndarray:
+    """Compute the transformation matrix of applying scale -> rotation -> translation on 2D homogeneous coordinate.
 
-    @param shift: list of 2 elements. Tranlsation in xz direction.
-    @return mat_transform_2d: 3 x 3 numpy array
+    Args:
+        shift: list of 2 elements. Translation in xz direction.
+        rot_rad:
+        scale:
+
+    Returns:
+        mat_transform_2d: array of shape (3, 3) representing ...
     """
 
     mat_scale = np.array([[scale, 0, 0], [0, scale, 0], [0, 0, 1]])
@@ -235,13 +343,16 @@ def gen_homogeneous_transformation_matrix_for_2d(shift, rot_rad: float, scale: f
     return mat_transform_2d
 
 
-def transform_xz(mat_transform_2d: np.array, xzs):
+def transform_xz(mat_transform_2d: np.ndarray, xzs: List[Any]) -> List[Any]:
     """
     Transform 2D coordinates using input transformation matrix mat_transform_2d.
 
-    @param mat_transform_2d - 3 x 3 numpy array of 2D homogeneous transformation matrix.
-    @param xzs - list of [x, y].
-    @return xzs_tranformed - list of [x, y].
+    Args:
+        mat_transform_2d: array of shape (3, 3) representing a 2D homogeneous transformation matrix.
+        xzs: list of [x, y].
+
+    Returns:
+        xzs_tranformed: list of [x, y].
     """
     xz_array = np.ones((len(xzs), 3))
     for i, xz in enumerate(xzs):
@@ -254,14 +365,23 @@ def transform_xz(mat_transform_2d: np.array, xzs):
     return xzs_final
 
 
-def generate_2d_tranformation_matrix_from_room_to_floor(x: float, y: float, rotation: float, scale: float = 1.0):
+def generate_2d_tranformation_matrix_from_room_to_floor(
+    x: float, y: float, rotation: float, scale: float = 1.0
+) -> np.ndarray:
     """
     Generate homogeneous transformation matrix to convert 2D homogeneous
     coordinate from room_shape CS to floor_shape CS. Note that room shape is a
     left-handed CS, room shape transformation is in a right-handed CS. This function
     will have to revert the handedness.
 
-    @return mat_floor_from_room - np.array 3 x 3.
+    Args:
+        x: TODO
+        y: TODO
+        rotation: TODO
+        scale: TODO
+
+    Returns:
+        mat_floor_from_room: array of shape (3, 3).
     """
     mat_floor_from_room = gen_homogeneous_transformation_matrix_for_2d(
         [-x, y],
@@ -271,7 +391,19 @@ def generate_2d_tranformation_matrix_from_room_to_floor(x: float, y: float, rota
     return mat_floor_from_room
 
 
-def reproject_uvs_to(uvs1_projected, wall_conf1, panoid, start_id):
+def reproject_uvs_to(uvs1_projected: Any, wall_conf1: Any, panoid: Any, start_id: Any) -> Tuple[Any, Any]:
+    """TODO
+
+    Args:
+        uvs1_projected: TODO
+        wall_conf1: TODO
+        panoid: TODO
+        start_id: TODO
+
+    Returns:
+        final_vs: TODO
+        final_cs: TODO
+    """
     RES = 512
     us_projected = [uv.x for uv in uvs1_projected]
 
@@ -346,7 +478,17 @@ def reproject_uvs_to(uvs1_projected, wall_conf1, panoid, start_id):
     return final_vs, final_cs
 
 
-def ray_cast_and_generate_dwo_xy(dwo_pred, shape):
+def ray_cast_and_generate_dwo_xy(dwo_pred: Any, shape: Any) -> Tuple[Any, Any]:
+    """TODO
+
+    Args:
+        dwo_pred: TODO
+        shape: TODO
+
+    Returns:
+        xy_from: TODO
+        xy_to: TODO
+    """
     xy_from = ray_cast_by_u(dwo_pred[0], shape)
     xy_to = ray_cast_by_u(dwo_pred[1], shape)
     return [xy_from, xy_to]

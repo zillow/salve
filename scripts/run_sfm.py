@@ -12,7 +12,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
-import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
 import numpy as np

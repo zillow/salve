@@ -1,14 +1,15 @@
-
 """ TODO: ADD DOCSTRING """
 
 from copy import deepcopy
+from typing import Any, Dict, List
 
-from salve.stitching.transform import get_global_coords_2d_from_room_cs
 from salve.stitching.models.locations import Point2d, Pose
+from salve.stitching.transform import get_global_coords_2d_from_room_cs
 
 
 class FloorMapObject:
-    def __init__(self, floor_map):
+    def __init__(self, floor_map: Dict[int, Any]) -> None:
+        """TODO"""
         self.data = floor_map
         self._generate_room_shape_floor_shape_association()
         self.floor_ids_by_panoid = {}
@@ -22,13 +23,22 @@ class FloorMapObject:
                 for panoid, pano in self.data["room_shapes"][rsid]["panos"].items():
                     self.floor_ids_by_panoid[panoid] = fsid
 
-    def _generate_room_shape_floor_shape_association(self):
+    def _generate_room_shape_floor_shape_association(self) -> None:
+        """TODO"""
         self.fsids = {}
         for fsid, floor_shape in self.data["floor_shapes"].items():
             for rsid, room_shape in floor_shape["room_shapes"].items():
                 self.fsids[rsid] = fsid
 
-    def get_panoids_with_floor_number(self, number):
+    def get_panoids_with_floor_number(self, number: int) -> List[Any]:
+        """TODO
+
+        Args:
+            number:
+
+        Returns:
+            List of ...
+        """
         self.floor_numbers_by_panoid = {}
         for fsid, floor_shape in self.data["floor_shapes"].items():
             floor_number = floor_shape["floor_number"]
@@ -37,14 +47,35 @@ class FloorMapObject:
                     self.floor_numbers_by_panoid[panoid] = floor_number
         return [panoid for panoid, floor_number in self.floor_numbers_by_panoid.items() if floor_number == number]
 
-    def get_panoids_with_floor_id(self, floor_shape_id):
+    def get_panoids_with_floor_id(self, floor_shape_id: int) -> List[Any]:
+        """TODO
+
+        Args:
+            floor_shape_id
+
+        Returns:
+            List of ...
+        """
         return [panoid for panoid, floor_id in self.floor_ids_by_panoid.items() if floor_id == floor_shape_id]
 
-    def get_floor_map_scale(self):
+    def get_floor_map_scale(self) -> float:
+        """TODO:
+
+        Returns:
+            Scalar ...
+        """
         fsid_first = [*self.data["floor_shapes"].keys()][0]
         return self.data["floor_shapes"][fsid_first]["scale"]
 
     def get_pano_global_pose(self, panoid: str) -> Pose:
+        """TODO
+
+        Args:
+            panoid: TODO
+
+        Returns:
+            TODO
+        """
         room_shape_id = self.data["panos"][panoid]["room_shape_id"]
         room_shape_pano = self.data["room_shapes"][room_shape_id]["panos"][panoid]
         pose = Pose(
@@ -54,6 +85,15 @@ class FloorMapObject:
         return self.get_global_pose_from_pose_in_room_cs(room_shape_id, pose)
 
     def get_global_pose_from_pose_in_room_cs(self, room_shape_id: str, pose: Pose) -> Pose:
+        """TODO
+
+        Args:
+            room_shape_id
+            pose:
+
+        Returns:
+            Pose of
+        """
         floor_shape_id = self.fsids[room_shape_id]
         floor_shape_room_shape = self.data["floor_shapes"][floor_shape_id]["room_shapes"][room_shape_id]
         position_global = get_global_coords_2d_from_room_cs(
@@ -70,10 +110,24 @@ class FloorMapObject:
         # Not yet implemented.
         return None
 
-    def get_panoid_by_pano_order(self, order):
+    def get_panoid_by_pano_order(self, order: Any) -> Any:
+        """TODO
+
+        Returns:
+            TODO
+        """
         return self.panoids_by_order[str(order)]
 
-    def get_room_shape_global(self, room_shape_id, pose=None):
+    def get_room_shape_global(self, room_shape_id, pose=None) -> Dict[str, Any]:
+        """TODO
+
+        Args:
+            room_shape_id
+            pose:
+
+        Returns:
+            room_shape:
+        """
         room_shape_original = self.data["room_shapes"][room_shape_id]
         room_shape = deepcopy(room_shape_original)
         if pose:
