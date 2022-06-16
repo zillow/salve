@@ -7,8 +7,9 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from argoverse.utils.mesh_grid import get_mesh_grid_as_point_cloud
 import scipy.interpolate  # not quite the same as `matplotlib.mlab.griddata`
+
+from salve.utils.mesh_grid import get_mesh_grid_as_point_cloud
 
 
 # DEFAULT_KERNEL_SZ = 41

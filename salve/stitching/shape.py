@@ -1,10 +1,10 @@
 """ TODO: ADD DOCSTRING """
 
 import json
+import math
 import os
 from typing import Any, Dict, List, Tuple, Union
 
-import math
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import networkx as nx

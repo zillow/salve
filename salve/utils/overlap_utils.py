@@ -8,8 +8,20 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from argoverse.utils.interpolate import interp_arc, get_duplicate_indices_1d
-from argoverse.utils.polyline_density import get_polyline_length
 from shapely.geometry import MultiPolygon, Point, Polygon
+
+
+def get_polyline_length(polyline: np.ndarray) -> float:
+    """Calculate the length of a polyline.
+
+    Args:
+        polyline: Numpy array of shape (N,2)
+
+    Returns:
+        The length of the polyline as a scalar
+    """
+    assert polyline.shape[1] == 2
+    return float(np.linalg.norm(np.diff(polyline, axis=0), axis=1).sum())
 
 
 def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:

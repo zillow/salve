@@ -3,7 +3,7 @@
 import argparse
 import glob
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import numpy as np
 
 
@@ -19,7 +19,7 @@ def main(data_root: str) -> None:
 
     gt_fpaths = glob.glob(f"{data_root}/**/zind_data.json")
     for gt_fpath in gt_fpaths:
-        building_data = json_utils.read_json_file(gt_fpath)
+        building_data = io_utils.read_json_file(gt_fpath)
 
         scales_dict = building_data["scale_meters_per_coordinate"]
 

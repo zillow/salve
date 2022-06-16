@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=False)
 class TrainingConfig:
+    """Model training parameters."""
     lr_annealing_strategy: str
     base_lr: float
     weight_decay: float

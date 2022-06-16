@@ -6,7 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import gtsfm.utils.io as json_utils
+import gtsfm.utils.io as io_utils
 import numpy as np
 
 from salve.dataset.zind_partition import DATASET_SPLITS
@@ -45,7 +45,7 @@ def count_floor_stats_per_home(raw_dataset_dir: str):
         if not Path(json_annot_fpath).exists():
             print(f"zind_data.json file missing for {building_id}")
 
-        floor_map_json = json_utils.read_json_file(json_annot_fpath)
+        floor_map_json = io_utils.read_json_file(json_annot_fpath)
 
         if "merger" not in floor_map_json:
             print(f"\tNo merger data in {building_id}: {json_annot_fpath}")
