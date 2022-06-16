@@ -12,16 +12,17 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Pose3, Similarity3
 from scipy.spatial.transform import Rotation
 
 import salve.utils.ransac as ransac
 import salve.utils.rotation_utils as rotation_utils
 from salve.common.pano_data import FloorData, PanoData
+from salve.common.sim2 import Sim2
+
 
 try:
     import afp.visualization.utils
@@ -561,7 +562,7 @@ class PoseGraph2d(NamedTuple):
             "scale_meters_per_coordinate": {self.floor_id: self.scale_meters_per_coordinate},
             "merger": {self.floor_id: floor_merger_dict},
         }
-        json_utils.save_json_dict(save_fpath, save_dict)
+        io_utils.save_json_file(json_fpath=save_fpath, data=save_dict)
 
 
 def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
@@ -599,7 +600,7 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
     Returns:
         floor_pg_dict: mapping from floor_id to pose graph
     """
-    floor_map_json = json_utils.read_json_file(json_annot_fpath)
+    floor_map_json = io_utils.read_json_file(json_annot_fpath)
     scale_meters_per_coordinate_dict = floor_map_json["scale_meters_per_coordinate"]
 
     if "merger" not in floor_map_json:

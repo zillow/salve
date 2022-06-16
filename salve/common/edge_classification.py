@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 
+from salve.common.sim2 import Sim2
 import salve.common.posegraph2d as posegraph2d
 #import salve.utils.pr_utils as pr_utils # TODO: introduces a dependency cycle, need to refactor
 
@@ -49,7 +49,7 @@ def get_edge_classifications_from_serialized_preds(
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
     for json_fpath in json_fpaths:
 
-        json_data = json_utils.read_json_file(json_fpath)
+        json_data = io_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
         y_true_list = json_data["y_true"]
         y_hat_prob_list = json_data["y_hat_probs"]

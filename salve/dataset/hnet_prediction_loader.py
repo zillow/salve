@@ -8,8 +8,8 @@ import os
 from pathlib import Path
 from typing import Dict, Optional
 
-import argoverse.utils.json_utils as json_utils
 import cv2
+import gtsfm.utils.io as io_utils
 import imageio
 import matplotlib.pyplot as plt
 
@@ -118,7 +118,7 @@ def load_inferred_floor_pose_graphs(
             print(f"JSON file missing for {zind_building_id}")
             return None
 
-        floor_map_json = json_utils.read_json_file(floor_map_json_fpath)
+        floor_map_json = io_utils.read_json_file(floor_map_json_fpath)
         floor_pose_graphs = {}
 
         plt.figure(figsize=(20, 10))
@@ -174,7 +174,7 @@ def load_inferred_floor_pose_graphs(
                 # skip this building.
                 return None
 
-            prediction_data = json_utils.read_json_file(model_prediction_fpath)
+            prediction_data = io_utils.read_json_file(model_prediction_fpath)
 
             if model_name == "rmx-madori-v1_predictions":
                 pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])

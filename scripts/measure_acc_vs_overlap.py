@@ -6,18 +6,18 @@ import glob
 import os
 from pathlib import Path
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from argoverse.utils.sim2 import Sim2
 
 import salve.common.edge_classification as edge_classification
 import salve.common.posegraph2d as posegraph2d
 import salve.utils.iou_utils as iou_utils
 import salve.utils.rotation_utils as rotation_utils
 from salve.common.edge_classification import EdgeClassification
+from salve.common.sim2 import Sim2
 
 
 def measure_acc_vs_visual_overlap(
@@ -59,7 +59,7 @@ def measure_acc_vs_visual_overlap(
         # if json_idx > 30:
         #     continue
 
-        json_data = json_utils.read_json_file(json_fpath)
+        json_data = io_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
         y_true_list = json_data["y_true"]
         y_hat_prob_list = json_data["y_hat_probs"]
@@ -238,7 +238,7 @@ def test_measure_acc_vs_visual_overlap() -> None:
             "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_48___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_54.jpg",
         ],
     }
-    json_utils.save_json_dict(f"{serialized_preds_json_dir}/batch_126a.json", batch126a_dict)
+    io_utils.save_json_file(json_fpath=f"{serialized_preds_json_dir}/batch_126a.json", data=batch126a_dict)
 
     # last 4 entries from batch 126
     # Example 0 -- IoU 0.381, Rot Error 2.325, Trans Error 0.057
@@ -262,7 +262,7 @@ def test_measure_acc_vs_visual_overlap() -> None:
             "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/gt_alignment_approx/0668/pair_46___door_0_1_rotated_floor_rgb_floor_02_partial_room_06_pano_52.jpg",
         ],
     }
-    json_utils.save_json_dict(f"{serialized_preds_json_dir}/batch_126b.json", batch126b_dict)
+    io_utils.save_json_file(json_fpath=f"{serialized_preds_json_dir}/batch_126b.json", data=batch126b_dict)
 
     # '/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02/batch_2451.json'
     # choose just 2 pairs with known poses.
@@ -281,7 +281,7 @@ def test_measure_acc_vs_visual_overlap() -> None:
             '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_10_pano_11.jpg'
         ]
     }
-    json_utils.save_json_dict(f"{serialized_preds_json_dir}/batch_2451.json", batch2451_dict)
+    io_utils.save_json_file(json_fpath=f"{serialized_preds_json_dir}/batch_2451.json", data=batch2451_dict)
 
     
     hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"

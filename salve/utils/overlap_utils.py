@@ -7,8 +7,9 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.interpolate import interp_arc, get_duplicate_indices_1d
 from shapely.geometry import MultiPolygon, Point, Polygon
+
+from salve.utils.interpolate import interp_arc, get_duplicate_indices_1d
 
 
 def get_polyline_length(polyline: np.ndarray) -> float:
