@@ -12,11 +12,11 @@ from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
 from torch import nn, Tensor
 
 import salve.utils.transform as transform
+from salve.dataset.zind_data import ZindData
 from salve.models.early_fusion import EarlyFusionCEResnet
 from salve.utils.logger_utils import get_logger
-
 from salve.training_config import TrainingConfig
-from salve.dataset.zind_data import ZindData
+
 
 
 # logger = get_logger()

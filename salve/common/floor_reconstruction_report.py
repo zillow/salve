@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from typing import List, Optional
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -180,7 +180,7 @@ def serialize_predicted_pose_graph(
     }
     json_save_fpath = f"{plot_save_dir}_serialized/{building_id}__{floor_id}.json"
     os.makedirs(f"{plot_save_dir}_serialized", exist_ok=True)
-    json_utils.save_json_dict(json_save_fpath, save_dict)
+    io_utils.save_json_file(json_fpath=json_save_fpath, data=save_dict)
 
 
 def render_floorplans_side_by_side(

@@ -1,5 +1,4 @@
-
-"""Utilities for working with graphs"""
+"""Utilities for working with graphs."""
 
 from typing import List, Set, Tuple
 
