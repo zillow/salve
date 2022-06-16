@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import hydra
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -174,7 +174,7 @@ def save_edge_classifications_to_disk(
         "fp1": fp1,
     }
     os.makedirs(serialization_save_dir, exist_ok=True)
-    json_utils.save_json_dict(f"{serialization_save_dir}/batch_{batch_idx}.json", save_dict)
+    io_utils.save_json_file(json_fpath=f"{serialization_save_dir}/batch_{batch_idx}.json", data=save_dict)
 
 
 def visualize_examples(
@@ -267,7 +267,7 @@ def evaluate_model(
 
 def plot_metrics(json_fpath: str) -> None:
     """ """
-    json_data = json_utils.read_json_file(json_fpath)
+    json_data = io_utils.read_json_file(json_fpath)
 
     fig = plt.figure(dpi=200, facecolor="white")
     plt.style.use("ggplot")
@@ -352,7 +352,7 @@ if __name__ == "__main__":
     save_viz = False
     evaluate_model(opts.serialization_save_dir, ckpt_fpath, args, split, save_viz)
 
-    train_results_json = json_utils.read_json_file(train_results_fpath)
+    train_results_json = io_utils.read_json_file(train_results_fpath)
     val_mAccs = train_results_json["val_mAcc"]
     print("Val accs: ", val_mAccs)
     print("Num epochs trained", len(val_mAccs))

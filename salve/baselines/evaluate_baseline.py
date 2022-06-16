@@ -13,10 +13,10 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Optional, Tuple
 
-import gtsfm.utils.geometry_comparisons as geometry_comparisons
 import matplotlib.pyplot as plt
 import numpy as np
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.geometry_comparisons as geometry_comparisons
+import gtsfm.utils.io as io_utils
 from gtsam import Pose3, Rot3
 
 import salve.baselines.opensfm as opensfm_utils
@@ -105,7 +105,7 @@ def save_empty_json_results_file(results_dir: str, building_id: str, floor_id: s
     floor_results_dir = f"ZinD_{building_id}_{floor_id}__2021_12_02/result_summaries"
     os.makedirs(f"{floor_results_dir}", exist_ok=True)
     json_save_fpath = f"{results_dir}/{building_id}_{floor_id}.json"
-    json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
+    io_utils.save_json_file(json_fpath=json_save_fpath, data=floor_results_dicts)
 
 
 def measure_algorithm_localization_accuracy(
@@ -220,7 +220,7 @@ def measure_algorithm_localization_accuracy(
     summary_save_dir = f"{save_dir}/result_summaries"
     os.makedirs(summary_save_dir, exist_ok=True)
     json_save_fpath = f"{summary_save_dir}/{building_id}_{floor_id}.json"
-    json_utils.save_json_dict(json_save_fpath, floor_results_dicts)
+    io_utils.save_json_file(json_fpath=json_save_fpath, data=floor_results_dicts)
 
     assert isinstance(report, FloorReconstructionReport)
     return report
@@ -259,7 +259,7 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
 
     for json_fpath in json_fpaths:
         # each entry in the list contains info about a single CC
-        all_cc_data = json_utils.read_json_file(json_fpath)
+        all_cc_data = io_utils.read_json_file(json_fpath)
 
         # set to zero, in case the floor has no CCs, to avoid defaulting to previous variable value
         num_cameras = 0

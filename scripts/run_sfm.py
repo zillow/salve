@@ -15,7 +15,6 @@ from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Point3Pairs, Pose2, Rot2, Similarity3
 
 import salve.algorithms.cycle_consistency as cycle_utils
@@ -35,6 +34,7 @@ from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
+from salve.utils.sim2 import Sim2
 
 
 def get_conf_thresholded_edges(
@@ -670,7 +670,10 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
 
 
 if __name__ == "__main__":
-    """ """
+    """Example CLI usage:
+
+    python scripts/run_sfm.py --raw_dataset_dir ../zind_bridgeapi_2021_10_05/ --method pgo --serialized_preds_json_dir --hypotheses_save_root
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--raw_dataset_dir",
@@ -715,13 +718,13 @@ if __name__ == "__main__":
     print("Run SfM with settings:", args)
 
     run_incremental_reconstruction(
-        args.hypotheses_save_root,
-        args.serialized_preds_json_dir,
-        args.raw_dataset_dir,
-        args.method,
-        args.confidence_threshold,
-        use_axis_alignment,
-        allowed_wdo_types,
+        hypotheses_save_root=args.hypotheses_save_root,
+        serialized_preds_json_dir=args.serialized_preds_json_dir,
+        raw_dataset_dir=args.raw_dataset_dir,
+        method=args.method,
+        confidence_threshold=args.confidence_threshold,
+        use_axis_alignment=use_axis_alignment,
+        allowed_wdo_types=allowed_wdo_types,
     )
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
