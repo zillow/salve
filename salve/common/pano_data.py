@@ -17,9 +17,9 @@ from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 
 import salve.utils.rotation_utils as rotation_utils
+from salve.common.sim2 import Sim2
 
 
 RED = [1, 0, 0]

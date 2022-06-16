@@ -6,11 +6,9 @@ Can use vanishing points, PCA or polgon edge angles.
 
 from typing import Dict, Optional, Tuple
 
-import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.ellipsoid as ellipsoid_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point3, Point3Pairs, Pose2, Similarity3
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
@@ -18,6 +16,8 @@ import salve.utils.rotation_utils as rotation_utils
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.pano_data import PanoData
 from salve.common.posegraph2d import PoseGraph2d
+from salve.common.sim2 import Sim2
+
 
 # RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
@@ -262,7 +262,7 @@ def align_pair_measurement_by_vanishing_angle(
     i2r_S_i2 = Sim2(R=i2r_R_i2, t=np.zeros(2), s=1.0)
     # verts_i1_ = i2Si1_dominant.transform_from(verts_i1)
 
-    vertsi1_i2fr_r = geometry_utils.rotate_polygon_about_pt(vertsi1_i2fr, rotmat=i2r_R_i2, center_pt=i1wdocenter_i2fr)
+    vertsi1_i2fr_r = rotation_utils.rotate_polygon_about_pt(vertsi1_i2fr, rotmat=i2r_R_i2, center_pt=i1wdocenter_i2fr)
     # note: computing i2rSi2.compose(i2Si1) as:
     # and then i2rTi2 = compute_i2Ti1(pts1=vertsi1_i2fr, pts2=vertsi1_i2fr_r)
     #   DOES NOT WORK!
