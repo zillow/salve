@@ -4,9 +4,9 @@
 from typing import Optional, Tuple
 
 import numpy as np
-from argoverse.utils.sim2 import Sim2
-
 from gtsam import Rot2, Pose2
+
+from salve.common.sim2 import Sim2
 
 
 def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], np.ndarray]:

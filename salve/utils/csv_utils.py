@@ -1,4 +1,3 @@
-
 """Utilities for reading in CSV or TSV files."""
 
 import csv

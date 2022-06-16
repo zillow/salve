@@ -1,6 +1,5 @@
-"""
-Utilityfor creating 3d pose graphs.
-"""
+"""Utility for creating 3d pose graphs."""
+
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 

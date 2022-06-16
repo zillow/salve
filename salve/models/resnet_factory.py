@@ -1,7 +1,4 @@
-
-
-"""
-"""
+"""Factory functions for ResNet architectures/backbones."""
 
 from torch import nn
 from torchvision import models

@@ -10,8 +10,8 @@ import shutil
 from pathlib import Path
 from typing import List, Tuple
 
-import argoverse.utils.json_utils as json_utils
 import argoverse.utils.subprocess_utils as subprocess_utils
+import gtsfm.utils.io as io_utils
 import numpy as np
 from gtsam import Rot3, Pose3
 
@@ -46,7 +46,7 @@ def load_openmvg_reconstructions_from_json(json_fpath: str, building_id: str, fl
     Returns:
         reconstructions
     """
-    data = json_utils.read_json_file(json_fpath)
+    data = io_utils.read_json_file(json_fpath)
 
     assert data["sfm_data_version"] == "0.3"
 

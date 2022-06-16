@@ -1,7 +1,8 @@
 """Parameters for creating bird's eye view images."""
 
 import numpy as np
-from argoverse.utils.sim2 import Sim2
+
+from salve.common.sim2 import Sim2
 
 # the default resolution for rendering BEV images.
 

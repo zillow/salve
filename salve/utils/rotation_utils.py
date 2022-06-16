@@ -86,3 +86,22 @@ def angle_is_equal(angle1: float, angle2: float, atol: float) -> bool:
 
     return np.absolute(diff) <= atol
   
+
+def rotate_polygon_about_pt(pts: np.ndarray, rotmat: np.ndarray, center_pt: np.ndarray) -> np.ndarray:
+    """Rotate a polygon about a point with a given rotation matrix.
+
+    Reference: https://github.com/argoai/argoverse-api/blob/master/argoverse/utils/geometry.py#L13
+
+    Args:
+        pts: Array of shape (N, 3) representing a polygon or point cloud
+        rotmat: Array of shape (3, 3) representing a rotation matrix
+        center_pt: Array of shape (3,) representing point about which we rotate the polygon
+    
+    Returns:
+        rot_pts: Array of shape (N, 3) representing a ROTATED polygon or point cloud
+    """
+    pts -= center_pt
+    rot_pts = pts.dot(rotmat.T)
+    rot_pts += center_pt
+    return rot_pts
+
