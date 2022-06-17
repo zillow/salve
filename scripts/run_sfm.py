@@ -34,7 +34,7 @@ from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
-from salve.utils.sim2 import Sim2
+from salve.common.sim2 import Sim2
 
 
 def get_conf_thresholded_edges(

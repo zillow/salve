@@ -25,7 +25,7 @@ from salve.common.sim2 import Sim2
 
 
 try:
-    import afp.visualization.utils
+    import salve.visualization.utils
 except Exception as e:
     print("Open3D could not be loaded, skipping...")
     print("Exception: ", e)
@@ -323,12 +323,12 @@ class PoseGraph2d(NamedTuple):
         pad_len = len(aTi_list_ref) - len(bTi_list_est)
         bTi_list_est.extend([None] * pad_len)
 
-        # afp.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=bTi_list_est)
+        # salve.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=bTi_list_est)
 
         # align the pose graphs
         aligned_bTi_list_est, aSb = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
 
-        # afp.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=aligned_bTi_list_est)
+        # salve.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=aligned_bTi_list_est)
 
         # TODO(johnwlambert): assumes all nodes have the same scale, which is not true.
         random_ref_pano_id = list(ref_pose_graph.nodes.keys())[0]
