@@ -405,7 +405,7 @@ if __name__ == "__main__":
         # "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
         # "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
         default="/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
-        help="where JSON files with alignment hypotheses will be saved to.",
+        help="Directory where JSON files with alignment hypotheses will be saved to.",
     )
     parser.add_argument(
         "--wdo_source",
