@@ -40,6 +40,7 @@ dependencies:
   - torchvision
   # io
   - h5py
+  - imageio
   - pip:
     - hydra-core==1.1.0
     - rdp
