@@ -13,9 +13,9 @@ from gtsfm.common.keypoints import Keypoints
 
 # from gtsfm.common.sfm_track import SfmTrack2d
 
-from salve.common.sfm_track import SfmTrack2d
 from salve.common.edge_classification import EdgeClassification
 from salve.common.pano_data import PanoData
+from salve.common.sfm_track import SfmTrack2d
 
 
 def get_kpt_idx(wdo_idx: int, wdo_object_type: str, pano_data: PanoData) -> int:

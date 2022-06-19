@@ -1,4 +1,4 @@
-name: salve-v1
+name: salve-v3
 channels:
   # The mac environment closely follows the linux conda environment file, 
   # except for two noticeable differences: no CUDA support and no DEGENSAC support.
@@ -15,7 +15,7 @@ channels:
   - defaults
 dependencies:
   # python essentials
-  - python=3.8
+  - python==3.8
   - pip
   # formatting and dev environment
   - black
@@ -27,7 +27,7 @@ dependencies:
   - dask # same as dask[complete] pip distribution
   - python-graphviz
   # core functionality and APIs
-  - matplotlib==3.4.2
+  - matplotlib>=3.4.2
   - numpy
   - nodejs
   - pandas
@@ -35,17 +35,17 @@ dependencies:
   - scikit-learn
   - seaborn
   # 3rd party algorithms for different modules
-  - opencv=4.5.0 # preferring conda-forge's distribution as it provides the latest distribution
+  - opencv>=4.5.0 # preferring conda-forge's distribution as it provides the latest distribution
   - pytorch
   - torchvision
   # io
   - h5py
+  - imageio
   - pip:
     - hydra-core==1.1.0
-    - argoverse @ git+https://github.com/argoai/argoverse-api.git@master
     - rdp
     - yacs # for HoHoNet
-    - open3d
+    #- open3d
     - networkx>=2.6.3
     - pytest-cov
     - gtsam==4.2a7

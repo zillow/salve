@@ -10,17 +10,17 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import List, Optional
 
-import argoverse.utils.json_utils as json_utils
 import cv2
+import gtsfm.utils.io as io_utils
 import imageio
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 
 import salve.common.posegraph2d as posegraph2d
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.bev_rendering_utils as bev_rendering_utils
 import salve.utils.hohonet_inference as hohonet_inference_utils
 from salve.common.posegraph2d import PoseGraph2d
+from salve.common.sim2 import Sim2
 from salve.dataset.zind_partition import DATASET_SPLITS
 
 """
@@ -252,7 +252,7 @@ def render_pairs(
         if not Path(json_annot_fpath).exists():
             print(f"zind_data.json file missing for {building_id}")
 
-        floor_map_json = json_utils.read_json_file(json_annot_fpath)
+        floor_map_json = io_utils.read_json_file(json_annot_fpath)
 
         if "merger" not in floor_map_json:
             print(f"No merger data in {building_id}: {json_annot_fpath}")

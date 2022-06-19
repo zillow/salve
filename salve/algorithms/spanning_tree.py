@@ -12,10 +12,10 @@ import gtsfm.utils.logger as logger_utils
 import networkx as nx
 import numpy as np
 import scipy
-from argoverse.utils.sim2 import Sim2
 
 import salve.utils.rotation_utils as rotation_utils
 from salve.common.posegraph2d import REDTEXT, ENDCOLOR
+from salve.common.sim2 import Sim2
 
 logger = logger_utils.get_logger()
 

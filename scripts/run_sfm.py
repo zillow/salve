@@ -12,11 +12,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
-import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 from gtsam import Point3, Point3Pairs, Pose2, Rot2, Similarity3
 
 import salve.algorithms.cycle_consistency as cycle_utils
@@ -36,6 +34,7 @@ from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
+from salve.common.sim2 import Sim2
 
 
 def get_conf_thresholded_edges(
@@ -289,7 +288,7 @@ def cycles_SE2_spanning_tree(
     """ """
     i2Si1_dict_consistent = cycle_utils.filter_to_SE2_cycle_consistent_edges(i2Si1_dict, two_view_reports_dict)
 
-    filtered_edge_error = float("inf") # compute error w.r.t. GT from i2Si1_dict_consistent
+    filtered_edge_error = float("inf")  # compute error w.r.t. GT from i2Si1_dict_consistent
     print(f"\tFiltered by SE(2) cycles Edge Acc = {filtered_edge_error:.2f}")
 
     wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict_consistent, verbose=False)
@@ -354,7 +353,9 @@ def visualize_deviations_from_ground_truth(hypotheses_save_root: str) -> None:
 
                         if np.isclose(correct_Sim2.theta_deg, incorrect_Sim2.theta_deg, atol=0.1):
                             print_str = f"{building_id} {floor_id}: Correct {correct_Sim2.theta_deg:.1f}"
-                            print_str += f" vs {incorrect_Sim2.theta_deg:.1f}, Correct {np.round(correct_Sim2.translation,2)}"
+                            print_str += (
+                                f" vs {incorrect_Sim2.theta_deg:.1f}, Correct {np.round(correct_Sim2.translation,2)}"
+                            )
                             print_str += f" vs {np.round(incorrect_Sim2.translation,2)}"
                             print(print_str)
 
@@ -449,12 +450,14 @@ def run_incremental_reconstruction(
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
 
-        #(building_id == "0564" and floor_id == "floor_01") or \
-        is_demo = (building_id == "0519" and floor_id == "floor_01") or \
-                  (building_id == "1214" and floor_id == "floor_01") or \
-                  (building_id == "0308" and floor_id == "floor_02") or \
-                  (building_id == "0438" and floor_id == "floor_01") or \
-                  (building_id == "0715" and floor_id == "floor_01")
+        # (building_id == "0564" and floor_id == "floor_01") or \
+        is_demo = (
+            (building_id == "0519" and floor_id == "floor_01")
+            or (building_id == "1214" and floor_id == "floor_01")
+            or (building_id == "0308" and floor_id == "floor_02")
+            or (building_id == "0438" and floor_id == "floor_01")
+            or (building_id == "0715" and floor_id == "floor_01")
+        )
         if not is_demo:
             continue
 
@@ -575,6 +578,7 @@ def run_incremental_reconstruction(
         elif method == "filtered_spanning_tree":
             # filtered by cycle consistency.
             import sandbox.filtered_spanning_tree as filtered_spanning_tree
+
             i2Si1_dict_consistent, report = filtered_spanning_tree.build_filtered_spanning_tree(
                 building_id,
                 floor_id,
@@ -671,7 +675,16 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
 
 
 if __name__ == "__main__":
-    """ """
+    """Example CLI usage:
+
+    python scripts/run_sfm.py --raw_dataset_dir ../zind_bridgeapi_2021_10_05/ --method pgo --serialized_preds_json_dir ../2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23 --hypotheses_save_root ../ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
+
+    Predictions will be saved in a new directory named:
+       {SALVE_REPO_ROOT}/{serialized_preds_json_dir.name}_{FLAGS}_serialized
+
+    Visualizations will be saved in a new directory named:
+       {SALVE_REPO_ROOT/{serialized_preds_json_dir.name}_{FLAGS}
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--raw_dataset_dir",
@@ -704,10 +717,13 @@ if __name__ == "__main__":
         "--serialized_preds_json_dir",
         type=str,
         required=True,
-        help="Directory where serialized predictions should be saved to.",
+        help="Directory where serialized predictions were saved to (from executing `test.py`).",
     )
     parser.add_argument(
-        "--hypotheses_save_root", type=str, required=True, help="Path to where alignment hypotheses are saved on disk."
+        "--hypotheses_save_root",
+        type=str,
+        required=True,
+        help="Path to where alignment hypotheses are saved on disk, from executing `export_alignment_hypotheses.py`.",
     )
     use_axis_alignment = True
     allowed_wdo_types = ["door", "window", "opening"]  #    ["window"] #  ["opening"] # ["door"] #
@@ -716,13 +732,13 @@ if __name__ == "__main__":
     print("Run SfM with settings:", args)
 
     run_incremental_reconstruction(
-        args.hypotheses_save_root,
-        args.serialized_preds_json_dir,
-        args.raw_dataset_dir,
-        args.method,
-        args.confidence_threshold,
-        use_axis_alignment,
-        allowed_wdo_types,
+        hypotheses_save_root=args.hypotheses_save_root,
+        serialized_preds_json_dir=args.serialized_preds_json_dir,
+        raw_dataset_dir=args.raw_dataset_dir,
+        method=args.method,
+        confidence_threshold=args.confidence_threshold,
+        use_axis_alignment=use_axis_alignment,
+        allowed_wdo_types=allowed_wdo_types,
     )
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.

@@ -1,6 +1,6 @@
 """ TODO: ADD DOCSTRING """
 
-from typing import List
+from typing import Any, Dict, List
 
 import numpy as np
 from schematics.types import StringType
@@ -18,7 +18,16 @@ SUPPORTED_PREDICTION_CATEGORIES = ["total", "partial_v1", "joint_madori_v1"]
 
 
 class PanoDataLayer:
-    def __init__(self, type, shape, dwo, position=[0, 0], rotation=0):
+    def __init__(self, type: Any, shape: Any, dwo: Any, position: Any = [0, 0], rotation: float = 0) -> None:
+        """TODO
+
+        Args:
+            type:
+            shape:
+            dwo:
+            position:
+            rotation:
+        """
         # Valid types include types in SUPPORTED_PREDICTION_CATEGORIES
         # and "annotated"
         self.type = type
@@ -32,7 +41,15 @@ class PanoDataLayer:
 
 
 class PredictionCategoryType(StringType):
-    def validate_content(self, value):
+    def validate_content(self, value: Any) -> None:
+        """TODO
+
+        Args:
+            value: TODO
+
+        Raises:
+            ValueError: If TODO
+        """
         if value not in SUPPORTED_PREDICTION_CATEGORIES:
             raise ValueError(f"Incorrect prediction category received: {value}")
 
@@ -45,9 +62,10 @@ class PanoObject:
         loader: AbstractLoader,
         prediction_types: List[str] = [],
         floor_map: dict = None,
-    ):
-        # Store shape information, e.g. door / window / opening, room shape,
-        # as something like: self.data_layer = {'annotated': PanoDataLayer, 'total': PanoDataLayer}
+    ) -> None:
+        """Store shape information, e.g. door / window / opening, room shape, as something like:
+            self.data_layer = {'annotated': PanoDataLayer, 'total': PanoDataLayer}
+        """
         self.data_layer = {}
         self.floor_map_guid = floor_map_guid
         self.panoid = panoid
@@ -59,7 +77,15 @@ class PanoObject:
         if prediction_types:
             self._load_predictions(loader, prediction_types)
 
-    def get_corner_feature2d(self, type) -> List[Feature2dXy]:
+    def get_corner_feature2d(self, type: Any) -> List[Feature2dXy]:
+        """TODO
+
+        Args:
+            type: TODO
+
+        Returns:
+            corner_feature2d: TODO
+        """
         if type not in self.data_layer:
             raise Exception(
                 f"MissingTourDataFile: Data layer {type} cannot be found in PanoObject. It's either not initialized or invalid type."
@@ -72,7 +98,15 @@ class PanoObject:
         ]
         return corner_feature2d
 
-    def get_dwo_feature2d(self, type: str):
+    def get_dwo_feature2d(self, type: str) -> List[Any]:
+        """TODO
+
+        Args:
+            type: TODO
+
+        Returns:
+            dwo_feature2ds: TODO
+        """
         if type not in self.data_layer:
             raise Exception(
                 f"MissingTourDataFile: Data layer {type} cannot be found in PanoObject. It's eithernot initialized or invalid type."
@@ -83,10 +117,16 @@ class PanoObject:
             dwo_feature2ds += dwo
         return dwo_feature2ds
 
-    def _load_vanishin_angle_from_floor_map(self, floor_map):
+    def _load_vanishin_angle_from_floor_map(self, floor_map: Any) -> None:
+        """TODO """
         self.vanishing_angle = floor_map["panos"][self.panoid]["vanishing_angle"]
 
-    def _load_room_shape_from_floor_map(self, floor_map):
+    def _load_room_shape_from_floor_map(self, floor_map: Dict[str, Any]) -> None:
+        """TODO
+
+        Args:
+            floor_map: TODO
+        """
         if not floor_map["panos"][self.panoid]["room_shape_id"]:
             return
         self.rsid = floor_map["panos"][self.panoid]["room_shape_id"]
@@ -100,7 +140,15 @@ class PanoObject:
         rotation = room_shape_raw["panos"][self.panoid]["rotation"]
         self.data_layer["annotated"] = PanoDataLayer("annotated", room_shape_shapely, dwos, position, rotation)
 
-    def _load_dwos_from_floor_map(self, room_shape_raw):
+    def _load_dwos_from_floor_map(self, room_shape_raw: Dict[str, Any]) -> List[Any]:
+        """TODO
+
+        Args:
+            room_shape_raw: TODO
+
+        Returns:
+            dwos: Any
+        """
         dwos = []
         DWO_TYPES = {"doors": "door", "windows": "window", "openings": "opening"}
         for type_name, type in DWO_TYPES.items():
@@ -114,7 +162,16 @@ class PanoObject:
                 )
         return dwos
 
-    def _check_prediction_jsons(self, predictions: dict, type: str):
+    def _check_prediction_jsons(self, predictions: Dict[Any, Any], type: str) -> None:
+        """TODO
+
+        Args:
+            predictions: TODO
+            type: TODO
+
+        Raises:
+            Exception: If ...
+        """
         if "room_shape" not in predictions:
             raise Exception(
                 f"InvalidRoomShapeFromPrediction: Input room shape of prediction type {type} for panoid {self.panoid}"
@@ -135,7 +192,13 @@ class PanoObject:
                 f"InvalidDwoFromPrediction: Received unexpected input wdo prediction for panoid {self.panoid}."
             )
 
-    def _load_predictions(self, loader: AbstractLoader, prediction_types: List[str]):
+    def _load_predictions(self, loader: AbstractLoader, prediction_types: List[str]) -> None:
+        """
+
+        Args:
+            loader:
+            prediction_types:
+        """
         # TODO: Implement file loading status.
         for type in prediction_types:
             if type not in SUPPORTED_PREDICTION_CATEGORIES:
@@ -155,7 +218,15 @@ class PanoObject:
 
             self.data_layer[type] = PanoDataLayer(type, shape, dwos)
 
-    def _load_room_shape_polygon_from_predictions(self, room_shape_pred: dict) -> Polygon:
+    def _load_room_shape_polygon_from_predictions(self, room_shape_pred: Dict[str, Any]) -> Polygon:
+        """
+
+        Args:
+            room_shape_pred: TODO
+
+        Returns:
+            Polygon: TODO
+        """
         flag = True
         xys = []
         for corner in room_shape_pred:
@@ -166,10 +237,27 @@ class PanoObject:
             flag = not flag
         return Polygon(xys)
 
-    def _load_dwos_from_predictions(self, dwo_pred):
+    def _load_dwos_from_predictions(self, dwo_pred: Any) -> Any:
+        """
+
+        Args:
+            dwo_pred
+
+        Returns:
+
+        """
         return get_dwo_edge_feature2ds_from_prediction(dwo_pred, self.camera_height)
 
-    def _ray_cast_and_generate_dwo_xy(self, dwo_pred, shape):
+    def _ray_cast_and_generate_dwo_xy(self, dwo_pred: Any, shape: Any) -> List[Any]:
+        """
+
+        Args:
+            dwo_pred: TODO
+            shape: TODO
+
+        Returns:
+            dwos: TODO
+        """
         dwos = []
         for wdo in dwo_pred[0]:
             type = WDO_CODE[int(wdo[0]) - 1]

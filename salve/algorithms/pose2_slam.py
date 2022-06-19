@@ -17,7 +17,6 @@ from typing import Dict, List, Optional, Tuple
 import gtsam
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Point2, Pose2, PriorFactorPose2, Values
 from gtsam.symbol_shorthand import L, X
 
@@ -30,6 +29,7 @@ from salve.common.posegraph2d import PoseGraph2d
 from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
+from salve.common.sim2 import Sim2
 
 
 #RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"

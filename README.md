@@ -29,7 +29,7 @@ conda env create -f environment_mac.yml
 
 We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. GTSAM is included in the Conda environement.
 
-Install GTSFM:
+Install GTSFM:  `pip install git+https://github.com/borglab/gtsfm.git@master` or
 ```bash
 cd ..
 git clone https://github.com/borglab/gtsfm.git

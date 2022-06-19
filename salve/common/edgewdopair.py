@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 
 class EdgeWDOPair(NamedTuple):
+    """ """
     i1: int
     i2: int
     alignment_object: str

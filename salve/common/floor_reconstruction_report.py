@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from typing import List, Optional
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -50,7 +50,19 @@ class FloorReconstructionReport:
         plot_save_dir: str,
         plot_save_fpath: Optional[str] = None,
     ) -> "FloorReconstructionReport":
-        """Create a report from an estimated pose graph for a single floor."""
+        """Create a report from an estimated pose graph for a single floor.
+
+        Note: estimated global poses will be saved to JSON at {plot_save_dir}_serialized/*.json.
+
+        Args:
+            est_floor_pose_graph: TODO
+            gt_floor_pose_graph: TODO
+            plot_save_dir: TODO
+            plot_save_fpath: TODO
+
+        Returns:
+            TODO
+        """
         num_localized_panos = len(est_floor_pose_graph.nodes)
         num_floor_panos = len(gt_floor_pose_graph.nodes)
         percent_panos_localized = num_localized_panos / num_floor_panos * 100
@@ -160,7 +172,10 @@ def render_rasterized_room_clustering(inferred_aligned_pg: PoseGraph2d, plot_sav
 def serialize_predicted_pose_graph(
     aligned_est_floor_pose_graph: PoseGraph2d, gt_floor_pose_graph: PoseGraph2d, plot_save_dir: str
 ) -> None:
-    """ """
+    """Save Sim(2) poses as (R,t,s) to a JSON file.
+    
+    Note: JSON files will be saved at {plot_save_dir}_serialized/*.json.
+    """
     building_id = gt_floor_pose_graph.building_id
     floor_id = gt_floor_pose_graph.floor_id
     global_poses_info = {}
@@ -180,7 +195,7 @@ def serialize_predicted_pose_graph(
     }
     json_save_fpath = f"{plot_save_dir}_serialized/{building_id}__{floor_id}.json"
     os.makedirs(f"{plot_save_dir}_serialized", exist_ok=True)
-    json_utils.save_json_dict(json_save_fpath, save_dict)
+    io_utils.save_json_file(json_fpath=json_save_fpath, data=save_dict)
 
 
 def render_floorplans_side_by_side(

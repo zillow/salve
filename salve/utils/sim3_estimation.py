@@ -4,10 +4,10 @@
 from typing import Optional, Tuple
 
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 from gtsam import Pose3, Point3Pairs, Similarity3
 
 import salve.utils.rotation_utils as rotation_utils
+from salve.common.sim2 import Sim2
 
 
 def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], np.ndarray]:

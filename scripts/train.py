@@ -14,8 +14,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict, List
 
-import argoverse.utils.datetime_utils as datetime_utils
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import hydra
 import numpy as np
 import torch
@@ -23,6 +22,7 @@ import torch.backends.cudnn as cudnn
 from hydra.utils import instantiate
 from mseg_semantic.utils.avg_meter import AverageMeter, SegmentationAverageMeter
 
+import salve.utils.datetime_utils as datetime_utils
 import salve.utils.logger_utils as logger_utils
 import salve.train_utils as train_utils
 
@@ -108,7 +108,7 @@ def main(args) -> None:
             )
 
         results_json_fpath = f"{results_dir}/results-{exp_start_time}-{cfg_stem}.json"
-        json_utils.save_json_dict(results_json_fpath, results_dict)
+        io_utils.save_json_file(json_fpath=results_json_fpath, data=results_dict)
         shutil.copyfile(f"afp/configs/{args.cfg_stem}.yaml", f"{results_dir}/{args.cfg_stem}.yaml")
 
         logging.info("Results on crit stat: " + str([f"{v:.3f}" for v in results_dict[crit_acc_stat]]))

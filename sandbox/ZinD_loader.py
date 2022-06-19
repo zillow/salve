@@ -3,12 +3,12 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import gtsfm.utils.io as io_utils
 import numpy as np
-from argoverse.utils.json_utils import read_json_file
-from argoverse.utils.sim2 import Sim2
 from gtsam import Pose3
-
 from gtsfm.loader.colmap_loader import ColmapLoader
+
+from salve.common.sim2 import Sim2
 
 
 class ZindLoader:
@@ -53,7 +53,7 @@ class ZindLoader:
         """
         floor_pano_tuples = []
 
-        floor_map_json = read_json_file(self._json_annot_fpath)
+        floor_map_json = io_utils.read_json_file(self._json_annot_fpath)
         merger_data = floor_map_json["merger"]
 
         floor_data = merger_data[self._floor_id]

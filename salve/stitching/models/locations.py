@@ -4,20 +4,20 @@ from typing import Any, List, Optional
 
 # TODO: Use shapely Point2d instead.
 class Point2d:
-    def __init__(self, x: float, y: float):
+    def __init__(self, x: float, y: float) -> None:
         self.x = x
         self.y = y
 
 
 class Point3d:
-    def __init__(self, x: float, y: float, z: float):
+    def __init__(self, x: float, y: float, z: float) -> None:
         self.x = x
         self.y = y
         self.z = z
 
 
 class Pose:
-    def __init__(self, position: Point2d, rotation: float):
+    def __init__(self, position: Point2d, rotation: float) -> None:
         self.position = position
         self.rotation = rotation
 

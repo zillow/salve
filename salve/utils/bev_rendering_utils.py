@@ -1,5 +1,4 @@
-"""
-"""
+"""TODO... """
 
 import json
 import os
@@ -15,9 +14,7 @@ try:
 except:
     print("Open3d could not be loaded, so skipping import...")
 
-import argoverse.utils.cv2_plotting_utils as cv2_plotting_utils
 import imageio
-from argoverse.utils.sim2 import Sim2
 
 # from vis_zind_annotations import rotmat2d
 
@@ -28,6 +25,7 @@ import salve.utils.zorder_utils as zorder_utils
 from salve.common.bevparams import BEVParams, DEFAULT_METERS_PER_PX
 from salve.common.pano_data import WDO
 from salve.common.posegraph2d import PoseGraph2d
+from salve.common.sim2 import Sim2
 from salve.utils.colormap import colormap
 
 
@@ -172,6 +170,32 @@ def rasterize_single_layout(
     return bev_img
 
 
+
+def draw_polygon_cv2(points: np.ndarray, image: np.ndarray, color: Tuple[int, int, int]) -> np.ndarray:
+    """Draw a polygon onto an image using the given points and fill color.
+    These polygons are often non-convex, so we cannot use cv2.fillConvexPoly().
+    Note that cv2.fillPoly() accepts an array of array of points as an
+    argument (i.e. an array of polygons where each polygon is represented
+    as an array of points).
+
+    Reference:
+    https://github.com/argoai/argoverse-api/blob/master/argoverse/utils/cv2_plotting_utils.py#L116
+
+    Args:
+        points: Array of shape (N, 2) representing all points of the polygon
+        image: Array of shape (M, N, 3) representing the image to be drawn onto
+        color: Tuple of shape (3,) with a BGR format color
+    
+    Returns:
+        image: Array of shape (M, N, 3) with polygon rendered on it
+    """
+    points = np.array([points])
+    points = points.astype(np.int32)
+    image = cv2.fillPoly(image, points, color)  # , lineType[, shift]]) -> None
+    return image
+
+
+
 def rasterize_polygon(
     polygon_xy: np.ndarray, bev_img: np.ndarray, bevimg_Sim2_world: Sim2, color: Tuple[int, int, int]
 ) -> np.ndarray:
@@ -181,7 +205,7 @@ def rasterize_polygon(
     img_xy = bevimg_Sim2_world.transform_from(polygon_xy)
     img_xy = np.round(img_xy).astype(np.int64)
 
-    bev_img = cv2_plotting_utils.draw_polygon_cv2(points=img_xy, image=bev_img, color=color)
+    bev_img = draw_polygon_cv2(points=img_xy, image=bev_img, color=color)
     return bev_img
 
 

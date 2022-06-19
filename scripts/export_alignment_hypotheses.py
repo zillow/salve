@@ -12,10 +12,9 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 from shapely.geometry import LineString
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
@@ -23,6 +22,7 @@ import salve.utils.logger_utils as logger_utils
 import salve.utils.rotation_utils as rotation_utils
 import salve.utils.wdo_alignment as wdo_alignment_utils
 from salve.common.pano_data import FloorData, PanoData
+from salve.common.sim2 import Sim2
 from salve.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
 from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 
@@ -154,7 +154,7 @@ def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
         "t": i2Ti1.translation.flatten().tolist(),
         "s": i2Ti1.scale,
     }
-    json_utils.save_json_dict(save_fpath, dict_for_serialization)
+    io_utils.save_json_file(json_fpath=save_fpath, data=dict_for_serialization)
 
 
 def export_single_building_wdo_alignment_hypotheses(
@@ -190,7 +190,7 @@ def export_single_building_wdo_alignment_hypotheses(
             # cannot compute putative alignments if prediction files are missing.
             return
 
-    floor_map_json = json_utils.read_json_file(json_annot_fpath)
+    floor_map_json = io_utils.read_json_file(json_annot_fpath)
 
     if "merger" not in floor_map_json:
         logger.error(f"Building {building_id} does not have `merger` data, skipping...")
@@ -405,7 +405,7 @@ if __name__ == "__main__":
         # "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
         # "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
         default="/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
-        help="where JSON files with alignment hypotheses will be saved to.",
+        help="Directory where JSON files with alignment hypotheses will be saved to.",
     )
     parser.add_argument(
         "--wdo_source",

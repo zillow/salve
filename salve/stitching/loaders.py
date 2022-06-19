@@ -4,7 +4,7 @@ import abc
 import json
 import logging
 import os
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from salve.stitching.constants import (
     JOINT_MADORI_V1_FILENAME,
@@ -34,14 +34,21 @@ class MemoryLoader(AbstractLoader):
         self,
         data_root: str,
         data_type: Dict[str, List[str]] = DEFAULT_DATA_TYPE,
-    ):
+    ) -> None:
+        """TODO
+
+        Args:
+            data_root: TODO
+            data_type: TODO
+        """
         self.data_root = data_root
         self.data_type = data_type
         self._data = {"per_pano_predictions": {}}
         self._check_data_type()
         self._load_predictions()
 
-    def _check_data_type(self):
+    def _check_data_type(self) -> None:
+        """TODO"""
         if "rse" not in self.data_type:
             raise Exception("InternalImplementationError")
         if "dwo" not in self.data_type:
@@ -51,7 +58,8 @@ class MemoryLoader(AbstractLoader):
         if not self.data_type["dwo"]:
             raise Exception("InternalImplementationError")
 
-    def _load_predictions(self):
+    def _load_predictions(self) -> None:
+        """TODO"""
         folders = os.listdir(self.data_root)
         panoids = [item for item in folders if len(item) == 10 and not item.startswith(".")]
         for panoid in panoids:
@@ -64,7 +72,13 @@ class MemoryLoader(AbstractLoader):
                 self._data["per_pano_predictions"][panoid]["dwo"][dwo_type] = None
                 self._load_dwo_predictions(panoid, dwo_type)
 
-    def _load_room_shape_predictions(self, panoid: str, type: str = "partial_v1"):
+    def _load_room_shape_predictions(self, panoid: str, type: str = "partial_v1") -> None:
+        """TODO
+
+        Args:
+            panoid: TODO
+            type: TODO
+        """
         if type == "total":
             file_name = ROOM_SHAPE_TOTAL_FILENAME
         elif type == "partial_v1":
@@ -95,7 +109,13 @@ class MemoryLoader(AbstractLoader):
             else:
                 self._data["per_pano_predictions"][panoid]["rse"][type] = content["uv"]
 
-    def _load_dwo_predictions(self, panoid: str, type: str) -> dict:
+    def _load_dwo_predictions(self, panoid: str, type: str) -> None:
+        """TODO
+
+        Args:
+            panoid: TODO
+            type: TODO
+        """
         if type == "rcnn":
             prediction_path = self._get_prediction_file_path(panoid, WDO_FILENAME1)
             if not os.path.isfile(prediction_path):
@@ -111,10 +131,13 @@ class MemoryLoader(AbstractLoader):
             self._data["per_pano_predictions"][panoid]["dwo"][type] = json.load(f)["predictions"]
 
     def _get_prediction_file_path(self, panoid: str, file_name) -> str:
+        """TODO"""
         return os.path.join(self.data_root, panoid, file_name)
 
-    def get_room_shape_predictions(self, panoid: str, type: str = "partial_v1") -> dict:
+    def get_room_shape_predictions(self, panoid: str, type: str = "partial_v1") -> Dict[Any, Any]:
+        """TODO"""
         return self._data["per_pano_predictions"][panoid]["rse"][type]
 
-    def get_dwo_predictions(self, panoid: str, type: str = "rcnn") -> dict:
+    def get_dwo_predictions(self, panoid: str, type: str = "rcnn") -> Dict[Any, Any]:
+        """TODO"""
         return self._data["per_pano_predictions"][panoid]["dwo"][type]

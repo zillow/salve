@@ -5,7 +5,7 @@ import glob
 from collections import defaultdict
 from pathlib import Path
 
-import argoverse.utils.json_utils as json_utils
+import gtsfm.utils.io as io_utils
 import numpy as np
 
 from salve.dataset.zind_partition import DATASET_SPLITS
@@ -44,7 +44,7 @@ def count_floor_stats_per_home():
         if not Path(json_annot_fpath).exists():
             print(f"zind_data.json file missing for {building_id}")
 
-        floor_map_json = json_utils.read_json_file(json_annot_fpath)
+        floor_map_json = io_utils.read_json_file(json_annot_fpath)
 
         if "merger" not in floor_map_json:
             print(f"No merger data in {building_id}: {json_annot_fpath}")

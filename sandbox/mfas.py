@@ -12,9 +12,8 @@ from typing import Dict, List, Tuple
 
 import gtsam
 import numpy as np
-from gtsam import BinaryMeasurementUnit3, BinaryMeasurementsUnit3, MFAS, Unit3
-
 import gtsfm.utils.coordinate_conversions as conversion_utils
+from gtsam import BinaryMeasurementUnit3, BinaryMeasurementsUnit3, MFAS, Unit3
 
 import salve.utils.rotation_utils as rotation_utils
 
