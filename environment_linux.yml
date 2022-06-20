@@ -22,6 +22,7 @@ dependencies:
   - dask # same as dask[complete] pip distribution
   - python-graphviz
   # core functionality and APIs
+  - click
   - matplotlib>=3.4.2
   - numpy
   - nodejs
