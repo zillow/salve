@@ -60,7 +60,7 @@ def render_building_floor_pairs(
     building_id: str,
     floor_id: str,
     layout_save_root: Optional[str],
-    render_modalities: List[str]
+    render_modalities: List[str],
 ) -> None:
     """Render BEV texture maps for a single floor of a single ZinD building.
 
@@ -185,7 +185,7 @@ def render_building_floor_pairs(
 
                 if "layout" not in render_modalities:
                     continue
-                
+
                 # only rasterize layout for `floor'.
                 # If `ceiling', we'll skip, since will be identical rendering to `floor`.
                 if surface_type != "floor":
@@ -284,8 +284,8 @@ def render_pairs(
 if __name__ == "__main__":
     """
     Depth maps are stored on the following nodes at the following places:
-    - locally: "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps" 
-    - DGX: "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps" 
+    - locally: "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    - DGX: "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     - se1-001: "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps",
 
     Hypotheses are saved on the following nodes at the following places:
@@ -315,28 +315,31 @@ if __name__ == "__main__":
             "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_processes", type=int, default=15, help="Number of processes to use for parallel rendering.")
-    parser.add_argument("--depth_save_root",
+    parser.add_argument(
+        "--num_processes", type=int, default=15, help="Number of processes to use for parallel rendering."
+    )
+    parser.add_argument(
+        "--depth_save_root",
         type=str,
         required=True,
-        help="Path where depth maps are stored (and will be saved to, if not computed yet)."
+        help="Path where depth maps are stored (and will be saved to, if not computed yet).",
     )
-    parser.add_argument("--hypotheses_save_root",
-        type=str,
-        required=True,
-        help="Path to where alignment hypotheses are saved on disk."
+    parser.add_argument(
+        "--hypotheses_save_root", type=str, required=True, help="Path to where alignment hypotheses are saved on disk."
     )
-    parser.add_argument("--raw_dataset_dir",
+    parser.add_argument(
+        "--raw_dataset_dir",
         type=str,
         # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05" # (on DGX)
         # "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05" # (on local machine)
         default="/home/johnlam/zind_bridgeapi_2021_10_05",
-        help="Path to where ZInD dataset is stored (directly downloaded from Bridge API)."
+        help="Path to where ZInD dataset is stored (directly downloaded from Bridge API).",
     )
-    parser.add_argument("--bev_save_root",
+    parser.add_argument(
+        "--bev_save_root",
         type=str,
         required=True,
-        help="Directory where BEV texture maps should be written to (directory will be created at this path)."
+        help="Directory where BEV texture maps should be written to (directory will be created at this path).",
     )
 
     # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
@@ -345,7 +348,7 @@ if __name__ == "__main__":
     layout_save_root = None
     # layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout"
 
-    render_modalities = ["rgb_texture"] # ["layout"]
+    render_modalities = ["rgb_texture"]  # ["layout"]
     args = parser.parse_args()
 
     render_pairs(
@@ -355,5 +358,5 @@ if __name__ == "__main__":
         raw_dataset_dir=args.raw_dataset_dir,
         hypotheses_save_root=args.hypotheses_save_root,
         layout_save_root=layout_save_root,
-        render_modalities=render_modalities
+        render_modalities=render_modalities,
     )

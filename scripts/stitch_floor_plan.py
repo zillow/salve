@@ -312,15 +312,13 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
     # fig_floor.savefig(path_output, dpi = 300)
 
 
-
-
 @click.command(help="Script to run floorplan stitching algorithm, using previously localized poses.")
 @click.option(
     "-o",
     "--output-dir",
     required=True,
     help="Path to directory where stitched outputs will be saved to.",
-    type=str, #click.Path(exists=True),
+    type=str,  # click.Path(exists=True),
 )
 @click.option(
     "--est-localization-fpath",
@@ -331,7 +329,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
 @click.option(
     "--hnet-pred-dir",
     required=True,
-    help="Directory to where HorizonNet per-pano room shape and DWO predictions are stored."
+    help="Directory to where HorizonNet per-pano room shape and DWO predictions are stored.",
     type=click.Path(exists=True),
 )
 @click.option(
@@ -340,7 +338,9 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
     help="Path to gt ZInD floor_map.json file.",
     type=click.Path(exists=True),
 )
-def run_stitch_floor_plan(output_dir: str, est_localization_fpath: str, hnet_pred_dir: str, path_gt_floor_map: str) -> None:
+def run_stitch_floor_plan(
+    output_dir: str, est_localization_fpath: str, hnet_pred_dir: str, path_gt_floor_map: str
+) -> None:
     """ """
     main(
         output_dir=Path(output_dir),
@@ -352,4 +352,3 @@ def run_stitch_floor_plan(output_dir: str, est_localization_fpath: str, hnet_pre
 
 if __name__ == "__main__":
     run_stitch_floor_plan()
-

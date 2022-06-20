@@ -326,7 +326,10 @@ def export_single_building_wdo_alignment_hypotheses(
 
     print(f"{OKGREEN} Building {building_id}: " + ENDCOLOR)
     for floor_id, gt_is_valid_arr in floor_gt_is_valid_report_dict.items():
-        print(f"{OKGREEN} {floor_id}: {np.mean(gt_is_valid_arr):.2f} over {len(gt_is_valid_arr)} alignment pairs." + ENDCOLOR)
+        print(
+            f"{OKGREEN} {floor_id}: {np.mean(gt_is_valid_arr):.2f} over {len(gt_is_valid_arr)} alignment pairs."
+            + ENDCOLOR
+        )
     print(HEADER + ENDCOLOR)
 
 
@@ -411,8 +414,8 @@ if __name__ == "__main__":
         "--wdo_source",
         type=str,
         required=True,
-        choices=["horizon_net","ground_truth"],
-        help="Where to pull W/D/O and layout (either inferred from HorizonNet, or taken from annotated ground truth)"
+        choices=["horizon_net", "ground_truth"],
+        help="Where to pull W/D/O and layout (either inferred from HorizonNet, or taken from annotated ground truth)",
     )
     args = parser.parse_args()
 
