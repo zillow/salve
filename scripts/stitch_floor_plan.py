@@ -34,11 +34,11 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
 
     loader = MemoryLoader(hnet_pred_dir, data_type={"rse": ["partial_v1"], "dwo": ["rcnn"]})
 
-    if not output_dir.exists():
-        output_dir.mkdir(exist_ok=True, parents=True)
+
+    output_dir.mkdir(exist_ok=True, parents=True)
     cluster_dir = os.path.join(output_dir, "fused")
-    if not Path(cluster_dir).exists():
-        Path(cluster_dir).mkdir(exist_ok=True, parents=True)
+
+    Path(cluster_dir).mkdir(exist_ok=True, parents=True)
 
     # Load floor_map file with annotated room shape and gt room shape transformations.
     floor_map = io_utils.read_json_file(path_gt_floor_map)

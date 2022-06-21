@@ -130,7 +130,7 @@ class MemoryLoader(AbstractLoader):
         with open(prediction_path) as f:
             self._data["per_pano_predictions"][panoid]["dwo"][type] = json.load(f)["predictions"]
 
-    def _get_prediction_file_path(self, panoid: str, file_name) -> str:
+    def _get_prediction_file_path(self, panoid: str, file_name: str) -> str:
         """TODO"""
         return os.path.join(self.data_root, panoid, file_name)
 

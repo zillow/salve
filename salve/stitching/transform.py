@@ -110,11 +110,11 @@ def xy_to_uv(xy: Point2d, height: float) -> Point2d:
     """Compute texture coordinate uv from Cartesian coordinate xy, given camera height.
 
     Args:
-        xy
-        height
+        xy:
+        height:
 
     Returns:
-
+        TODO
     """
     u = xy_to_u(xy)
     depth = np.linalg.norm((xy.x, xy.y))

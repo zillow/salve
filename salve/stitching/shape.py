@@ -9,8 +9,8 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import shapely.ops
 from shapely.geometry import Point, Polygon
-from shapely.ops import cascaded_union
 from tqdm import tqdm
 
 import salve.stitching.transform as transform_utils
@@ -23,6 +23,13 @@ from salve.stitching.draw import (
 )
 from salve.stitching.models.feature2d import Feature2dU, Feature2dXy
 from salve.stitching.models.locations import Point2d
+
+
+IMAGE_WIDTH_PX = 1024
+IMAGE_HEIGHT_PX = 512
+
+MIN_LAYOUT_OVERLAP_RATIO = 0.3
+MIN_LAYOUT_OVERLAP_IOU = 0.1
 
 
 def generate_shapely_polygon_from_room_shape_vertices(vertices: List[dict]) -> Polygon:
@@ -41,13 +48,13 @@ def generate_shapely_polygon_from_room_shape_vertices(vertices: List[dict]) -> P
 
 
 def extract_coordinates_from_shapely_polygon(shape: Polygon) -> List[Point2d]:
-    """TODO:
+    """Convert a shapely Polygon object to a list of Point2d objects.
 
     Args:
         shape:
 
     Returns:
-        coords:
+        coords: list of Point2d objects
     """
     coords = []
     xys = shape.boundary.xy
@@ -62,9 +69,9 @@ def load_room_shape_polygon_from_predictions(
     """TODO
 
     Args:
-        room_shape_pred
-        uncertainty
-        camera_height
+        room_shape_pred:
+        uncertainty:
+        camera_height:
 
     Returns:
         Polygon representing ...
@@ -79,9 +86,9 @@ def load_room_shape_polygon_from_predictions(
     uvs_lower = []
     for i, corner in enumerate(room_shape_pred):
         if not flag:
-            uvs.append([corner[0] + 0.5 / 1024, corner[1] + 0.5 / 512])
+            uvs.append([corner[0] + 0.5 / IMAGE_WIDTH_PX, corner[1] + 0.5 / IMAGE_HEIGHT_PX])
             if uncertainty:
-                uvs_upper.append([corner[0] + 0.5 / 1024, corner[1] + 0.5 / 512 - uncertainty[i] / 512])
+                uvs_upper.append([corner[0] + 0.5 / IMAGE_WIDTH_PX, corner[1] + 0.5 / IMAGE_HEIGHT_PX - uncertainty[i] / IMAGE_HEIGHT_PX])
                 # uvs_lower.append([corner[0]+0.5/1024, corner[1]+0.5/512+uncertainty[i]/512])
         flag = not flag
     xys = transform_utils.uv_to_xy_batch(uvs, camera_height)
@@ -103,9 +110,9 @@ def generate_dense_shape(v_vals: List[Any], uncertainty: Any) -> Tuple[Any, Any]
         polygon:
         distances:
     """
-    vs = np.asarray(v_vals) / 512
-    us = np.asarray(range(1024)) / 1024
-    uvs = [[us[i], vs[i]] for i in range(1024)]
+    vs = np.asarray(v_vals) / IMAGE_HEIGHT_PX
+    us = np.asarray(range(IMAGE_WIDTH_PX)) / IMAGE_WIDTH_PX
+    uvs = [[us[i], vs[i]] for i in range(IMAGE_WIDTH_PX)]
     polygon, poly_upper = load_room_shape_polygon_from_predictions(uvs, uncertainty)
     distances = []
     xys = polygon.boundary.xy
@@ -114,16 +121,16 @@ def generate_dense_shape(v_vals: List[Any], uncertainty: Any) -> Tuple[Any, Any]
         distances.append(math.sqrt((xys_upper[0][i] - xys[0][i]) ** 2 + (xys_upper[1][i] - xys[1][i]) ** 2))
     return polygon, distances
 
-
-def group_panos_by_room(predictions: Any, location_panos: Any) -> List[Any]:
-    """
-
+def group_panos_by_room(predictions: Any, location_panos: Any) -> List[List[int]]:
+    """Form per-room clusters of panoramas according to layout IoU and other overlap measures.
+    Layouts that have high IoU, or have high intersection with either shape, are considered to belong to a single room.
     Args:
         predictions:
         location_panos:
 
     Returns:
-        groups:
+        groups: list of connected components. Each connected component is represented
+            by a list of panorama IDs.
     """
     print("Running pano grouping by room ... ")
     shapes_global = {}
@@ -149,9 +156,9 @@ def group_panos_by_room(predictions: Any, location_panos: Any) -> List[Any]:
             area_intersection = shape1.intersection(shape2).area
             area_union = shape1.union(shape2).area
             iou = area_intersection / area_union
-            iou1 = area_intersection / shape1.area
-            iou2 = area_intersection / shape2.area
-            if iou > 0.1 or iou1 > 0.3 or iou2 > 0.3:
+            overlap_ratio1 = area_intersection / shape1.area
+            overlap_ratio2 = area_intersection / shape2.area
+            if iou > MIN_LAYOUT_OVERLAP_IOU or overlap_ratio1 > MIN_LAYOUT_OVERLAP_RATIO or overlap_ratio2 > MIN_LAYOUT_OVERLAP_RATIO:
                 graph.add_edge(panoid1, panoid2)
     groups = [[*c] for c in sorted(nx.connected_components(graph))]
     return groups
@@ -160,7 +167,7 @@ def group_panos_by_room(predictions: Any, location_panos: Any) -> List[Any]:
 def refine_shape_group_start_with(
     group: Any, start_id: Any, predicted_shapes: Any, wall_confidences: Any, location_panos: Any
 ) -> Tuple[Any, Any]:
-    """TODO
+    """Refine a room's shape using confidence.
 
     Args:
         group: TODO
@@ -173,7 +180,7 @@ def refine_shape_group_start_with(
         xys1_final: TODO
         conf1_final: TODO
     """
-    RES = 512
+    RES = IMAGE_HEIGHT_PX
     original_us = np.arange(0.5 / RES, (RES + 0.5) / RES, 1.0 / RES)
     panoid = start_id
     # for panoid in group:
@@ -247,29 +254,24 @@ def refine_shape_group_start_with(
                 current_c = final_cs_all[panoid_new][i]
         xy1_final = transform_utils.uv_to_xy(Point2d(x=u, y=v), DEFAULT_CAMERA_HEIGHT)
         xys1_final.append(Point2d(x=xy1_final.x, y=xy1_final.y))
-        if (
-            i > 0
-            and math.sqrt((xys1_final[i - 1].x - xy1_final.x) ** 2 + (xys1_final[i - 1].y - xy1_final.y) ** 2) > 0.03
-        ):
+        
+        if (i > 0) and (xys1_final[i - 1].distance(xy1_final) > 0.03):
             current_c = 0
-        if (
-            i < len(xys1_final) - 1
-            and math.sqrt((xys1_final[i + 1].x - xy1_final.x) ** 2 + (xys1_final[i + 1].y - xy1_final.y) ** 2) > 0.03
-        ):
+        if (i < len(xys1_final) - 1) and (xys1_final[i + 1].distance(xy1_final) > 0.03):
             current_c = 0
         conf1_final.append(current_c)
     return xys1_final, conf1_final
 
 
 def refine_predicted_shape(
-    groups: Any,
+    groups: List[List[int]],
     predicted_shapes: Any,
     wall_confidences: Any,
     location_panos: Any,
     cluster_dir: Any,
     tour_dir: Any = None,
 ) -> Tuple[Any, Any, Any]:
-    """TODO
+    """Refine the predicted room shapes of each room (group) of a single building's floorplan.
 
     Args:
         groups: TODO
@@ -343,7 +345,7 @@ def refine_predicted_shape(
         # path_output = os.path.join(cluster_dir, f'group_{i_group}.png')
         # fig1.savefig(path_output, dpi = 300)
 
-        shape_fused_by_cluster_poly.append(cascaded_union(shapes))
+        shape_fused_by_cluster_poly.append(shapely.ops.cascaded_union(shapes))
         #
         # try:
         #     xys_final = extract_coordinates_from_shapely_polygon(shape_fused)
@@ -356,4 +358,4 @@ def refine_predicted_shape(
     axis2.set_aspect("equal")
     path_output = os.path.join(cluster_dir, f"final.png")
     fig2.savefig(path_output, dpi=300)
-    return shape_fused_by_cluster, fig2, cascaded_union(shape_fused_by_cluster_poly)
+    return shape_fused_by_cluster, fig2, shapely.ops.cascaded_union(shape_fused_by_cluster_poly)
