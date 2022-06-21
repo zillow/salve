@@ -35,6 +35,7 @@ dependencies:
   - pillow>=8.0.1
   - scikit-learn
   - seaborn
+  - shapely
   # 3rd party algorithms for different modules
   - opencv>=4.5.0 # preferring conda-forge's distribution as it provides the latest distribution
   - pytorch
