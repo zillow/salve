@@ -24,7 +24,7 @@ def measure_acc_vs_visual_overlap(
     serialized_preds_json_dir: str, hypotheses_save_root: str, raw_dataset_dir: str, gt_class: int = 0
 ) -> None:
     """Measure how the amount of visual overlap (IoU) affects accuracy, rotation error, and translation error.
-    
+
     Note: Count separately for negative and positive examples.
 
     Args:
@@ -48,7 +48,7 @@ def measure_acc_vs_visual_overlap(
 
     # maybe interesting to also check histograms at different confidence thresholds
     confidence_threshold = 0.0
-    
+
     classname_str = "positives_only" if gt_class == 1 else "negatives_only"
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
 
@@ -273,18 +273,19 @@ def test_measure_acc_vs_visual_overlap() -> None:
         "y_true": [0, 0],
         "y_hat_probs": [0.8538389205932617, 0.9999430179595947],
         "fp0": [
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_01_pano_4.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_04_pano_74.jpg'
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_01_pano_4.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_04_pano_74.jpg",
         ],
         "fp1": [
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_10_pano_10.jpg',
-            '/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_10_pano_11.jpg'
-        ]
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_3412___opening_1_0_rotated_floor_rgb_floor_01_partial_room_10_pano_10.jpg",
+            "/data/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres/incorrect_alignment/1398/pair_221___opening_0_0_identity_floor_rgb_floor_01_partial_room_10_pano_11.jpg",
+        ],
     }
     io_utils.save_json_file(json_fpath=f"{serialized_preds_json_dir}/batch_2451.json", data=batch2451_dict)
 
-    
-    hypotheses_save_root = "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    hypotheses_save_root = (
+        "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    )
     raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
 
     mean_acc_bins, avg_rot_err_bins, avg_trans_err_bins = measure_acc_vs_visual_overlap(
@@ -292,9 +293,15 @@ def test_measure_acc_vs_visual_overlap() -> None:
     )
 
     # for gt class 1 (positives only)
-    expected_mean_acc_bins = np.array([ np.nan, 100.,   0.,  50., 100., 100., np.nan, 100., np.nan, np.nan], dtype=np.float32)
-    expected_avg_rot_err_bins = np.array([ np.nan, 6.19468689, 1.4648056 , 1.95754623, 2.70051575, 0.7142812 , np.nan, 1.43321174, np.nan, np.nan])
-    expected_avg_trans_err_bins = np.array([ np.nan, 0.29635385, 0.12153608, 0.06152817, 0.14050719, 0.0551777 , np.nan, 0.01080585, np.nan, np.nan])
+    expected_mean_acc_bins = np.array(
+        [np.nan, 100.0, 0.0, 50.0, 100.0, 100.0, np.nan, 100.0, np.nan, np.nan], dtype=np.float32
+    )
+    expected_avg_rot_err_bins = np.array(
+        [np.nan, 6.19468689, 1.4648056, 1.95754623, 2.70051575, 0.7142812, np.nan, 1.43321174, np.nan, np.nan]
+    )
+    expected_avg_trans_err_bins = np.array(
+        [np.nan, 0.29635385, 0.12153608, 0.06152817, 0.14050719, 0.0551777, np.nan, 0.01080585, np.nan, np.nan]
+    )
     assert np.allclose(mean_acc_bins, expected_mean_acc_bins, equal_nan=True)
     assert np.allclose(avg_rot_err_bins, expected_avg_rot_err_bins, equal_nan=True)
     assert np.allclose(avg_trans_err_bins, expected_avg_trans_err_bins, equal_nan=True)
@@ -303,9 +310,15 @@ def test_measure_acc_vs_visual_overlap() -> None:
     mean_acc_bins, avg_rot_err_bins, avg_trans_err_bins = measure_acc_vs_visual_overlap(
         serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir, gt_class=0
     )
-    expected_mean_acc_bins = np.array([ np.nan,  np.nan,  np.nan,  np.nan, 100.,  np.nan,  np.nan,  np.nan,   0.,  np.nan], dtype=np.float32)
-    expected_avg_rot_err_bins = np.array([ np.nan, np.nan, np.nan, np.nan, 40.80807495, np.nan, np.nan, np.nan,  1.21432495, np.nan])
-    expected_avg_trans_err_bins = np.array([ np.nan, np.nan, np.nan, np.nan, 8.61940479, np.nan, np.nan, np.nan, 0.621185  ,  np.nan])
+    expected_mean_acc_bins = np.array(
+        [np.nan, np.nan, np.nan, np.nan, 100.0, np.nan, np.nan, np.nan, 0.0, np.nan], dtype=np.float32
+    )
+    expected_avg_rot_err_bins = np.array(
+        [np.nan, np.nan, np.nan, np.nan, 40.80807495, np.nan, np.nan, np.nan, 1.21432495, np.nan]
+    )
+    expected_avg_trans_err_bins = np.array(
+        [np.nan, np.nan, np.nan, np.nan, 8.61940479, np.nan, np.nan, np.nan, 0.621185, np.nan]
+    )
     assert np.allclose(mean_acc_bins, expected_mean_acc_bins, equal_nan=True)
     assert np.allclose(avg_rot_err_bins, expected_avg_rot_err_bins, equal_nan=True)
     assert np.allclose(avg_trans_err_bins, expected_avg_trans_err_bins, equal_nan=True)

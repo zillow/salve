@@ -341,7 +341,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
 def run_stitch_floor_plan(
     output_dir: str, est_localization_fpath: str, hnet_pred_dir: str, path_gt_floor_map: str
 ) -> None:
-    """ """
+    """Click entry point for layout stitching script."""
     main(
         output_dir=Path(output_dir),
         est_localization_fpath=Path(est_localization_fpath),
