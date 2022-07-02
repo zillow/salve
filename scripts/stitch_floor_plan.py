@@ -39,7 +39,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
     Path(cluster_dir).mkdir(exist_ok=True, parents=True)
 
     # Load floor_map file with annotated room shape and gt room shape transformations.
-    floor_map = io_utils.read_json_file(path_gt_floor_map)
+    ###floor_map_gt = io_utils.read_json_file(path_gt_floor_map)
     localizations = io_utils.read_json_file(est_localization_fpath)
 
     # clusters = []
@@ -55,32 +55,31 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
     wall_confidences_all = []
     shapes_by_floor = []
 
-    floor_map_object = FloorMapObject(floor_map)
-
-    dwos_gt_all = {}
-    for rsid in floor_map["room_shapes"]:
-        try:
-            room_global = floor_map_object.get_room_shape_global(rsid)
-        except Exception:
-            continue
-        this_all = []
-        for type in ["doors", "windows", "openings"]:
-            for wfid, obj in room_global[type].items():
-                this_all.append(
-                    [
-                        Point2d(obj["position"][0]["x"], obj["position"][0]["y"]),
-                        Point2d(obj["position"][1]["x"], obj["position"][1]["y"]),
-                        type[:-1],
-                    ]
-                )
-        dwos_gt_all[rsid] = this_all
-
+    ###floor_map_gt_object = FloorMapObject(floor_map_gt)
+    ###dwos_gt_all = {}
+    ###for rsid in floor_map_gt["room_shapes"]:
+    ###    try:
+    ###        room_global = floor_map_gt_object.get_room_shape_global(rsid)
+    ###    except Exception:
+    ###        continue
+    ###    this_all = []
+    ###    for type in ["doors", "windows", "openings"]:
+    ###        for wfid, obj in room_global[type].items():
+    ###            this_all.append(
+    ###                [
+    ###                    Point2d(obj["position"][0]["x"], obj["position"][0]["y"]),
+    ###                    Point2d(obj["position"][1]["x"], obj["position"][1]["y"]),
+    ###                    type[:-1],
+    ###                ]
+    ###            )
+    ###    dwos_gt_all[rsid] = this_all
+    import pdb; pdb.set_trace()
     clusters = []
     floor_ids = []
     for item in localizations:
-        cluster_new = ground_truth_utils.align_pred_poses_with_gt(floor_map_object=floor_map_object, cluster=item)
-        clusters.append(cluster_new["panos"])
-        floor_ids.append(cluster_new["floor_id"])
+        cluster_aligned = ground_truth_utils.align_pred_poses_with_gt(floor_map_object=floor_map_gt_object, cluster=item)
+        clusters.append(cluster_aligned["panos"])
+        floor_ids.append(cluster_aligned["floor_id"])
     # clusters = ground_truth_utils.convert_floor_map_to_localization_cluster(floor_map_object)
 
     all_scores = []
