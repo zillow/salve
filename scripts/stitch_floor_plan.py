@@ -31,13 +31,11 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
         path_gt_floor_map: Path to gt ZInD floor_map.json file.
     """
     print(f"Start processing ... ")
-
+    
     loader = MemoryLoader(hnet_pred_dir, data_type={"rse": ["partial_v1"], "dwo": ["rcnn"]})
-
 
     output_dir.mkdir(exist_ok=True, parents=True)
     cluster_dir = os.path.join(output_dir, "fused")
-
     Path(cluster_dir).mkdir(exist_ok=True, parents=True)
 
     # Load floor_map file with annotated room shape and gt room shape transformations.
@@ -335,13 +333,17 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
 @click.option(
     "--path-gt-floor-map",
     required=True,
-    help="Path to gt ZInD floor_map.json file.",
+    help="Path to JSON ground-truth floor-map annotation from ZInD (`zind_data.json`).",
     type=click.Path(exists=True),
 )
 def run_stitch_floor_plan(
     output_dir: str, est_localization_fpath: str, hnet_pred_dir: str, path_gt_floor_map: str
 ) -> None:
-    """Click entry point for layout stitching script."""
+    """Click entry point for layout stitching script.
+
+    Example usage: 
+    python scripts/stitch_floor_plan.py --output-dir 2022_06_20_stitching_output --est-localization-fpath 2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23___2022_02_01_pgo_floorplans_with_conf_0.93_door_window_opening_axisalignedTrue_serialized/0715__floor_01.json --hnet-pred-dir /srv/scratch/jlambert30/salve/zind2_john/34dd69ad-f6f6-aeb3-2207-661b02a69378/floor_map/34dd69ad-f6f6-aeb3-2207-661b02a69378/pano --path-gt-floor-map /srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05/0715/zind_data.json
+    """
     main(
         output_dir=Path(output_dir),
         est_localization_fpath=Path(est_localization_fpath),
