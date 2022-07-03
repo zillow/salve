@@ -185,7 +185,7 @@ def group_panos_by_room(predictions: Any, location_panos: Any) -> List[List[int]
     return groups
 
 @click.command(help="Script to run floorplan stitching algorithm, using previously localized poses.")
-click.option(
+@click.option(
     "--raw_dataset_dir",
     click.Path(exists=True),
     # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
