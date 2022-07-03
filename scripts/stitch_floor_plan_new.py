@@ -187,10 +187,11 @@ def group_panos_by_room(predictions: Any, location_panos: Any) -> List[List[int]
 @click.command(help="Script to run floorplan stitching algorithm, using previously localized poses.")
 @click.option(
     "--raw_dataset_dir",
-    click.Path(exists=True),
+    type=click.Path(exists=True),
+    required=True,
     # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
     # "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    default="/home/johnlam/zind_bridgeapi_2021_10_05",
+    #default="/home/johnlam/zind_bridgeapi_2021_10_05",
     help="where ZInD dataset is stored on disk (after download from Bridge API)",
 )
 @click.option(
