@@ -69,7 +69,7 @@ def load_room_shape_polygon_from_predictions(
     """TODO
 
     Args:
-        room_shape_pred:
+        room_shape_pred: corners
         uncertainty:
         camera_height:
 
