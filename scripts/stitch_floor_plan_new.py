@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+import gtsfm.utils.io as io_utils
 import networkx as nx
 import numpy as np
 from shapely.geometry import Point, Polygon
@@ -87,58 +88,6 @@ def generate_dense_shape(v_vals: List[Any], uncertainty: Any) -> Tuple[Any, Any]
         distances.append(math.sqrt((xys_upper[0][i] - xys[0][i]) ** 2 + (xys_upper[1][i] - xys[1][i]) ** 2))
     return polygon, distances
 
-def stitch_building_layouts(
-    hnet_pred_dir: Path, raw_dataset_dir: str, est_localization_fpath: Path, output_dir: Path
-) -> None:
-    """ """
-    import pdb
-
-    pdb.set_trace()
-    building_id = "0715"
-
-    output_dir.mkdir(exist_ok=True, parents=True)
-    cluster_dir = os.path.join(output_dir, "fused")
-    Path(cluster_dir).mkdir(exist_ok=True, parents=True)
-
-    floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-        query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=hnet_pred_dir
-    )
-
-    localizations = io_utils.read_json_file(est_localization_fpath)
-
-    # convert each pose in the JSON file to a Sim2 object.
-    wall_confidences = {}
-    predicted_shapes_raw = {}
-    predicted_corner_shapes = {}
-
-    for floor_id, floor_pose_graph in floor_pose_graphs.items():
-
-        while True:
-            # for each pano
-
-            # get the ceiling corners
-            predicted_corner_shapes[panoid] = load_room_shape_polygon_from_predictions(
-                room_shape_pred=floor_pose_graph.corners_in_uv
-            )
-
-            wall_confidences[panoid] = floor_pose_graph.floor_boundary_uncertainty
-            predicted_shapes_raw[panoid], wall_confidences[panoid] = generate_dense_shape(
-                v_vals=floor_pose_graph.floor_boundary, uncertainty=wall_confidences[panoid]
-            )
-
-        groups = shape_utils.group_panos_by_room(predicted_corner_shapes, location_panos)
-
-        print("Running shape refinement ... ")
-        floor_shape_final, figure, floor_shape_fused_poly = shape_utils.refine_predicted_shape(
-            groups=groups,
-            predicted_shapes=predicted_shapes_raw,
-            wall_confidences=wall_confidences,
-            location_panos=location_panos,
-            cluster_dir=cluster_dir,
-            tour_dir=output_dir,
-        )
-
-
 def group_panos_by_room(predictions: Any, location_panos: Any) -> List[List[int]]:
     """Form per-room clusters of panoramas according to layout IoU and other overlap measures.
     Layouts that have high IoU, or have high intersection with either shape, are considered to belong to a single room.
@@ -184,6 +133,59 @@ def group_panos_by_room(predictions: Any, location_panos: Any) -> List[List[int]
                 graph.add_edge(panoid1, panoid2)
     groups = [[*c] for c in sorted(nx.connected_components(graph))]
     return groups
+
+
+def stitch_building_layouts(
+    hnet_pred_dir: Path, raw_dataset_dir: str, est_localization_fpath: Path, output_dir: Path
+) -> None:
+    """ """
+    building_id = "0715"
+
+    output_dir.mkdir(exist_ok=True, parents=True)
+    cluster_dir = os.path.join(output_dir, "fused")
+    Path(cluster_dir).mkdir(exist_ok=True, parents=True)
+
+    floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
+        query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=hnet_pred_dir
+    )
+
+    localizations = io_utils.read_json_file(est_localization_fpath)
+
+    # convert each pose in the JSON file to a Sim2 object.
+    wall_confidences = {}
+    predicted_shapes_raw = {}
+    predicted_corner_shapes = {}
+
+    import pdb; pdb.set_trace()
+    for floor_id, floor_pose_graph in floor_pose_graphs.items():
+
+        if floor_id != 'floor_01':
+            continue
+
+        for pano_id in floor_pose_graph.pano_ids():
+
+            # get the ceiling corners
+            predicted_corner_shapes[panoid] = load_room_shape_polygon_from_predictions(
+                room_shape_pred=floor_pose_graph.corners_in_uv
+            )
+
+            wall_confidences[panoid] = floor_pose_graph.floor_boundary_uncertainty
+            predicted_shapes_raw[panoid], wall_confidences[panoid] = generate_dense_shape(
+                v_vals=floor_pose_graph.floor_boundary, uncertainty=wall_confidences[panoid]
+            )
+
+        groups = shape_utils.group_panos_by_room(predicted_corner_shapes, location_panos)
+
+        print("Running shape refinement ... ")
+        floor_shape_final, figure, floor_shape_fused_poly = shape_utils.refine_predicted_shape(
+            groups=groups,
+            predicted_shapes=predicted_shapes_raw,
+            wall_confidences=wall_confidences,
+            location_panos=location_panos,
+            cluster_dir=cluster_dir,
+            tour_dir=output_dir,
+        )
+
 
 @click.command(help="Script to run floorplan stitching algorithm, using previously localized poses.")
 @click.option(
