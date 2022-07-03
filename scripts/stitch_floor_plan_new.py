@@ -86,7 +86,6 @@ def generate_dense_shape(v_vals: List[Any], uncertainty: Any) -> Tuple[Any, Any]
         distances.append(math.sqrt((xys_upper[0][i] - xys[0][i]) ** 2 + (xys_upper[1][i] - xys[1][i]) ** 2))
     return polygon, distances
 
-
 def stitch_building_layouts(
     hnet_pred_dir: Path, raw_dataset_dir: str, est_localization_fpath: Path, output_dir: Path
 ) -> None:
@@ -185,7 +184,7 @@ def group_panos_by_room(predictions: Any, location_panos: Any) -> List[List[int]
     groups = [[*c] for c in sorted(nx.connected_components(graph))]
     return groups
 
-
+@click.command(help="Script to run floorplan stitching algorithm, using previously localized poses.")
 click.option(
     "--raw_dataset_dir",
     click.Path(exists=True),
@@ -194,8 +193,6 @@ click.option(
     default="/home/johnlam/zind_bridgeapi_2021_10_05",
     help="where ZInD dataset is stored on disk (after download from Bridge API)",
 )
-
-
 @click.option(
     "--est-localization-fpath",
     required=True,
