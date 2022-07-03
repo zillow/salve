@@ -15,7 +15,6 @@ import salve.stitching.draw as draw_utils
 import salve.stitching.ground_truth_utils as ground_truth_utils
 import salve.stitching.shape as shape_utils
 import salve.stitching.transform as transform_utils
-from salve.stitching.loaders import MemoryLoader
 from salve.stitching.models.floor_map_object import FloorMapObject
 from salve.stitching.models.locations import Point2d, Pose
 
@@ -32,8 +31,6 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
     """
     print(f"Start processing ... ")
     
-    loader = MemoryLoader(hnet_pred_dir, data_type={"rse": ["partial_v1"], "dwo": ["rcnn"]})
-
     output_dir.mkdir(exist_ok=True, parents=True)
     cluster_dir = os.path.join(output_dir, "fused")
     Path(cluster_dir).mkdir(exist_ok=True, parents=True)
@@ -49,7 +46,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
     #         key: val for key, val in cluster['panos'].items()
     #     }
 
-    predicted_shapes_all = []
+    predicted_corner_shapes_all = []
     location_panos_all = []
     dwos_cluster_all = []
     wall_confidences_all = []
@@ -77,10 +74,10 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
     clusters = []
     floor_ids = []
     for item in localizations:
-        cluster_aligned = ground_truth_utils.align_pred_poses_with_gt(floor_map_object=floor_map_gt_object, cluster=item)
+        cluster_aligned = ground_truth_utils.align_pred_poses_with_gt(floor_map_gt_object=floor_map_gt_object, cluster=item)
         clusters.append(cluster_aligned["panos"])
         floor_ids.append(cluster_aligned["floor_id"])
-    # clusters = ground_truth_utils.convert_floor_map_to_localization_cluster(floor_map_object)
+    # clusters = ground_truth_utils.convert_floor_map_to_localization_cluster(floor_map_gt_object)
 
     all_scores = []
     for i_cluster, cluster in enumerate(clusters):
@@ -90,7 +87,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
         if not Path(cluster_dir).exists():
             Path(cluster_dir).mkdir(exist_ok=True, parents=True)
 
-        predicted_shapes = {}
+        predicted_corner_shapes = {}
         predicted_shapes_raw = {}
         dwos_cluster = {}
         location_panos = {}
@@ -102,13 +99,13 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
 
         print(f"Loading cluster {len(cluster)} panos ... ")
         primary_panoids = []
+        # `panoid` will be a string ID, e.g. `065cd4e4e0`
         for i_pano, panoid in enumerate(cluster):
-            path_madori_prediction = f"{hnet_pred_dir}/{panoid}/rmx-madori-v1_predictions.json"
-            with open(path_madori_prediction) as f:
-                pred = json.load(f)
+            path_madori_prediction = hnet_pred_dir / panoid / "rmx-madori-v1_predictions.json"
+            pred = io_utils.read_json_file(path_madori_prediction)
 
-            rsid = floor_map["panos"][panoid]["room_shape_id"]
-            pano_room_shape = floor_map["room_shapes"][rsid]["panos"][panoid]
+            rsid = floor_map_gt["panos"][panoid]["room_shape_id"]
+            pano_room_shape = floor_map_gt["room_shapes"][rsid]["panos"][panoid]
             is_primary = (
                 pano_room_shape["position"]["x"] == 0
                 and pano_room_shape["position"]["y"] == 0
@@ -126,7 +123,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
                 v_vals=pred[0]["predictions"]["room_shape"]["raw_predictions"]["floor_boundary"],
                 uncertainty=wall_confidences[panoid],
             )
-            predicted_shapes[panoid] = shape_utils.load_room_shape_polygon_from_predictions(
+            predicted_corner_shapes[panoid] = shape_utils.load_room_shape_polygon_from_predictions(
                 room_shape_pred=pred[0]["predictions"]["room_shape"]["corners_in_uv"]
             )
 
@@ -136,7 +133,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
             # dwos = []
             # for type in ['window', 'door', 'opening']:
             #     for dwo_uv_pred in pred[0]['predictions']['wall_features'][type]:
-            #         xys = transform_utils.ray_cast_and_generate_dwo_xy(dwo_uv_pred, predicted_shapes[panoid])
+            #         xys = transform_utils.ray_cast_and_generate_dwo_xy(dwo_uv_pred, predicted_corner_shapes[panoid])
             #         if not xys[0] or not xys[1]:
             #             continue
             #         dwos.append([
@@ -146,12 +143,12 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
             #         ])
             # dwos_cluster[panoid] = dwos
 
-        predicted_shapes_all.append(predicted_shapes)
+        predicted_corner_shapes_all.append(predicted_corner_shapes)
         location_panos_all.append(location_panos)
         # dwos_cluster_all.append(dwos_cluster)
         wall_confidences_all.append(wall_confidences)
 
-        groups = shape_utils.group_panos_by_room(predicted_shapes, location_panos)
+        groups = shape_utils.group_panos_by_room(predicted_corner_shapes, location_panos)
 
         print("Running shape refinement ... ")
         floor_shape_final, figure, floor_shape_fused_poly = shape_utils.refine_predicted_shape(
@@ -166,11 +163,11 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
 
         print("Drawing room shapes ... ")
         # gt_axis = figure.add_subplot(1, 3, 2)
-        # poly_gt_union = draw_utils.draw_all_room_shapes_with_poses(None, floor_map, primary_panoids, axis=gt_axis)
+        # poly_gt_union = draw_utils.draw_all_room_shapes_with_poses(None, floor_map_gt, primary_panoids, axis=gt_axis)
         # for panoid in cluster:
         #     if panoid in primary_panoids:
         #         continue
-        #     pose_ref = floor_map_object.get_pano_global_pose(panoid)
+        #     pose_ref = floor_map_gt_object.get_pano_global_pose(panoid)
         #     draw_utils.draw_camera_in_top_down_canvas(gt_axis, pose_ref, "green", size=10)
         #
         # area_gt = poly_gt_union.area
@@ -190,23 +187,23 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
         # for panoid in cluster:
         #     if panoid in primary_panoids:
         #         continue
-        #     pose_ref = floor_map_object.get_pano_global_pose(panoid)
+        #     pose_ref = floor_map_gt_object.get_pano_global_pose(panoid)
         #     draw_utils.draw_camera_in_top_down_canvas(gt_axis, pose_ref, "black", size=10)
 
         gt_axis1 = figure.add_subplot(1, 2, 2)
         floor_id = floor_ids[i_cluster]
         fsid = None
-        for fsid_this, floor_shape in floor_map["floor_shapes"].items():
+        for fsid_this, floor_shape in floor_map_gt["floor_shapes"].items():
             if floor_shape["floor_number"] == int(floor_id.split("_")[-1]):
                 fsid = fsid_this
 
         panoids_all = []
         primary_panoids_all = []
         if fsid:
-            panoids_all = floor_map_object.get_panoids_with_floor_id(fsid)
+            panoids_all = floor_map_gt_object.get_panoids_with_floor_id(fsid)
             for panoid_this in panoids_all:
                 rsid = floor_map["panos"][panoid_this]["room_shape_id"]
-                pano_room_shape = floor_map["room_shapes"][rsid]["panos"][panoid_this]
+                pano_room_shape = floor_map_gt["room_shapes"][rsid]["panos"][panoid_this]
                 is_primary = (
                     pano_room_shape["position"]["x"] == 0
                     and pano_room_shape["position"]["y"] == 0
@@ -215,8 +212,8 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
                 if is_primary:
                     primary_panoids_all.append(panoid_this)
 
-        poly_gt_union1 = draw_utils.draw_all_room_shapes_with_poses(None, floor_map, primary_panoids_all, axis=gt_axis1)
-        rsids = [floor_map["panos"][this_panoid]["room_shape_id"] for this_panoid in primary_panoids_all]
+        poly_gt_union1 = draw_utils.draw_all_room_shapes_with_poses(None, floor_map_gt, primary_panoids_all, axis=gt_axis1)
+        rsids = [floor_map_gt["panos"][this_panoid]["room_shape_id"] for this_panoid in primary_panoids_all]
         dwos_gt_this = {}
         for rsid in rsids:
             dwos_gt_this[rsid] = dwos_gt_all[rsid]
@@ -224,7 +221,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
         for panoid in panoids_all:
             if panoid in primary_panoids_all:
                 continue
-            pose_ref = floor_map_object.get_pano_global_pose(panoid)
+            pose_ref = floor_map_gt_object.get_pano_global_pose(panoid)
             draw_utils.draw_camera_in_top_down_canvas(gt_axis1, pose_ref, "black", size=10)
 
         area_gt1 = poly_gt_union1.area
@@ -270,8 +267,8 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
         axis, fig = draw_utils.draw_all_room_shapes_with_given_poses_and_shapes(
             filename=vis_path,
             floor_map=floor_map,
-            panoid_refs=predicted_shapes.keys(),
-            predictions=predicted_shapes,
+            panoid_refs=predicted_corner_shapes.keys(),
+            predictions=predicted_corner_shapes,
             confidences=wall_confidences,
             poses=location_panos,
             groups=groups,
@@ -280,7 +277,7 @@ def main(output_dir: Path, est_localization_fpath: Path, hnet_pred_dir: Path, pa
         axis, fig = draw_utils.draw_all_room_shapes_with_given_poses_and_shapes(
             filename=vis_raw_path,
             floor_map=floor_map,
-            panoid_refs=predicted_shapes.keys(),
+            panoid_refs=predicted_corner_shapes.keys(),
             predictions=predicted_shapes_raw,
             confidences=wall_confidences,
             poses=location_panos,
