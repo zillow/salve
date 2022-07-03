@@ -87,7 +87,9 @@ def generate_dense_shape(v_vals: List[Any], uncertainty: Any) -> Tuple[Any, Any]
     return polygon, distances
 
 
-def stitch_building_layouts(raw_dataset_dir: str, est_localization_fpath: Path, output_dir: Path) -> None:
+def stitch_building_layouts(
+    hnet_pred_dir: Path, raw_dataset_dir: str, est_localization_fpath: Path, output_dir: Path
+) -> None:
     """ """
     import pdb
 
@@ -99,7 +101,7 @@ def stitch_building_layouts(raw_dataset_dir: str, est_localization_fpath: Path, 
     Path(cluster_dir).mkdir(exist_ok=True, parents=True)
 
     floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-        query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+        query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=hnet_pred_dir
     )
 
     localizations = io_utils.read_json_file(est_localization_fpath)
@@ -207,9 +209,23 @@ click.option(
     help="Path to directory where stitched outputs will be saved to.",
     type=str,  #
 )
-def run_stitch_building_layouts(raw_dataset_dir: str, est_localization_fpath: str, raw_dataset_dir: str) -> None:
-    """Click entry point for ..."""
+@click.option(
+    "--hnet-pred-dir",
+    required=True,
+    help="Directory to where HorizonNet per-pano room shape and DWO predictions are stored.",
+    type=click.Path(exists=True),
+)
+def run_stitch_building_layouts(
+    raw_dataset_dir: str, est_localization_fpath: str, output_dir: str, hnet_pred_dir: str
+) -> None:
+    """Click entry point for ...
+
+
+    Example usage:
+    python scripts/stitch_floor_plan_new.py --output-dir 2022_07_01_stitching_output --est-localization-fpath 2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23___2022_02_01_pgo_floorplans_with_conf_0.93_door_window_opening_axisalignedTrue_serialized/0715__floor_01.json --hnet-pred-dir /srv/scratch/jlambert30/salve/zind2_john --raw_dataset_dir /srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05
+    """
     stitch_building_layouts(
+        hnet_pred_dir=Path(hnet_pred_dir),
         raw_dataset_dir=str(raw_dataset_dir),
         est_localization_fpath=Path(est_localization_fpath),
         output_dir=Path(output_dir),
