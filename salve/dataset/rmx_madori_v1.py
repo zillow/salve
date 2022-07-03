@@ -108,6 +108,34 @@ class PanoStructurePredictionRmxMadoriV1:
             windows=windows,
         )
 
+    def get_floor_corners_image(self, img_h: int, img_w: int) -> np.ndarray:
+        """Get predicted floor corners, in pixel coordinates.
+
+        Args:
+            img_h: image height (in pixels).
+            img_w: image width (in pixels).
+        """
+        uv = copy.deepcopy(self.corners_in_uv)
+        uv[:, 0] *= img_w
+        uv[:, 1] *= img_h
+
+        floor_uv = uv[::2]
+        return floor_uv
+
+    def get_ceiling_corners_image(self, img_h: int, img_w: int) -> np.ndarray:
+        """Get predicted ceiling corners, in pixel coordinates.
+
+        Args:
+            img_h: image height (in pixels).
+            img_w: image width (in pixels).
+        """
+        uv = copy.deepcopy(self.corners_in_uv)
+        uv[:, 0] *= img_w
+        uv[:, 1] *= img_h
+
+        ceiling_uv = uv[1::2]
+        return ceiling_uv
+
     def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
         """Render the predicted wall-floor boundary and wall corners onto the equirectangular projection,
         for visualization.
@@ -118,12 +146,8 @@ class PanoStructurePredictionRmxMadoriV1:
         """
         linewidth = 20 # use 20 for paper figures, but 5 for debug visualizations.
 
-        uv = copy.deepcopy(self.corners_in_uv)
-        uv[:, 0] *= img_w
-        uv[:, 1] *= img_h
-
-        floor_uv = uv[::2]
-        ceiling_uv = uv[1::2]
+        floor_uv = self.get_floor_corners_image(img_h=img_h, img_w=img_w)
+        ceiling_uv = self.get_ceiling_corners_image(img_h=img_h, img_w=img_w)
 
         plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker="o")
         plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker="o")

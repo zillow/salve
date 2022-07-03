@@ -167,13 +167,13 @@ def draw_camera_in_top_down_canvas(axis: SubplotBase, pose: Pose, color: str, si
 
 
 def draw_all_room_shapes_with_given_poses_and_shapes(
-    filename: str, floor_map: Any, panoid_refs: Any, predictions: Any, confidences: Any, poses: Any, groups: Any
+    filename: str, floor_map_gt: Any, panoid_refs: Any, predictions: Any, confidences: Any, poses: Any, groups: Any
 ) -> Tuple[plt.Axes, Figure]:
     """TODO
 
     Args:
         filename:
-        floor_map:
+        floor_map_gt: ground truth floor map.
         panoid_refs:
         predictions:
         confidences:
@@ -184,7 +184,7 @@ def draw_all_room_shapes_with_given_poses_and_shapes(
         axis:
         fig:
     """
-    floor_map_obj = FloorMapObject(floor_map)
+    floor_map_gt_obj = FloorMapObject(floor_map_gt)
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
 
