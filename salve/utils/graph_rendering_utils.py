@@ -135,6 +135,11 @@ def draw_multigraph(
     floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
         query_building_id=input_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
     )
+    if input_floor_pose_graph.floor_id not in floor_pose_graphs:
+        raise ValueError(
+            f"HorizonNet predictions missing for {input_floor_pose_graph.floor_id} "
+            f"of ZInD Building {input_floor_pose_graph.building_id}."
+        )
     true_gt_floor_pose_graph = floor_pose_graphs[input_floor_pose_graph.floor_id]
 
     nodes = list(G.nodes)
