@@ -364,10 +364,12 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot()
 
+    pano_ids = est_pose_graph.pano_ids()
+
     print("Running pano grouping by room ... ")
     shapes_global = {}
     graph = nx.Graph()
-    for pano_id in est_pose_graph.pano_ids():
+    for pano_id in pano_ids:
         # pose = location_panos[panoid]
         # shape = predictions[panoid]
         # xys_transformed = []
@@ -376,7 +378,7 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
         #     xys_transformed.append(transform_utils.transform_xy_by_pose(xy, pose))
         # shape_global = Polygon([[xy.x, xy.y] for xy in xys_transformed])
 
-        shapes_global[pano_id] = est_pose_graph.nodes[pano_id].room_vertices_global_2d
+        shapes_global[pano_id] = Polygon(est_pose_graph.nodes[pano_id].room_vertices_global_2d)
         graph.add_node(pano_id)
 
         color = np.random.rand(3)
@@ -402,11 +404,10 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
     plt.axis("equal")
     plt.savefig("0715.jpg", dpi=500)
 
-    panoids = [*location_panos.keys()]
-    for i in range(len(panoids)):
-        for j in range(i, len(panoids)):
-            panoid1 = panoids[i]
-            panoid2 = panoids[j]
+    for i in range(len(pano_ids)):
+        for j in range(i, len(pano_ids)):
+            panoid1 = pano_ids[i]
+            panoid2 = pano_ids[j]
             shape1 = shapes_global[panoid1]
             shape2 = shapes_global[panoid2]
             area_intersection = shape1.intersection(shape2).area
@@ -421,6 +422,7 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
             ):
                 graph.add_edge(panoid1, panoid2)
     groups = [[*c] for c in sorted(nx.connected_components(graph))]
+    print("Connected components: ", groups)
     return groups
 
 
