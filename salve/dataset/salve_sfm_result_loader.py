@@ -94,7 +94,7 @@ def load_estimated_pose_graph(
             # TODO: add explanation for this.
             room_vertices_local_2d[:, 0] *= -1
 
-        global_Sim2_local = Sim2(v["R"], t=v["t"], s=v["s"])
+        global_Sim2_local = Sim2(np.array(v["R"]), t=np.array(v["t"]), s=v["s"])
         nodes[pano_id] = PanoData(
             id=pano_id,
             global_Sim2_local=global_Sim2_local,
