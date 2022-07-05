@@ -2,6 +2,7 @@
 
 from enum import Enum, unique
 from pathlib import Path
+from typing import Optional
 
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.pano_data import PanoData
@@ -47,9 +48,7 @@ def load_estimated_pose_graph(
         hnet_floor_predictions = hnet_prediction_loader.load_hnet_predictions(
             query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=predictions_data_root
         )
-        import pdb
-
-        pdb.set_trace()
+        import pdb; pdb.set_trace()
 
     nodes = {}
     for pano_id, v in localization_data["wSi_dict"]:
