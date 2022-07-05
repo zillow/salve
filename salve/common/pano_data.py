@@ -11,6 +11,7 @@ sRp + st
 """
 
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
@@ -25,10 +26,22 @@ from salve.common.wdo import WDO
 RED = [1, 0, 0]
 GREEN = [0, 1, 0]
 BLUE = [0, 0, 1]
-wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
+WDO_COLOR_DICT = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
 COLORMAP = np.random.rand(100, 3)
+
+
+class CoordinateFrame(str, Enum):
+    """Defines scale of coordinates, their axes, and their frame of reference.
+
+    LOCAL corresponds to Cartesian ego-frame of panorama.
+    WORLD_NORMALIZED corresponds to TODO
+    WORLD_METRIC corresponds to TODO
+    """
+    LOCAL: str = 'local'
+    WORLD_NORMALIZED: str = 'worldnormalized'
+    WORLD_METRIC: str = 'worldmetric'
 
 
 @dataclass(frozen=False)
@@ -121,14 +134,16 @@ class PanoData:
 
         Args:
             coord_frame: either 'local' (cartesian ego-frame) or  'worldnormalized' or 'worldmetric'
-            wdo_objs_seen_on_floor
-            show_plot
+            wdo_objs_seen_on_floor: TODO
+            show_plot: TODO
+            scale_meters_per_coordinate: TODO
 
         Returns:
             wdo_objs_seen_on_floor
         """
         # hohopano_Sim2_zindpano = Sim2(R=rotation_utils.rotmat2d(-90), t=np.zeros(2), s=1.0)
 
+        # TODO: replace with their Enum equivalent.
         assert coord_frame in ["worldmetric", "worldnormalized" "local"]
 
         if coord_frame in ["worldmetric", "worldnormalized"]:
@@ -192,7 +207,7 @@ class PanoData:
 
             # wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
             wdo_type = wdo.type
-            wdo_color = wdo_color_dict[wdo_type]
+            wdo_color = WDO_COLOR_DICT[wdo_type]
 
             if (wdo_objs_seen_on_floor is not None) and (wdo_type not in wdo_objs_seen_on_floor):
                 label = wdo_type

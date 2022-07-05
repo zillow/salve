@@ -206,7 +206,8 @@ def render_floorplans_side_by_side(
     gt_floor_pg: Optional[PoseGraph2d] = None,
     plot_save_fpath: Optional[str] = None,
 ) -> None:
-    """
+    """Render estimated and corresponding ground truth floor plans side-by-side.
+
     Either render (show plot) or save plot to disk.
 
     Args:
@@ -231,6 +232,7 @@ def render_floorplans_side_by_side(
     ax2.set_aspect("equal")
     render_floorplan(est_floor_pose_graph, gt_floor_pg.scale_meters_per_coordinate)
     plt.title(f"Building {building_id}, {floor_id}")
+    plt.legend(loc="upper right")
 
     if save_plot:
         if plot_save_dir is not None and plot_save_fpath is None:

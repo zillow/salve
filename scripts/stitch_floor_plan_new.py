@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import gtsfm.utils.io as io_utils
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from shapely.geometry import Point, Polygon
@@ -19,7 +20,7 @@ import salve.stitching.transform as transform_utils
 from salve.common.posegraph2d import PoseGraph2d
 from salve.dataset.salve_sfm_result_loader import EstimatedBoundaryType
 from salve.stitching.constants import DEFAULT_CAMERA_HEIGHT
-
+import salve.utils.matplotlib_utils as matplotlib_utils
 
 # arbitrary image height, to match HNet model inference resolution.
 IMAGE_WIDTH_PX = 1024
@@ -27,7 +28,6 @@ IMAGE_HEIGHT_PX = 512
 
 MIN_LAYOUT_OVERLAP_RATIO = 0.3
 MIN_LAYOUT_OVERLAP_IOU = 0.1
-
 
 
 import json
@@ -82,7 +82,6 @@ def extract_coordinates_from_shapely_polygon(shape: Polygon) -> List[Point2d]:
     for i in range(len(xys[0])):
         coords.append(Point2d(x=xys[0][i], y=xys[1][i]))
     return coords
-
 
 
 def refine_shape_group_start_with(
@@ -175,7 +174,7 @@ def refine_shape_group_start_with(
                 current_c = final_cs_all[panoid_new][i]
         xy1_final = transform_utils.uv_to_xy(Point2d(x=u, y=v), DEFAULT_CAMERA_HEIGHT)
         xys1_final.append(Point2d(x=xy1_final.x, y=xy1_final.y))
-        
+
         if (i > 0) and (xys1_final[i - 1].distance(xy1_final) > 0.03):
             current_c = 0
         if (i < len(xys1_final) - 1) and (xys1_final[i + 1].distance(xy1_final) > 0.03):
@@ -346,23 +345,27 @@ def generate_dense_shape(v_vals: Iterable[float], uncertainty: Iterable[float]) 
     return polygon, distances
 
 
-def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d) -> List[List[int]]:
+def group_panos_by_room(
+    predictions: List[Polygon], est_pose_graph: PoseGraph2d, visualize: bool = True
+) -> List[List[int]]:
     """Form per-room clusters of panoramas according to layout IoU and other overlap measures.
+
     Layouts that have high IoU, or have high intersection with either shape, are considered to belong to a single room.
+
     Args:
         predictions: room polygons in world metric system (using corner predictions, instead of dense boundary
             predictions).
         est_pose_graph: estimated 2d pose graph (as a result of executing SALVe's `run_sfm.py`).
+        visualize: whether to save visualizations to disk.
 
     Returns:
         groups: list of connected components. Each connected component is represented
             by a list of panorama IDs.
     """
-    import matplotlib.pyplot as plt
-    import salve.utils.matplotlib_utils as matplotlib_utils
-
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot()
+    if visualize:
+        plt.close("all")
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot()
 
     pano_ids = est_pose_graph.pano_ids()
 
@@ -370,41 +373,25 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
     shapes_global = {}
     graph = nx.Graph()
     for pano_id in pano_ids:
-        # pose = location_panos[panoid]
-        # shape = predictions[panoid]
-        # xys_transformed = []
-        # xys = extract_coordinates_from_shapely_polygon(shape)
-        # for xy in xys:
-        #     xys_transformed.append(transform_utils.transform_xy_by_pose(xy, pose))
-        # shape_global = Polygon([[xy.x, xy.y] for xy in xys_transformed])
-
         shapes_global[pano_id] = Polygon(est_pose_graph.nodes[pano_id].room_vertices_global_2d)
         graph.add_node(pano_id)
 
-        color = np.random.rand(3)
-        # plt.plot(
-        #     est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
-        #     est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
-        #     c=color,
-        # )
-        # plt.scatter(
-        #     est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
-        #     est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
-        #     s=10,
-        #     c=color,
-        #     marker="."
-        # )
-        x, y = np.mean(est_pose_graph.nodes[pano_id].room_vertices_global_2d, axis=0)
-        ax.text(x, y, str(pano_id))
-        matplotlib_utils.plot_polygon_patch_mpl(
-            polygon_pts=est_pose_graph.nodes[pano_id].room_vertices_global_2d,
-            ax=ax,
-            color=color,
-            alpha = 0.2,
-        )
+        if visualize:
+            color = np.random.rand(3)
+            x, y = np.mean(est_pose_graph.nodes[pano_id].room_vertices_global_2d, axis=0)
+            ax.text(x, y, str(pano_id))
+            matplotlib_utils.plot_polygon_patch_mpl(
+                polygon_pts=est_pose_graph.nodes[pano_id].room_vertices_global_2d,
+                ax=ax,
+                color=color,
+                alpha=0.2,
+            )
 
-    plt.axis("equal")
-    plt.savefig("0715.jpg", dpi=500)
+    if visualize:
+        plt.axis("equal")
+        Path("cc_visualizations").mkdir(parents=True, exist_ok=True)
+        plt.savefig(f"cc_visualizations/{est_pose_graph.building_id}_{est_pose_graph.floor_id}.jpg", dpi=500)
+        plt.close("all")
 
     for i in range(len(pano_ids)):
         for j in range(i, len(pano_ids)):
@@ -429,11 +416,16 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
 
 
 def stitch_building_layouts(
-    hnet_pred_dir: Path, raw_dataset_dir: str, est_localization_fpath: Path, output_dir: Path
+    building_id: str, hnet_pred_dir: Path, raw_dataset_dir: str, est_localization_fpath: Path, output_dir: Path
 ) -> None:
-    """ """
-    building_id = "0715"
-
+    """
+    Args:
+        building_id:
+        hnet_pred_dir:
+        raw_dataset_dir:
+        est_localization_fpath:
+        output_dir:
+    """
     output_dir.mkdir(exist_ok=True, parents=True)
     cluster_dir = os.path.join(output_dir, "fused")
     Path(cluster_dir).mkdir(exist_ok=True, parents=True)
@@ -445,7 +437,7 @@ def stitch_building_layouts(
         json_fpath=Path(est_localization_fpath),
         boundary_type=EstimatedBoundaryType.HNET_CORNERS,
         raw_dataset_dir=raw_dataset_dir,
-        predictions_data_root=hnet_pred_dir
+        predictions_data_root=hnet_pred_dir,
     )
 
     # convert each pose in the JSON file to a Sim2 object.
@@ -471,7 +463,9 @@ def stitch_building_layouts(
                 v_vals=floor_predictions[pano_id].floor_boundary, uncertainty=wall_confidences[pano_id]
             )
 
-        import pdb; pdb.set_trace()
+        import pdb
+
+        pdb.set_trace()
         groups = group_panos_by_room(predicted_corner_shapes, est_pose_graph=est_pose_graph)
 
         print("Running shape refinement ... ")
@@ -522,16 +516,19 @@ def run_stitch_building_layouts(
 
     Example usage:
     python scripts/stitch_floor_plan_new.py --output-dir 2022_07_01_stitching_output --est-localization-fpath 2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23___2022_02_01_pgo_floorplans_with_conf_0.93_door_window_opening_axisalignedTrue_serialized/0715__floor_01.json --hnet-pred-dir /srv/scratch/jlambert30/salve/zind2_john --raw_dataset_dir /srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05
-    
+
     Improved localization:
     python scripts/stitch_floor_plan_new.py --output-dir 2022_07_05_stitching_output --est-localization-fpath 2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16___2022_07_05_pgo_floorplans_with_conf_0.93_door_window_opening_axisalignedTrue_serialized/0715__floor_01.json --hnet-pred-dir /srv/scratch/jlambert30/salve/zind2_john --raw_dataset_dir /srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05
     """
-    stitch_building_layouts(
-        hnet_pred_dir=Path(hnet_pred_dir),
-        raw_dataset_dir=str(raw_dataset_dir),
-        est_localization_fpath=Path(est_localization_fpath),
-        output_dir=Path(output_dir),
-    )
+    building_ids = ["0715"]
+    for building_id in building_ids:
+        stitch_building_layouts(
+            building_id=building_id,
+            hnet_pred_dir=Path(hnet_pred_dir),
+            raw_dataset_dir=str(raw_dataset_dir),
+            est_localization_fpath=Path(est_localization_fpath),
+            output_dir=Path(output_dir),
+        )
 
 
 if __name__ == "__main__":
