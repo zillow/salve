@@ -145,7 +145,7 @@ def stitch_building_layouts(
     cluster_dir = os.path.join(output_dir, "fused")
     Path(cluster_dir).mkdir(exist_ok=True, parents=True)
 
-    floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
+    hnet_floor_predictions = hnet_prediction_loader.load_hnet_predictions(
         query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=hnet_pred_dir
     )
 
@@ -157,21 +157,21 @@ def stitch_building_layouts(
     predicted_corner_shapes = {}
 
     import pdb; pdb.set_trace()
-    for floor_id, floor_pose_graph in floor_pose_graphs.items():
+    for floor_id, floor_predictions in hnet_floor_predictions.items():
 
         if floor_id != 'floor_01':
             continue
 
-        for pano_id in floor_pose_graph.pano_ids():
+        for pano_id in floor_predictions.keys():
 
             # get the ceiling corners
             predicted_corner_shapes[panoid] = load_room_shape_polygon_from_predictions(
-                room_shape_pred=floor_pose_graph.corners_in_uv
+                room_shape_pred=floor_predictions[pano_id].corners_in_uv
             )
 
-            wall_confidences[panoid] = floor_pose_graph.floor_boundary_uncertainty
+            wall_confidences[panoid] = floor_predictions[pano_id].floor_boundary_uncertainty
             predicted_shapes_raw[panoid], wall_confidences[panoid] = generate_dense_shape(
-                v_vals=floor_pose_graph.floor_boundary, uncertainty=wall_confidences[panoid]
+                v_vals=floor_predictions[pano_id].floor_boundary, uncertainty=wall_confidences[panoid]
             )
 
         groups = shape_utils.group_panos_by_room(predicted_corner_shapes, location_panos)
