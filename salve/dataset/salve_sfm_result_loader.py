@@ -53,7 +53,7 @@ def load_estimated_pose_graph(
         import pdb; pdb.set_trace()
 
     nodes = {}
-    for pano_id, v in localization_data["wSi_dict"]:
+    for pano_id, v in localization_data["wSi_dict"].items():
         global_Sim2_local = Sim2(v["R"], t=v["t"], s=v["s"])
         nodes[pano_id] = PanoData(
             id=pano_id,

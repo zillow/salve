@@ -409,7 +409,7 @@ def stitch_building_layouts(
     )
     est_pose_graph = salve_sfm_result_loader.load_estimated_pose_graph(
         json_fpath=Path(est_localization_fpath),
-        boundary_type=EstimatedBoundaryType,
+        boundary_type=EstimatedBoundaryType.HNET_CORNERS,
         raw_dataset_dir=raw_dataset_dir,
         predictions_data_root=hnet_pred_dir
     )
