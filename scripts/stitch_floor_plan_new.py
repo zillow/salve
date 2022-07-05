@@ -375,11 +375,17 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
         shapes_global[pano_id] = est_pose_graph.nodes[pano_id].room_vertices_global_2d
         graph.add_node(pano_id)
 
+        color = np.random.rand(3)
+        plt.plot(
+            est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
+            est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
+            c=color,
+        )
         plt.scatter(
             est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
             est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
             s=10,
-            c=np.random.rand(3),
+            c=color,
             marker="."
         )
     plt.axis("equal")
