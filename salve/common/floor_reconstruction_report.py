@@ -232,7 +232,7 @@ def render_floorplans_side_by_side(
     ax2.set_aspect("equal")
     render_floorplan(est_floor_pose_graph, gt_floor_pg.scale_meters_per_coordinate)
     plt.title(f"Building {building_id}, {floor_id}")
-    plt.legend(loc="upper right")
+    ax2.legend(loc="upper right")
 
     if save_plot:
         if plot_save_dir is not None and plot_save_fpath is None:
