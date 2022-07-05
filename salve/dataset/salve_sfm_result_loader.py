@@ -68,6 +68,7 @@ def load_estimated_pose_graph(
         elif boundary_type == EstimatedBoundaryType.HNET_CORNERS:
             uv = hnet_floor_predictions[pano_id].corners_in_uv
             img_w = 1024
+            img_h = 512
             uv[:, 0] *= img_w
             uv[:, 1] *= img_h
             # ceiling (u,v) coordinates.
