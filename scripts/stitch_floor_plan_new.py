@@ -29,7 +29,7 @@ def load_room_shape_polygon_from_predictions(
     room_shape_pred: Iterable[Tuple[float, float]],
     uncertainty: Optional[Iterable[Tuple[float, float]]] = None,
     camera_height: float = DEFAULT_CAMERA_HEIGHT,
-) -> Union[Tuple[Polygon, Polyon], Polygon]:
+) -> Union[Tuple[Polygon, Polygon], Polygon]:
     """TODO
 
     Args:
