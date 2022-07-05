@@ -66,10 +66,12 @@ def plot_polygon_patch_mpl(
 
 
 
-def legend_without_duplicate_labels(ax) -> None:
-    """ """
-    import pdb; pdb.set_trace()
+def legend_without_duplicate_labels(ax: matplotlib.axes.Axes) -> None:
+    """Add a legend to Matplotlib axes, simultaneously removing duplicate labels.
+
+    Args:
+        ax: Current drawing canvas for Matplotlib, to which items have been plotted w/ label attributes.
+    """
     handles, labels = ax.get_legend_handles_labels()
     unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
     ax.legend(*zip(*unique))
-

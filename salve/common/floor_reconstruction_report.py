@@ -1,6 +1,4 @@
-"""
-Stores information about a floorplan reconstruction.
-"""
+"""Stores information about a floorplan reconstruction."""
 
 import os
 from dataclasses import dataclass

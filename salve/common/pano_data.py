@@ -126,20 +126,17 @@ class PanoData:
     def plot_room_layout(
         self,
         coord_frame: str,
-        wdo_objs_seen_on_floor: Optional[Set] = None,
         show_plot: bool = True,
         scale_meters_per_coordinate: Optional[float] = None,
     ) -> None:
-        """Plot the room shape for this panorama, either in a global or local frame
+        """Plot the room shape for this panorama, either in a global or local frame.
+
+        Note: many of the Matplotlib "labels" are duplicated, but can be sorted out later during legend creation.
 
         Args:
             coord_frame: either 'local' (cartesian ego-frame) or  'worldnormalized' or 'worldmetric'
-            wdo_objs_seen_on_floor: TODO
             show_plot: TODO
             scale_meters_per_coordinate: TODO
-
-        Returns:
-            wdo_objs_seen_on_floor
         """
         # hohopano_Sim2_zindpano = Sim2(R=rotation_utils.rotmat2d(-90), t=np.zeros(2), s=1.0)
 
@@ -209,24 +206,15 @@ class PanoData:
             # wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
             wdo_type = wdo.type
             wdo_color = WDO_COLOR_DICT[wdo_type]
-
-            #if (wdo_objs_seen_on_floor is not None) and (wdo_type not in wdo_objs_seen_on_floor):
             label = wdo_type
-            #else:
-            #    label = None
             plt.scatter(wdo_points[:, 0], wdo_points[:, 1], 10, color=wdo_color, marker="o", label=label)
             plt.plot(wdo_points[:, 0], wdo_points[:, 1], color=wdo_color, linestyle="dotted")
             # plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
-
-            if wdo_objs_seen_on_floor is not None:
-                wdo_objs_seen_on_floor.add(wdo_type)
 
         if show_plot:
             plt.axis("equal")
             plt.show()
             plt.close("all")
-
-        return wdo_objs_seen_on_floor
 
 
 class FloorData(NamedTuple):

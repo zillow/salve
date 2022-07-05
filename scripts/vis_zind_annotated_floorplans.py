@@ -9,10 +9,10 @@ from typing import Optional, Set
 import argoverse.utils.json_utils as json_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 
 import salve.common.posegraph2d as posegraph2d
 from salve.common.pano_data import PanoData, FloorData
+from salve.common.sim2 import Sim2
 
 
 def render_building(
@@ -44,16 +44,14 @@ def render_building(
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         fd = FloorData.from_json(floor_data, floor_id)
 
-        wdo_objs_seen_on_floor = set()
-
         for pano_obj in fd.panos:
-            wdo_objs_seen_on_floor = pano_obj.plot_room_layout(
+            pano_obj.plot_room_layout(
                 coord_frame="worldmetric",
-                wdo_objs_seen_on_floor=wdo_objs_seen_on_floor,
                 show_plot=False,
                 scale_meters_per_coordinate=gt_floor_pose_graph.scale_meters_per_coordinate,
             )
-
+        ax = None
+        matplotlib_utils.legend_without_duplicate_labels(ax)
         plt.legend(loc="upper right")
         plt.title(f"Building {building_id}: {floor_id}")
         plt.axis("equal")
