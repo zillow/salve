@@ -2,7 +2,7 @@
 
 import copy
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 
