@@ -32,6 +32,9 @@ def load_room_shape_polygon_from_predictions(
 ) -> Union[Tuple[Polygon, Polygon], Polygon]:
     """TODO
 
+    We subtract the uncertainty from v coordinates, moving the uv coordinates higher in each panorama,
+    effectively extending the room at such coordinates.
+
     Args:
         room_shape_pred: corners or dense points along room boundary.
         uncertainty:
@@ -39,6 +42,7 @@ def load_room_shape_polygon_from_predictions(
 
     Returns:
         Polygon or tuple of two polygons, representing (N,2) coordinates in metric world coordinate system?
+            polygon, and then potentially extended version of that polygon, according to uncertainty.
     """
     xys = []
     xys_upper = []
@@ -55,7 +59,6 @@ def load_room_shape_polygon_from_predictions(
                     corner_v + 0.5 / IMAGE_HEIGHT_PX - uncertainty[i] / IMAGE_HEIGHT_PX,
                 ]
             )
-            # TODO(Yuguang): WHY DOES IT MAKE TO SUBTRACT UNCERTAINTY FROM V (move point higher?)?
 
     xys = transform_utils.uv_to_xy_batch(uvs, camera_height)
     if uncertainty is not None:
@@ -64,16 +67,16 @@ def load_room_shape_polygon_from_predictions(
     return Polygon(xys)
 
 
-def generate_dense_shape(v_vals: Iterable[float], uncertainty: Iterable[float]) -> Tuple[Any, Any]:
-    """TODO
+def generate_dense_shape(v_vals: Iterable[float], uncertainty: Iterable[float]) -> Tuple[Polygon, np.ndarray]:
+    """Use extended version of room (according to uncertainty) to determine distances by which each is extended.
 
     Args:
         v_vals: floor boundary "v" coordinates in pixels in the range [0, height], for each of 1024 image columns.
         uncertainty: floor boundary uncertainty, for each of 1024 image columns.
 
     Returns:
-        polygon:
-        distances:
+        polygon: coordinates subsampled (every 2nd), as shapely Polygon object.
+        distances: distance from estimated boundary to extended boundary (according to uncertainty).
     """
     vs = np.asarray(v_vals) / IMAGE_HEIGHT_PX
     us = np.asarray(range(IMAGE_WIDTH_PX)) / IMAGE_WIDTH_PX
@@ -82,8 +85,7 @@ def generate_dense_shape(v_vals: Iterable[float], uncertainty: Iterable[float]) 
     distances = []
     xys = polygon.boundary.xy
     xys_upper = poly_upper.boundary.xy
-    for i in range(len(xys[0])):
-        distances.append(math.sqrt((xys_upper[0][i] - xys[0][i]) ** 2 + (xys_upper[1][i] - xys[1][i]) ** 2))
+    distances = np.hypot(xys_upper[0] - xys[0], xys_upper[1] - xys[1])
     return polygon, distances
 
 
@@ -168,11 +170,12 @@ def stitch_building_layouts(
             )
 
             wall_confidences[pano_id] = floor_predictions[pano_id].floor_boundary_uncertainty
-            import pdb; pdb.set_trace()
+            # confidences are transformed from uv space to world metric space.
             predicted_shapes_raw[pano_id], wall_confidences[pano_id] = generate_dense_shape(
                 v_vals=floor_predictions[pano_id].floor_boundary, uncertainty=wall_confidences[pano_id]
             )
 
+        import pdb; pdb.set_trace()
         groups = shape_utils.group_panos_by_room(predicted_corner_shapes, location_panos)
 
         print("Running shape refinement ... ")
