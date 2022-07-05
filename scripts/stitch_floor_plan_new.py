@@ -389,7 +389,7 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
             marker="."
         )
     plt.axis("equal")
-    plt.savefig("714.jpg", dpi=500)
+    plt.savefig("0715.jpg", dpi=500)
 
     panoids = [*location_panos.keys()]
     for i in range(len(panoids)):

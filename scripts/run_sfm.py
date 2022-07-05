@@ -422,13 +422,13 @@ def run_incremental_reconstruction(
         raw_dataset_dir: path to directory where the full ZinD dataset is stored (in raw form as downloaded from Bridge API).
         method: Global pose aggregation method (e.g. `pgo`, `spanning_tree`, etc.)
         confidence_threshold: Minimum required SALVe network confidence to accept a prediction.
-        use_axis_alignment:
+        use_axis_alignment: whether to refine relative rotations by vanishing angle.
         allowed_wdo_types: types of W/D/O objects to use for localization (only these edge types will be inserted into the graph).
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     allowed_wdo_types_summary = "_".join(allowed_wdo_types)
-    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2022_02_01_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
+    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2022_07_05_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
@@ -528,6 +528,7 @@ def run_incremental_reconstruction(
         elif method in ["pose2_slam", "pgo"]:
             # graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
 
+            import pdb; pdb.set_trace()
             if use_axis_alignment:
                 # TODO(johnwlambert): why align here, if we will align later?
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
