@@ -67,6 +67,7 @@ def load_estimated_pose_graph(
 
         elif boundary_type == EstimatedBoundaryType.HNET_CORNERS:
             uv = hnet_floor_predictions[pano_id].corners_in_uv
+            img_w = 1024
             uv[:, 0] *= img_w
             uv[:, 1] *= img_h
             # ceiling (u,v) coordinates.
@@ -79,7 +80,6 @@ def load_estimated_pose_graph(
         if boundary_type in [EstimatedBoundaryType.HNET_DENSE, EstimatedBoundaryType.HNET_CORNERS]:
             # TODO: replace with actual camera height.
             camera_height_m = 1.0
-            img_w = 1024
 
             layout_pts_worldmetric = zind_pano_utils.convert_points_px_to_worldmetric(
                 points_px=room_vertices_uv, image_width=img_w, camera_height_m=camera_height_m
