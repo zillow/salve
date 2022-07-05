@@ -43,7 +43,7 @@ class MemoryLoader(AbstractLoader):
         """
         self.data_root = data_root
         self.data_type = data_type
-        self._data = {"per_pano_predictions": {}}
+        self._data: Dict[str, Dict[str, Any]] = {"per_pano_predictions": {}}
         self._check_data_type()
         self._load_predictions()
 
@@ -59,25 +59,32 @@ class MemoryLoader(AbstractLoader):
             raise Exception("InternalImplementationError")
 
     def _load_predictions(self) -> None:
-        """TODO"""
+        """Load predicted layout and D/W/O predictions from pre-trained model.
+
+        TODO, e.g. `cd3af40860` TODO: re-export the data just use ZInD panorama IDs.
+        """
         folders = os.listdir(self.data_root)
         panoids = [item for item in folders if len(item) == 10 and not item.startswith(".")]
+        # pano IDs here are length-10 strings, e.g. '3b91f0daef'
         for panoid in panoids:
+
+            # Load layout predictions.
             self._data["per_pano_predictions"][panoid] = {"rse": {}, "dwo": {}}
             for rse_type in self.data_type["rse"]:
                 self._data["per_pano_predictions"][panoid]["rse"][rse_type] = None
                 self._load_room_shape_predictions(panoid, rse_type)
 
+            # Load D/W/O predictions.
             for dwo_type in self.data_type["dwo"]:
                 self._data["per_pano_predictions"][panoid]["dwo"][dwo_type] = None
                 self._load_dwo_predictions(panoid, dwo_type)
 
     def _load_room_shape_predictions(self, panoid: str, type: str = "partial_v1") -> None:
-        """TODO
+        """Load layout prediction for requested model type (e.g. joint, total geometry, partial geometry, etc.)
 
         Args:
-            panoid: TODO
-            type: TODO
+            panoid: unique panorama identifier, e.g. '3b91f0daef'
+            type: requested model type, to obtain a specific type of predictions.
         """
         if type == "total":
             file_name = ROOM_SHAPE_TOTAL_FILENAME
@@ -130,8 +137,11 @@ class MemoryLoader(AbstractLoader):
         with open(prediction_path) as f:
             self._data["per_pano_predictions"][panoid]["dwo"][type] = json.load(f)["predictions"]
 
-    def _get_prediction_file_path(self, panoid: str, file_name) -> str:
-        """TODO"""
+    def _get_prediction_file_path(self, panoid: str, file_name: str) -> str:
+        """Get path to model prediction, as concatenated directory names and file name.
+
+        Predictions from multiple models are stored under a single panorama's directory.
+        """
         return os.path.join(self.data_root, panoid, file_name)
 
     def get_room_shape_predictions(self, panoid: str, type: str = "partial_v1") -> Dict[Any, Any]:

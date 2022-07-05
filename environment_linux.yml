@@ -22,6 +22,7 @@ dependencies:
   - dask # same as dask[complete] pip distribution
   - python-graphviz
   # core functionality and APIs
+  - click
   - matplotlib>=3.4.2
   - numpy
   - nodejs
@@ -29,6 +30,7 @@ dependencies:
   - pillow>=8.0.1
   - scikit-learn
   - seaborn
+  - shapely
   # 3rd party algorithms for different modules
   - cudatoolkit=11.3
   - opencv>=4.5.0 # preferring conda-forge's distribution as it provides the latest distribution
@@ -46,3 +48,4 @@ dependencies:
     - pytest-cov
     - gtsam==4.2a7
 
+# conda-forge's matplotlib is missing some backends, so we use pypi's.

@@ -54,6 +54,10 @@ class PoseGraph2d(NamedTuple):
     nodes: Dict[int, PanoData]
     scale_meters_per_coordinate: float
 
+    def pano_ids(self) -> List[int]:
+        """Return a list of the panorama IDs encapsulated in this pose graph."""
+        return list(self.nodes.keys())
+
     def __repr__(self) -> str:
         """ """
         n_nodes = len(self.nodes.keys())

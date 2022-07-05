@@ -1,4 +1,3 @@
-
 """
 """
 
@@ -22,11 +21,7 @@ def eval_oraclepose_predictedlayout() -> None:
     raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     # discover possible building ids and floors
-    building_ids = [
-        Path(fpath).stem
-        for fpath in glob.glob(f"{raw_dataset_dir}/*")
-        if Path(fpath).is_dir()
-    ]
+    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
 
     reconstruction_reports = []
@@ -60,9 +55,7 @@ def eval_oraclepose_predictedlayout() -> None:
         merger_data = floor_map_json["merger"]
         for floor_id in merger_data.keys():
 
-            gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(
-                building_id, floor_id, raw_dataset_dir
-            )
+            gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
             est_floor_pose_graph = floor_pose_graphs[floor_id]
             report = FloorReconstructionReport.from_est_floor_pose_graph(

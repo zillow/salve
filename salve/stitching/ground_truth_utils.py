@@ -32,11 +32,11 @@ def convert_floor_map_to_localization_cluster(floor_map_object: Any) -> Any:
     return clusters_all
 
 
-def align_pred_poses_with_gt(floor_map_object: Any, cluster: Any) -> Any:
+def align_pred_poses_with_gt(floor_map_gt_object: Any, cluster: Any) -> Any:
     """We align two pose graphs by SE(2), not Sim(2), setting first pose of each to the same pose??
 
     Args:
-        floor_map_object: TODO
+        floor_map_object: ground truth floor map.
         cluster: TODO
 
     Returns:
@@ -44,7 +44,7 @@ def align_pred_poses_with_gt(floor_map_object: Any, cluster: Any) -> Any:
     """
     cluster_gt = {}
     for panoid in cluster["panos"]:
-        pose_gt = floor_map_object.get_pano_global_pose(panoid)
+        pose_gt = floor_map_gt_object.get_pano_global_pose(panoid)
         if pose_gt:
             cluster_gt[panoid] = pose_gt
 
@@ -85,8 +85,8 @@ def align_pred_poses_with_gt(floor_map_object: Any, cluster: Any) -> Any:
 
 def test_align_pred_poses_with_gt() -> None:
     """ """
-    floor_map_object = None
+    floor_map_gt_object = None
     cluster = None
-    new_cluster = align_pred_poses_with_gt(floor_map_object=floor_map_object, cluster=cluster)
+    new_cluster = align_pred_poses_with_gt(floor_map_gt_object=floor_map_gt_object, cluster=cluster)
     assert False
 

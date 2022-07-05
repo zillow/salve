@@ -5,17 +5,22 @@ from typing import Any, Dict, List, Optional, Tuple
 import math
 import matplotlib
 import matplotlib.pyplot as plt
+import shapely.ops
 from matplotlib.axes import SubplotBase
 from matplotlib.figure import Figure
 from shapely.geometry import Point, Polygon
-from shapely.ops import cascaded_union
 
 from salve.stitching.transform import transform_xy_by_pose
 from salve.stitching.models.feature2d import Feature2dXy
 from salve.stitching.models.locations import ORIGIN_POSE, Pose, Point2d
 from salve.stitching.models.floor_map_object import FloorMapObject
 
-matplotlib.use("macOSX")
+# TODO: remove this logic
+try:
+    matplotlib.use("macOSX")
+except:
+    #matplotlib.use("Agg")
+    print("Could not load macOSX backend")
 
 
 TANGO_COLOR_PALETTE = [
@@ -162,13 +167,13 @@ def draw_camera_in_top_down_canvas(axis: SubplotBase, pose: Pose, color: str, si
 
 
 def draw_all_room_shapes_with_given_poses_and_shapes(
-    filename: str, floor_map: Any, panoid_refs: Any, predictions: Any, confidences: Any, poses: Any, groups: Any
+    filename: str, floor_map_gt: Any, panoid_refs: Any, predictions: Any, confidences: Any, poses: Any, groups: Any
 ) -> Tuple[plt.Axes, Figure]:
     """TODO
 
     Args:
         filename:
-        floor_map:
+        floor_map_gt: ground truth floor map.
         panoid_refs:
         predictions:
         confidences:
@@ -179,7 +184,7 @@ def draw_all_room_shapes_with_given_poses_and_shapes(
         axis:
         fig:
     """
-    floor_map_obj = FloorMapObject(floor_map)
+    floor_map_gt_obj = FloorMapObject(floor_map_gt)
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
 
@@ -223,7 +228,7 @@ def draw_all_room_shapes_with_poses(
         axis:
 
     Returns:
-        TODO
+        Shapely object representing the union of all ...
     """
     if not axis:
         fig = Figure()
@@ -257,4 +262,4 @@ def draw_all_room_shapes_with_poses(
     if filename:
         fig.savefig(filename)
 
-    return cascaded_union(shapes_union)
+    return shapely.ops.cascaded_union(shapes_union)

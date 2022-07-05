@@ -1,4 +1,3 @@
-
 """
 Support HoHoNet batched inference over ZinD.
 """
@@ -34,7 +33,7 @@ def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]):
         args: must contain variable `building_depth_save_dir`
     """
     update_config(config, args)
-    device = 'cuda' # if config.cuda else 'cpu'
+    device = "cuda"  # if config.cuda else 'cpu'
 
     # Init model
     model_file = importlib.import_module(config.model.file)
@@ -52,24 +51,25 @@ def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]):
                 return
 
             rgb = imageio.imread(path)
-            x = torch.from_numpy(rgb).permute(2,0,1)[None].float() / 255.
+            x = torch.from_numpy(rgb).permute(2, 0, 1)[None].float() / 255.0
             if x.shape[2:] != config.dataset.common_kwargs.hw:
-                x = torch.nn.functional.interpolate(x, config.dataset.common_kwargs.hw, mode='area')
+                x = torch.nn.functional.interpolate(x, config.dataset.common_kwargs.hw, mode="area")
             x = x.to(device)
             pred_depth = net.infer(x)
             if not torch.is_tensor(pred_depth):
-                pred_depth = pred_depth.pop('depth')
+                pred_depth = pred_depth.pop("depth")
 
             fname = os.path.splitext(os.path.split(path)[1])[0]
             imageio.imwrite(
-                os.path.join(args.out, f'{fname}.depth.png'),
-                pred_depth.mul(1000).squeeze().cpu().numpy().astype(np.uint16)
+                os.path.join(args.out, f"{fname}.depth.png"),
+                pred_depth.mul(1000).squeeze().cpu().numpy().astype(np.uint16),
             )
 
             visualize = False
             if visualize:
                 import matplotlib.pyplot as plt
-                plt.imshow( pred_depth.mul(1000).squeeze().cpu().numpy().astype(np.uint16) )
+
+                plt.imshow(pred_depth.mul(1000).squeeze().cpu().numpy().astype(np.uint16))
                 plt.show()
 
 
@@ -129,11 +129,11 @@ if __name__ == "__main__":
     """ """
     num_processes = 2
 
-    #depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
     # depth_save_root = "/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps" # on se1-rmx-gpu-002
 
-    #raw_dataset_dir = "/data/johnlam/zind_bridgeapi_2021_10_05"
+    # raw_dataset_dir = "/data/johnlam/zind_bridgeapi_2021_10_05"
     raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
 
     # render_dataset(bev_save_root, raw_dataset_dir)

@@ -5,6 +5,7 @@ result with oracle pose.
 
 import glob
 import os
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -49,10 +50,136 @@ MODEL_NAMES = [
 # could also try partial manhattanization (separate model) -- get link from Yuguang
 
 
+
+def load_hnet_predictions(
+    query_building_id: str, raw_dataset_dir: str, predictions_data_root: str = RMX_MADORI_V1_PREDICTIONS_DIRPATH
+) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
+    """Load raw pixelwise HorizonNet predictions..."""
+
+    pano_mapping_rows = csv_utils.read_csv(PANO_MAPPING_TSV_FPATH, delimiter=",")
+
+    # Note: pano_guid is unique across the entire dataset.
+    panoguid_to_panoid = {}
+    for pano_metadata in pano_mapping_rows:
+        pano_guid = pano_metadata["pano_guid"]
+        dgx_fpath = pano_metadata["file"]
+        pano_id = zind_data.pano_id_from_fpath(dgx_fpath)
+        panoguid_to_panoid[pano_guid] = pano_id
+
+    # TSV contains mapping between Prod building IDs and ZinD building IDs
+    tsv_fpath = REPO_ROOT / "ZInD_Re-processing.tsv"
+    tsv_rows = csv_utils.read_csv(tsv_fpath, delimiter="\t")
+    for row in tsv_rows:
+        # building_guid = row["floor_map_guid_new"] # use for Batch 1 from Yuguang
+        building_guid = row["floormap_guid_prod"]  # use for Batch 2 from Yuguang
+        # e.g. building_guid resembles "0a7a6c6c-77ce-4aa9-9b8c-96e2588ac7e8"
+
+        zind_building_id = row["new_home_id"].zfill(4)
+
+        # print("on ", zind_building_id)
+        if zind_building_id != query_building_id:
+            continue
+
+        if building_guid == "":
+            print(f"Invalid building_guid, skipping ZinD Building {zind_building_id}...")
+            return None
+
+        print(f"On ZinD Building {zind_building_id}")
+        # if int(zind_building_id) not in [7, 16, 14, 17, 24]:# != 1:
+        #     continue
+
+        pano_guids = [
+            Path(dirpath).stem
+            for dirpath in glob.glob(f"{predictions_data_root}/{building_guid}/floor_map/{building_guid}/pano/*")
+        ]
+        if len(pano_guids) == 0:
+            # e.g. building '0258' is missing predictions.
+            print(f"No Pano GUIDs provided for {building_guid} (ZinD Building {zind_building_id}).")
+            return None
+
+        floor_map_json_fpath = f"{predictions_data_root}/{building_guid}/floor_map.json"
+        if not Path(floor_map_json_fpath).exists():
+            print(f"JSON file missing for {zind_building_id}")
+            return None
+
+        floor_map_json = io_utils.read_json_file(floor_map_json_fpath)
+        floor_hnet_predictions = defaultdict(dict)
+
+        for pano_guid in pano_guids:
+
+            if pano_guid not in panoguid_to_panoid:
+                print(f"Missing the panorama for Building {zind_building_id} -> {pano_guid}")
+                continue
+            i = panoguid_to_panoid[pano_guid]
+
+            img_fpaths = glob.glob(f"{raw_dataset_dir}/{zind_building_id}/panos/floor*_pano_{i}.jpg")
+            if not len(img_fpaths) == 1:
+                print("\tShould only be one image for this (building id, pano id) tuple.")
+                print(f"\tPano {i} was missing")
+                plt.close("all")
+                continue
+
+            img_fpath = img_fpaths[0]
+            img = imageio.imread(img_fpath)
+
+            img_resized = cv2.resize(img, (1024, 512))
+            img_h, img_w, _ = img_resized.shape
+            #
+
+            floor_id = get_floor_id_from_img_fpath(img_fpath)
+
+            gt_pose_graph = posegraph2d.get_gt_pose_graph(
+                building_id=zind_building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
+            )
+
+            if floor_id not in floor_pose_graphs:
+                # start populating the pose graph for each floor pano-by-pano
+                floor_pose_graphs[floor_id] = PoseGraph2d(
+                    building_id=zind_building_id,
+                    floor_id=floor_id,
+                    nodes={},
+                    scale_meters_per_coordinate=gt_pose_graph.scale_meters_per_coordinate,
+                )
+
+            model_name = "rmx-madori-v1_predictions"
+            # plot the image in question
+            # for model_name in model_names:
+            # print(f"\tLoaded {model_name} prediction for Pano {i}")
+            model_prediction_fpath = (
+                f"{predictions_data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
+            )
+            if not Path(model_prediction_fpath).exists():
+                print(
+                    "Home too old, no Madori predictions currently available for this building id (Yuguang will re-compute later).",
+                    building_guid,
+                    zind_building_id,
+                )
+                # skip this building.
+                return None
+
+            prediction_data = io_utils.read_json_file(model_prediction_fpath)
+
+            if model_name == "rmx-madori-v1_predictions":
+                pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data[0]["predictions"])
+                if pred_obj is None:  # malformatted pred for some reason
+                    continue
+
+                floor_hnet_predictions[floor_id][i] = pred_obj
+
+        return floor_hnet_predictions
+
+    raise RuntimeError("Unknown error loading inferred pose graphs")
+    return None
+
+
+
+
 def load_inferred_floor_pose_graphs(
     query_building_id: str, raw_dataset_dir: str, predictions_data_root: str = RMX_MADORI_V1_PREDICTIONS_DIRPATH
 ) -> Optional[Dict[str, PoseGraph2d]]:
-    """
+    """Load W/D/O's predicted for each pano of each floor by HorizonNet.
+
+    TODO: rename this function, since no pose graph is loaded here.
 
     Note: we read in mapping from spreadsheet, mapping from their ZInD index to these guid
         https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing
