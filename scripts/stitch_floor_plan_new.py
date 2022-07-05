@@ -358,19 +358,32 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
         groups: list of connected components. Each connected component is represented
             by a list of panorama IDs.
     """
+    import matplotlib.pyplot as plt
+
     print("Running pano grouping by room ... ")
     shapes_global = {}
     graph = nx.Graph()
-    for panoid in location_panos:
-        pose = location_panos[panoid]
-        shape = predictions[panoid]
-        xys_transformed = []
-        xys = extract_coordinates_from_shapely_polygon(shape)
-        for xy in xys:
-            xys_transformed.append(transform_utils.transform_xy_by_pose(xy, pose))
-        shape_global = Polygon([[xy.x, xy.y] for xy in xys_transformed])
-        shapes_global[panoid] = shape_global
-        graph.add_node(panoid)
+    for pano_id in est_pose_graph.pano_ids():
+        # pose = location_panos[panoid]
+        # shape = predictions[panoid]
+        # xys_transformed = []
+        # xys = extract_coordinates_from_shapely_polygon(shape)
+        # for xy in xys:
+        #     xys_transformed.append(transform_utils.transform_xy_by_pose(xy, pose))
+        # shape_global = Polygon([[xy.x, xy.y] for xy in xys_transformed])
+
+        shapes_global[pano_id] = est_pose_graph.nodes[pano_id].room_vertices_global_2d
+        graph.add_node(pano_id)
+
+        plt.scatter(
+            est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
+            est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
+            size=10,
+            color=np.random.rand(3),
+            marker="."
+        )
+    plt.axis("equal")
+    plt.savefig("714.jpg", dpi=500)
 
     panoids = [*location_panos.keys()]
     for i in range(len(panoids)):
