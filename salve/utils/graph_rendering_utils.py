@@ -1,6 +1,4 @@
-"""
-Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph.
-"""
+"""Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph."""
 
 import os
 from typing import Dict, List, Tuple
@@ -18,9 +16,6 @@ PLUM1 = [173, 127, 168]
 SKYBLUE = [135, 206, 250]
 GREEN = [0, 140, 25]
 CYAN = [0, 255, 255]
-
-# DEFAULT_RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-DEFAULT_RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
 
 
 def draw_graph_topology(

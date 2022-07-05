@@ -363,7 +363,7 @@ def execute_planar_slam(
         gt_floor_pose_graph=gt_floor_pg,
         plot_save_dir=plot_save_dir
     )
-    #graph_rendering_utils.draw_multigraph(measurements, est_floor_pose_graph, confidence_threshold=0.93)
+    #graph_rendering_utils.draw_multigraph(measurements, est_floor_pose_graph, raw_dataset_dir=raw_dataset_dir, confidence_threshold=0.93)
 
     return report
 

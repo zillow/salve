@@ -47,7 +47,7 @@ MODEL_NAMES = [
     "rmx-rse-v1_predictions",  # Basic HNet trained with production shapes
     "rmx-tg-manh-v1_predictions",  # Total (visible) geometry with Manhattanization shape post processing
 ]
-# could also try partial manhattanization (separate model) -- get link from Yuguang
+# could also try partial manhattanization (separate model)
 
 
 IMAGE_HEIGHT_PX = 512

@@ -454,7 +454,7 @@ def run_incremental_reconstruction(
         is_demo = (
             (building_id == "0519" and floor_id == "floor_01")
             or (building_id == "1214" and floor_id == "floor_01")
-            or (building_id == "0308" and floor_id == "floor_02")
+            #or (building_id == "0308" and floor_id == "floor_02")
             or (building_id == "0438" and floor_id == "floor_01")
             or (building_id == "0715" and floor_id == "floor_01")
         )
@@ -468,7 +468,11 @@ def run_incremental_reconstruction(
         render_multigraph = True
         if render_multigraph:
             graph_rendering_utils.draw_multigraph(
-                measurements, gt_floor_pose_graph, confidence_threshold=confidence_threshold, save_dir=plot_save_dir
+                measurements=measurements,
+                input_floor_pose_graph=gt_floor_pose_graph,
+                confidence_threshold=confidence_threshold,
+                raw_dataset_dir=raw_dataset_dir,
+                save_dir=plot_save_dir
             )
 
         (
