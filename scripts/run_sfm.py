@@ -454,7 +454,7 @@ def run_incremental_reconstruction(
         is_demo = (
             (building_id == "0519" and floor_id == "floor_01")
             or (building_id == "1214" and floor_id == "floor_01")
-            #or (building_id == "0308" and floor_id == "floor_02")
+            # or (building_id == "0308" and floor_id == "floor_02")
             or (building_id == "0438" and floor_id == "floor_01")
             or (building_id == "0715" and floor_id == "floor_01")
         )
