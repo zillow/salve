@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 import gtsfm.utils.io as io_utils
+import numpy as np
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.zind_pano_utils as zind_pano_utils
