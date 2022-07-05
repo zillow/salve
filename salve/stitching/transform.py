@@ -87,7 +87,7 @@ def uv_to_xy(uv: Point2d, height: float) -> Point2d:
 def uv_to_xy_batch(uvs: List[Any], height: float) -> List[Any]:
     """
     Args:
-        uvs: TODO
+        uvs: In [0,1]
         height: TODO
 
     Returns:

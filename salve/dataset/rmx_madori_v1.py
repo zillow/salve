@@ -168,7 +168,7 @@ class PanoStructurePredictionRmxMadoriV1:
     def convert_to_pano_data(
         self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d, img_fpath: str, vanishing_angle_deg: float
     ) -> PanoData:
-        """Render the wall-floor boundary in a bird's eye view.
+        """Convert HorizonNet W/D/O and layout predictions into a PanoData object.
 
         We run the Ramer-Douglas-Peucker simplification algorithm on the 1024 vertex contour
         with an epsilon of about 0.02 in room coordinate space.
@@ -179,6 +179,9 @@ class PanoStructurePredictionRmxMadoriV1:
             pano_id: integer ID of panorama
             gt_pose_graph: ground-truth 2d pose graph, with GT shapes and GT global poses.
             img_fpath: file path to panorama image.
+
+        Returns:
+            PanoData containing predicted W/D/O's and predicted layout for this panorama.
         """
         camera_height_m = gt_pose_graph.get_camera_height_m(pano_id)
         camera_height_m = 1.0

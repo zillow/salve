@@ -39,10 +39,16 @@ EPS_RAD = 1e-10
 # from
 # https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
 def zind_intersect_cartesian_with_floor_plane(cartesian_coordinates: np.ndarray, camera_height: float) -> np.ndarray:
-    """
-    In order to get the floor coordinates, intersect with the floor plane
+    """Obtain floor coordinates by intersecting with the floor plane.
 
-    get unit-norm rays, then scale so that y has unit norm
+    To get unit-norm rays, then scale so that y has unit norm.
+
+    Args:
+        cartesian_coordinates: TODO
+        camera_height: TODO
+
+    Returns:
+        Coordinates in world metric space ... TODO
     """
     y = cartesian_coordinates[:, 1]
     return cartesian_coordinates * camera_height / y.reshape(-1, 1)
@@ -222,12 +228,12 @@ def zind_pixel_to_sphere(points_pix: np.ndarray, width: int) -> np.ndarray:
         as width/2 and covers the full 180 degrees vertical, i.e. we support mapping only on full FoV panos.
 
     Args:
-        points_pix: array of shape (N,2) represenenting N points given in pano image coordinates [x, y],
+        points_pix: array of shape (N,2) representing N points given in pano image coordinates [x, y] in range [0,width-1].
         width: The width of the pano image (defines the azimuth scale).
 
     Return:
         array of shape (N,2) representing points in spherical coordinates [theta, phi], where the
-        spherical point [theta=0, phi=0] maps to the image center.
+        spherical point [theta=0, phi=0] maps to the image center. We assume rho=1.0.
 
         theta (horizontal) is far left of image (-pi) to far right of image (pi)
         phi (vertical) is bottom of image (-pi/2) to top of image (pi/2)
@@ -307,12 +313,13 @@ def convert_points_px_to_worldmetric(points_px: np.ndarray, image_width: int, ca
     """Convert pixel coordinates to Cartesian coordinates with a known scale (i.e. the units are meters).
 
     Args:
-        points_px: 2d points in pixel coordaintes
+        points_px: 2d points in pixel coordinates
+        image_width: width of image, in pixels.
+        camera_height_m: height of camera during panorama capture (in meters).
 
     Returns:
         points_worldmetric: 
     """
-
     points_sph = zind_pixel_to_sphere(points_px, width=image_width)
     points_cartesian = zind_sphere_to_cartesian(points_sph)
     points_worldmetric = zind_intersect_cartesian_with_floor_plane(points_cartesian, camera_height_m)

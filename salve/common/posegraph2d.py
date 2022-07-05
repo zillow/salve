@@ -43,10 +43,12 @@ class PoseGraph2d(NamedTuple):
 
     Note: edges are not included here, since there are different types of adjacency (spatial vs. visible)
 
-    Args:
-        building_id: unique ID for ZinD building ID.
-        floor_id
-        nodes:
+    Attributes:
+        building_id: unique ID for ZInD building.
+        floor_id: unique ID for floor of a specific ZInD building.
+        nodes: Mapping from panorama ID to PanoData, for each panorama. PanoData contains the pano's pose and optionally
+            W/D/Os, layout, and room category.
+        scale_meters_per_coordinate: scaling factor from "world normalized" to "world metric" coordinate system.
     """
 
     building_id: int
@@ -644,7 +646,6 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
 
 def export_dataset_pose_graphs(raw_dataset_dir: str) -> None:
     """ """
-
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
 
@@ -662,7 +663,16 @@ def export_dataset_pose_graphs(raw_dataset_dir: str) -> None:
 
 
 def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> PoseGraph2d:
-    """ """
+    """Obtain ground truth pose graph...
+
+    Args:
+        building_id: TODO
+        floor_id: TODO
+        raw_dataset_dir: TODO
+
+    Returns:
+        Pose graph for a single floor...
+    """
     pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
     json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
     floor_pg_dict = get_single_building_pose_graphs(building_id, pano_dir, json_annot_fpath)
