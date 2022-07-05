@@ -46,7 +46,7 @@ def load_estimated_pose_graph(
 
     building_id = localization_data["building_id"]
 
-    if boundary_type in EstimatedBoundaryType.HNET_CORNERS or EstimatedBoundaryType.HNET_DENSE:
+    if boundary_type in [EstimatedBoundaryType.HNET_CORNERS, EstimatedBoundaryType.HNET_DENSE]:
         hnet_floor_predictions = hnet_prediction_loader.load_hnet_predictions(
             query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=predictions_data_root
         )
