@@ -4,6 +4,8 @@ from enum import Enum, unique
 from pathlib import Path
 from typing import Optional
 
+import gtsfm.utils.io as io_utils
+
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.pano_data import PanoData
 
