@@ -8,40 +8,21 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
+import shapely.ops
+from matplotlib.figure import Figure
 from shapely.geometry import Point, Polygon
+from tqdm import tqdm
 
 import salve.common.posegraph2d as posegraph2d
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.dataset.salve_sfm_result_loader as salve_sfm_result_loader
 import salve.stitching.shape as shape_utils
 import salve.stitching.transform as transform_utils
+import salve.utils.matplotlib_utils as matplotlib_utils
+import salve.algorithms.room_merging as room_merging_algo
 from salve.common.posegraph2d import PoseGraph2d
 from salve.dataset.salve_sfm_result_loader import EstimatedBoundaryType
-from salve.stitching.constants import DEFAULT_CAMERA_HEIGHT
-import salve.utils.matplotlib_utils as matplotlib_utils
-
-# arbitrary image height, to match HNet model inference resolution.
-IMAGE_WIDTH_PX = 1024
-IMAGE_HEIGHT_PX = 512
-
-MIN_LAYOUT_OVERLAP_RATIO = 0.3
-MIN_LAYOUT_OVERLAP_IOU = 0.1
-
-
-import json
-from typing import Any, Dict, List, Tuple, Union
-
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import networkx as nx
-import numpy as np
-import shapely.ops
-from shapely.geometry import Point, Polygon
-from tqdm import tqdm
-
-import salve.stitching.transform as transform_utils
 from salve.stitching.constants import DEFAULT_CAMERA_HEIGHT
 from salve.stitching.draw import (
     draw_camera_in_top_down_canvas,
@@ -51,6 +32,16 @@ from salve.stitching.draw import (
 )
 from salve.stitching.models.feature2d import Feature2dU, Feature2dXy
 from salve.stitching.models.locations import Point2d
+
+
+
+# arbitrary image height, to match HNet model inference resolution.
+IMAGE_WIDTH_PX = 1024
+IMAGE_HEIGHT_PX = 512
+
+MIN_LAYOUT_OVERLAP_RATIO = 0.3
+MIN_LAYOUT_OVERLAP_IOU = 0.1
+
 
 
 def generate_shapely_polygon_from_room_shape_vertices(vertices: List[dict]) -> Polygon:
@@ -185,19 +176,20 @@ def refine_shape_group_start_with(
 
 def refine_predicted_shape(
     groups: List[List[int]],
-    predicted_shapes: Any,
-    wall_confidences: Any,
-    location_panos: Any,
-    cluster_dir: Any,
-    tour_dir: Any = None,
+    predicted_shapes: List[Polygon],
+    wall_confidences: np.ndarray,
+    est_pose_graph: PoseGraph2d,
+    cluster_dir: Path,
+    tour_dir: Path = None,
 ) -> Tuple[Any, Any, Any]:
     """Refine the predicted room shapes of each room (group) of a single building's floorplan.
 
     Args:
-        groups: TODO
+        groups: list of connected components. Each connected components represents a single room,
+           and consists of the corresponding panorama IDs.
         predicted_shapes: TODO
         wall_confidences: TODO
-        location_panos: TODO
+        est_pose_graph: estimated panorama poses with HorizonNet's densely estimated boundary predictions.
         cluster_dir: TODO
         tour_dir: TODO
 
@@ -229,10 +221,7 @@ def refine_predicted_shape(
         else:
             color = TANGO_COLOR_PALETTE[(i_color) % 24]
         color = (color[0] / 255, color[1] / 255, color[2] / 255)
-        # panoid = group[0]
 
-        # fig1 = Figure()
-        # axis1 = fig1.add_subplot(1, 1, 1)
         shapes = []
         for panoid in group:
             xys_fused, conf_fused = refine_shape_group_start_with(
@@ -249,13 +238,6 @@ def refine_predicted_shape(
             for xy in xys_fused:
                 xys_fused_transformed.append(transform_utils.transform_xy_by_pose(xy, pose0))
             shapes.append(Polygon([[xy.x, xy.y] for xy in xys_fused_transformed]))
-
-            # draw_shape_in_top_down_canvas(axis, xys_fused, 'black', pose=pose0)
-            # draw_shape_in_top_down_canvas(axis1, xys_fused, 'black', pose=pose0)
-            # if panoid == 'f6f605f86a':
-            #     draw_camera_in_top_down_canvas(axis1, pose0, "blue", size=10)
-            # else:
-            #     draw_camera_in_top_down_canvas(axis1, pose0, "green", size=10)
             draw_shape_in_top_down_canvas_fill(axis2, xys_fused, color, pose=pose0)
             # axis.set_aspect("equal")
             # fig.savefig(path_output, dpi = 300)
@@ -345,80 +327,11 @@ def generate_dense_shape(v_vals: Iterable[float], uncertainty: Iterable[float]) 
     return polygon, distances
 
 
-def group_panos_by_room(
-    predictions: List[Polygon], est_pose_graph: PoseGraph2d, visualize: bool = True
-) -> List[List[int]]:
-    """Form per-room clusters of panoramas according to layout IoU and other overlap measures.
-
-    Layouts that have high IoU, or have high intersection with either shape, are considered to belong to a single room.
-
-    Args:
-        predictions: room polygons in world metric system (using corner predictions, instead of dense boundary
-            predictions).
-        est_pose_graph: estimated 2d pose graph (as a result of executing SALVe's `run_sfm.py`).
-        visualize: whether to save visualizations to disk.
-
-    Returns:
-        groups: list of connected components. Each connected component is represented
-            by a list of panorama IDs.
-    """
-    if visualize:
-        plt.close("all")
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot()
-
-    pano_ids = est_pose_graph.pano_ids()
-
-    print("Running pano grouping by room ... ")
-    shapes_global = {}
-    graph = nx.Graph()
-    for pano_id in pano_ids:
-        shapes_global[pano_id] = Polygon(est_pose_graph.nodes[pano_id].room_vertices_global_2d)
-        graph.add_node(pano_id)
-
-        if visualize:
-            color = np.random.rand(3)
-            x, y = np.mean(est_pose_graph.nodes[pano_id].room_vertices_global_2d, axis=0)
-            ax.text(x, y, str(pano_id))
-            matplotlib_utils.plot_polygon_patch_mpl(
-                polygon_pts=est_pose_graph.nodes[pano_id].room_vertices_global_2d,
-                ax=ax,
-                color=color,
-                alpha=0.2,
-            )
-
-    if visualize:
-        plt.axis("equal")
-        Path("cc_visualizations").mkdir(parents=True, exist_ok=True)
-        plt.savefig(f"cc_visualizations/{est_pose_graph.building_id}_{est_pose_graph.floor_id}.jpg", dpi=500)
-        plt.close("all")
-
-    for i in range(len(pano_ids)):
-        for j in range(i, len(pano_ids)):
-            panoid1 = pano_ids[i]
-            panoid2 = pano_ids[j]
-            shape1 = shapes_global[panoid1]
-            shape2 = shapes_global[panoid2]
-            area_intersection = shape1.intersection(shape2).area
-            area_union = shape1.union(shape2).area
-            iou = area_intersection / area_union
-            overlap_ratio1 = area_intersection / shape1.area
-            overlap_ratio2 = area_intersection / shape2.area
-            if (
-                iou > MIN_LAYOUT_OVERLAP_IOU
-                or overlap_ratio1 > MIN_LAYOUT_OVERLAP_RATIO
-                or overlap_ratio2 > MIN_LAYOUT_OVERLAP_RATIO
-            ):
-                graph.add_edge(panoid1, panoid2)
-    groups = [[*c] for c in sorted(nx.connected_components(graph))]
-    print("Connected components: ", groups)
-    return groups
-
-
 def stitch_building_layouts(
     building_id: str, hnet_pred_dir: Path, raw_dataset_dir: str, est_localization_fpath: Path, output_dir: Path
 ) -> None:
-    """
+    """TODO
+
     Args:
         building_id:
         hnet_pred_dir:
@@ -433,9 +346,17 @@ def stitch_building_layouts(
     hnet_floor_predictions = hnet_prediction_loader.load_hnet_predictions(
         query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=hnet_pred_dir
     )
-    est_pose_graph = salve_sfm_result_loader.load_estimated_pose_graph(
+    # Room corner vertices will be used for room layout merging.
+    est_pose_graph_corners = salve_sfm_result_loader.load_estimated_pose_graph(
         json_fpath=Path(est_localization_fpath),
         boundary_type=EstimatedBoundaryType.HNET_CORNERS,
+        raw_dataset_dir=raw_dataset_dir,
+        predictions_data_root=hnet_pred_dir,
+    )
+
+    est_pose_graph_dense_boundary = salve_sfm_result_loader.load_estimated_pose_graph(
+        json_fpath=Path(est_localization_fpath),
+        boundary_type=EstimatedBoundaryType.HNET_DENSE,
         raw_dataset_dir=raw_dataset_dir,
         predictions_data_root=hnet_pred_dir,
     )
@@ -456,24 +377,21 @@ def stitch_building_layouts(
             predicted_corner_shapes[pano_id] = load_room_shape_polygon_from_predictions(
                 room_shape_pred=floor_predictions[pano_id].corners_in_uv
             )
-
             wall_confidences[pano_id] = floor_predictions[pano_id].floor_boundary_uncertainty
             # confidences are transformed from uv space to world metric space.
             predicted_shapes_raw[pano_id], wall_confidences[pano_id] = generate_dense_shape(
                 v_vals=floor_predictions[pano_id].floor_boundary, uncertainty=wall_confidences[pano_id]
             )
 
-        import pdb
-
-        pdb.set_trace()
-        groups = group_panos_by_room(predicted_corner_shapes, est_pose_graph=est_pose_graph)
+        groups = room_merging_algo.group_panos_by_room(est_pose_graph=est_pose_graph_corners)
 
         print("Running shape refinement ... ")
+        import pdb; pdb.set_trace()
         floor_shape_final, figure, floor_shape_fused_poly = refine_predicted_shape(
             groups=groups,
             predicted_shapes=predicted_shapes_raw,
             wall_confidences=wall_confidences,
-            location_panos=location_panos,
+            est_pose_graph=est_pose_graph_dense_boundary,
             cluster_dir=cluster_dir,
             tour_dir=output_dir,
         )
@@ -511,8 +429,7 @@ def stitch_building_layouts(
 def run_stitch_building_layouts(
     raw_dataset_dir: str, est_localization_fpath: str, output_dir: str, hnet_pred_dir: str
 ) -> None:
-    """Click entry point for ...
-
+    """Click entry point for ...TODO
 
     Example usage:
     python scripts/stitch_floor_plan_new.py --output-dir 2022_07_01_stitching_output --est-localization-fpath 2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23___2022_02_01_pgo_floorplans_with_conf_0.93_door_window_opening_axisalignedTrue_serialized/0715__floor_01.json --hnet-pred-dir /srv/scratch/jlambert30/salve/zind2_john --raw_dataset_dir /srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05

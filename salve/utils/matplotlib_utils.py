@@ -70,6 +70,8 @@ def plot_polygon_patch_mpl(
 def legend_without_duplicate_labels(ax: matplotlib.axes.Axes) -> None:
     """Add a legend to Matplotlib axes, simultaneously removing duplicate labels.
 
+    Reference: https://stackoverflow.com/a/56253636
+
     Args:
         ax: Current drawing canvas for Matplotlib, to which items have been plotted w/ label attributes.
     """
