@@ -359,6 +359,10 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
             by a list of panorama IDs.
     """
     import matplotlib.pyplot as plt
+    import salve.utils.matplotlib_utils as matplotlib_utils
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot()
 
     print("Running pano grouping by room ... ")
     shapes_global = {}
@@ -376,18 +380,25 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
         graph.add_node(pano_id)
 
         color = np.random.rand(3)
-        plt.plot(
-            est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
-            est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
-            c=color,
+        # plt.plot(
+        #     est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
+        #     est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
+        #     c=color,
+        # )
+        # plt.scatter(
+        #     est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
+        #     est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
+        #     s=10,
+        #     c=color,
+        #     marker="."
+        # )
+        matplotlib_utils.plot_polygon_patch_mpl(
+            polygon_pts=est_pose_graph.nodes[pano_id].room_vertices_global_2d,
+            ax=ax,
+            color=color,
+            alpha = 0.2,
         )
-        plt.scatter(
-            est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
-            est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
-            s=10,
-            c=color,
-            marker="."
-        )
+
     plt.axis("equal")
     plt.savefig("0715.jpg", dpi=500)
 
@@ -507,6 +518,9 @@ def run_stitch_building_layouts(
 
     Example usage:
     python scripts/stitch_floor_plan_new.py --output-dir 2022_07_01_stitching_output --est-localization-fpath 2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23___2022_02_01_pgo_floorplans_with_conf_0.93_door_window_opening_axisalignedTrue_serialized/0715__floor_01.json --hnet-pred-dir /srv/scratch/jlambert30/salve/zind2_john --raw_dataset_dir /srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05
+    
+    Improved localization:
+    python scripts/stitch_floor_plan_new.py --output-dir 2022_07_05_stitching_output --est-localization-fpath 2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16___2022_07_05_pgo_floorplans_with_conf_0.93_door_window_opening_axisalignedTrue_serialized/0715__floor_01.json --hnet-pred-dir /srv/scratch/jlambert30/salve/zind2_john --raw_dataset_dir /srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05
     """
     stitch_building_layouts(
         hnet_pred_dir=Path(hnet_pred_dir),
