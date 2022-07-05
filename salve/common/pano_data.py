@@ -144,7 +144,8 @@ class PanoData:
         # hohopano_Sim2_zindpano = Sim2(R=rotation_utils.rotmat2d(-90), t=np.zeros(2), s=1.0)
 
         # TODO: replace with their Enum equivalent.
-        assert coord_frame in ["worldmetric", "worldnormalized" "local"]
+        if coord_frame not in ["worldmetric", "worldnormalized" "local"]:
+            raise ValueError(f"Unknown coordinate frame provided: {coord_frame}.")
 
         if coord_frame in ["worldmetric", "worldnormalized"]:
             room_vertices = self.room_vertices_global_2d
@@ -209,10 +210,10 @@ class PanoData:
             wdo_type = wdo.type
             wdo_color = WDO_COLOR_DICT[wdo_type]
 
-            if (wdo_objs_seen_on_floor is not None) and (wdo_type not in wdo_objs_seen_on_floor):
-                label = wdo_type
-            else:
-                label = None
+            #if (wdo_objs_seen_on_floor is not None) and (wdo_type not in wdo_objs_seen_on_floor):
+            label = wdo_type
+            #else:
+            #    label = None
             plt.scatter(wdo_points[:, 0], wdo_points[:, 1], 10, color=wdo_color, marker="o", label=label)
             plt.plot(wdo_points[:, 0], wdo_points[:, 1], color=wdo_color, linestyle="dotted")
             # plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
