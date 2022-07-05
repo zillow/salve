@@ -74,10 +74,12 @@ def load_estimated_pose_graph(
         elif boundary_type == EstimatedBoundaryType.NONE:
             room_vertices_local_2d = np.zeros((0, 2))
 
-        # TODO: replace with actual camera height.
-        camera_height_m = 1.0
-        img_w = 1024
+        # Transform predictions into "world metric" coordinate system.
         if boundary_type in [EstimatedBoundaryType.HNET_DENSE, EstimatedBoundaryType.HNET_CORNERS]:
+            # TODO: replace with actual camera height.
+            camera_height_m = 1.0
+            img_w = 1024
+
             layout_pts_worldmetric = zind_pano_utils.convert_points_px_to_worldmetric(
                 points_px=room_vertices_uv, image_width=img_w, camera_height_m=camera_height_m
             )
