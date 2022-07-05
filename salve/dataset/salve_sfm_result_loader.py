@@ -58,7 +58,8 @@ def load_estimated_pose_graph(
 
     import pdb; pdb.set_trace()
     nodes = {}
-    for pano_id, v in localization_data["wSi_dict"].items():
+    for pano_id_str, v in localization_data["wSi_dict"].items():
+        pano_id = int(pano_id_str)
         if boundary_type == EstimatedBoundaryType.HNET_DENSE:
             u, v = np.arange(1024), np.round(hnet_floor_predictions[pano_id].floor_boundary)
             # floor-wall boundary
