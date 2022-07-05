@@ -83,9 +83,9 @@ def generate_dense_shape(v_vals: Iterable[float], uncertainty: Iterable[float]) 
     uvs = [[us[i], vs[i]] for i in range(IMAGE_WIDTH_PX)]
     polygon, poly_upper = load_room_shape_polygon_from_predictions(uvs, uncertainty)
     distances = []
-    xys = polygon.boundary.xy
-    xys_upper = poly_upper.boundary.xy
-    distances = np.hypot(xys_upper[0] - xys[0], xys_upper[1] - xys[1])
+    x_room, y_room = polygon.boundary.xy
+    x_extended, y_extended = poly_upper.boundary.xy
+    distances = np.hypot(np.array(x_room) - np.array(x_extended), np.array(y_room) - np.array(y_extended))
     return polygon, distances
 
 
