@@ -1,9 +1,4 @@
-# <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
-
-"""Utilities for vector graphics rendering.
-
-From https://github.com/argoai/av2-api/blob/main/src/av2/rendering/vector.py
-"""
+"""Utilities for vector graphics rendering with Matplotlib."""
 
 from enum import Enum
 from typing import Optional, Tuple, Union
@@ -21,7 +16,11 @@ def draw_polygon_mpl(
     linewidth: Optional[float] = None,
 ) -> None:
     """Draw a polygon's boundary.
+
     The polygon's first and last point must be the same (repeated).
+
+    From https://github.com/argoai/av2-api/blob/main/src/av2/rendering/vector.py (MIT license)
+
     Args:
         ax: Matplotlib axes instance to draw on
         polygon: Array of shape (N, 2) or (N, 3)
@@ -42,9 +41,13 @@ def plot_polygon_patch_mpl(
     zorder: int = 1,
 ) -> None:
     """Plot a lane segment polyon using matplotlib's PathPatch object.
+    
+    From https://github.com/argoai/av2-api/blob/main/src/av2/rendering/vector.py (MIT license)
+
     Reference:
     See Descartes (https://github.com/benjimin/descartes/blob/master/descartes/patch.py)
     and Matplotlib: https://matplotlib.org/stable/gallery/shapes_and_collections/path_patch.html
+    
     Args:
         polygon_pts: Array of shape (N, 2) representing the points of the polygon
         ax: Matplotlib axes.
@@ -60,3 +63,13 @@ def plot_polygon_patch_mpl(
     mpath = MPath(vertices, codes)
     patch = mpatches.PathPatch(mpath, facecolor=color, edgecolor=color, alpha=alpha, zorder=zorder)
     ax.add_patch(patch)
+
+
+
+def legend_without_duplicate_labels(ax) -> None:
+    """ """
+    import pdb; pdb.set_trace()
+    handles, labels = ax.get_legend_handles_labels()
+    unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
+    ax.legend(*zip(*unique))
+
