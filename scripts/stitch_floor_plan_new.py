@@ -4,7 +4,7 @@ import click
 import math
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import gtsfm.utils.io as io_utils
 import networkx as nx
@@ -26,42 +26,41 @@ MIN_LAYOUT_OVERLAP_IOU = 0.1
 
 
 def load_room_shape_polygon_from_predictions(
-    room_shape_pred: Dict[str, Any], uncertainty=None, camera_height: float = DEFAULT_CAMERA_HEIGHT
-) -> Polygon:
+    room_shape_pred: Iterable[Tuple[float, float]],
+    uncertainty: Optional[Iterable[Tuple[float, float]]] = None,
+    camera_height: float = DEFAULT_CAMERA_HEIGHT,
+) -> Union[Tuple[Polygon, Polyon], Polygon]:
     """TODO
 
     Args:
-        room_shape_pred: corners
+        room_shape_pred: corners or dense points along room boundary.
         uncertainty:
         camera_height:
 
     Returns:
-        Polygon representing ...
+        Polygon or tuple of two polygons, representing (N,2) coordinates in metric world coordinate system?
     """
-    flag = True
     xys = []
     xys_upper = []
-    xys_lower = []
 
     uvs = []
     uvs_upper = []
-    uvs_lower = []
 
-    for corner in room_shape_pred[1::2]:
-        uvs.append([corner[0] + 0.5 / IMAGE_WIDTH_PX, corner[1] + 0.5 / IMAGE_HEIGHT_PX])
+    for (corner_u, corner_v) in room_shape_pred[1::2]:
+        uvs.append([corner_u + 0.5 / IMAGE_WIDTH_PX, corner_v + 0.5 / IMAGE_HEIGHT_PX])
         if uncertainty:
             uvs_upper.append(
                 [
-                    corner[0] + 0.5 / IMAGE_WIDTH_PX,
-                    corner[1] + 0.5 / IMAGE_HEIGHT_PX - uncertainty[i] / IMAGE_HEIGHT_PX,
+                    corner_u + 0.5 / IMAGE_WIDTH_PX,
+                    corner_v + 0.5 / IMAGE_HEIGHT_PX - uncertainty[i] / IMAGE_HEIGHT_PX,
                 ]
             )
-            # uvs_lower.append([corner[0]+0.5/1024, corner[1]+0.5/512+uncertainty[i]/512])
+            # TODO(Yuguang): WHY DOES IT MAKE TO SUBTRACT UNCERTAINTY FROM V (move point higher?)?
 
     xys = transform_utils.uv_to_xy_batch(uvs, camera_height)
     if uncertainty:
         xys_upper = transform_utils.uv_to_xy_batch(uvs_upper, camera_height)
-        # xys_lower = transform_utils.uv_to_xy_batch(uvs_lower, camera_height)
+
         return Polygon(xys), Polygon(xys_upper)
     return Polygon(xys)
 
@@ -87,6 +86,7 @@ def generate_dense_shape(v_vals: List[Any], uncertainty: Any) -> Tuple[Any, Any]
     for i in range(len(xys[0])):
         distances.append(math.sqrt((xys_upper[0][i] - xys[0][i]) ** 2 + (xys_upper[1][i] - xys[1][i]) ** 2))
     return polygon, distances
+
 
 def group_panos_by_room(predictions: Any, location_panos: Any) -> List[List[int]]:
     """Form per-room clusters of panoramas according to layout IoU and other overlap measures.
@@ -156,22 +156,24 @@ def stitch_building_layouts(
     predicted_shapes_raw = {}
     predicted_corner_shapes = {}
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     for floor_id, floor_predictions in hnet_floor_predictions.items():
 
-        if floor_id != 'floor_01':
+        if floor_id != "floor_01":
             continue
 
         for pano_id in floor_predictions.keys():
 
             # get the ceiling corners
-            predicted_corner_shapes[panoid] = load_room_shape_polygon_from_predictions(
+            predicted_corner_shapes[pano_id] = load_room_shape_polygon_from_predictions(
                 room_shape_pred=floor_predictions[pano_id].corners_in_uv
             )
 
-            wall_confidences[panoid] = floor_predictions[pano_id].floor_boundary_uncertainty
-            predicted_shapes_raw[panoid], wall_confidences[panoid] = generate_dense_shape(
-                v_vals=floor_predictions[pano_id].floor_boundary, uncertainty=wall_confidences[panoid]
+            wall_confidences[pano_id] = floor_predictions[pano_id].floor_boundary_uncertainty
+            predicted_shapes_raw[pano_id], wall_confidences[pano_id] = generate_dense_shape(
+                v_vals=floor_predictions[pano_id].floor_boundary, uncertainty=wall_confidences[pano_id]
             )
 
         groups = shape_utils.group_panos_by_room(predicted_corner_shapes, location_panos)
@@ -194,7 +196,7 @@ def stitch_building_layouts(
     required=True,
     # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
     # "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-    #default="/home/johnlam/zind_bridgeapi_2021_10_05",
+    # default="/home/johnlam/zind_bridgeapi_2021_10_05",
     help="where ZInD dataset is stored on disk (after download from Bridge API)",
 )
 @click.option(
