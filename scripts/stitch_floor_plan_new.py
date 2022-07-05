@@ -378,8 +378,8 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
         plt.scatter(
             est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,0],
             est_pose_graph.nodes[pano_id].room_vertices_global_2d[:,1],
-            size=10,
-            color=np.random.rand(3),
+            s=10,
+            c=np.random.rand(3),
             marker="."
         )
     plt.axis("equal")
