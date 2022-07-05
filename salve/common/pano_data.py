@@ -10,8 +10,8 @@ sRp + t -> ICP (Zillow)
 sRp + st
 """
 
-import copy
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
@@ -20,155 +20,43 @@ import numpy as np
 
 import salve.utils.rotation_utils as rotation_utils
 from salve.common.sim2 import Sim2
+from salve.common.wdo import WDO
 
 
 RED = [1, 0, 0]
 GREEN = [0, 1, 0]
 BLUE = [0, 0, 1]
-wdo_color_dict = {"windows": RED, "doors": GREEN, "openings": BLUE}
+WDO_COLOR_DICT = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
 
 COLORMAP = np.random.rand(100, 3)
 
 
-@dataclass(frozen=False)
-class WDO:
-    """define windows/doors/openings by left and right boundaries"""
+class CoordinateFrame(str, Enum):
+    """Defines scale of coordinates, their axes, and their frame of reference.
 
-    global_Sim2_local: Sim2
-    pt1: Tuple[float, float]  # (x1,y1)
-    pt2: Tuple[float, float]  # (x2,y2)
-    bottom_z: float
-    top_z: float
-    type: str
-
-    @property
-    def centroid(self) -> np.ndarray:
-        """Compute centroid of WDO 2d line segment"""
-        return np.array([self.pt1, self.pt2]).mean(axis=0)
-
-    @property
-    def width(self) -> float:
-        """Determine the width of the WDO.
-
-        We define this as length of the line segment from start to end vertices.
-        """
-        return np.linalg.norm(np.array(self.pt1) - np.array(self.pt2))
-
-    @property
-    def vertices_local_2d(self) -> np.ndarray:
-        """ """
-        return np.array([self.pt1, self.pt2])
-
-    # TODO: come up with better name for vertices in BEV, vs. all 4 vertices
-    @property
-    def vertices_global_2d(self) -> np.ndarray:
-        """ """
-        return self.global_Sim2_local.transform_from(self.vertices_local_2d)
-
-    @property
-    def vertices_local_3d(self) -> np.ndarray:
-        """ """
-        x1, y1 = self.pt1
-        x2, y2 = self.pt2
-        return np.array([[x1, y1, self.bottom_z], [x2, y2, self.top_z]])
-
-    @property
-    def vertices_global_3d(self) -> np.ndarray:
-        """ """
-        return self.global_Sim2_local.transform_from(self.vertices_local_3d)
-
-    def get_wd_normal_2d(self) -> np.ndarray:
-        """return 2-vector describing normal to line segment (rotate CCW from vector linking pt1->pt2)"""
-        x1, y1 = self.pt1
-        x2, y2 = self.pt2
-        vx = x2 - x1
-        vy = y2 - y1
-        n = np.array([-vy, vx])
-        # normalize to unit length
-        return n / np.linalg.norm(n)
-
-    @property
-    def polygon_vertices_local_3d(self) -> np.ndarray:
-        """Note: first vertex is repeated as last vertex"""
-        x1, y1 = self.pt1
-        x2, y2 = self.pt2
-        return np.array(
-            [
-                [x1, y1, self.bottom_z],
-                [x1, y1, self.top_z],
-                [x2, y2, self.top_z],
-                [x2, y2, self.bottom_z],
-                [x1, y1, self.bottom_z],
-            ]
-        )
-
-    @classmethod
-    def from_object_array(cls, wdo_data: Any, global_Sim2_local: Sim2, type: str) -> "WDO":
-        """
-
-        Args:
-            wdo_data: array of shape (3,2)
-            global_Sim2_local
-            type: type of WDO, e.g.
-        """
-        pt1 = wdo_data[0].tolist()
-        pt2 = wdo_data[1].tolist()
-        bottom_z, top_z = wdo_data[2]
-        pt1[0] *= -1
-        pt2[0] *= -1
-        return cls(global_Sim2_local=global_Sim2_local, pt1=pt1, pt2=pt2, bottom_z=bottom_z, top_z=top_z, type=type)
-
-    def get_rotated_version(self) -> "WDO":
-        """Rotate WDO by 180 degrees, as if seen from other side of doorway."""
-        self_rotated = WDO(
-            global_Sim2_local=self.global_Sim2_local,
-            pt1=self.pt2,
-            pt2=self.pt1,
-            bottom_z=self.bottom_z,
-            top_z=self.top_z,
-            type=self.type,
-        )
-
-        return self_rotated
-
-    def transform_from(self, i2Ti1: Sim2) -> "WDO":
-        """If this WDO is in i1's frame, this will transfer the WDO into i2's frame."""
-        pt1_ = tuple(i2Ti1.transform_from(np.array(self.pt1).reshape(1, 2)).squeeze().tolist())
-        pt2_ = tuple(i2Ti1.transform_from(np.array(self.pt2).reshape(1, 2)).squeeze().tolist())
-
-        # global_Sim2_local represented wTi1, so wTi1 * i1Ti2 = wTi2
-        i1Ti2 = i2Ti1.inverse()
-        self_transformed = WDO(
-            global_Sim2_local=self.global_Sim2_local.compose(i1Ti2),  # TODO: update this as well by multiply with i1Ti2
-            pt1=pt1_,
-            pt2=pt2_,
-            bottom_z=self.bottom_z,
-            top_z=self.top_z,
-            type=self.type,
-        )
-        return self_transformed
-
-    def apply_Sim2(self, a_Sim2_b: Sim2, gt_scale: float) -> "WDO":
-        """Convert the WDO's pose to a new global reference frame `a` for Sim(3) alignment.
-        Previous was in global frame `b`.
-
-        Consider this WDO to be the j'th WDO in some list/set.
-        """
-        aligned_self = copy.deepcopy(self)
-
-        b_Sim2_j = self.global_Sim2_local
-        a_Sim2_j = a_Sim2_b.compose(b_Sim2_j)
-        # equivalent of `transformFrom()` on Pose2 object.
-        aligned_self.global_Sim2_local = Sim2(R=a_Sim2_j.rotation, t=a_Sim2_j.translation * a_Sim2_j.scale, s=gt_scale)
-        return aligned_self
+    LOCAL corresponds to Cartesian ego-frame of panorama.
+    WORLD_NORMALIZED corresponds to TODO
+    WORLD_METRIC corresponds to TODO
+    """
+    LOCAL: str = 'local'
+    WORLD_NORMALIZED: str = 'worldnormalized'
+    WORLD_METRIC: str = 'worldmetric'
 
 
 @dataclass(frozen=False)
 class PanoData:
     """Container for ground truth relevant to a single panorama.
 
-    Args:
+    Attributes:
+        id: TODO
+        global_Sim2_local: TODO
+        room_vertices_local_2d: stored in TODO coordinate frame...
+        image_path: TODO
+        label: TODO
+        doors: TODO
+        windows: TODO
+        openings: TODO
         vanishing_angle_deg: defined as ...
     """
 
@@ -238,23 +126,23 @@ class PanoData:
     def plot_room_layout(
         self,
         coord_frame: str,
-        wdo_objs_seen_on_floor: Optional[Set] = None,
         show_plot: bool = True,
         scale_meters_per_coordinate: Optional[float] = None,
     ) -> None:
-        """Plot the room shape for this panorama, either in a global or local frame
+        """Plot the room shape for this panorama, either in a global or local frame.
+
+        Note: many of the Matplotlib "labels" are duplicated, but can be sorted out later during legend creation.
 
         Args:
             coord_frame: either 'local' (cartesian ego-frame) or  'worldnormalized' or 'worldmetric'
-            wdo_objs_seen_on_floor
-            show_plot
-
-        Returns:
-            wdo_objs_seen_on_floor
+            show_plot: TODO
+            scale_meters_per_coordinate: TODO
         """
         # hohopano_Sim2_zindpano = Sim2(R=rotation_utils.rotmat2d(-90), t=np.zeros(2), s=1.0)
 
-        assert coord_frame in ["worldmetric", "worldnormalized" "local"]
+        # TODO: replace with their Enum equivalent.
+        if coord_frame not in ["worldmetric", "worldnormalized" "local"]:
+            raise ValueError(f"Unknown coordinate frame provided: {coord_frame}.")
 
         if coord_frame in ["worldmetric", "worldnormalized"]:
             room_vertices = self.room_vertices_global_2d
@@ -317,25 +205,16 @@ class PanoData:
 
             # wdo_points = hohopano_Sim2_zindpano.transform_from(wdo_points)
             wdo_type = wdo.type
-            wdo_color = wdo_color_dict[wdo_type]
-
-            if (wdo_objs_seen_on_floor is not None) and (wdo_type not in wdo_objs_seen_on_floor):
-                label = wdo_type
-            else:
-                label = None
+            wdo_color = WDO_COLOR_DICT[wdo_type]
+            label = wdo_type
             plt.scatter(wdo_points[:, 0], wdo_points[:, 1], 10, color=wdo_color, marker="o", label=label)
             plt.plot(wdo_points[:, 0], wdo_points[:, 1], color=wdo_color, linestyle="dotted")
             # plt.text(wdo_points[:, 0].mean(), wdo_points[:, 1].mean(), f"{wdo.type}_{wdo_idx}")
-
-            if wdo_objs_seen_on_floor is not None:
-                wdo_objs_seen_on_floor.add(wdo_type)
 
         if show_plot:
             plt.axis("equal")
             plt.show()
             plt.close("all")
-
-        return wdo_objs_seen_on_floor
 
 
 class FloorData(NamedTuple):
@@ -370,13 +249,17 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Si
     Args:
         transform_data: dictionary of the form
             {'translation': [0.015, -0.0022], 'rotation': -352.53, 'scale': 0.40}
+
+    Returns:
+        TODO...
     """
     scale = transform_data["scale"]
     t = np.array(transform_data["translation"]) / scale
+    # TODO: explain...
     t *= np.array([-1.0, 1.0])
     theta_deg = transform_data["rotation"]
 
-    # note: to account for reflection, we swap the sign here to use R^T
+    # Note: to account for reflection, we swap the sign here to use R^T
     R = rotation_utils.rotmat2d(-theta_deg)
 
     assert np.allclose(R.T @ R, np.eye(2))

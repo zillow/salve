@@ -422,13 +422,13 @@ def run_incremental_reconstruction(
         raw_dataset_dir: path to directory where the full ZinD dataset is stored (in raw form as downloaded from Bridge API).
         method: Global pose aggregation method (e.g. `pgo`, `spanning_tree`, etc.)
         confidence_threshold: Minimum required SALVe network confidence to accept a prediction.
-        use_axis_alignment:
+        use_axis_alignment: whether to refine relative rotations by vanishing angle.
         allowed_wdo_types: types of W/D/O objects to use for localization (only these edge types will be inserted into the graph).
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     allowed_wdo_types_summary = "_".join(allowed_wdo_types)
-    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2022_02_01_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
+    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2022_07_05_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
     os.makedirs(plot_save_dir, exist_ok=True)
 
     floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
@@ -454,7 +454,7 @@ def run_incremental_reconstruction(
         is_demo = (
             (building_id == "0519" and floor_id == "floor_01")
             or (building_id == "1214" and floor_id == "floor_01")
-            or (building_id == "0308" and floor_id == "floor_02")
+            # or (building_id == "0308" and floor_id == "floor_02")
             or (building_id == "0438" and floor_id == "floor_01")
             or (building_id == "0715" and floor_id == "floor_01")
         )
@@ -468,7 +468,11 @@ def run_incremental_reconstruction(
         render_multigraph = True
         if render_multigraph:
             graph_rendering_utils.draw_multigraph(
-                measurements, gt_floor_pose_graph, confidence_threshold=confidence_threshold, save_dir=plot_save_dir
+                measurements=measurements,
+                input_floor_pose_graph=gt_floor_pose_graph,
+                raw_dataset_dir=raw_dataset_dir,
+                confidence_threshold=confidence_threshold,
+                save_dir=plot_save_dir
             )
 
         (
@@ -529,7 +533,7 @@ def run_incremental_reconstruction(
             # graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
 
             if use_axis_alignment:
-                # TODO(johnwlambert): why align here, if we will align later?
+                # Align here to compute initialization with aligned pairs.
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
                     i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict
                 )
@@ -678,6 +682,8 @@ if __name__ == "__main__":
     """Example CLI usage:
 
     python scripts/run_sfm.py --raw_dataset_dir ../zind_bridgeapi_2021_10_05/ --method pgo --serialized_preds_json_dir ../2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23 --hypotheses_save_root ../ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
+
+    python scripts/run_sfm.py --raw_dataset_dir ../zind_bridgeapi_2021_10_05/ --method pgo --serialized_preds_json_dir ../2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16 --hypotheses_save_root ../ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
 
     Predictions will be saved in a new directory named:
        {SALVE_REPO_ROOT}/{serialized_preds_json_dir.name}_{FLAGS}_serialized

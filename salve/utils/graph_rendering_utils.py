@@ -1,6 +1,4 @@
-"""
-Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph.
-"""
+"""Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph."""
 
 import os
 from typing import Dict, List, Tuple
@@ -18,9 +16,6 @@ PLUM1 = [173, 127, 168]
 SKYBLUE = [135, 206, 250]
 GREEN = [0, 140, 25]
 CYAN = [0, 255, 255]
-
-# DEFAULT_RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-DEFAULT_RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
 
 
 def draw_graph_topology(
@@ -73,8 +68,8 @@ def draw_graph_topology(
 def draw_multigraph(
     measurements: List[EdgeClassification],
     input_floor_pose_graph: PoseGraph2d,
+    raw_dataset_dir: str,
     confidence_threshold: float = 0.5,
-    raw_dataset_dir: str = DEFAULT_RAW_DATASET_DIR,
     save_dir: str = "./"
 ) -> None:
     """Draw the topology of a pose graph, with colored nodes and colored edges (allowed edges are conf.-thresholded).
@@ -135,6 +130,16 @@ def draw_multigraph(
     floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
         query_building_id=input_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
     )
+    if floor_pose_graphs is None:
+        raise ValueError(
+            f"HorizonNet predictions missing for all floors "
+            f"of ZInD Building {input_floor_pose_graph.building_id}."
+        )
+    if input_floor_pose_graph.floor_id not in floor_pose_graphs:
+        raise ValueError(
+            f"HorizonNet predictions missing for {input_floor_pose_graph.floor_id} "
+            f"of ZInD Building {input_floor_pose_graph.building_id}."
+        )
     true_gt_floor_pose_graph = floor_pose_graphs[input_floor_pose_graph.floor_id]
 
     nodes = list(G.nodes)

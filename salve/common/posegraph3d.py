@@ -10,6 +10,7 @@ from salve.common.posegraph2d import PoseGraph2d
 
 @dataclass
 class PoseGraph3d:
+    """TODO"""
     building_id: str
     floor_id: str
     pose_dict: Dict[int, Pose3]

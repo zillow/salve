@@ -1,6 +1,4 @@
-"""
-Stores information about a floorplan reconstruction.
-"""
+"""Stores information about a floorplan reconstruction."""
 
 import os
 from dataclasses import dataclass
@@ -13,6 +11,7 @@ import numpy as np
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.bev_rendering_utils as bev_rendering_utils
 import salve.utils.iou_utils as iou_utils
+import salve.utils.matplotlib_utils as matplotlib_utils
 from salve.common.bevparams import BEVParams
 from salve.common.posegraph2d import PoseGraph2d
 
@@ -206,7 +205,8 @@ def render_floorplans_side_by_side(
     gt_floor_pg: Optional[PoseGraph2d] = None,
     plot_save_fpath: Optional[str] = None,
 ) -> None:
-    """
+    """Render estimated and corresponding ground truth floor plans side-by-side.
+
     Either render (show plot) or save plot to disk.
 
     Args:
@@ -226,11 +226,13 @@ def render_floorplans_side_by_side(
         ax1 = plt.subplot(1, 2, 1)
         render_floorplan(gt_floor_pg, gt_floor_pg.scale_meters_per_coordinate)
         ax1.set_aspect("equal")
+        matplotlib_utils.legend_without_duplicate_labels(ax1)
 
     ax2 = plt.subplot(1, 2, 2, sharex=ax1, sharey=ax1)
     ax2.set_aspect("equal")
     render_floorplan(est_floor_pose_graph, gt_floor_pg.scale_meters_per_coordinate)
     plt.title(f"Building {building_id}, {floor_id}")
+    matplotlib_utils.legend_without_duplicate_labels(ax2)
 
     if save_plot:
         if plot_save_dir is not None and plot_save_fpath is None:

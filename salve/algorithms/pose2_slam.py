@@ -254,17 +254,19 @@ def execute_planar_slam(
     optimize_poses_only: bool = False,
     verbose: bool = True,
 ) -> None:
-    """Gather odometry and landmark measurements for planar Pose(2) SLAM.
+    """Gathers odometry and landmark measurements, and then executes planar Pose(2) SLAM.
 
     Args:
-        measurements:
+        measurements: per-edge measurements.
         gt_floor_pg: ground truth 2d pose graph for this ZinD building floor.
         hypotheses_save_root:
-        building_id:
-        floor_id:
+        building_id: unique ID of a ZInD building.
+        floor_id: unique ID of floor of a ZInD building.
         wSi_list:
         plot_save_dir:
-        optimize_poses_only:
+        use_axis_alignment: whether to refine relative rotations by vanishing angle.
+        per_edge_wdo_dict
+        optimize_poses_only: whether to only optimize poses, or instead to optimize poses + landmarks jointly.
         verbose:
 
     Returns:
@@ -361,7 +363,7 @@ def execute_planar_slam(
         gt_floor_pose_graph=gt_floor_pg,
         plot_save_dir=plot_save_dir
     )
-    #graph_rendering_utils.draw_multigraph(measurements, est_floor_pose_graph, confidence_threshold=0.93)
+    #graph_rendering_utils.draw_multigraph(measurements, est_floor_pose_graph, raw_dataset_dir=raw_dataset_dir, confidence_threshold=0.93)
 
     return report
 
