@@ -63,10 +63,9 @@ def load_estimated_pose_graph(
         hnet_floor_predictions = hnet_floor_predictions[floor_id]
 
     nodes = {}
-    for pano_id_str, v in localization_data["wSi_dict"].items():
+    for pano_id_str, wSi in localization_data["wSi_dict"].items():
         pano_id = int(pano_id_str)
         if boundary_type == EstimatedBoundaryType.HNET_DENSE:
-            import pdb; pdb.set_trace()
             u, v = np.arange(IMAGE_WIDTH_PX), np.round(hnet_floor_predictions[pano_id].floor_boundary)
             # floor-wall boundary
             room_vertices_uv = np.hstack([u.reshape(-1, 1), v.reshape(-1, 1)])
@@ -95,7 +94,7 @@ def load_estimated_pose_graph(
             # TODO: add explanation for this.
             room_vertices_local_2d[:, 0] *= -1
 
-        global_Sim2_local = Sim2(np.array(v["R"]), t=np.array(v["t"]), s=v["s"])
+        global_Sim2_local = Sim2(np.array(wSi["R"]), t=np.array(wSi["t"]), s=wSi["s"])
         nodes[pano_id] = PanoData(
             id=pano_id,
             global_Sim2_local=global_Sim2_local,
