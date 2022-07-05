@@ -58,9 +58,8 @@ def load_room_shape_polygon_from_predictions(
             # TODO(Yuguang): WHY DOES IT MAKE TO SUBTRACT UNCERTAINTY FROM V (move point higher?)?
 
     xys = transform_utils.uv_to_xy_batch(uvs, camera_height)
-    if uncertainty:
+    if uncertainty is not None:
         xys_upper = transform_utils.uv_to_xy_batch(uvs_upper, camera_height)
-
         return Polygon(xys), Polygon(xys_upper)
     return Polygon(xys)
 
