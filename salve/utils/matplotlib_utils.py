@@ -3,6 +3,7 @@
 from enum import Enum
 from typing import Optional, Tuple, Union
 
+import matplotlib
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
