@@ -394,6 +394,8 @@ def group_panos_by_room(predictions: List[Polygon], est_pose_graph: PoseGraph2d)
         #     c=color,
         #     marker="."
         # )
+        x, y = np.mean(est_pose_graph.nodes[pano_id].room_vertices_global_2d, axis=0)
+        ax.text(x, y, str(pano_id))
         matplotlib_utils.plot_polygon_patch_mpl(
             polygon_pts=est_pose_graph.nodes[pano_id].room_vertices_global_2d,
             ax=ax,
