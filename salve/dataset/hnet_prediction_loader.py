@@ -50,6 +50,9 @@ MODEL_NAMES = [
 # could also try partial manhattanization (separate model) -- get link from Yuguang
 
 
+IMAGE_HEIGHT_PX = 512
+IMAGE_WIDTH_PX = 1024
+
 
 def load_hnet_predictions(
     query_building_id: str, raw_dataset_dir: str, predictions_data_root: str = RMX_MADORI_V1_PREDICTIONS_DIRPATH
@@ -122,25 +125,11 @@ def load_hnet_predictions(
             img_fpath = img_fpaths[0]
             img = imageio.imread(img_fpath)
 
-            img_resized = cv2.resize(img, (1024, 512))
+            img_resized = cv2.resize(img, (IMAGE_WIDTH_PX, IMAGE_HEIGHT_PX))
             img_h, img_w, _ = img_resized.shape
             #
 
             floor_id = get_floor_id_from_img_fpath(img_fpath)
-
-            gt_pose_graph = posegraph2d.get_gt_pose_graph(
-                building_id=zind_building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
-            )
-
-            if floor_id not in floor_pose_graphs:
-                # start populating the pose graph for each floor pano-by-pano
-                floor_pose_graphs[floor_id] = PoseGraph2d(
-                    building_id=zind_building_id,
-                    floor_id=floor_id,
-                    nodes={},
-                    scale_meters_per_coordinate=gt_pose_graph.scale_meters_per_coordinate,
-                )
-
             model_name = "rmx-madori-v1_predictions"
             # plot the image in question
             # for model_name in model_names:
@@ -266,9 +255,8 @@ def load_inferred_floor_pose_graphs(
             img_fpath = img_fpaths[0]
             img = imageio.imread(img_fpath)
 
-            img_resized = cv2.resize(img, (1024, 512))
+            img_resized = cv2.resize(img, (IMAGE_WIDTH_PX, IMAGE_HEIGHT_PX))
             img_h, img_w, _ = img_resized.shape
-            #
 
             floor_id = get_floor_id_from_img_fpath(img_fpath)
 
