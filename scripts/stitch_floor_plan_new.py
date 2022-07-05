@@ -408,7 +408,7 @@ def stitch_building_layouts(
         query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=hnet_pred_dir
     )
     est_pose_graph = salve_sfm_result_loader.load_estimated_pose_graph(
-        est_localization_fpath=Path(est_localization_fpath),
+        json_fpath=Path(est_localization_fpath),
         boundary_type=EstimatedBoundaryType,
         raw_dataset_dir=raw_dataset_dir,
         predictions_data_root=hnet_pred_dir
