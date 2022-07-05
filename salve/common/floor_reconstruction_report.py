@@ -227,12 +227,13 @@ def render_floorplans_side_by_side(
         ax1 = plt.subplot(1, 2, 1)
         render_floorplan(gt_floor_pg, gt_floor_pg.scale_meters_per_coordinate)
         ax1.set_aspect("equal")
+        legend_without_duplicate_labels(ax1)
 
     ax2 = plt.subplot(1, 2, 2, sharex=ax1, sharey=ax1)
     ax2.set_aspect("equal")
     render_floorplan(est_floor_pose_graph, gt_floor_pg.scale_meters_per_coordinate)
     plt.title(f"Building {building_id}, {floor_id}")
-    ax2.legend(loc="upper right")
+    legend_without_duplicate_labels(ax2)
 
     if save_plot:
         if plot_save_dir is not None and plot_save_fpath is None:
@@ -246,6 +247,13 @@ def render_floorplans_side_by_side(
     if show_plot:
         # plt.axis("equal")
         plt.show()
+
+
+def legend_without_duplicate_labels(ax):
+    """ """
+    handles, labels = ax.get_legend_handles_labels()
+    unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
+    ax.legend(*zip(*unique))
 
 
 def render_raster_occupancy(
