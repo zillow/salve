@@ -6,6 +6,7 @@ from typing import Optional
 
 import gtsfm.utils.io as io_utils
 
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.pano_data import PanoData
 
