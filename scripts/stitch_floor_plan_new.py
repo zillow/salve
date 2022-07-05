@@ -46,9 +46,9 @@ def load_room_shape_polygon_from_predictions(
     uvs = []
     uvs_upper = []
 
-    for (corner_u, corner_v) in room_shape_pred[1::2]:
+    for i, (corner_u, corner_v) in enumerate(room_shape_pred[1::2]):
         uvs.append([corner_u + 0.5 / IMAGE_WIDTH_PX, corner_v + 0.5 / IMAGE_HEIGHT_PX])
-        if uncertainty:
+        if uncertainty is not None:
             uvs_upper.append(
                 [
                     corner_u + 0.5 / IMAGE_WIDTH_PX,
@@ -65,12 +65,12 @@ def load_room_shape_polygon_from_predictions(
     return Polygon(xys)
 
 
-def generate_dense_shape(v_vals: List[Any], uncertainty: Any) -> Tuple[Any, Any]:
+def generate_dense_shape(v_vals: Iterable[float], uncertainty: Iterable[float]) -> Tuple[Any, Any]:
     """TODO
 
     Args:
-        v_vals:
-        uncertainty:
+        v_vals: floor boundary "v" coordinates in pixels in the range [0, height], for each of 1024 image columns.
+        uncertainty: floor boundary uncertainty, for each of 1024 image columns.
 
     Returns:
         polygon:
@@ -156,9 +156,6 @@ def stitch_building_layouts(
     predicted_shapes_raw = {}
     predicted_corner_shapes = {}
 
-    import pdb
-
-    pdb.set_trace()
     for floor_id, floor_predictions in hnet_floor_predictions.items():
 
         if floor_id != "floor_01":
@@ -172,6 +169,7 @@ def stitch_building_layouts(
             )
 
             wall_confidences[pano_id] = floor_predictions[pano_id].floor_boundary_uncertainty
+            import pdb; pdb.set_trace()
             predicted_shapes_raw[pano_id], wall_confidences[pano_id] = generate_dense_shape(
                 v_vals=floor_predictions[pano_id].floor_boundary, uncertainty=wall_confidences[pano_id]
             )
