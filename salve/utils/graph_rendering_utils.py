@@ -68,8 +68,8 @@ def draw_graph_topology(
 def draw_multigraph(
     measurements: List[EdgeClassification],
     input_floor_pose_graph: PoseGraph2d,
-    confidence_threshold: float = 0.5,
     raw_dataset_dir: str,
+    confidence_threshold: float = 0.5,
     save_dir: str = "./"
 ) -> None:
     """Draw the topology of a pose graph, with colored nodes and colored edges (allowed edges are conf.-thresholded).

@@ -470,8 +470,8 @@ def run_incremental_reconstruction(
             graph_rendering_utils.draw_multigraph(
                 measurements=measurements,
                 input_floor_pose_graph=gt_floor_pose_graph,
-                confidence_threshold=confidence_threshold,
                 raw_dataset_dir=raw_dataset_dir,
+                confidence_threshold=confidence_threshold,
                 save_dir=plot_save_dir
             )
 
