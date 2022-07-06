@@ -34,14 +34,12 @@ from salve.stitching.models.feature2d import Feature2dU, Feature2dXy
 from salve.stitching.models.locations import Point2d
 
 
-
 # arbitrary image height, to match HNet model inference resolution.
 IMAGE_WIDTH_PX = 1024
 IMAGE_HEIGHT_PX = 512
 
 MIN_LAYOUT_OVERLAP_RATIO = 0.3
 MIN_LAYOUT_OVERLAP_IOU = 0.1
-
 
 
 def generate_shapely_polygon_from_room_shape_vertices(vertices: List[dict]) -> Polygon:
@@ -76,7 +74,11 @@ def extract_coordinates_from_shapely_polygon(shape: Polygon) -> List[Point2d]:
 
 
 def refine_shape_group_start_with(
-    group: Any, start_id: Any, predicted_shapes: Any, wall_confidences: Any, location_panos: Any
+    group: List[int],
+    start_id: int,
+    predicted_shapes: Dict[int, Polygon],
+    wall_confidences: Dict[int, np.ndarray],
+    est_pose_graph: PoseGraph2d,
 ) -> Tuple[Any, Any]:
     """Refine a room's shape using confidence.
 
@@ -211,6 +213,7 @@ def refine_predicted_shape(
     for i_group, group in enumerate(groups):
         shape_fused_by_group = []
         i_color = None
+        # TODO (yuguangl): explain this logic
         for panoid in group:
             if panoid in color_records:
                 i_color = color_records[panoid]
@@ -219,14 +222,19 @@ def refine_predicted_shape(
             i_color = ((8 - i_group) % 8) * 3 + int(i_group / 8)
             color = TANGO_COLOR_PALETTE[i_color % 24]
         else:
-            color = TANGO_COLOR_PALETTE[(i_color) % 24]
+            color = TANGO_COLOR_PALETTE[i_color % 24]
         color = (color[0] / 255, color[1] / 255, color[2] / 255)
 
         shapes = []
         for panoid in group:
             xys_fused, conf_fused = refine_shape_group_start_with(
-                group, panoid, predicted_shapes, wall_confidences, location_panos
+                group=group,
+                start_id=panoid,
+                predicted_shapes=predicted_shapes,
+                wall_confidences=wall_confidences,
+                est_pose_graph=est_pose_graph,
             )
+
             pose0 = location_panos[panoid]
             shape_fused_by_group.append([xys_fused, conf_fused, pose0])
 
@@ -386,7 +394,9 @@ def stitch_building_layouts(
         groups = room_merging_algo.group_panos_by_room(est_pose_graph=est_pose_graph_corners)
 
         print("Running shape refinement ... ")
-        import pdb; pdb.set_trace()
+        import pdb
+
+        pdb.set_trace()
         floor_shape_final, figure, floor_shape_fused_poly = refine_predicted_shape(
             groups=groups,
             predicted_shapes=predicted_shapes_raw,
