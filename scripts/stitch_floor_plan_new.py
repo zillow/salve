@@ -83,24 +83,25 @@ def refine_shape_group_start_with(
     """Refine a room's shape using confidence.
 
     Args:
-        group: TODO
-        start_id: TODO
-        predicted_shapes: TODO
-        wall_confidences: TODO
-        location_panos: TODO
+        group: panorama ID's that belong to one room.
+        start_id: panorama ID to use as reference for this room, as i0
+        predicted_shapes: Densely estimated layouts for all panos on this floor.
+        wall_confidences: Confidences for all panos on this floor.
+        est_pose_graph: Estimated poses for all panos on this floor.
 
     Returns:
         xys1_final: TODO
         conf1_final: TODO
     """
     RES = IMAGE_HEIGHT_PX
-    original_us = np.arange(0.5 / RES, (RES + 0.5) / RES, 1.0 / RES)
-    panoid = start_id
-    # for panoid in group:
-    current_shape = predicted_shapes[panoid]
-    xys0 = extract_coordinates_from_shapely_polygon(current_shape)
-    pose0 = location_panos[panoid]
-    wall_conf0 = wall_confidences[panoid]
+    # generate 512 image column indices from [start,stop).
+    original_us = np.arange(start=0.5 / RES, stop=(RES + 0.5) / RES, step=1.0 / RES)
+    i0 = start_id
+
+    shape_i0 = predicted_shapes[i0]
+    xys_0 = extract_coordinates_from_shapely_polygon(shape_i0)
+    pose_i0 = est_pose_graph.nodes[i0].global_Sim2_local
+    wall_conf0 = wall_confidences[i0]
     uvs0 = []
     for xy0 in xys0:
         uvs0.append(transform_utils.xy_to_uv(xy0, DEFAULT_CAMERA_HEIGHT))
@@ -111,21 +112,22 @@ def refine_shape_group_start_with(
     final_vs_all = {}
     final_cs_all = {}
     colors = {"9c5d07356f": "red", "84fe28b6c1": "blue", "404ed9fcfb": "yellow", "1a2445a9fe": "purple"}
-    for panoid_1 in group:
-        if panoid_1 == panoid:
+    for i1 in group:
+        if i1 == i0:
             continue
-        shape1 = predicted_shapes[panoid_1]
-        pose1 = location_panos[panoid_1]
-        wall_conf1 = wall_confidences[panoid_1]
-        # print(group, panoid, panoid_1)
+        shape_i1 = predicted_shapes[i1]
+        pose_i1 = est_pose_graph.nodes[i1].global_Sim2_local
+        pose_i1 = location_panos[i1]
+        wall_conf1 = wall_confidences[i1]
 
-        xys1 = extract_coordinates_from_shapely_polygon(shape1)
-        xys0 = extract_coordinates_from_shapely_polygon(current_shape)
+        xys1 = extract_coordinates_from_shapely_polygon(shape_i1)
+        xys0 = extract_coordinates_from_shapely_polygon(shape_i0)
         xys1_projected = []
         uvs1_projected = []
         for xy1 in xys1:
-            xy1_transformed = transform_utils.transform_xy_by_pose(xy1, pose1)
-            xy1_projected = transform_utils.project_xy_by_pose(xy1_transformed, pose0)
+            # Project contour i1 onto pano i0, to get (u,v) coordinates.
+            xy1_transformed = transform_utils.transform_xy_by_pose(xy1, pose_i1)
+            xy1_projected = transform_utils.project_xy_by_pose(xy1_transformed, pose_i0)
             xys1_projected.append(xy1_projected)
             uvs1_projected.append(transform_utils.xy_to_uv(xy1_projected, DEFAULT_CAMERA_HEIGHT))
 
@@ -134,21 +136,22 @@ def refine_shape_group_start_with(
         if not polygon_global.contains(Point(0, 0)):
             continue
 
-        final_vs, final_cs = transform_utils.reproject_uvs_to(uvs1_projected, wall_conf1, panoid_1, start_id)
+        # In each image column of pano i, choose the most confident contour point from P???
+        final_vs, final_cs = transform_utils.reproject_uvs_to(uvs1_projected, wall_conf1, i1, i0)
 
-        final_vs_all[panoid_1] = final_vs
-        final_cs_all[panoid_1] = final_cs
+        final_vs_all[i1] = final_vs
+        final_cs_all[i1] = final_cs
 
         xys_render = []
         for i, u in enumerate(original_us):
             xy_render = transform_utils.uv_to_xy(Point2d(x=u, y=final_vs[i]), DEFAULT_CAMERA_HEIGHT)
             xys_render.append(xy_render)
 
-    #     color = colors[panoid_1] if panoid_1 in colors else 'red'
+    #     color = colors[i1] if i1 in colors else 'red'
     #     draw_shape_in_top_down_canvas(
     #         axis, xys_render, color, pose=location_panos[start_id]
     #     )
-    #     draw_camera_in_top_down_canvas(axis, location_panos[panoid_1], color, size=20)
+    #     draw_camera_in_top_down_canvas(axis, location_panos[i1], color, size=20)
     # color = colors[start_id] if start_id in colors else 'red'
     # draw_shape_in_top_down_canvas(axis, xys0, color, pose=location_panos[start_id])
     # draw_camera_in_top_down_canvas(axis, location_panos[start_id], color, size=20)
@@ -156,6 +159,7 @@ def refine_shape_group_start_with(
     # path = f'./panoloc/scripts/outputs/2331de25-d580-7a65-f5cc-fc50f3f160e9/fused/cluster_0/group_0_c_{start_id}.png'
     # fig.savefig(path, dpi = 300)
 
+    # Convert most confident column to world metric space.
     xys1_final = []
     conf1_final = []
     for i, u in enumerate(original_us):
