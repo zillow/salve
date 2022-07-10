@@ -17,16 +17,10 @@ the world-normalized coordinate system, by (R,t,s).
 4.World-metric coordinate system, where units are in meters. (`world`)
 The constant scale_meters_per_coordinate is providing the scaling to go from world-normalized to world-metric.
 
-
 We used to name ego-normalized the room CS and world-normalized the floor CS
 
-there is a reflection between one of these coordinate systems
+There is a reflection between one of these coordinate systems
 (specifically between ego-normalized and world-normalized.
-
-See for reference: 
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/train_on_zind/convert_zind_to_horizonnet_annotations.py#L3853:31
-https://gitlab.zgtools.net/zillow/rmx/research/floorplanautomation/layout/hnet_confidence/-/blob/master/evaluate_horizonnet_output.py#L734
 """
 
 import math
@@ -163,96 +157,87 @@ def zind_sphere_to_cartesian(points_sph: np.ndarray) -> np.ndarray:
     return np.column_stack((x_arr, y_arr, z_arr)).reshape(output_shape)
 
 
-# from
-# https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
-def zind_intersect_cartesian_with_floor_plane(cartesian_coordinates: np.ndarray, camera_height: float) -> np.ndarray:
-    """Obtain floor coordinates by intersecting with the floor plane.
+def zind_room_cartesian_to_worldmetric(cartesian_coordinates: np.ndarray, camera_height: float) -> np.ndarray:
+    """Obtain floor coordinates by intersecting cartesian coordinates with the floor plane.
 
     To get unit-norm rays, then scale so that y has unit norm.
 
     Args:
-        cartesian_coordinates: TODO
-        camera_height: TODO
+        cartesian_coordinates: array of shape (N,3) representing room Cartesian coordinates, in left-handed system.
+        camera_height: TODO (in meters)
 
     Returns:
-        Coordinates in world metric space ... TODO
+        Array of shape (N,3) representing coordinates in world metric space, in right-handed system.
     """
-    # flip Z
+    # Flip Z to go from left-handed to right-handed system.
     cartesian_coordinates[:, 2] *= -1
 
     y = cartesian_coordinates[:, 1]
-    return cartesian_coordinates * camera_height / y.reshape(-1, 1)
+    world_cartesian_coords = cartesian_coordinates / y.reshape(-1, 1)
+    world_cartesian_coords *= camera_height
+
+    # y values were along the vertical axis, make z the new vertical axis.
+    world_cartesian_coords = world_cartesian_coords[:, np.array([0, 2, 1])]
+
+    # Reflection to enter final coordinate system (TODO: update Appendix 5(c) accordingly).
+    world_cartesian_coords[:, 0] *= -1
+    return world_cartesian_coords
 
 
 def convert_points_px_to_worldmetric(points_px: np.ndarray, image_width: int, camera_height_m: float) -> np.ndarray:
     """Convert pixel coordinates to Cartesian coordinates with a known scale (i.e. the units are meters).
 
+    Only for points on the ground.
+
     Args:
-        points_px: 2d points in pixel coordinates
+        points_px: array of shape (N,2) representing 2d points in pixel coordinates
         image_width: width of image, in pixels.
         camera_height_m: height of camera during panorama capture (in meters).
 
     Returns:
-        points_worldmetric: 
+        points_worldmetric: array of shape (N,3)
     """
     points_sph = zind_pixel_to_sphere(points_px, width=image_width)
     points_cartesian = zind_sphere_to_cartesian(points_sph)
-    points_worldmetric = zind_intersect_cartesian_with_floor_plane(points_cartesian, camera_height_m)
+    points_worldmetric = zind_room_cartesian_to_worldmetric(points_cartesian, camera_height_m)
     return points_worldmetric
 
 
-def convert_points_worldmetric_to_px(points_worldmetric: np.ndarray, image_width: int, camera_height_m: float) -> np.ndarray:
-    """
+def xy_to_uv(xy: np.ndarray, camera_height_m: float, img_w, img_h) -> np.ndarray:
+    """Compute texture coordinates uv from world-metric Cartesian coordinates xy, given camera height.
 
     Args:
-        points_worldmetric
-        image_width
-        camera_height_m
+        xy: Array of shape (N,2) representing points in world-metric coordinate system.
+        camera_height_m: height of camera when panorama was captured, in meters.
+        img_w: image width, in pixels.
+        img_h: image height, in pixels.
 
     Returns:
-       Points in pixel coordinates
+        Array of shape (N,2) representing pixel coordinates in [0,W] x [0,H].
     """
-    points_cart = points_worldmetric
-    # worldnormalized_to_room_cartesian(), swap the signs, and the axes
-    points_sph = cartesian_to_sphere(points_cart)
-    return zind_sphere_to_pixel(points_sph, width), 
+    u = xy_to_u(xy)
+    depths = np.linalg.norm(xy, axis=1)
+    v = 1.0 - np.arctan(depths / camera_height_m) / math.pi
 
-    cartesian_coordinates = points_worldmetric / camera_height
+    u *= img_w
+    v *= img_h
+    return np.stack([u,v], -1)
 
 
-def zind_cartesian_to_sphere(points_cart: np.ndarray) -> np.ndarray:
-    """Convert cartesian to spherical coordinates.
+def xy_to_u(xy: np.ndarray) -> float:
+    """Compute coordinate u from world-metric Cartesian coordinate xy.
 
-    Note: conflicts with all other methods in this file.
-    See: https://github.com/zillow/zind/blob/main/code/transformations.py#L124
+    Note: u = 0 is the left edge of panorama canvas. u = 0 happens when atan(x, y) = pi.
 
     Args:
-        points_cart: (N,3) points in room cartesian (ego) coordinate system
+        xy: array of shape (N,2)
 
     Returns:
-        points_sph: (N,3) points in spherical coordinate system, as (theta, phi)
-          where theta in [-pi, pi] and phi in [-pi/2, pi/2]
+        Array of shape (N,2) in [0,1]
     """
-    output_shape = (points_cart.shape[0], 3)  # type: ignore
-
-    num_points = points_cart.shape[0]
-    assert num_points > 0
-
-    num_coords = points_cart.shape[1]
-    assert num_coords == 3
-
-    x_arr = points_cart[:, 0]
-    y_arr = points_cart[:, 1]
-    z_arr = points_cart[:, 2]
-
-    # Azimuth angle is in [-pi, pi].
-    # Note the x-axis flip to align the handedness of the pano and room shape coordinate systems.
-    theta = np.arctan2(x_arr, z_arr)
-
-    # Radius can be anything between (0, inf)
-    rho = np.linalg.norm(points_cart, axis=1)
-    phi = np.arcsin(y_arr / rho)  # Map elevation to [-pi/2, pi/2]
-    return np.column_stack((theta, phi, rho)).reshape(output_shape)
+    x = xy[:, 0]
+    y = xy[:, 1]
+    return (np.arctan2(x, y) / np.pi + 1.0) / 2.0
 
 
 def zind_sphere_to_pixel(points_sph: np.ndarray, width: int) -> np.ndarray:
@@ -299,4 +284,38 @@ def zind_sphere_to_pixel(points_sph: np.ndarray, width: int) -> np.ndarray:
     y_arr *= height - 1  # Map to [0, height)
 
     return np.column_stack((x_arr, y_arr)).reshape(output_shape)
+
+
+def zind_cartesian_to_sphere(points_cart: np.ndarray) -> np.ndarray:
+    """Convert cartesian to spherical coordinates.
+
+    See: https://github.com/zillow/zind/blob/main/code/transformations.py#L124
+
+    Args:
+        points_cart: (N,3) points in room cartesian (ego) coordinate system
+
+    Returns:
+        points_sph: (N,3) points in spherical coordinate system, as (theta, phi)
+          where theta in [-pi, pi] and phi in [-pi/2, pi/2]
+    """
+    output_shape = (points_cart.shape[0], 3)  # type: ignore
+
+    num_points = points_cart.shape[0]
+    assert num_points > 0
+
+    num_coords = points_cart.shape[1]
+    assert num_coords == 3
+
+    x_arr = points_cart[:, 0]
+    y_arr = points_cart[:, 1]
+    z_arr = points_cart[:, 2]
+
+    # Azimuth angle is in [-pi, pi].
+    # Note the x-axis flip to align the handedness of the pano and room shape coordinate systems.
+    theta = np.arctan2(x_arr, z_arr)
+
+    # Radius can be anything between (0, inf)
+    rho = np.linalg.norm(points_cart, axis=1)
+    phi = np.arcsin(y_arr / rho)  # Map elevation to [-pi/2, pi/2]
+    return np.column_stack((theta, phi, rho)).reshape(output_shape)
 
