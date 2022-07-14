@@ -154,7 +154,7 @@ class PanoStructurePredictionRmxMadoriV1:
             img_h: image height (in pixels).
             img_w: image width (in pixels).
         """
-        linewidth = 20 # use 20 for paper figures, but 5 for debug visualizations.
+        linewidth = 5 #20 # use 20 for paper figures, but 5 for debug visualizations.
 
         floor_uv = self.get_floor_corners_image(img_h=img_h, img_w=img_w)
         ceiling_uv = self.get_ceiling_corners_image(img_h=img_h, img_w=img_w)
@@ -200,19 +200,14 @@ class PanoStructurePredictionRmxMadoriV1:
         pred_floor_wall_boundary_pixel = np.hstack([u.reshape(-1, 1), v.reshape(-1, 1)])
         image_width = 1024
 
-        layout_pts_worldmetric = zind_pano_utils.convert_points_px_to_worldmetric(
+        # layout pts in `worldmetric` system
+        room_vertices_local_2d = zind_pano_utils.convert_points_px_to_worldmetric(
             points_px=pred_floor_wall_boundary_pixel, image_width=img_w, camera_height_m=camera_height_m
         )
 
-        # ignore y values, which are along the vertical axis
-        room_vertices_local_2d = layout_pts_worldmetric[:, np.array([0, 2])]
-
-        # TODO: remove this when saving (only for plotting a ready-to-go PanoData instance)
-        room_vertices_local_2d[:, 0] *= -1
-
         # See https://cartography-playground.gitlab.io/playgrounds/douglas-peucker-algorithm/
         # https://rdp.readthedocs.io/en/latest/
-        room_vertices_local_2d = rdp.rdp(room_vertices_local_2d, epsilon=RAMER_DOUGLAS_PEUCKER_EPSILON)
+        room_vertices_local_2d = rdp.rdp(room_vertices_local_2d[:, :2], epsilon=RAMER_DOUGLAS_PEUCKER_EPSILON)
 
         windows = []
         doors = []
@@ -235,13 +230,8 @@ class PanoStructurePredictionRmxMadoriV1:
                 wdo_endpoints_worldmetric = zind_pano_utils.convert_points_px_to_worldmetric(
                     points_px=wdo_endpoints_px, image_width=img_w, camera_height_m=camera_height_m
                 )
-
                 x1, x2 = wdo_endpoints_worldmetric[:, 0]
-                y1, y2 = wdo_endpoints_worldmetric[:, 2]
-
-                # TODO: remove this when saving (only for plotting a ready-to-go PanoData instance)
-                x1 = -x1
-                x2 = -x2
+                y1, y2 = wdo_endpoints_worldmetric[:, 1]
 
                 inferred_wdo = WDO(
                     global_Sim2_local=gt_pose_graph.nodes[pano_id].global_Sim2_local,  # using GT pose for now
