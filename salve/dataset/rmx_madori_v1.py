@@ -154,7 +154,7 @@ class PanoStructurePredictionRmxMadoriV1:
             img_h: image height (in pixels).
             img_w: image width (in pixels).
         """
-        linewidth = 20 # use 20 for paper figures, but 5 for debug visualizations.
+        linewidth = 5 #20 # use 20 for paper figures, but 5 for debug visualizations.
 
         floor_uv = self.get_floor_corners_image(img_h=img_h, img_w=img_w)
         ceiling_uv = self.get_ceiling_corners_image(img_h=img_h, img_w=img_w)
