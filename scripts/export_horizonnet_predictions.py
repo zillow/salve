@@ -30,7 +30,7 @@ from salve.dataset.zind_partition import DATASET_SPLITS
 # RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/mnt/data/johnlam/zind2_john"
 # RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/home/johnlam/zind2_john"
 # RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/Users/johnlam/Downloads/zind2_john"
-RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/srv/scratch/jlambert30/salve/zind2_john"
+#RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/srv/scratch/jlambert30/salve/zind2_john"
 
 # Path to CSV w/ info about prod-->ZInD remapping.
 # PANO_MAPPING_TSV_FPATH = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
@@ -52,7 +52,7 @@ IMAGE_WIDTH_PX = 1024
 
 def export_horizonnet_zind_predictions(
     query_building_id: str, raw_dataset_dir: str, predictions_data_root: str, export_dir: str
-) -> None:
+) -> bool:
     """Load W/D/O's predicted for each pano of each floor by HorizonNet.
 
     TODO: rename this function, since no pose graph is loaded here.
@@ -70,10 +70,11 @@ def export_horizonnet_zind_predictions(
         query_building_id: string representing ZinD building ID to fetch the per-floor inferred pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
         raw_dataset_dir:
+        predictions_data_root:
+        export_dir: 
 
     Returns:
-        floor_pose_graphs: mapping from floor_id to predicted pose graph
-            (without poses, but just W/D/O predictions and layout prediction)
+        Boolean indicating export success for specified building.
     """
     pano_mapping_rows = csv_utils.read_csv(PANO_MAPPING_TSV_FPATH, delimiter=",")
 
@@ -89,9 +90,10 @@ def export_horizonnet_zind_predictions(
     tsv_fpath = REPO_ROOT / "ZInD_Re-processing.tsv"
     tsv_rows = csv_utils.read_csv(tsv_fpath, delimiter="\t")
     for row in tsv_rows:
-        building_guid = row["floor_map_guid_new"] # use for Batch 1 from Yuguang
-        #building_guid = row["floormap_guid_prod"]  # use for Batch 2 from Yuguang
+        #building_guid = row["floor_map_guid_new"] # use for Batch 1 from Yuguang
+        building_guid = row["floormap_guid_prod"]  # use for Batch 2 from Yuguang
         # e.g. building_guid resembles "0a7a6c6c-77ce-4aa9-9b8c-96e2588ac7e8"
+        #import pdb; pdb.set_trace()
 
         zind_building_id = row["new_home_id"].zfill(4)
 
@@ -178,15 +180,16 @@ def export_horizonnet_zind_predictions(
                 if pred_obj is None:  # malformatted pred for some reason
                     continue
 
-            render_on_pano = False
+            import numpy as np
+            render_on_pano = np.random.rand() < 0.02 # True
             if render_on_pano:
                 plt.imshow(img_resized)
                 pred_obj.render_layout_on_pano(img_h, img_w)
                 plt.title(f"Pano {i} from Building {zind_building_id}")
                 plt.tight_layout()
-                os.makedirs(f"prod_pred_model_visualizations_2022_07_11_bridge__/{model_name}_bev", exist_ok=True)
+                os.makedirs(f"prod_pred_model_visualizations_2022_07_16_bridge/{model_name}_bev", exist_ok=True)
                 plt.savefig(
-                    f"prod_pred_model_visualizations_2022_07_11_bridge__/{model_name}_bev/{zind_building_id}_{i}.jpg",
+                    f"prod_pred_model_visualizations_2022_07_16_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg",
                     dpi=400,
                 )
                 # plt.show()
@@ -216,7 +219,11 @@ if __name__ == "__main__":
     """ """
     #predictions_data_root = "/srv/scratch/jlambert30/salve/zind2_john"
     #predictions_data_root = "/Users/johnlambert/Downloads/zind_hnet_prod_predictions/zind2_john/zind2_john"
-    predictions_data_root = "/Users/johnlambert/Downloads/zind_hnet_prod_predictions/ZInD_pred"
+    #predictions_data_root = "/Users/johnlambert/Downloads/zind_hnet_prod_predictions/ZInD_pred"
+
+    # New as of 2022/07/16
+    #predictions_data_root = "/Users/johnlambert/Downloads/ZInD_HNet_Prod_Predictions_Part3/ZinD/downloads"
+    predictions_data_root = "/Users/johnlambert/Downloads/ZInD_HNet_Prod_Predictions_Part3/predictions"
 
     #raw_dataset_dir = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
     raw_dataset_dir = "/Users/johnlambert/Downloads/zind_bridgeapi_2021_10_05"
@@ -226,7 +233,7 @@ if __name__ == "__main__":
 
     failed_building_ids = []
 
-    export_dir = "/Users/johnlambert/Downloads/zind_horizon_net_predictions_2022_07_11"
+    export_dir = "/Users/johnlambert/Downloads/zind_horizon_net_predictions_2022_07_16"
 
     #for each home in ZInD:
     for query_building_id in zind_building_ids:
