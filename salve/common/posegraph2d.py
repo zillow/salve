@@ -666,9 +666,9 @@ def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> 
     """Obtain ground truth pose graph...
 
     Args:
-        building_id: TODO
+        building_id: unique ID of ZInD building.
         floor_id: TODO
-        raw_dataset_dir: TODO
+        raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API).
 
     Returns:
         Pose graph for a single floor...
@@ -677,6 +677,28 @@ def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> 
     json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
     floor_pg_dict = get_single_building_pose_graphs(building_id, pano_dir, json_annot_fpath)
     return floor_pg_dict[floor_id]
+
+
+def compute_available_floors_for_building(building_id: str, raw_dataset_dir: str) -> List[str]:
+    """Compute the list of available floors for a ZInD building.
+
+    Args:
+        building_id: unique ID of ZInD building.
+        raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API).
+    
+    Returns:
+        List of available floors, by their floor ID.
+    """
+    json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
+    floor_map_json = io_utils.read_json_file(json_annot_fpath)
+
+    if "merger" not in floor_map_json:
+        raise ValueError(f"Building {building_id} missing `merger` data")
+
+    merger_data = floor_map_json["merger"]
+    available_floor_ids = list(merger_data.keys())
+    import pdb; pdb.set_trace()
+    return available_floor_ids
 
 
 if __name__ == "__main__":
