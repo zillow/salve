@@ -23,20 +23,6 @@ from salve.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
 from salve.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
 from salve.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
-# Path to batch of unzipped prediction files, from Yuguang
-# RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/Users/johnlam/Downloads/YuguangProdModelPredictions/ZInD_Prediction_Prod_Model/ZInD_pred"
-# RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/mnt/data/johnlam/zind2_john"
-# RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/home/johnlam/zind2_john"
-# RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/Users/johnlam/Downloads/zind2_john"
-RMX_MADORI_V1_PREDICTIONS_DIRPATH = "/srv/scratch/jlambert30/salve/zind2_john"
-
-# Path to CSV w/ info about prod-->ZInD remapping.
-# PANO_MAPPING_TSV_FPATH = "/home/ZILLOW.LOCAL/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-# PANO_MAPPING_TSV_FPATH = "/home/johnlam/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-# PANO_MAPPING_TSV_FPATH = "/Users/johnlam/Downloads/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-# PANO_MAPPING_TSV_FPATH = "/srv/scratch/jlambert30/salve/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-PANO_MAPPING_TSV_FPATH = "/Users/johnlambert/Downloads/salve/Yuguang_ZinD_prod_mapping_exported_panos.csv"
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -55,13 +41,8 @@ IMAGE_HEIGHT_PX = 512
 IMAGE_WIDTH_PX = 1024
 
 
-def get_building_floor_ids() -> List[str]:
-    """ """
-    return None
-
-
 def load_hnet_predictions(
-    query_building_id: str, raw_dataset_dir: str, predictions_data_root: str = RMX_MADORI_V1_PREDICTIONS_DIRPATH
+    query_building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
     """Load raw pixelwise HorizonNet predictions...
 
@@ -71,7 +52,10 @@ def load_hnet_predictions(
     floor_hnet_predictions = defaultdict(dict)
 
     # find available floors
-    floor_ids = get_building_floor_ids()
+    floor_ids = posegraph2d.compute_available_floors_for_building(
+        building_id=query_building_id,
+        raw_dataset_dir=raw_dataset_dir
+    )
 
     for floor_id in floor_ids:
         floor_gt_pose_graph = posegraph2d.get_gt_pose_graph(
@@ -110,7 +94,7 @@ def load_hnet_predictions(
 
                 floor_hnet_predictions[floor_id][i] = pred_obj
 
-            render_on_pano = False
+            render_on_pano = True
             if render_on_pano:
                 plt.figure(figsize=(20, 10))
                 img = imageio.imread(img_fpath)
@@ -121,9 +105,9 @@ def load_hnet_predictions(
                 pred_obj.render_layout_on_pano(img_h, img_w)
                 plt.title(f"Pano {i} from Building {zind_building_id}")
                 plt.tight_layout()
-                os.makedirs(f"prod_pred_model_visualizations_2021_10_16_bridge/{model_name}_bev", exist_ok=True)
+                os.makedirs(f"HorizonNet_pred_model_visualizations_2022_07_13_bridge/{model_name}_bev", exist_ok=True)
                 plt.savefig(
-                    f"prod_pred_model_visualizations_2021_10_16_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg",
+                    f"HorizonNet_pred_model_visualizations_2022_07_13_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg",
                     dpi=400,
                 )
                 # plt.show()
@@ -137,7 +121,7 @@ def load_hnet_predictions(
 
 
 def load_inferred_floor_pose_graphs(
-    query_building_id: str, raw_dataset_dir: str, predictions_data_root: str = RMX_MADORI_V1_PREDICTIONS_DIRPATH
+    query_building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, PoseGraph2d]]:
     """Load W/D/O's predicted for each pano of each floor by HorizonNet.
 
@@ -169,10 +153,11 @@ def load_inferred_floor_pose_graphs(
         predictions_data_root=predictions_data_root
     )
 
+    # Populate the pose graph for each floor, pano-by-pano.
     for floor_id, floor_predictions in hnet_predictions_dict.items():
 
         if floor_id not in floor_pose_graphs:
-            # start populating the pose graph for each floor pano-by-pano
+            # Initialize a new PoseGraph2d for this new floor.
             floor_pose_graphs[floor_id] = PoseGraph2d(
                 building_id=zind_building_id,
                 floor_id=floor_id,
@@ -181,16 +166,15 @@ def load_inferred_floor_pose_graphs(
             )
 
         for pano_id, pred_obj in floor_predictions.items():
-
-                pano_data = pred_obj.convert_to_pano_data(
-                    img_h,
-                    img_w,
-                    pano_id=i,
-                    gt_pose_graph=gt_pose_graph,
-                    img_fpath=img_fpath,
-                    vanishing_angle_deg=floor_map_json["panos"][pano_guid]["vanishing_angle"],
-                )
-                floor_pose_graphs[floor_id].nodes[i] = pano_data
+            pano_data = pred_obj.convert_to_pano_data(
+                img_h,
+                img_w,
+                pano_id=i,
+                gt_pose_graph=gt_pose_graph,
+                img_fpath=img_fpath,
+                vanishing_angle_deg=floor_map_json["panos"][pano_guid]["vanishing_angle"],
+            )
+            floor_pose_graphs[floor_id].nodes[i] = pano_data
 
     return floor_pose_graphs
 
@@ -239,12 +223,13 @@ def main() -> None:
     for building_id in building_ids:
 
         # if building_id != "0767":
-        if building_id != "0879":
-            continue
+        # if building_id != "0879":
+        #     continue
 
         floor_pose_graphs = load_inferred_floor_pose_graphs(
             query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
         )
+        continue
         if floor_pose_graphs is None:
             # prediction files must have been missing, so we skip.
             continue
