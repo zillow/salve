@@ -178,6 +178,12 @@ def load_inferred_floor_pose_graphs(
 
         # `i` represents the panorama's ID.
         for i, pred_obj in floor_predictions.items():
+
+            img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/floor*_pano_{i}.jpg")
+            if not len(img_fpaths) == 1:
+                raise ValueError("There should be a unique image for this panorama ID.")
+            img_fpath = img_fpaths[0]
+
             IMG_H=512
             IMG_W=1024
             pano_data = pred_obj.convert_to_pano_data(
