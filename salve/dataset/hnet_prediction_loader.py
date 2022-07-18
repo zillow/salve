@@ -162,13 +162,18 @@ def load_inferred_floor_pose_graphs(
     # Populate the pose graph for each floor, pano-by-pano.
     for floor_id, floor_predictions in hnet_predictions_dict.items():
 
+        # Load GT just to get the `scale_meters_per_coordinate` scaling factor.
+        floor_gt_pose_graph = posegraph2d.get_gt_pose_graph(
+            building_id=building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
+        )
+
         if floor_id not in floor_pose_graphs:
             # Initialize a new PoseGraph2d for this new floor.
             floor_pose_graphs[floor_id] = PoseGraph2d(
                 building_id=building_id,
                 floor_id=floor_id,
                 nodes={},
-                scale_meters_per_coordinate=gt_pose_graph.scale_meters_per_coordinate,
+                scale_meters_per_coordinate=floor_gt_pose_graph.scale_meters_per_coordinate,
             )
 
         for pano_id, pred_obj in floor_predictions.items():
@@ -176,7 +181,7 @@ def load_inferred_floor_pose_graphs(
                 img_h,
                 img_w,
                 pano_id=i,
-                gt_pose_graph=gt_pose_graph,
+                gt_pose_graph=floor_gt_pose_graph,
                 img_fpath=img_fpath,
                 vanishing_angle_deg=floor_map_json["panos"][pano_guid]["vanishing_angle"],
             )
