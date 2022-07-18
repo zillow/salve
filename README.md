@@ -38,8 +38,6 @@ pip install -e .
 ```
 TODO(johnwlambert): publish a pip wheel for GTSFM.
 
-**Rendering Training/Testing Data** If you'd like to render training or testing data, clone the `HoHoNet` repo.
-
 **Libraries for evaluation** We use `AvgMeter` classes from `mseg-semantic`. Install as follows:
 
 ```bash
@@ -102,7 +100,8 @@ Next, set `PANO_MAPPING_TSV_FPATH` also inside `afp/dataset/hnet_prediction_load
 Next, set `RAW_DATASET_DIR` in `afp/algorithms/pose2_slam.py` and in `afp/utils/axis_alignment_utils.py` and in `afp/utils/graph_rendering_utils.py`.
 
 
-**Generate alignment hypotheses.** Run SALVe model inference by first generating alignment hypotheses:
+### Generate alignment hypotheses
+Run SALVe model inference by first generating alignment hypotheses:
 ```bash
 python scripts/export_alignment_hypotheses.py \
     --num_processes {NUM. DESIRED PROCS.} \
@@ -117,23 +116,32 @@ Next, clone the repository:
 git clone https://gitlab.zgtools.net/johnlam/jlambert-auto-floorplan.git
 ```
 
-Set `SALVE_REPO_DIRPATH` to wherever you have cloned `jlambert-auto-floorplan`
+Set `SALVE_REPO_DIRPATH` to wherever you have cloned the `salve` repo.
 
-
-**Generate depth maps with HoHoNet.** To run HoHoNet inference and 
+### Generate depth maps with HoHoNet
+To run HoHoNet inference, clone the HoHoNet repo:
 ```bash
 cd ..
 git clone https://github.com/sunset1995/HoHoNet.git
 cd HoHoNet
 ```
-Now download the HoHoNet model by executing:
+Now, download the HoHoNet model by executing:
 ```bash
 ./{SALVE_REPO_DIRPATH}/scripts/download_monodepth_model.sh
-python scripts/batch_hohonet_inference.py \
+```
+You should now see a model checkpoint at:
+```bash
+ls -ltrh HoHoNet/ckpt/mp3d_depth_HOHO_depth_dct_efficienthc_TransEn1_hardnet/ep60.pth
+```
+From within the `HoHoNet` dir, execute:
+```bash
+python {SALVE_REPO_DIRPATH}/scripts/batch_hohonet_inference.py \
     --raw_dataset_dir {PATH TO ZIND} \
     --depth_save_root {PATH TO SAVE DEPTH MAPS}
 ```
-** Render BEV texture maps.**
+Each process will likely consume around 4.3 GB of GPU RAM.
+
+### Render BEV texture maps.
 Run:
 ```bash
 export PYTHONPATH=./
