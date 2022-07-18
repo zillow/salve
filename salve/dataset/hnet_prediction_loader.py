@@ -59,7 +59,7 @@ def load_hnet_predictions(
 
     for floor_id in floor_ids:
         floor_gt_pose_graph = posegraph2d.get_gt_pose_graph(
-            building_id=zind_building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
+            building_id=query_building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
         )
         for i in floor_gt_pose_graph.pano_ids():
 
@@ -94,7 +94,7 @@ def load_hnet_predictions(
 
                 floor_hnet_predictions[floor_id][i] = pred_obj
 
-            render_on_pano = True
+            render_on_pano = False
             if render_on_pano:
                 plt.figure(figsize=(20, 10))
                 img = imageio.imread(img_fpath)
@@ -139,7 +139,7 @@ def load_inferred_floor_pose_graphs(
     Args:
         query_building_id: string representing ZinD building ID to fetch the per-floor inferred pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
-        raw_dataset_dir:
+        raw_dataset_dir: path to ZInD dataset.
         predictions_data_root: 
 
     Returns:
