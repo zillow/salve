@@ -42,9 +42,14 @@ IMAGE_WIDTH_PX = 1024
 
 
 def load_hnet_predictions(
-    query_building_id: str, raw_dataset_dir: str, predictions_data_root: str
+    building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
     """Load raw pixelwise HorizonNet predictions...
+
+    Args:
+        building_id:
+        raw_dataset_dir
+        predictions_data_root: path to HorizonNet predictions.
 
     Returns:
         Mapping from floor_id to a dictionary of per-pano predictions.
@@ -53,27 +58,27 @@ def load_hnet_predictions(
 
     # find available floors
     floor_ids = posegraph2d.compute_available_floors_for_building(
-        building_id=query_building_id,
+        building_id=building_id,
         raw_dataset_dir=raw_dataset_dir
     )
 
     for floor_id in floor_ids:
         floor_gt_pose_graph = posegraph2d.get_gt_pose_graph(
-            building_id=query_building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
+            building_id=building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
         )
         for i in floor_gt_pose_graph.pano_ids():
 
             #if the file doesn't exist, return None for now (TODO: throw an error)
-            model_prediction_fpath = f"{predictions_data_root}/{query_building_id}/{i}.json"
+            model_prediction_fpath = f"{predictions_data_root}/{building_id}/{i}.json"
             if not Path(model_prediction_fpath).exists():
                 print(
-                    f"Missing predictions for building {query_building_id}.",
-                    zind_building_id,
+                    f"Missing predictions for building {building_id}.",
+                    building_id,
                 )
                 # skip this building.
                 return None
 
-            img_fpaths = glob.glob(f"{raw_dataset_dir}/{zind_building_id}/panos/floor*_pano_{i}.jpg")
+            img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/floor*_pano_{i}.jpg")
             if not len(img_fpaths) == 1:
                 print("\tShould only be one image for this (building id, pano id) tuple.")
                 print(f"\tPano {i} was missing")
@@ -103,11 +108,11 @@ def load_hnet_predictions(
 
                 plt.imshow(img_resized)
                 pred_obj.render_layout_on_pano(img_h, img_w)
-                plt.title(f"Pano {i} from Building {zind_building_id}")
+                plt.title(f"Pano {i} from Building {building_id}")
                 plt.tight_layout()
                 os.makedirs(f"HorizonNet_pred_model_visualizations_2022_07_13_bridge/{model_name}_bev", exist_ok=True)
                 plt.savefig(
-                    f"HorizonNet_pred_model_visualizations_2022_07_13_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg",
+                    f"HorizonNet_pred_model_visualizations_2022_07_13_bridge/{model_name}_bev/{building_id}_{i}.jpg",
                     dpi=400,
                 )
                 # plt.show()
@@ -121,7 +126,7 @@ def load_hnet_predictions(
 
 
 def load_inferred_floor_pose_graphs(
-    query_building_id: str, raw_dataset_dir: str, predictions_data_root: str
+    building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, PoseGraph2d]]:
     """Load W/D/O's predicted for each pano of each floor by HorizonNet.
 
@@ -137,7 +142,7 @@ def load_inferred_floor_pose_graphs(
             See this corresponds to 1012 (not 109).
 
     Args:
-        query_building_id: string representing ZinD building ID to fetch the per-floor inferred pose graphs for.
+        building_id: string representing ZInD building ID to fetch the per-floor inferred pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
         raw_dataset_dir: path to ZInD dataset.
         predictions_data_root: 
@@ -149,7 +154,7 @@ def load_inferred_floor_pose_graphs(
     floor_pose_graphs = {}
 
     hnet_predictions_dict = load_hnet_predictions(
-        query_building_id=query_building_id,
+        building_id=building_id,
         raw_dataset_dir=raw_dataset_dir,
         predictions_data_root=predictions_data_root
     )
@@ -160,7 +165,7 @@ def load_inferred_floor_pose_graphs(
         if floor_id not in floor_pose_graphs:
             # Initialize a new PoseGraph2d for this new floor.
             floor_pose_graphs[floor_id] = PoseGraph2d(
-                building_id=zind_building_id,
+                building_id=building_id,
                 floor_id=floor_id,
                 nodes={},
                 scale_meters_per_coordinate=gt_pose_graph.scale_meters_per_coordinate,
@@ -228,7 +233,7 @@ def main() -> None:
         #     continue
 
         floor_pose_graphs = load_inferred_floor_pose_graphs(
-            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+            building_id=building_id, raw_dataset_dir=raw_dataset_dir
         )
         continue
         if floor_pose_graphs is None:

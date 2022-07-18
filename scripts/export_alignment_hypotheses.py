@@ -178,15 +178,15 @@ def export_single_building_wdo_alignment_hypotheses(
         hypotheses_save_root: base directory where alignment hypotheses will be saved
         building_id: unique ID of ZInD building.
         json_annot_fpath: path to GT data for this building (contained in "zind_data.json")
-        raw_dataset_dir: path to ZinD dataset.
+        raw_dataset_dir: path to ZInD dataset.
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
-        hnet_predictions_data_root
+        hnet_predictions_data_root: path to HorizonNet predictions.
     """
     verbose = False
 
     if use_inferred_wdos_layout:
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-            query_building_id=building_id,
+            building_id=building_id,
             raw_dataset_dir=raw_dataset_dir,
             predictions_data_root=hnet_predictions_data_root,
         )

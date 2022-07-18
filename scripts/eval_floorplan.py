@@ -47,7 +47,7 @@ def eval_oraclepose_predictedlayout() -> None:
 
         # load up the inferred pose graph
         floor_pose_graphs = load_inferred_floor_pose_graphs(
-            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+            building_id=building_id, raw_dataset_dir=raw_dataset_dir
         )
         if floor_pose_graphs is None:
             continue

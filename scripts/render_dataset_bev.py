@@ -81,7 +81,7 @@ def render_building_floor_pairs(
         use_inferred_wdos_layout = True
         if use_inferred_wdos_layout:
             floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-                query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+                building_id=building_id, raw_dataset_dir=raw_dataset_dir
             )
             if floor_pose_graphs is None:
                 return
