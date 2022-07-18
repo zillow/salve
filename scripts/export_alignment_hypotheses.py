@@ -163,6 +163,7 @@ def export_single_building_wdo_alignment_hypotheses(
     json_annot_fpath: str,
     raw_dataset_dir: str,
     use_inferred_wdos_layout: bool,
+    hnet_predictions_data_root: Optional[str] = None,
 ) -> None:
     """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
@@ -179,12 +180,15 @@ def export_single_building_wdo_alignment_hypotheses(
         json_annot_fpath: path to GT data for this building (contained in "zind_data.json")
         raw_dataset_dir: path to ZinD dataset.
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
+        hnet_predictions_data_root
     """
     verbose = False
 
     if use_inferred_wdos_layout:
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+            query_building_id=building_id,
+            raw_dataset_dir=raw_dataset_dir,
+            predictions_data_root=hnet_predictions_data_root,
         )
         if floor_pose_graphs is None:
             # cannot compute putative alignments if prediction files are missing.
@@ -334,7 +338,11 @@ def export_single_building_wdo_alignment_hypotheses(
 
 
 def export_alignment_hypotheses_to_json(
-    num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str, use_inferred_wdos_layout: bool
+    num_processes: int,
+    raw_dataset_dir: str,
+    hypotheses_save_root: str,
+    use_inferred_wdos_layout: bool,
+    hnet_predictions_data_root: Optional[str],
 ) -> None:
     """Use multiprocessing to dump alignment hypotheses for all buildings to JSON.
 
@@ -346,6 +354,7 @@ def export_alignment_hypotheses_to_json(
         raw_dataset_dir: path to ZinD dataset.
         hypotheses_save_root
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
+        hnet_predictions_data_root
     """
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
 
@@ -437,7 +446,16 @@ def export_alignment_hypotheses_to_json(
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
-        args += [(hypotheses_save_root, building_id, json_annot_fpath, raw_dataset_dir, use_inferred_wdos_layout)]
+        args += [
+            (
+                hypotheses_save_root,
+                building_id,
+                json_annot_fpath,
+                raw_dataset_dir,
+                use_inferred_wdos_layout,
+                hnet_predictions_data_root,
+            )
+        ]
 
     if num_processes > 1:
         with Pool(num_processes) as p:
@@ -476,16 +494,34 @@ def export_alignment_hypotheses_to_json(
     required=True,
     help="Where to pull W/D/O and layout (either inferred from HorizonNet, or taken from annotated ground truth)",
 )
+@click.option(
+    "--hnet_predictions_data_root",
+    type=str,
+    default=None,
+    required=False,
+    help="Path to HorizonNet predictions.",
+)
 def run_export_alignment_hypotheses(
-    raw_dataset_dir: str, num_processes: int, hypotheses_save_root: str, wdo_source: str
+    raw_dataset_dir: str,
+    num_processes: int,
+    hypotheses_save_root: str,
+    wdo_source: str,
+    hnet_predictions_data_root: Optional[str],
 ) -> None:
     """Click entry point for alignment hypotheses generation."""
 
     # if the W/D/O source is not HorizonNet, then we'll fall back to using annotated GT W/D/O.
-    use_inferred_wdos_layout = args.wdo_source == "horizon_net"
+    use_inferred_wdos_layout = wdo_source == "horizon_net"
+
+    if use_inferred_wdos_layout:
+        assert Path(hnet_predictions_data_root).exists()
 
     export_alignment_hypotheses_to_json(
-        args.num_processes, args.raw_dataset_dir, args.hypotheses_save_root, use_inferred_wdos_layout
+        args.num_processes,
+        args.raw_dataset_dir,
+        args.hypotheses_save_root,
+        use_inferred_wdos_layout,
+        hnet_predictions_data_root,
     )
 
     # test_prune_to_unique_sim2_objs()
