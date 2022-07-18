@@ -697,7 +697,6 @@ def compute_available_floors_for_building(building_id: str, raw_dataset_dir: str
 
     merger_data = floor_map_json["merger"]
     available_floor_ids = list(merger_data.keys())
-    import pdb; pdb.set_trace()
     return available_floor_ids
 
 
