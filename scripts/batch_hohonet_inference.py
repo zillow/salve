@@ -1,8 +1,5 @@
-"""
-Support HoHoNet batched inference over ZinD.
-"""
+"""Script to perform batched depth map inference with a pre-trained HoHoNet model over ZInD."""
 
-import argparse
 import glob
 import importlib
 import os
@@ -13,24 +10,29 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import List
 
-import salve.utils.hohonet_inference as hohonet_inference_utils
+import click
 import imageio
 import numpy as np
 import torch
-from salve.utils.hohonet_inference import HOHONET_CONFIG_FPATH, HOHONET_CKPT_FPATH
 from tqdm import tqdm
+
+import salve.utils.hohonet_inference as hohonet_inference_utils
+from salve.utils.hohonet_inference import HOHONET_CONFIG_FPATH, HOHONET_CKPT_FPATH
 
 from lib.config import config, update_config
 
 
-def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]):
-    """
+def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]) -> None:
+    """Infer depth maps for each input panorama provided.
+
     Note: Depth map only created if nonexistent.
 
     We load the model into memory only once, instead of doing so for every single individual input image.
+    Depth map format follows the official HoHoNet inference script here:
+    https://github.com/sunset1995/HoHoNet/blob/master/infer_depth.py
 
     Args:
-        args: must contain variable `building_depth_save_dir`
+        args: HoHoNet specific config. Must contain variable `building_depth_save_dir`.
     """
     update_config(config, args)
     device = "cuda"  # if config.cuda else 'cpu'
@@ -78,12 +80,12 @@ def infer_depth_over_single_zind_tour(
     raw_dataset_dir: str,
     building_id: str,
 ) -> None:
-    """
+    """Launch batched depth map inference on a single ZInD tour (building).
 
     Args:
         depth_save_root: directory where depth maps should be saved.
-        raw_dataset_dir: path to ZinD dataset.
-        building_id: unique ID of ZinD building.
+        raw_dataset_dir: path to ZInD dataset.
+        building_id: unique ID of ZInD building.
     """
     building_depth_save_dir = f"{depth_save_root}/{building_id}"
     os.makedirs(building_depth_save_dir, exist_ok=True)
@@ -98,7 +100,6 @@ def infer_depth_over_single_zind_tour(
             "opts": [],
         }
     )
-
     infer_depth_over_image_list(args, image_fpaths=img_fpaths)
 
 
@@ -107,11 +108,96 @@ def infer_depth_over_all_zind_tours(
     depth_save_root: str,
     raw_dataset_dir: str,
 ) -> None:
-    """ """
+    """Launch parallel depth map inference on all tours.
+
+    Args:
+       num_processes: path to where ZInD dataset is stored on disk (after download from Bridge API).
+       depth_save_root: path to where depth maps are stored (and will be saved to, if not computed yet).
+       raw_dataset_dir: number of GPU processes to use for batched inference.
+    """
     # discover possible building ids and floors
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
-    building_ids.sort()
 
+    building_ids = [
+        "0969",
+        "0245",
+        "0297",
+        "0299",
+        "0308",
+        "0336",
+        "0353",
+        "0354",
+        "0406",
+        "0420",
+        "0429",
+        "0431",
+        "0453",
+        "0490",
+        "0496",
+        "0528",
+        "0534",
+        "0564",
+        "0575",
+        "0579",
+        "0583",
+        "0588",
+        "0605",
+        "0629",
+        "0668",
+        "0681",
+        "0684",
+        "0691",
+        "0792",
+        "0800",
+        "0809",
+        "0819",
+        "0854",
+        "0870",
+        "0905",
+        "0957",
+        "0963",
+        "0964",
+        "0966",
+        "1001",
+        "1027",
+        "1028",
+        "1041",
+        "1050",
+        "1068",
+        "1069",
+        "1075",
+        "1130",
+        "1160",
+        "1175",
+        "1184",
+        "1185",
+        "1203",
+        "1207",
+        "1210",
+        "1218",
+        "1239",
+        "1248",
+        "1326",
+        "1328",
+        "1330",
+        "1368",
+        "1383",
+        "1388",
+        "1398",
+        "1401",
+        "1404",
+        "1409",
+        "1479",
+        "1490",
+        "1494",
+        "1500",
+        "1538",
+        "1544",
+        "1551",
+        "1566",
+    ]
+
+    building_ids.sort()
     args = []
 
     for building_id in building_ids:
@@ -125,20 +211,30 @@ def infer_depth_over_all_zind_tours(
             infer_depth_over_single_zind_tour(*single_call_args)
 
 
-if __name__ == "__main__":
-    """ """
-    num_processes = 2
-
-    # depth_save_root = "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    depth_save_root = "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    # depth_save_root = "/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps" # on se1-rmx-gpu-002
-
-    # raw_dataset_dir = "/data/johnlam/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
-
+@click.command(help="Script to run batched depth map inference using a pretrained HoHoNet model.")
+@click.option(
+    "--raw_dataset_dir",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
+)
+@click.option(
+    "--depth_save_root",
+    type=str,
+    required=True,
+    help="Path to where depth maps are stored (and will be saved to, if not computed yet).",
+)
+@click.option("--num_processes", type=int, default=2, help="Number of GPU processes to use for batched inference.")
+def run_batched_depth_map_inference(raw_dataset_dir: str, depth_save_root: str, num_processes: int) -> None:
+    """Click entry point for batched depth map inference."""
     # render_dataset(bev_save_root, raw_dataset_dir)
     infer_depth_over_all_zind_tours(
         num_processes=num_processes,
         depth_save_root=depth_save_root,
         raw_dataset_dir=raw_dataset_dir,
     )
+
+
+if __name__ == "__main__":
+    """ """
+    run_batched_depth_map_inference()
