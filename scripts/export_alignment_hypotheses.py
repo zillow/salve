@@ -517,9 +517,9 @@ def run_export_alignment_hypotheses(
         assert Path(hnet_predictions_data_root).exists()
 
     export_alignment_hypotheses_to_json(
-        args.num_processes,
-        args.raw_dataset_dir,
-        args.hypotheses_save_root,
+        num_processes,
+        raw_dataset_dir,
+        hypotheses_save_root,
         use_inferred_wdos_layout,
         hnet_predictions_data_root,
     )

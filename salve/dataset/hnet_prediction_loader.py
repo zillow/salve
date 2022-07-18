@@ -140,6 +140,7 @@ def load_inferred_floor_pose_graphs(
         query_building_id: string representing ZinD building ID to fetch the per-floor inferred pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
         raw_dataset_dir:
+        predictions_data_root: 
 
     Returns:
         floor_pose_graphs: mapping from floor_id to predicted pose graph
