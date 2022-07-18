@@ -322,7 +322,7 @@ if __name__ == "__main__":
         "--depth_save_root",
         type=str,
         required=True,
-        help="Path where depth maps are stored (and will be saved to, if not computed yet).",
+        help="Path to where depth maps are stored (and will be saved to, if not computed yet).",
     )
     parser.add_argument(
         "--hypotheses_save_root", type=str, required=True, help="Path to where alignment hypotheses are saved on disk."
