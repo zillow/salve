@@ -110,9 +110,9 @@ def load_hnet_predictions(
                 pred_obj.render_layout_on_pano(img_h, img_w)
                 plt.title(f"Pano {i} from Building {building_id}")
                 plt.tight_layout()
-                os.makedirs(f"HorizonNet_pred_model_visualizations_2022_07_13_bridge/{model_name}_bev", exist_ok=True)
+                os.makedirs(f"HorizonNet_pred_model_visualizations_2022_07_18_bridge/{model_name}_bev", exist_ok=True)
                 plt.savefig(
-                    f"HorizonNet_pred_model_visualizations_2022_07_13_bridge/{model_name}_bev/{building_id}_{i}.jpg",
+                    f"HorizonNet_pred_model_visualizations_2022_07_18_bridge/{model_name}_bev/{building_id}_{i}.jpg",
                     dpi=400,
                 )
                 # plt.show()
@@ -177,9 +177,11 @@ def load_inferred_floor_pose_graphs(
             )
 
         for pano_id, pred_obj in floor_predictions.items():
+            IMG_H=512
+            IMG_W=1024
             pano_data = pred_obj.convert_to_pano_data(
-                img_h,
-                img_w,
+                img_h=IMG_H,
+                img_w=IMG_W,
                 pano_id=i,
                 gt_pose_graph=floor_gt_pose_graph,
                 img_fpath=img_fpath,
