@@ -176,7 +176,8 @@ def load_inferred_floor_pose_graphs(
                 scale_meters_per_coordinate=floor_gt_pose_graph.scale_meters_per_coordinate,
             )
 
-        for pano_id, pred_obj in floor_predictions.items():
+        # `i` represents the panorama's ID.
+        for i, pred_obj in floor_predictions.items():
             IMG_H=512
             IMG_W=1024
             pano_data = pred_obj.convert_to_pano_data(
