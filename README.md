@@ -27,7 +27,7 @@ or on Mac
 conda env create -f environment_mac.yml
 ```
 
-We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. GTSAM is included in the Conda environement.
+We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. GTSAM is included in the Conda environment.
 
 Install GTSFM:  `pip install git+https://github.com/borglab/gtsfm.git@master` or
 ```bash
@@ -36,7 +36,7 @@ git clone https://github.com/borglab/gtsfm.git
 cd gtsfm
 pip install -e .
 ```
-
+TODO(johnwlambert): publish a pip wheel for GTSFM.
 
 **Rendering Training/Testing Data** If you'd like to render training or testing data, clone the `HoHoNet` repo.
 
@@ -73,7 +73,10 @@ Register on Bridge API and request access. Then copy the server token and run th
 ```bash
 git clone https://github.com/zillow/zind.git
 cd zind
-python download_data.py --num_process 10 --verbose --output_folder {SAVE_DIR} --server_token {BRIDGE_API_SERVER_TOKEN}
+python download_data.py --num_process 10 \
+    --output_folder {SAVE_DIR} \
+    --server_token {BRIDGE_API_SERVER_TOKEN} \
+    --verbose
 ```
 
 For example, `SAVE_DIR` could be `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`, and `BRIDGE_API_SERVER_TOKEN` could be a 32-character alphanumeric sequence.
@@ -85,6 +88,7 @@ On DGX, you can find `ZInD` stored here:
 
 Make sure you are within the conda environment (`afp-v1`).
 
+**Download HorizonNet predictions.**
 Download and unzip the Madori-V1 HorizonNet predictions from [Google Drive here](https://drive.google.com/file/d/1VBTBYIaFSHDtP31_FnM6vII3_p1On3tE/view?usp=sharing).
 
 Download the (prod pano GUID) -> (ZInD pano filename) mapping information from [Google Drive here](https://drive.google.com/file/d/1ALPLDWPA8K7taNuxReOt0RiaJ1AlIEY1/view?usp=sharing).
@@ -97,7 +101,8 @@ First, set `RMX_MADORI_V1_PREDICTIONS_DIRPATH` inside `afp/dataset/hnet_predicti
 Next, set `PANO_MAPPING_TSV_FPATH` also inside `afp/dataset/hnet_prediction_loader.py`.
 Next, set `RAW_DATASET_DIR` in `afp/algorithms/pose2_slam.py` and in `afp/utils/axis_alignment_utils.py` and in `afp/utils/graph_rendering_utils.py`.
 
-Run SALVe model inference by first generating alignment hypotheses:
+
+**Generate alignment hypotheses.** Run SALVe model inference by first generating alignment hypotheses:
 ```bash
 python scripts/export_alignment_hypotheses.py \
     --num_processes {NUM. DESIRED PROCS.} \
@@ -115,23 +120,23 @@ git clone https://gitlab.zgtools.net/johnlam/jlambert-auto-floorplan.git
 Set `SALVE_REPO_DIRPATH` to wherever you have cloned `jlambert-auto-floorplan`
 
 
-
-Run HoHoNet inference and render BEV texture maps:
+**Generate depth maps with HoHoNet.** To run HoHoNet inference and 
 ```bash
 cd ..
 git clone https://github.com/sunset1995/HoHoNet.git
 cd HoHoNet
 ```
-
-Now download the HoHoNet model here:
+Now download the HoHoNet model by executing:
 ```bash
 ./{SALVE_REPO_DIRPATH}/scripts/download_monodepth_model.sh
+python scripts/batch_hohonet_inference.py \
+    --raw_dataset_dir {PATH TO ZIND} \
+    --depth_save_root {PATH TO SAVE DEPTH MAPS}
 ```
-
-Now run:
+** Render BEV texture maps.**
+Run:
 ```bash
 export PYTHONPATH=./
-
 python {SALVE_REPO_DIRPATH}/scripts/render_dataset_bev.py --num_processes {NUM. DESIRED PROCS.} \
     --raw_dataset_dir {PATH TO ZIND} \
     --hypotheses_save_root {PATH TO PRE-GENERATED ALIGNMENT HYPOTHESES} \

@@ -696,7 +696,7 @@ if __name__ == "__main__":
         "--raw_dataset_dir",
         type=str,
         default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05",
-        help="where ZInD dataset is stored on disk (after download from Bridge API)",
+        help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
     )
     parser.add_argument(
         "--confidence_threshold",
