@@ -97,17 +97,17 @@ def export_horizonnet_zind_predictions(
 
         zind_building_id = row["new_home_id"].zfill(4)
 
-        # print("on ", zind_building_id)
+        #print("on ", zind_building_id)
         if zind_building_id != query_building_id:
             continue
-
+        #import pdb; pdb.set_trace()
         if building_guid == "":
             print(f"Invalid building_guid, skipping ZinD Building {zind_building_id}...")
             return None
 
-        print(f"On ZinD Building {zind_building_id}")
-        # if int(zind_building_id) not in [7, 16, 14, 17, 24]:# != 1:
-        #     continue
+        # print(f"On ZinD Building {zind_building_id}")
+        # # if int(zind_building_id) not in [7, 16, 14, 17, 24]:# != 1:
+        # #     continue
 
         pano_guids = [
             Path(dirpath).stem
@@ -125,6 +125,7 @@ def export_horizonnet_zind_predictions(
 
         floor_map_json = io_utils.read_json_file(floor_map_json_fpath)
 
+        vanishing_angles_dict = {}
         plt.figure(figsize=(20, 10))
         for pano_guid in pano_guids:
 
@@ -132,6 +133,9 @@ def export_horizonnet_zind_predictions(
                 print(f"Missing the panorama for Building {zind_building_id} -> {pano_guid}")
                 continue
             i = panoguid_to_panoid[pano_guid]
+
+            # Export vanishing angles.
+            vanishing_angles_dict[ int(i) ] = floor_map_json["panos"][pano_guid]["vanishing_angle"]
 
             img_fpaths = glob.glob(f"{raw_dataset_dir}/{zind_building_id}/panos/floor*_pano_{i}.jpg")
             if not len(img_fpaths) == 1:
@@ -156,9 +160,13 @@ def export_horizonnet_zind_predictions(
             # plot the image in question
             # for model_name in model_names:
             # print(f"\tLoaded {model_name} prediction for Pano {i}")
-            model_prediction_fpath = (
-                f"{predictions_data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
-            )
+            # model_prediction_fpath = (
+            #     f"{predictions_data_root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
+            # )
+            #root = "/Users/johnlambert/Downloads/ZInD_HNet_Prod_Predictions_Part3/predictions"
+            root = "/Users/johnlambert/Downloads/ZInD_HNet_Prod_Predictions_Part4/predictions"
+            model_prediction_fpath = f"{root}/{building_guid}/floor_map/{building_guid}/pano/{pano_guid}/{model_name}.json"
+
             if not Path(model_prediction_fpath).exists():
                 print(
                     "Home too old, no Madori predictions currently available for this building id (Yuguang will re-compute later).",
@@ -171,7 +179,7 @@ def export_horizonnet_zind_predictions(
             prediction_data = io_utils.read_json_file(model_prediction_fpath)
             assert len(prediction_data) == 1
 
-            save_fpath = f"{export_dir}/{query_building_id}/{i}.json"
+            save_fpath = f"{export_dir}/horizon_net/{query_building_id}/{i}.json"
             Path(save_fpath).parent.mkdir(exist_ok=True, parents=True)
             io_utils.save_json_file(save_fpath, prediction_data[0])
 
@@ -181,21 +189,23 @@ def export_horizonnet_zind_predictions(
                     continue
 
             import numpy as np
-            render_on_pano = np.random.rand() < 0.02 # True
+            render_on_pano = False # np.random.rand() < 0.02 # True True # 
             if render_on_pano:
                 plt.imshow(img_resized)
                 pred_obj.render_layout_on_pano(img_h, img_w)
                 plt.title(f"Pano {i} from Building {zind_building_id}")
                 plt.tight_layout()
-                os.makedirs(f"prod_pred_model_visualizations_2022_07_16_bridge/{model_name}_bev", exist_ok=True)
+                os.makedirs(f"prod_pred_model_visualizations_2022_07_18_bridge/{model_name}_bev", exist_ok=True)
                 plt.savefig(
-                    f"prod_pred_model_visualizations_2022_07_16_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg",
+                    f"prod_pred_model_visualizations_2022_07_18_bridge/{model_name}_bev/{zind_building_id}_{i}.jpg",
                     dpi=400,
                 )
                 # plt.show()
                 plt.close("all")
                 plt.figure(figsize=(20, 10))
 
+        vanishing_angles_building_fpath = f"{export_dir}/vanishing_angle/{query_building_id}.json"
+        io_utils.save_json_file(vanishing_angles_building_fpath, vanishing_angles_dict)
         # Success
         return True
 
@@ -223,20 +233,26 @@ if __name__ == "__main__":
 
     # New as of 2022/07/16
     #predictions_data_root = "/Users/johnlambert/Downloads/ZInD_HNet_Prod_Predictions_Part3/ZinD/downloads"
-    predictions_data_root = "/Users/johnlambert/Downloads/ZInD_HNet_Prod_Predictions_Part3/predictions"
+    # New as of 2022/07/18
+    predictions_data_root = "/Users/johnlambert/Downloads/ZInD_HNet_Prod_Predictions_Part4/predictions"
 
     #raw_dataset_dir = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
     raw_dataset_dir = "/Users/johnlambert/Downloads/zind_bridgeapi_2021_10_05"
     #zind_building_ids = ["0715"]
-    zind_building_ids = DATASET_SPLITS["test"] # "val"] #  "train"] # "
+    zind_building_ids = DATASET_SPLITS["test"] # "val"] #  ] # ""train"] #
     #import pdb; pdb.set_trace()
 
     failed_building_ids = []
 
-    export_dir = "/Users/johnlambert/Downloads/zind_horizon_net_predictions_2022_07_16"
+    export_dir = "/Users/johnlambert/Downloads/zind_horizon_net_predictions_2022_07_18_"
 
     #for each home in ZInD:
     for query_building_id in zind_building_ids:
+
+        #query_building_id = "0588"
+        # #     continue
+        #import pdb; pdb.set_trace()
+
         success = export_horizonnet_zind_predictions(
             query_building_id=query_building_id,
             raw_dataset_dir=raw_dataset_dir,

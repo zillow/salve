@@ -58,8 +58,7 @@ def load_hnet_predictions(
 
     # find available floors
     floor_ids = posegraph2d.compute_available_floors_for_building(
-        building_id=building_id,
-        raw_dataset_dir=raw_dataset_dir
+        building_id=building_id, raw_dataset_dir=raw_dataset_dir
     )
 
     for floor_id in floor_ids:
@@ -68,7 +67,7 @@ def load_hnet_predictions(
         )
         for i in floor_gt_pose_graph.pano_ids():
 
-            #if the file doesn't exist, return None for now (TODO: throw an error)
+            # if the file doesn't exist, return None for now (TODO: throw an error)
             model_prediction_fpath = f"{predictions_data_root}/{building_id}/{i}.json"
             if not Path(model_prediction_fpath).exists():
                 print(
@@ -125,6 +124,13 @@ def load_hnet_predictions(
     return None
 
 
+def load_vanishing_angles(predictions_data_root: str, building_id: str) -> Dict[int, float]:
+    """Load pre-computed vanishing angles for each panorama ID."""
+    json_fpath = Path(predictions_data_root) / "vanishing_angle" / f"{building_id}.json"
+    vanishing_angles_map = io_utils.read_json_file(json_fpath)
+    return {int(k): v for k, v in vanishing_angles_map.items()}
+
+
 def load_inferred_floor_pose_graphs(
     building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, PoseGraph2d]]:
@@ -145,7 +151,7 @@ def load_inferred_floor_pose_graphs(
         building_id: string representing ZInD building ID to fetch the per-floor inferred pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
         raw_dataset_dir: path to ZInD dataset.
-        predictions_data_root: 
+        predictions_data_root:
 
     Returns:
         floor_pose_graphs: mapping from floor_id to predicted pose graph
@@ -154,9 +160,10 @@ def load_inferred_floor_pose_graphs(
     floor_pose_graphs = {}
 
     hnet_predictions_dict = load_hnet_predictions(
-        building_id=building_id,
-        raw_dataset_dir=raw_dataset_dir,
-        predictions_data_root=predictions_data_root
+        building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=predictions_data_root
+    )
+    building_vanishing_angles_dict = load_vanishing_angles(
+        predictions_data_root=predictions_data_root, building_id=building_id
     )
 
     # Populate the pose graph for each floor, pano-by-pano.
@@ -184,15 +191,15 @@ def load_inferred_floor_pose_graphs(
                 raise ValueError("There should be a unique image for this panorama ID.")
             img_fpath = img_fpaths[0]
 
-            IMG_H=512
-            IMG_W=1024
+            IMG_H = 512
+            IMG_W = 1024
             pano_data = pred_obj.convert_to_pano_data(
                 img_h=IMG_H,
                 img_w=IMG_W,
                 pano_id=i,
                 gt_pose_graph=floor_gt_pose_graph,
                 img_fpath=img_fpath,
-                vanishing_angle_deg=floor_map_json["panos"][pano_guid]["vanishing_angle"],
+                vanishing_angle_deg=building_vanishing_angles_dict[i],
             )
             floor_pose_graphs[floor_id].nodes[i] = pano_data
 
@@ -246,9 +253,7 @@ def main() -> None:
         # if building_id != "0879":
         #     continue
 
-        floor_pose_graphs = load_inferred_floor_pose_graphs(
-            building_id=building_id, raw_dataset_dir=raw_dataset_dir
-        )
+        floor_pose_graphs = load_inferred_floor_pose_graphs(building_id=building_id, raw_dataset_dir=raw_dataset_dir)
         continue
         if floor_pose_graphs is None:
             # prediction files must have been missing, so we skip.
