@@ -201,7 +201,6 @@ def export_single_building_wdo_alignment_hypotheses(
         return
 
     merger_data = floor_map_json["merger"]
-    import pdb; pdb.set_trace()
 
     floor_gt_is_valid_report_dict = defaultdict(list)
 
@@ -261,7 +260,9 @@ def export_single_building_wdo_alignment_hypotheses(
                             transform_type=AlignTransformType.SE2,
                         )
                 except Exception:
-                    logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
+                    logger.exception(
+                        f"Failure in `align_rooms_by_wd() for building {building_id}, {floor_id}`, skipping... "
+                    )
                     continue
 
                 floor_n_valid_configurations += len(possible_alignment_info)
