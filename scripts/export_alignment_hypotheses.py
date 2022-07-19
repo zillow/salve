@@ -22,9 +22,10 @@ import salve.utils.logger_utils as logger_utils
 import salve.utils.rotation_utils as rotation_utils
 import salve.utils.wdo_alignment as wdo_alignment_utils
 from salve.common.pano_data import FloorData, PanoData
+from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 from salve.common.sim2 import Sim2
 from salve.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
-from salve.common.posegraph2d import REDTEXT, ENDCOLOR
+
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
 HEADER = "\033[95m"

@@ -2,7 +2,6 @@
 Render aligned texture maps and/or layouts in a bird's eye view, to be used for training a network.
 """
 
-import argparse
 import glob
 import os
 from multiprocessing import Pool
@@ -10,6 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import List, Optional
 
+import click
 import cv2
 import gtsfm.utils.io as io_utils
 import imageio
@@ -238,11 +238,95 @@ def render_pairs(
 
     # discover possible building ids and floors
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
+
+    building_ids = [
+        "0969",
+        "0245",
+        "0297",
+        "0299",
+        "0308",
+        "0336",
+        "0353",
+        "0354",
+        "0406",
+        "0420",
+        "0429",
+        "0431",
+        "0453",
+        "0490",
+        "0496",
+        "0528",
+        "0534",
+        "0564",
+        "0575",
+        "0579",
+        "0583",
+        "0588",
+        "0605",
+        "0629",
+        "0668",
+        "0681",
+        "0684",
+        "0691",
+        "0792",
+        "0800",
+        "0809",
+        "0819",
+        "0854",
+        "0870",
+        "0905",
+        "0957",
+        "0963",
+        "0964",
+        "0966",
+        "1001",
+        "1027",
+        "1028",
+        "1041",
+        "1050",
+        "1068",
+        "1069",
+        "1075",
+        "1130",
+        "1160",
+        "1175",
+        "1184",
+        "1185",
+        "1203",
+        "1207",
+        "1210",
+        "1218",
+        "1239",
+        "1248",
+        "1326",
+        "1328",
+        "1330",
+        "1368",
+        "1383",
+        "1388",
+        "1398",
+        "1401",
+        "1404",
+        "1409",
+        "1479",
+        "1490",
+        "1494",
+        "1500",
+        "1538",
+        "1544",
+        "1551",
+        "1566",
+    ]
+
     building_ids.sort()
 
     args = []
 
     for building_id in building_ids:
+
+        if building_id in ["0809", "0966", "0668", "0684", "0854", "1409", "0964", "0336", "1175", "0297", "1028", "0575", "0819", "0800", "0588", "1326"]:
+            # Has a degenerate prediction.
+            continue
 
         # for rendering test data only
         if building_id not in DATASET_SPLITS["test"]:
@@ -281,6 +365,65 @@ def render_pairs(
             render_building_floor_pairs(*single_call_args)
 
 
+
+@click.command(help="Script to render BEV texture maps for each feasible alignment hypothesis.")
+@click.option(
+    "--raw_dataset_dir",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
+)
+@click.option(
+    "--num_processes",
+    type=int,
+    default=15,
+    help="Number of processes to use for parallel rendering."
+)
+@click.option(
+    "--depth_save_root",
+    type=str,
+    required=True,
+    help="Path to where depth maps are stored (and will be saved to, if not computed yet).",
+)
+@click.option(
+    "--hypotheses_save_root",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to where alignment hypotheses are saved on disk."
+)
+@click.option(
+    "--bev_save_root",
+    type=str,
+    required=True,
+    help="Directory where BEV texture maps should be written to (directory will be created at this path).",
+)
+@click.option(
+    "--layout_save_root",
+    type=str,
+    default=None,
+    help="Directory where BEV rendered layouts (instead of RGB texture maps) should be saved to."
+)
+def run_render_dataset_bev(raw_dataset_dir: str, num_processes: int, depth_save_root: str, hypotheses_save_root: str,
+    bev_save_root: str,
+    layout_save_root: Optional[str]
+) -> None:
+    """ """
+    if layout_save_root is None:
+        render_modalities = ["rgb_texture"]
+    else:
+        render_modalities = ["layout"]
+
+    render_pairs(
+        num_processes=num_processes,
+        depth_save_root=depth_save_root,
+        bev_save_root=bev_save_root,
+        raw_dataset_dir=raw_dataset_dir,
+        hypotheses_save_root=hypotheses_save_root,
+        layout_save_root=layout_save_root,
+        render_modalities=render_modalities,
+    )
+
+
 if __name__ == "__main__":
     """
     Depth maps are stored on the following nodes at the following places:
@@ -313,50 +456,11 @@ if __name__ == "__main__":
 
         from GT WDO and GT layout:
             "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+
+    Layout images are saved at:
+        # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
+        # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
+        # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
+        # layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout"
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--num_processes", type=int, default=15, help="Number of processes to use for parallel rendering."
-    )
-    parser.add_argument(
-        "--depth_save_root",
-        type=str,
-        required=True,
-        help="Path to where depth maps are stored (and will be saved to, if not computed yet).",
-    )
-    parser.add_argument(
-        "--hypotheses_save_root", type=str, required=True, help="Path to where alignment hypotheses are saved on disk."
-    )
-    parser.add_argument(
-        "--raw_dataset_dir",
-        type=str,
-        # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05" # (on DGX)
-        # "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05" # (on local machine)
-        default="/home/johnlam/zind_bridgeapi_2021_10_05",
-        help="Path to where ZInD dataset is stored (directly downloaded from Bridge API).",
-    )
-    parser.add_argument(
-        "--bev_save_root",
-        type=str,
-        required=True,
-        help="Directory where BEV texture maps should be written to (directory will be created at this path).",
-    )
-
-    # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
-    # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
-    # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
-    layout_save_root = None
-    # layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout"
-
-    render_modalities = ["rgb_texture"]  # ["layout"]
-    args = parser.parse_args()
-
-    render_pairs(
-        num_processes=args.num_processes,
-        depth_save_root=args.depth_save_root,
-        bev_save_root=args.bev_save_root,
-        raw_dataset_dir=args.raw_dataset_dir,
-        hypotheses_save_root=args.hypotheses_save_root,
-        layout_save_root=layout_save_root,
-        render_modalities=render_modalities,
-    )
+    run_render_dataset_bev()
