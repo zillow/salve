@@ -68,7 +68,7 @@ def load_hnet_predictions(
         for i in floor_gt_pose_graph.pano_ids():
 
             # if the file doesn't exist, return None for now (TODO: throw an error)
-            model_prediction_fpath = f"{predictions_data_root}/{building_id}/{i}.json"
+            model_prediction_fpath = f"{predictions_data_root}/horizon_net/{building_id}/{i}.json"
             if not Path(model_prediction_fpath).exists():
                 print(
                     f"Missing predictions for building {building_id}.",
