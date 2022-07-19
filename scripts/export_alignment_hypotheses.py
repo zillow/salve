@@ -201,6 +201,7 @@ def export_single_building_wdo_alignment_hypotheses(
         return
 
     merger_data = floor_map_json["merger"]
+    import pdb; pdb.set_trace()
 
     floor_gt_is_valid_report_dict = defaultdict(list)
 
