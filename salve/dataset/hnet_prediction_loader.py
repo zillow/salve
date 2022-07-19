@@ -162,6 +162,9 @@ def load_inferred_floor_pose_graphs(
     hnet_predictions_dict = load_hnet_predictions(
         building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=predictions_data_root
     )
+    if hnet_predictions_dict is None:
+        print(f"HorizonNet predictions could not be loaded for {building_id}")
+        return None
     building_vanishing_angles_dict = load_vanishing_angles(
         predictions_data_root=predictions_data_root, building_id=building_id
     )
