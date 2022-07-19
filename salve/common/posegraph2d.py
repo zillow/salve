@@ -685,19 +685,23 @@ def compute_available_floors_for_building(building_id: str, raw_dataset_dir: str
     Args:
         building_id: unique ID of ZInD building.
         raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API).
-    
+
     Returns:
         List of available floors, by their floor ID.
     """
     json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
+    if not Path(json_annot_fpath):
+        raise ValueError(
+            "Ground truth annotations missing in downloaded copy of ZInD, please re-download."
+            f" {json_annot_fpath} missing."
+        )
     floor_map_json = io_utils.read_json_file(json_annot_fpath)
 
     if "merger" not in floor_map_json:
-        raise ValueError(f"Building {building_id} missing `merger` data")
+        raise ValueError(f"Building {building_id} missing `merger` data.")
 
     merger_data = floor_map_json["merger"]
     available_floor_ids = list(merger_data.keys())
-    import pdb; pdb.set_trace()
     return available_floor_ids
 
 

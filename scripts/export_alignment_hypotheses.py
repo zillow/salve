@@ -3,7 +3,6 @@
 No shared texture between (0,75) -- yet doors align it (garage to kitchen)
 """
 
-import argparse
 import glob
 import os
 from collections import defaultdict
@@ -12,6 +11,7 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
+import click
 import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,9 +22,10 @@ import salve.utils.logger_utils as logger_utils
 import salve.utils.rotation_utils as rotation_utils
 import salve.utils.wdo_alignment as wdo_alignment_utils
 from salve.common.pano_data import FloorData, PanoData
+from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 from salve.common.sim2 import Sim2
 from salve.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
-from salve.common.posegraph2d import REDTEXT, ENDCOLOR
+
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
 HEADER = "\033[95m"
@@ -163,6 +164,7 @@ def export_single_building_wdo_alignment_hypotheses(
     json_annot_fpath: str,
     raw_dataset_dir: str,
     use_inferred_wdos_layout: bool,
+    hnet_predictions_data_root: Optional[str] = None,
 ) -> None:
     """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
@@ -175,16 +177,19 @@ def export_single_building_wdo_alignment_hypotheses(
 
     Args:
         hypotheses_save_root: base directory where alignment hypotheses will be saved
-        building_id:
+        building_id: unique ID of ZInD building.
         json_annot_fpath: path to GT data for this building (contained in "zind_data.json")
-        raw_dataset_dir: path to ZinD dataset.
+        raw_dataset_dir: path to ZInD dataset.
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
+        hnet_predictions_data_root: path to HorizonNet predictions.
     """
     verbose = False
 
     if use_inferred_wdos_layout:
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+            building_id=building_id,
+            raw_dataset_dir=raw_dataset_dir,
+            predictions_data_root=hnet_predictions_data_root,
         )
         if floor_pose_graphs is None:
             # cannot compute putative alignments if prediction files are missing.
@@ -256,7 +261,9 @@ def export_single_building_wdo_alignment_hypotheses(
                             transform_type=AlignTransformType.SE2,
                         )
                 except Exception:
-                    logger.exception("Failure in `align_rooms_by_wd()`, skipping... ")
+                    logger.exception(
+                        f"Failure in `align_rooms_by_wd() for building {building_id}, {floor_id}`, skipping... "
+                    )
                     continue
 
                 floor_n_valid_configurations += len(possible_alignment_info)
@@ -334,7 +341,11 @@ def export_single_building_wdo_alignment_hypotheses(
 
 
 def export_alignment_hypotheses_to_json(
-    num_processes: int, raw_dataset_dir: str, hypotheses_save_root: str, use_inferred_wdos_layout: bool
+    num_processes: int,
+    raw_dataset_dir: str,
+    hypotheses_save_root: str,
+    use_inferred_wdos_layout: bool,
+    hnet_predictions_data_root: Optional[str],
 ) -> None:
     """Use multiprocessing to dump alignment hypotheses for all buildings to JSON.
 
@@ -346,8 +357,89 @@ def export_alignment_hypotheses_to_json(
         raw_dataset_dir: path to ZinD dataset.
         hypotheses_save_root
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
+        hnet_predictions_data_root
     """
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
+
+    building_ids = [
+        "0969",
+        "0245",
+        "0297",
+        "0299",
+        "0308",
+        "0336",
+        "0353",
+        "0354",
+        "0406",
+        "0420",
+        "0429",
+        "0431",
+        "0453",
+        "0490",
+        "0496",
+        "0528",
+        "0534",
+        "0564",
+        "0575",
+        "0579",
+        "0583",
+        "0588",
+        "0605",
+        "0629",
+        "0668",
+        "0681",
+        "0684",
+        "0691",
+        "0792",
+        "0800",
+        "0809",
+        "0819",
+        "0854",
+        "0870",
+        "0905",
+        "0957",
+        "0963",
+        "0964",
+        "0966",
+        "1001",
+        "1027",
+        "1028",
+        "1041",
+        "1050",
+        "1068",
+        "1069",
+        "1075",
+        "1130",
+        "1160",
+        "1175",
+        "1184",
+        "1185",
+        "1203",
+        "1207",
+        "1210",
+        "1218",
+        "1239",
+        "1248",
+        "1326",
+        "1328",
+        "1330",
+        "1368",
+        "1383",
+        "1388",
+        "1398",
+        "1401",
+        "1404",
+        "1409",
+        "1479",
+        "1490",
+        "1494",
+        "1500",
+        "1538",
+        "1544",
+        "1551",
+        "1566",
+    ]
+
     building_ids.sort()
 
     args = []
@@ -357,7 +449,16 @@ def export_alignment_hypotheses_to_json(
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
-        args += [(hypotheses_save_root, building_id, json_annot_fpath, raw_dataset_dir, use_inferred_wdos_layout)]
+        args += [
+            (
+                hypotheses_save_root,
+                building_id,
+                json_annot_fpath,
+                raw_dataset_dir,
+                use_inferred_wdos_layout,
+                hnet_predictions_data_root,
+            )
+        ]
 
     if num_processes > 1:
         with Pool(num_processes) as p:
@@ -365,6 +466,68 @@ def export_alignment_hypotheses_to_json(
     else:
         for single_call_args in args:
             export_single_building_wdo_alignment_hypotheses(*single_call_args)
+
+
+@click.command(help="Script to run batched depth map inference using a pretrained HoHoNet model.")
+@click.option(
+    "--raw_dataset_dir",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
+)
+@click.option(
+    "--num_processes",
+    type=int,
+    default=32,
+    help="Number of processes to use for parallel generation of alignment hypotheses. "
+    "Each worker processes one building at a time.",
+)
+@click.option(
+    "--hypotheses_save_root",
+    type=str,
+    required=True,
+    # "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    # "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    # default="/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
+    help="Directory where JSON files with alignment hypotheses will be saved to.",
+)
+@click.option(
+    "--wdo_source",
+    type=click.Choice(["horizon_net", "ground_truth"]),
+    required=True,
+    help="Where to pull W/D/O and layout (either inferred from HorizonNet, or taken from annotated ground truth)",
+)
+@click.option(
+    "--hnet_predictions_data_root",
+    type=str,
+    default=None,
+    required=False,
+    help="Path to HorizonNet predictions.",
+)
+def run_export_alignment_hypotheses(
+    raw_dataset_dir: str,
+    num_processes: int,
+    hypotheses_save_root: str,
+    wdo_source: str,
+    hnet_predictions_data_root: Optional[str],
+) -> None:
+    """Click entry point for alignment hypotheses generation."""
+
+    # if the W/D/O source is not HorizonNet, then we'll fall back to using annotated GT W/D/O.
+    use_inferred_wdos_layout = wdo_source == "horizon_net"
+
+    if use_inferred_wdos_layout:
+        assert Path(hnet_predictions_data_root).exists()
+
+    export_alignment_hypotheses_to_json(
+        num_processes,
+        raw_dataset_dir,
+        hypotheses_save_root,
+        use_inferred_wdos_layout,
+        hnet_predictions_data_root,
+    )
+
+    # test_prune_to_unique_sim2_objs()
 
 
 if __name__ == "__main__":
@@ -386,44 +549,4 @@ if __name__ == "__main__":
     - se1-001: /home/johnlam/zind_bridgeapi_2021_10_05
     - locally: /Users/johnlam/Downloads/zind_bridgeapi_2021_10_05
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--num_processes",
-        type=int,
-        default=32,
-        help="Number of processes to use for parallel generation of alignment hypotheses. "
-        "Each worker processes one building at a time.",
-    )
-    parser.add_argument(
-        "--raw_dataset_dir",
-        type=str,
-        # "/mnt/data/johnlam/zind_bridgeapi_2021_10_05"
-        # "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-        default="/home/johnlam/zind_bridgeapi_2021_10_05",
-        help="where ZInD dataset is stored on disk (after download from Bridge API)",
-    )
-    parser.add_argument(
-        "--hypotheses_save_root",
-        type=str,
-        # "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-        # "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-        default="/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
-        help="Directory where JSON files with alignment hypotheses will be saved to.",
-    )
-    parser.add_argument(
-        "--wdo_source",
-        type=str,
-        required=True,
-        choices=["horizon_net", "ground_truth"],
-        help="Where to pull W/D/O and layout (either inferred from HorizonNet, or taken from annotated ground truth)",
-    )
-    args = parser.parse_args()
-
-    # if the W/D/O source is not HorizonNet, then we'll fall back to using annotated GT W/D/O.
-    use_inferred_wdos_layout = args.wdo_source == "horizon_net"
-
-    export_alignment_hypotheses_to_json(
-        args.num_processes, args.raw_dataset_dir, args.hypotheses_save_root, use_inferred_wdos_layout
-    )
-
-    # test_prune_to_unique_sim2_objs()
+    run_export_alignment_hypotheses()

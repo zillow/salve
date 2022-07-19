@@ -189,6 +189,7 @@ class PanoStructurePredictionRmxMadoriV1:
             pano_id: integer ID of panorama
             gt_pose_graph: ground-truth 2d pose graph, with GT shapes and GT global poses.
             img_fpath: file path to panorama image.
+            vanishing_angle_deg: 
 
         Returns:
             PanoData containing predicted W/D/O's and predicted layout for this panorama.
