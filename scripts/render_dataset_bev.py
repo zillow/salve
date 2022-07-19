@@ -1,5 +1,8 @@
 """
 Render aligned texture maps and/or layouts in a bird's eye view, to be used for training a network.
+
+The rendering can be parallelized if `num_processes` is set to >1, in which case each process renders
+BEV texture maps for individual homes.
 """
 
 import glob
@@ -70,11 +73,11 @@ def render_building_floor_pairs(
         depth_save_root: directory where depth maps should be saved (or are already cached here).
         bev_save_root: directory where bird's eye view texture maps should be saved.
         hypotheses_save_root: directory where putative alignment hypotheses are saved.
-        raw_dataset_dir: path to ZinD dataset.
-        building_id: unique ID of ZinD building.
+        raw_dataset_dir: path to ZInD dataset.
+        building_id: unique ID of ZInD building.
         floor_id: unique ID of floor.
         layout_save_root: if rendering rasterized layout, all images will be saved under this directory.
-        render_modalities: either "rgb_texture" or "layout", or both
+        render_modalities: type of BEV rendering to generate (either "rgb_texture" or "layout", or both).
     """
     if "layout" in render_modalities:
         # load the layouts, either inferred or GT.
@@ -324,7 +327,24 @@ def render_pairs(
 
     for building_id in building_ids:
 
-        if building_id in ["0809", "0966", "0668", "0684", "0854", "1409", "0964", "0336", "1175", "0297", "1028", "0575", "0819", "0800", "0588", "1326"]:
+        if building_id in [
+            "0809",
+            "0966",
+            "0668",
+            "0684",
+            "0854",
+            "1409",
+            "0964",
+            "0336",
+            "1175",
+            "0297",
+            "1028",
+            "0575",
+            "0819",
+            "0800",
+            "0588",
+            "1326",
+        ]:
             # Has a degenerate prediction.
             continue
 
@@ -332,18 +352,10 @@ def render_pairs(
         if building_id not in DATASET_SPLITS["test"]:
             continue
 
-        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
-        if not Path(json_annot_fpath).exists():
-            print(f"zind_data.json file missing for {building_id}")
-
-        floor_map_json = io_utils.read_json_file(json_annot_fpath)
-
-        if "merger" not in floor_map_json:
-            print(f"No merger data in {building_id}: {json_annot_fpath}")
-            continue
-
-        merger_data = floor_map_json["merger"]
-        for floor_id in merger_data.keys():
+        floor_ids = posegraph2d.compute_available_floors_for_building(
+            building_id=building_id, raw_dataset_dir=raw_dataset_dir
+        )
+        for floor_id in floor_ids:
             args += [
                 (
                     depth_save_root,
@@ -365,7 +377,6 @@ def render_pairs(
             render_building_floor_pairs(*single_call_args)
 
 
-
 @click.command(help="Script to render BEV texture maps for each feasible alignment hypothesis.")
 @click.option(
     "--raw_dataset_dir",
@@ -373,12 +384,7 @@ def render_pairs(
     required=True,
     help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
 )
-@click.option(
-    "--num_processes",
-    type=int,
-    default=15,
-    help="Number of processes to use for parallel rendering."
-)
+@click.option("--num_processes", type=int, default=15, help="Number of processes to use for parallel rendering.")
 @click.option(
     "--depth_save_root",
     type=str,
@@ -389,7 +395,7 @@ def render_pairs(
     "--hypotheses_save_root",
     type=click.Path(exists=True),
     required=True,
-    help="Path to where alignment hypotheses are saved on disk."
+    help="Path to where alignment hypotheses are saved on disk.",
 )
 @click.option(
     "--bev_save_root",
@@ -401,11 +407,15 @@ def render_pairs(
     "--layout_save_root",
     type=str,
     default=None,
-    help="Directory where BEV rendered layouts (instead of RGB texture maps) should be saved to."
+    help="Directory where BEV rendered layouts (instead of RGB texture maps) should be saved to.",
 )
-def run_render_dataset_bev(raw_dataset_dir: str, num_processes: int, depth_save_root: str, hypotheses_save_root: str,
+def run_render_dataset_bev(
+    raw_dataset_dir: str,
+    num_processes: int,
+    depth_save_root: str,
+    hypotheses_save_root: str,
     bev_save_root: str,
-    layout_save_root: Optional[str]
+    layout_save_root: Optional[str],
 ) -> None:
     """ """
     if layout_save_root is None:

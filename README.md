@@ -108,7 +108,8 @@ python scripts/export_alignment_hypotheses.py \
     --raw_dataset_dir {PATH TO ZIND} \
     --hypotheses_save_root {DIRECTORY WHERE TO DUMP OUTPUT} \
     --wdo_source horizon_net \
-    --hnet_predictions_data_root {DIRECTORY TO HNET PREDS}
+    --hnet_predictions_data_root {DIRECTORY TO HNET PREDS} \
+     2>&1 | tee alignment_hypotheses_generation_output.log
 ```
 Using 20-30 processes is recommended, and even with 30 processes, the generation may take 1-2 hours to complete.
 
@@ -146,7 +147,8 @@ Each process will likely consume around 4.3 GB of GPU RAM.
 Run:
 ```bash
 export PYTHONPATH=./
-python {SALVE_REPO_DIRPATH}/scripts/render_dataset_bev.py --num_processes {NUM. DESIRED PROCS.} \
+python {SALVE_REPO_DIRPATH}/scripts/render_dataset_bev.py \
+    --num_processes {NUM. DESIRED PROCS.} \
     --raw_dataset_dir {PATH TO ZIND} \
     --hypotheses_save_root {PATH TO PRE-GENERATED ALIGNMENT HYPOTHESES} \
     --depth_save_root {PATH TO WHERE DEPTH MAPS WILL BE SAVED TO}\
