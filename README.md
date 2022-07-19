@@ -162,6 +162,7 @@ Exception:  No module named 'lib'
 ```
 then you have not configured `HoHoNet` properly above.
 
+### Run SALVe Verifier Inference
 Next, we'll send the pairs of BEV texture maps to the model for scoring. You should have pass the folder where the model checkpoint is stored as `model_save_dirpath`. You can create this yourself (if performing inference with a pretrained model), or it would be automatically created during training.
 
 ```bash
@@ -188,6 +189,7 @@ this should be replaced with `bev_save_root` where renderings were saved to, abo
 
 Please note that `serialization_save_dir` is a new directory created at inference time, where predictions on the val or test set will be cached as JSON.
 
+### Run Global SfM
 Now, pass the front-end measurements to SfM:
 ```bash
 python scripts/run_sfm.py --raw_dataset_dir {PATH TO ZIND} \
