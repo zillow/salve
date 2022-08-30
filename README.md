@@ -5,13 +5,15 @@ Presented at ECCV 2022.
 
 # Repository Structure
 
-Code is organized under the `afp` directory as follows:
-- `afp`:
+Code is organized under the `salve` directory as follows:
+- `salve`:
     - `algorithms`: graph and SfM related algorithms, e.g. rotation averaging, Pose(2) SLAM, spanning tree computation, cycle consistency
-    - `common`: shared classes for room layout data, WDO objects, and 2d pose graphs
+    - `baselines`: wrappers around other SfM implementations (OpenSfM, OpenMVG) that we use as baseline comparisons.
+    - `common`: shared classes for room layout data, W/D/O objects, and 2d pose graphs
     - `configs`: Hydra config files for model training
     - `dataset`: dataloaders
     - `models`: CNN model architectures, implemented in Pytorch
+    - `stitching`: room layout stitching
     - `utils`: utilities for rasterization, rendering graphs, Sim(3) alignment, precision/recall computation, and more.
 
 
