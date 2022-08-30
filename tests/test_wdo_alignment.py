@@ -118,5 +118,40 @@ def test_align_rooms_by_wd() -> None:
     assert len(possible_alignment_info) == 2
 
 
+
+def test_obj_almost_equal() -> None:
+    """Verify that Sim(2) comparison works as expected.
+
+    TODO: potentially move this directly into Sim(2) class file?
+    """
+    # fmt: off
+    i2Ti1_pred = Sim2(
+        R=np.array(
+            [
+                [-0.99928814, 0.03772511],
+                [-0.03772511, -0.99928814]
+            ], dtype=np.float32
+        ),
+        t=np.array([-3.0711207, -0.5683456], dtype=np.float32),
+        s=1.0,
+    )
+
+    i2Ti1_gt = Sim2(
+        R=np.array(
+            [
+                [-0.9999569, -0.00928213],
+                [0.00928213, -0.9999569]
+            ], dtype=np.float32
+        ),
+        t=np.array([-3.0890038, -0.5540818], dtype=np.float32),
+        s=0.9999999999999999,
+    )
+    # fmt: on
+    assert wdo_alignment_utils.obj_almost_equal(i2Ti1_pred, i2Ti1_gt)
+    assert wdo_alignment_utils.obj_almost_equal(i2Ti1_gt, i2Ti1_pred)
+
+
+
+
 if __name__ == "__main__":
     test_align_rooms_by_wd()

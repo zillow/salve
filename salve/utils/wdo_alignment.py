@@ -1,5 +1,4 @@
-"""
-Utility to generate potential relative poses by exhaustive pairwise W/D/O alignments.
+"""Utility to generate potential relative poses by exhaustive pairwise W/D/O alignments.
 
 The alignment generation method here is based upon Cohen et al. 2016.
 
@@ -35,13 +34,20 @@ import numpy as np
 import salve.utils.overlap_utils as overlap_utils
 import salve.utils.se2_estimation as se2_estimation
 import salve.utils.sim3_estimation as sim3_estimation
+from salve.common.alignment_hypothesis import AlignmentHypothesis
 from salve.common.pano_data import PanoData, WDO
 from salve.common.sim2 import Sim2
 
 
-# (smaller width) / (larger width) must be greater than 0.65 / 1.0 for inferred data.
+# Width ratio, defined as (smaller width) / (larger width), must be greater than 0.65 / 1.0 for inferred data.
 MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO = 0.65
 MIN_ALLOWED_GT_WDO_WIDTH_RATIO = 0.8
+
+
+# Could increase to 10. I found 9.5 to 12 degrees let in false positives.
+OPENING_ALIGNMENT_ANGLE_TOLERANCE = 9.0
+DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
+ALIGNMENT_TRANSLATION_TOLERANCE = 0.35  # was set to 0.2 for GT
 
 
 class AlignTransformType(str, Enum):
@@ -53,24 +59,6 @@ class AlignTransformType(str, Enum):
 
     SE2: str = "SE2"
     Sim3: str = "Sim3"
-
-
-class AlignmentHypothesis(NamedTuple):
-    """Represents a relative pose hypothesis between two panoramas.
-
-    Attributes:
-        i2Ti1: relative pose.
-        wdo_alignment_object: either 'door', 'window', or 'opening'
-        i1_wdo_idx: this is the WDO index for Pano i1 (known as i)
-        i2_wdo_idx: this is the WDO index for Pano i2 (known as j)
-        configuration: either identity or rotated
-    """
-
-    i2Ti1: Sim2
-    wdo_alignment_object: str
-    i1_wdo_idx: int
-    i2_wdo_idx: int
-    configuration: str
 
 
 def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
@@ -348,3 +336,42 @@ def determine_invalid_width_ratio(pano1_wd: WDO, pano2_wd: WDO, use_inferred_wdo
 
     is_valid = width_ratio >= min_allowed_wdo_width_ratio  # should be in [0.65, 1.0] for inferred WDO
     return is_valid, width_ratio
+
+
+def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2, wdo_alignment_object: str) -> bool:
+    """Check if two rigid body transformations are equal up to a tolerance, depending on object category.
+
+    Args:
+        i2Ti1: first relative pose.
+        i2Ti1_: second relative pose.
+        wdo_alignment_object: type of W/D/O (either door, window, or opening)
+
+    Returns:
+        boolean indicating whether the two input transformations are equal up to a tolerance.
+    """
+    angle1 = i2Ti1.theta_deg
+    angle2 = i2Ti1_.theta_deg
+
+    # print(f"\t\tTrans: {i2Ti1.translation} vs. {i2Ti1_.translation}")
+    # print(f"\t\tScale: {i2Ti1.scale:.1f} vs. {i2Ti1_.scale:.1f}")
+    # print(f"\t\tAngle: {angle1:.1f} vs. {angle2:.1f}")
+
+    if not np.allclose(i2Ti1.translation, i2Ti1_.translation, atol=ALIGNMENT_TRANSLATION_TOLERANCE):
+        return False
+
+    if not np.isclose(i2Ti1.scale, i2Ti1_.scale, atol=0.35):
+        return False
+
+    if wdo_alignment_object in ["door", "window"]:
+        alignment_angle_tolerance = DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE
+
+    elif wdo_alignment_object == "opening":
+        alignment_angle_tolerance = OPENING_ALIGNMENT_ANGLE_TOLERANCE
+
+    else:
+        raise RuntimeError
+
+    if not rotation_utils.angle_is_equal(angle1, angle2, atol=alignment_angle_tolerance):
+        return False
+
+    return True

@@ -1,4 +1,3 @@
-
 """Unit tests on OpenSfM."""
 
 from types import SimpleNamespace

@@ -1,11 +1,10 @@
-
-""" """
+"""Unit tests for Spanning Tree creation utilities."""
 
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 from gtsam import Rot2, Pose2
 
 import salve.algorithms.spanning_tree as spanning_tree
+from salve.common.sim2 import Sim2
 import salve.utils.rotation_utils as rotation_utils
 from salve.algorithms.rotation_averaging import globalaveraging2d
 from salve.algorithms.spanning_tree import RelativePoseMeasurement

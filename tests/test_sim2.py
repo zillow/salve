@@ -12,7 +12,7 @@ import gtsfm.utils.io as io_utils
 import numpy as np
 import pytest
 
-from salve.utils.sim2 import Sim2
+from salve.common.sim2 import Sim2
 
 
 TEST_DATA_ROOT = Path(__file__).resolve().parent / "test_data"
