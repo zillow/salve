@@ -15,9 +15,9 @@ from typing import Any, Dict, List, Tuple
 import gtsam
 import gtsfm.utils.io as io_utils
 import numpy as np
-import argoverse.utils.subprocess_utils as subprocess_utils
 from gtsam import Pose3, Rot3, Similarity3
 
+import salve.utils.subprocess_utils as subprocess_utils
 from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.utils.logger_utils import get_logger
 from salve.baselines.sfm_reconstruction import SfmReconstruction

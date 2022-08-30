@@ -1,4 +1,4 @@
-""" """
+"""Unit tests on precision/recall computation utilities."""
 
 from pathlib import Path
 from typing import List

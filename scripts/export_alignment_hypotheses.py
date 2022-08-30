@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import LineString
 
+import salve.common.alignment_hypothesis as alignment_hypothesis_utils
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.logger_utils as logger_utils
 import salve.utils.rotation_utils as rotation_utils
@@ -24,18 +25,12 @@ import salve.utils.wdo_alignment as wdo_alignment_utils
 from salve.common.pano_data import FloorData, PanoData
 from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 from salve.common.sim2 import Sim2
-from salve.utils.wdo_alignment import AlignTransformType, AlignmentHypothesis
-
+from salve.utils.wdo_alignment import AlignTransformType
+from salve.common.alignment_hypothesis import AlignmentHypothesis
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
 HEADER = "\033[95m"
 OKGREEN = "\033[92m"
-
-# could increase to 10. I found 9.5 to 12 degrees let in false positives.
-OPENING_ALIGNMENT_ANGLE_TOLERANCE = 9.0
-DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
-ALIGNMENT_TRANSLATION_TOLERANCE = 0.35  # was set to 0.2 for GT
-
 
 logger = logger_utils.get_logger()
 
@@ -75,70 +70,6 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     # plt.show()
     return False
 
-
-def obj_almost_equal(i2Ti1: Sim2, i2Ti1_: Sim2, wdo_alignment_object: str) -> bool:
-    """Check if two rigid body transformations are equal up to a tolerance.
-
-    Args:
-        i2Ti1: first relative pose.
-        i2Ti1_: second relative pose.
-        wdo_alignment_object: type of W/D/O (either door, window, or opening)
-
-    Returns:
-        boolean indicating whether the two input transformations are equal up to a tolerance.
-    """
-    angle1 = i2Ti1.theta_deg
-    angle2 = i2Ti1_.theta_deg
-
-    # print(f"\t\tTrans: {i2Ti1.translation} vs. {i2Ti1_.translation}")
-    # print(f"\t\tScale: {i2Ti1.scale:.1f} vs. {i2Ti1_.scale:.1f}")
-    # print(f"\t\tAngle: {angle1:.1f} vs. {angle2:.1f}")
-
-    if not np.allclose(i2Ti1.translation, i2Ti1_.translation, atol=ALIGNMENT_TRANSLATION_TOLERANCE):
-        return False
-
-    if not np.isclose(i2Ti1.scale, i2Ti1_.scale, atol=0.35):
-        return False
-
-    if wdo_alignment_object in ["door", "window"]:
-        alignment_angle_tolerance = DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE
-
-    elif wdo_alignment_object == "opening":
-        alignment_angle_tolerance = OPENING_ALIGNMENT_ANGLE_TOLERANCE
-
-    else:
-        raise RuntimeError
-
-    if not rotation_utils.angle_is_equal(angle1, angle2, atol=alignment_angle_tolerance):
-        return False
-
-    return True
-
-
-def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]) -> List[AlignmentHypothesis]:
-    """
-    Only useful for GT objects, that might have exact equality? (confirm how GT can actually have exact values)
-    """
-    pruned_possible_alignment_info = []
-
-    for j, alignment_hypothesis in enumerate(possible_alignment_info):
-        is_dup = any(
-            [
-                alignment_hypothesis.i2Ti1 == inserted_alignment_hypothesis.i2Ti1
-                for inserted_alignment_hypothesis in pruned_possible_alignment_info
-            ]
-        )
-        # has not been used yet
-        if not is_dup:
-            pruned_possible_alignment_info.append(alignment_hypothesis)
-
-    num_orig_objs = len(possible_alignment_info)
-    num_pruned_objs = len(pruned_possible_alignment_info)
-
-    verbose = False
-    if verbose:
-        logger.info(f"Pruned from {num_orig_objs} to {num_pruned_objs}")
-    return pruned_possible_alignment_info
 
 
 def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
@@ -284,13 +215,13 @@ def export_single_building_wdo_alignment_hypotheses(
                 # TODO: estimate how often an inferred opening can provide the correct relative pose.
 
                 # remove redundant transformations
-                pruned_possible_alignment_info = prune_to_unique_sim2_objs(possible_alignment_info)
+                pruned_possible_alignment_info = alignment_hypothesis_utils.prune_to_unique_sim2_objs(possible_alignment_info)
 
                 labels = []
                 # loop over the alignment hypotheses
                 for k, ah in enumerate(pruned_possible_alignment_info):
 
-                    if obj_almost_equal(ah.i2Ti1, i2Ti1_gt, ah.wdo_alignment_object):
+                    if wdo_alignment_utils.obj_almost_equal(ah.i2Ti1, i2Ti1_gt, ah.wdo_alignment_object):
                         label = "aligned"
                         save_dir = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_approx"
                     else:
@@ -526,8 +457,6 @@ def run_export_alignment_hypotheses(
         use_inferred_wdos_layout,
         hnet_predictions_data_root,
     )
-
-    # test_prune_to_unique_sim2_objs()
 
 
 if __name__ == "__main__":

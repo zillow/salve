@@ -5,10 +5,10 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.interpolate import interp_arc
 from shapely.geometry import Point, Polygon
 
 import salve.utils.overlap_utils as overlap_utils
+from salve.utils.interpolate import interp_arc
 
 
 def test_determine_invalid_wall_overlap1() -> None:

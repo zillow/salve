@@ -1,15 +1,18 @@
-"""Unit tests on W/D/O alignment generation."""
+"""Unit tests on W/D/O relative pose alignment hypotheses generation."""
 
 import numpy as np
-from argoverse.utils.sim2 import Sim2
 
 import salve.utils.wdo_alignment as wdo_alignment_utils
 from salve.common.pano_data import PanoData, WDO
+from salve.common.sim2 import Sim2
 from salve.utils.wdo_alignment import AlignTransformType
 
 
 def test_align_rooms_by_wd() -> None:
-    """ """
+    """Test the generation relative pose alignment hypotheses between two panoramas using their W/D/O's.
+
+    Panos are numbered as panos 5 and 8, and the only type of W/D/O's provided are window detections.
+    """
     wTi5 = Sim2(
         R=np.array([[0.999897, -0.01435102], [0.01435102, 0.999897]], dtype=np.float32),
         t=np.array([0.7860708, -1.57248], dtype=np.float32),
@@ -99,11 +102,55 @@ def test_align_rooms_by_wd() -> None:
         openings=[]
     )
 
+    # We assume these are "GT" W/D/O detections, meaning we are not using inferred W/D/Os and layout.
+    # (See `use_inferred_wdos_layout` flag below).
+
     # fmt: on
-    possible_alignment_info, _ = wdo_alignment_utils.align_rooms_by_wd(
-        pano1_obj, pano2_obj, transform_type=AlignTransformType.SE2, use_inferred_wdos_layout=False
+    possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
+        pano1_obj,
+        pano2_obj,
+        transform_type=AlignTransformType.SE2,
+        use_inferred_wdos_layout=False,
+        visualize=False,
+        verbose=True,
     )
-    assert len(possible_alignment_info) == 3
+    # Of 4 possible alignment hypotheses, only 2 satisfy freespace constraints (all satisfy relative width constraints).
+    assert len(possible_alignment_info) == 2
+
+
+
+def test_obj_almost_equal() -> None:
+    """Verify that Sim(2) comparison works as expected.
+
+    TODO: potentially move this directly into Sim(2) class file?
+    """
+    # fmt: off
+    i2Ti1_pred = Sim2(
+        R=np.array(
+            [
+                [-0.99928814, 0.03772511],
+                [-0.03772511, -0.99928814]
+            ], dtype=np.float32
+        ),
+        t=np.array([-3.0711207, -0.5683456], dtype=np.float32),
+        s=1.0,
+    )
+
+    i2Ti1_gt = Sim2(
+        R=np.array(
+            [
+                [-0.9999569, -0.00928213],
+                [0.00928213, -0.9999569]
+            ], dtype=np.float32
+        ),
+        t=np.array([-3.0890038, -0.5540818], dtype=np.float32),
+        s=0.9999999999999999,
+    )
+    # fmt: on
+    assert wdo_alignment_utils.obj_almost_equal(i2Ti1_pred, i2Ti1_gt)
+    assert wdo_alignment_utils.obj_almost_equal(i2Ti1_gt, i2Ti1_pred)
+
+
 
 
 if __name__ == "__main__":

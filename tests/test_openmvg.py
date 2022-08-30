@@ -1,4 +1,3 @@
-
 """Unit tests on OpenMVG related code."""
 
 import salve.baselines.openmvg as openmvg_utils

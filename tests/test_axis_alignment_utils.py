@@ -1,17 +1,16 @@
-
 """Unit tests on different room axis alignment utilities."""
 
 from types import SimpleNamespace
 
-import argoverse.utils.geometry as geometry_utils
+#import argoverse.utils.geometry as geometry_utils
 import matplotlib.pyplot as plt
 import numpy as np
 import rdp
-from argoverse.utils.sim2 import Sim2
 from gtsam import Pose2, Rot2
 
 import salve.utils.axis_alignment_utils as axis_alignment_utils
 import salve.utils.rotation_utils as rotation_utils
+from salve.common.sim2 import Sim2
 
 
 def test_determine_dominant_rotation_angle_manhattanroom1() -> None:

@@ -1,4 +1,3 @@
-
 """Unit tests on 2d/3d rotation matrix utilities."""
 
 import numpy as np
