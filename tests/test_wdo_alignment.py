@@ -107,7 +107,12 @@ def test_align_rooms_by_wd() -> None:
 
     # fmt: on
     possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
-        pano1_obj, pano2_obj, transform_type=AlignTransformType.SE2, use_inferred_wdos_layout=False, visualize=False, verbose=True
+        pano1_obj,
+        pano2_obj,
+        transform_type=AlignTransformType.SE2,
+        use_inferred_wdos_layout=False,
+        visualize=False,
+        verbose=True,
     )
     # Of 4 possible alignment hypotheses, only 2 satisfy freespace constraints (all satisfy relative width constraints).
     assert len(possible_alignment_info) == 2
