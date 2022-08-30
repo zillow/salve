@@ -45,11 +45,10 @@ MIN_ALLOWED_GT_WDO_WIDTH_RATIO = 0.8
 
 
 class AlignTransformType(str, Enum):
-    """Type of transformation used
+    """Represents the type of alignment transformation used/fitted between two panoramas.
 
-    Similarity transformation between the models, which
-    can be computed from three point correspondences in the general case and from two point matches if
-    the gravity direction is known.
+    Sim(3) represents a silarity transformation between the models, which can be computed from three point
+    correspondences in the general case and from two point matches if the gravity direction is known.
     """
 
     SE2: str = "SE2"
@@ -57,8 +56,9 @@ class AlignTransformType(str, Enum):
 
 
 class AlignmentHypothesis(NamedTuple):
-    """
-    Args:
+    """Represents a relative pose hypothesis between two panoramas.
+
+    Attributes:
         i2Ti1: relative pose.
         wdo_alignment_object: either 'door', 'window', or 'opening'
         i1_wdo_idx: this is the WDO index for Pano i1 (known as i)
@@ -74,10 +74,14 @@ class AlignmentHypothesis(NamedTuple):
 
 
 def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
-    """
+    """Return 3d coordinates in panorama's local frame of all W/D/O vertices.
+
+    Args:
+        pano_obj: input object containing information relevant to a single panorama.
 
     Returns:
         pts: array of shape (N,3)
+        TODO: clarify coordinate frame used in return type.
     """
     pts = np.zeros((0, 3))
 
@@ -92,7 +96,7 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
 def plot_room_walls(
     pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, color=None, linewidth: float = 2.0, alpha: float = 0.5
 ) -> None:
-    """ """
+    """TODO: Add documentation."""
     room_vertices = pano_obj.room_vertices_local_2d
     if i2Ti1:
         room_vertices = i2Ti1.transform_from(room_vertices)
@@ -115,25 +119,29 @@ def align_rooms_by_wd(
     transform_type: AlignTransformType,
     use_inferred_wdos_layout: bool,
     visualize: bool = False,
+    verbose: bool = False,
 ) -> Tuple[List[AlignmentHypothesis], int]:
-    """Compute alignment between two panoramas by computing the transformation between a window-window, door-door, or opening-opening object.
+    """Compute alignment between two panoramas by computing the transformation between W/D/O's of identical category.
+
+    These categories include a window-window, door-door, or opening-opening pair of objects.
 
     If inferred W/D/O + inferred layout, only compare W/D/O width ratios for pruning.
     If GT W/D/O + GT layout, also compare wall overlap / freespace penetration for pruning.
 
     Args:
-        pano1_obj
-        pano2_obj
-        transform_type: transformation object to fit, e.g.  Sim(3) or SE(2), "Sim3" or "SE2"
-        use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
+        pano1_obj: input panorama object 1.
+        pano2_obj: input panorama object 2.
+        transform_type: transformation object to fit, e.g.  Sim(3) or SE(2).
+        use_inferred_wdos_layout: whether to use looser alignment requirements, because input pano objects include
+            W/D/O's and room layout that are inferred by a noisy model (instead of using GT annotated W/D/Os + layout).
         visualize: whether to save visualizations for each putative pair.
+        verbose: whether to log messages about execution progress.
 
     Returns:
         possible_alignment_info: list of tuples (i2Ti1, alignment_object) where i2Ti1 is an alignment transformation
-        num_invalid_configurations: number of alignment configurations that were rejected, because of freespace penetration by aligned walls.
+        num_invalid_configurations: number of alignment configurations that were rejected, because of freespace
+            penetration by aligned walls.
     """
-    verbose = False
-
     pano1_id = pano1_obj.id
     pano2_id = pano2_obj.id
 
@@ -154,10 +162,9 @@ def align_rooms_by_wd(
             pano1_wds = pano1_obj.openings
             pano2_wds = pano2_obj.openings
 
-        # try every possible pairwise combination, for this object type
+        # Try every possible pairwise combination, for this object type.
         for i, pano1_wd in enumerate(pano1_wds):
             pano1_wd_pts = pano1_wd.polygon_vertices_local_3d
-            # sample_points_along_bbox_boundary(wd), # TODO: add in the 3d linear interpolation
 
             for j, pano2_wd in enumerate(pano2_wds):
 
@@ -176,8 +183,8 @@ def align_rooms_by_wd(
                         pano2_wd_ = pano2_wd
 
                     pano2_wd_pts = pano2_wd_.polygon_vertices_local_3d
-                    # sample_points_along_bbox_boundary(wd)
 
+                    # TODO(johnwlambert): Remove this commented out code below.
                     # if visualize:
                     #     plt.close("all")
 
@@ -204,14 +211,12 @@ def align_rooms_by_wd(
                     #     alpha=0.2
                     # )
 
-                    #     plt.axis("equal")
-                    #     plt.title("Step 1: Before alignment")
-                    #     #os.makedirs(f"debug_plots/{pano1_id}_{pano2_id}", exist_ok=True)
-                    #     #plt.savefig(f"debug_plots/{pano1_id}_{pano2_id}/step1_{i}_{j}.jpg")
-                    #     plt.show()
-                    #     plt.close("all")
-
-                    # import pdb; pdb.set_trace()
+                    # plt.axis("equal")
+                    # plt.title("Step 1: Before alignment")
+                    # #os.makedirs(f"debug_plots/{pano1_id}_{pano2_id}", exist_ok=True)
+                    # #plt.savefig(f"debug_plots/{pano1_id}_{pano2_id}/step1_{i}_{j}.jpg")
+                    # plt.show()
+                    # plt.close("all")
 
                     if transform_type == AlignTransformType.SE2:
                         i2Ti1, aligned_pts1 = se2_estimation.align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
@@ -247,8 +252,8 @@ def align_rooms_by_wd(
                     pano2_room_vertices = pano2_room_vertices[:, :2]
 
                     if use_inferred_wdos_layout:
-                        # sole criterion, as overlap isn't reliable anymore, with inferred WDO.
-                        # could also reason about layouts beyond openings to determine validity.
+                        # Use width ratio as sole criterion, as overlap isn't reliable anymore with inferred layout.
+                        # One could also reason about layouts beyond openings to determine validity (we do not).
                         is_valid, width_ratio = determine_invalid_width_ratio(
                             pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout
                         )
@@ -336,9 +341,6 @@ def determine_invalid_width_ratio(pano1_wd: WDO, pano2_wd: WDO, use_inferred_wdo
     min_width = min(pano1_wd.width, pano2_wd.width)
     max_width = max(pano1_wd.width, pano2_wd.width)
     width_ratio = min_width / max_width
-
-    # pano1_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano1_wd)
-    # pano2_uncertainty_factor = uncertainty_utils.compute_width_uncertainty(pano2_wd)
 
     min_allowed_wdo_width_ratio = (
         MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO if use_inferred_wdos_layout else MIN_ALLOWED_GT_WDO_WIDTH_RATIO
