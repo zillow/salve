@@ -1,4 +1,3 @@
-
 """Unit tests to make sure that SE(2) estimation between two point clouds works properly."""
 
 import numpy as np
