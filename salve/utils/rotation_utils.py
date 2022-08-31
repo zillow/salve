@@ -1,4 +1,3 @@
-
 """Utilities for working with 2d and 3d rotation matrices."""
 
 import numpy as np
@@ -78,10 +77,10 @@ def angle_is_equal(angle1: float, angle2: float, atol: float) -> bool:
         angle1: angle 1 (in degrees), in [-360,360]
         angle2: angle 2 (in degrees), in [-360,360]
     """
-    #wrap that result to the range [-180, 179)
+    # Wrap the result to the range [-180, 179).
     diff = ( angle2 - angle1 + 180 ) % 360 - 180
     if diff < -180:
-        # do nothing
+        # Do nothing.
         diff = diff + 360
 
     return np.absolute(diff) <= atol
