@@ -19,13 +19,16 @@ from salve.common.sfm_track import SfmTrack2d
 
 
 def get_kpt_idx(wdo_idx: int, wdo_object_type: str, pano_data: PanoData) -> int:
-    """Get index for the start vertex of W/D/O.
+    """Get unique W/D/O index (for a single panorama) for a start vertex of one of its W/D/O's.
 
     Each left and right vertex (start and end) are treated as unique keypoints.
     Note about ordering: grouped by twos for (start vertex, end vertex) for each W/D/O.
+    Openings are listed first in the global list, then windows, and finally doors.
 
     Args:
         wdo_idx: for this particular object type, index within the list.
+        wdo_object_type: W/D/O category (among "openings", "windows", "doors").
+        pano_data: information corresponding to a single panorama.
 
     Returns:
         kpt_idx: keypoint index for this panorama's within-room W/D/O detections.
@@ -53,15 +56,16 @@ def perform_data_association(
 
     Args:
         measurements: high-confidence relative pose measurements, after scoring by SALVe.
-        pano_dict_inferred:
+        pano_dict_inferred: mapping from panorama ID to corresponding PanoData object. Note that
+            pano poses are not used, but only the record of W/D/O's per pano.
 
     Returns:
         tracks_2d: feature/landmark tracks for landmark-based SLAM.
     """
     num_panos = max(pano_dict_inferred.keys()) + 1
 
+    # We can think of 2d BEV landmarks as "keypoints" (features). Create a list of features per pano.
     EMPTY_KEYPOINTS = Keypoints(coordinates=np.zeros((0, 2)))
-    # we can think of 2d landmarks as keypoints.
     keypoints_list = [EMPTY_KEYPOINTS] * num_panos
     for i, pano_data in pano_dict_inferred.items():
         keypoints = []
@@ -73,7 +77,7 @@ def perform_data_association(
                 keypoints.append(s)
                 keypoints.append(e)
 
-        # must be 2-dimensional array for SfmTrack's union-find to not reject it.
+        # Features/keypoints must be 2-dimensional array for SfmTrack's union-find to not reject it.
         keypoints_list[i] = Keypoints(coordinates=np.array(keypoints).reshape(-1, 2))
 
     matches_dict = defaultdict(list)
@@ -105,8 +109,6 @@ def perform_data_association(
         # )
 
     matches_dict = {k: np.array(v) for k, v in matches_dict.items()}
-    # tracks_2d = SlamFeatureTrack2d.generate_tracks_from_pairwise_matches(matches_dict)
-
     tracks_2d = SfmTrack2d.generate_tracks_from_pairwise_matches(matches_dict, keypoints_list)
     return tracks_2d
 
