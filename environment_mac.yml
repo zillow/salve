@@ -1,4 +1,4 @@
-name: salve-v3
+name: salve-v7
 channels:
   # The mac environment closely follows the linux conda environment file, 
   # except for two noticeable differences: no CUDA support and no DEGENSAC support.
@@ -47,7 +47,9 @@ dependencies:
     - hydra-core==1.1.0
     - rdp
     - yacs # for HoHoNet
-    #- open3d
+    - open3d
     - networkx>=2.6.3
     - pytest-cov
     - gtsam==4.2a7
+    - simplejson
+    - colour

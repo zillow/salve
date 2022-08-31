@@ -47,5 +47,7 @@ dependencies:
     - networkx>=2.6.3
     - pytest-cov
     - gtsam==4.2a7
+    - simplejson
+    - colour
 
 # conda-forge's matplotlib is missing some backends, so we use pypi's.
