@@ -216,13 +216,8 @@ def load_opensfm_reconstruction_from_json(obj: Dict[str, Any]) -> SfmReconstruct
         camera = camera_from_json(key, value)
         # reconstruction.add_camera(camera)
 
-    # Extract camera biases
-    # Ignore these, since all filled with dummy values like
+    # We do not extract camera `biases` from `obj`, since they are all filled with dummy values like
     # {'rotation': [-0.0, -0.0, -0.0], 'translation': [0.0, 0.0, 0.0], 'scale': 1.0}
-    if "biases" in obj:
-        for key, value in obj["biases"].items():
-            transform = bias_from_json(value)
-            # reconstruction.set_bias(key, transform)
 
     # # Extract rig models
     # if "rig_cameras" in obj:
@@ -230,7 +225,7 @@ def load_opensfm_reconstruction_from_json(obj: Dict[str, Any]) -> SfmReconstruct
     #         reconstruction.add_rig_camera(rig_camera_from_json(key, value))
 
     pose_dict = {}
-    # Extract shots
+    # Extract "shots".
     for key, value in obj["shots"].items():
         pose = shot_in_reconstruction_from_json(key, value)
         pano_id = panoid_from_key(key)
@@ -245,7 +240,7 @@ def load_opensfm_reconstruction_from_json(obj: Dict[str, Any]) -> SfmReconstruct
     #     for key, value in obj["rig_instances"].items():
     #         rig_instance_from_json(reconstruction, key, value)
 
-    # Extract points
+    # Extract "points".
     if "points" in obj:
         points = []
         rgb = []
@@ -359,7 +354,7 @@ def run_opensfm_over_all_zind() -> None:
 
             except Exception as e:
                 logger.exception(f"OpenSfM failed for {building_id} {floor_id}")
-                print(f"failed on Building {building_id} {floor_id}")
+                print(f"failed on Building {building_id} {floor_id}", e)
                 continue
 
 
