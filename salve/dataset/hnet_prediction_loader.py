@@ -1,4 +1,5 @@
-"""
+"""Utility to load HorizonNet predictions.
+
 Converts a HorizonNet inference result to PanoData and PoseGraph2d objects. Also supports rendering the inference
 result with oracle pose.
 """
@@ -26,15 +27,7 @@ from salve.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-MODEL_NAMES = [
-    "rmx-madori-v1_predictions",  # Ethan’s new shape DWO joint model
-    "rmx-dwo-rcnn_predictions",  #  RCNN DWO predictions
-    "rmx-joint-v1_predictions",  # Older version joint model prediction
-    "rmx-manh-joint-v2_predictions",  # Older version joint model prediction + Manhattanization shape post processing
-    "rmx-rse-v1_predictions",  # Basic HNet trained with production shapes
-    "rmx-tg-manh-v1_predictions",  # Total (visible) geometry with Manhattanization shape post processing
-]
-# could also try partial manhattanization (separate model)
+MODEL_NAMES = [ "rmx-madori-v1_predictions"]  # Shape D/W/O joint model.
 
 
 IMAGE_HEIGHT_PX = 512
@@ -46,9 +39,11 @@ def load_hnet_predictions(
 ) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
     """Load raw pixelwise HorizonNet predictions...
 
+    # TODO: remove dependency on getting pano paths from ZInD in this function (put them inside the predictions).
+
     Args:
-        building_id:
-        raw_dataset_dir
+        building_id: unique ID of ZInD building.
+        raw_dataset_dir: path to ZInD dataset.
         predictions_data_root: path to HorizonNet predictions.
 
     Returns:
@@ -56,7 +51,7 @@ def load_hnet_predictions(
     """
     floor_hnet_predictions = defaultdict(dict)
 
-    # find available floors
+    # Find available floors for this ZInD building.
     floor_ids = posegraph2d.compute_available_floors_for_building(
         building_id=building_id, raw_dataset_dir=raw_dataset_dir
     )
@@ -67,7 +62,7 @@ def load_hnet_predictions(
         )
         for i in floor_gt_pose_graph.pano_ids():
 
-            # if the file doesn't exist, return None for now (TODO: throw an error)
+            # If the file doesn't exist, return None for now (TODO: throw an error)
             model_prediction_fpath = f"{predictions_data_root}/horizon_net/{building_id}/{i}.json"
             if not Path(model_prediction_fpath).exists():
                 print(
@@ -85,9 +80,6 @@ def load_hnet_predictions(
                 continue
 
             img_fpath = img_fpaths[0]
-
-            discovered_floor_id = get_floor_id_from_img_fpath(img_fpath)
-            assert floor_id == discovered_floor_id
             model_name = "rmx-madori-v1_predictions"
             prediction_data = io_utils.read_json_file(model_prediction_fpath)
 
@@ -137,21 +129,13 @@ def load_inferred_floor_pose_graphs(
     """Load W/D/O's predicted for each pano of each floor by HorizonNet.
 
     TODO: rename this function, since no pose graph is loaded here.
-
-    Note: we read in mapping from spreadsheet, mapping from their ZInD index to these guid
-        https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing
-
-        For example:
-            "b912c68c-47da-40e5-a43a-4e1469009f7f":
-            ZinD Image: /Users/johnlam/Downloads/complete_07_10_new/1012/panos/floor_01_partial_room_15_pano_19.jpg
-            Prod: Image URL https://d2ayvmm1jte7yn.cloudfront.net/vrmodels/e9c3eb49-6cbc-425f-b301-7da0aff161d2/floor_map/b912c68c-47da-40e5-a43a-4e1469009f7f/pano/cf94fcb5a5/straightened.jpg # noqa
-            See this corresponds to 1012 (not 109).
+    TODO: remove dependency on getting pano paths from ZInD in this function (put them inside the predictions).
 
     Args:
         building_id: string representing ZInD building ID to fetch the per-floor inferred pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
         raw_dataset_dir: path to ZInD dataset.
-        predictions_data_root:
+        predictions_data_root: path to HorizonNet predictions.
 
     Returns:
         floor_pose_graphs: mapping from floor_id to predicted pose graph
@@ -186,7 +170,7 @@ def load_inferred_floor_pose_graphs(
                 scale_meters_per_coordinate=floor_gt_pose_graph.scale_meters_per_coordinate,
             )
 
-        # `i` represents the panorama's ID.
+        # Index `i` represents the panorama's ID.
         for i, pred_obj in floor_predictions.items():
 
             img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/floor*_pano_{i}.jpg")
@@ -220,17 +204,6 @@ def get_floor_id_from_img_fpath(img_fpath: str) -> str:
     floor_id = fname[:k]
 
     return floor_id
-
-
-def test_get_floor_id_from_img_fpath() -> None:
-    """Verify we can fetch the floor ID from a panorama file path."""
-    img_fpath = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05/0109/panos/floor_01_partial_room_03_pano_13.jpg"
-    floor_id = get_floor_id_from_img_fpath(img_fpath)
-    assert floor_id == "floor_01"
-
-    img_fpath = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05/1386/panos/floor_02_partial_room_18_pano_53.jpg"
-    floor_id = get_floor_id_from_img_fpath(img_fpath)
-    assert floor_id == "floor_02"
 
 
 def main() -> None:
