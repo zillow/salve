@@ -10,6 +10,7 @@ import shutil
 from pathlib import Path
 from typing import List, Tuple
 
+import click
 import gtsfm.utils.io as io_utils
 import numpy as np
 from gtsam import Rot3, Pose3
@@ -42,19 +43,20 @@ def load_openmvg_reconstructions_from_json(json_fpath: str, building_id: str, fl
     Args:
         building_id: unique ID for ZinD building.
         floor_id: unique ID for floor of a ZinD building.
-        reconstruction_fpath: path to reconstruction/sfm_data.json file
+        reconstruction_fpath: path to reconstruction/sfm_data.json file.
 
     Returns:
-        reconstructions
+        reconstructions: list of length 1, representing single scene reconstruction. We return a list for API parity
+           with OpenSfM's wrapper (OpenSfM returns multiple connected components).
     """
     data = io_utils.read_json_file(json_fpath)
 
     assert data["sfm_data_version"] == "0.3"
 
     intrinsics = data["intrinsics"] # noqa
-    #print("OpenMVG Estimated Instrinsics: ", intrinsics)
+    # print("OpenMVG Estimated Instrinsics: ", intrinsics)
     view_metadata = data["views"] # noqa
-    #print("OpenMVG Estimated View Metadata: ", view_metadata)
+    # print("OpenMVG Estimated View Metadata: ", view_metadata)
     extrinsics = data["extrinsics"]
 
     key_to_fname_dict = {}
@@ -129,7 +131,7 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
         matches_dirpath: path to directory where matches info will be stored.
         reconstruction_dirpath: path to directory where reconstruction info will be stored.
     """
-    #seed_fname1, seed_fname2 = find_seed_pair(image_dirpath)
+    # seed_fname1, seed_fname2 = find_seed_pair(image_dirpath)
 
     use_spherical_angular = False
     use_spherical_angular_upright = True
@@ -145,7 +147,8 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
     # Extract the features (using the HIGH preset is advised, since the spherical image introduced distortions)
     # Can also pass "-u 1" for upright, per:
     #     https://github.com/openMVG/openMVG/blob/develop/docs/sphinx/rst/software/SfM/ComputeFeatures.rst
-    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ComputeFeatures -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -m SIFT -p HIGH -u 1"
+    cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ComputeFeatures"
+    cmd += f" -i {matches_dirpath}/sfm_data.json -o {matches_dirpath} -m SIFT -p HIGH -u 1"
     stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
     print("STDOUT: ", stdout)
     print("STDERR: ", stderr)
@@ -172,12 +175,12 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
 
     # Compute the reconstruction
     cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_IncrementalSfM -i {matches_dirpath}/sfm_data.json"
-    cmd += f" -m {matches_dirpath} -o {reconstruction_dirpath}" #" -a {seed_fname1} -b {seed_fname2}"
+    cmd += f" -m {matches_dirpath} -o {reconstruction_dirpath}"  # " -a {seed_fname1} -b {seed_fname2}"
     # Since the spherical geometry is different than classic pinhole images, the best is to provide the initial pair
     # by hand with the -a -b image basenames (i.e. R0010762.JPG).
 
     try:
-        with timeout(seconds=60*5):
+        with timeout(seconds=60 * 5):
             stdout, stderr = subprocess_utils.run_command(cmd, return_output=True)
             print("STDOUT: ", stdout)
             print("STDERR: ", stderr)
@@ -185,34 +188,33 @@ def run_openmvg_commands_single_tour(image_dirpath: str, matches_dirpath: str, r
         print("Execution timed out, OpenMVG is stuck")
         return
 
-    # if execution successful, convert result from binary file to JSON
+    # If execution successful, convert result from binary file to JSON
     input_fpath = f"{reconstruction_dirpath}/sfm_data.bin"
     output_fpath = f"{reconstruction_dirpath}/sfm_data.json"
-    # convert the "VIEWS", "INTRINSICS", "EXTRINSICS" with -V -I -E
+    # Convert the "VIEWS", "INTRINSICS", "EXTRINSICS" with -V -I -E
     cmd = f"{OPENMVG_SFM_BIN}/openMVG_main_ConvertSfM_DataFormat -i {input_fpath} -o {output_fpath} -V -I -E"
     subprocess_utils.run_command(cmd)
 
 
-def run_openmvg_all_tours() -> None:
+def run_openmvg_all_tours(raw_dataset_dir: str) -> None:
     """Run OpenMVG in spherical geometry mode, over all tours inside ZinD."""
-
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
     for building_id in building_ids:
 
-         # we are only evaluating OpenMVG on ZInD's test split.
+        # We are only evaluating OpenMVG on ZInD's test split.
         if building_id not in DATASET_SPLITS["test"]:
             continue
 
         floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
 
         try:
-            building_id_cast = int(building_id)
-        except:
-            print(f"Invalid building id {building_id}, skipping...")
+            # Verify if building directory is legitimate (whether we can cast the building ID to an integer).
+            _ = int(building_id)
+        except Exception as e:
+            print(f"Invalid building id {building_id}, skipping...", e)
             continue
 
         for floor_id in floor_ids:
@@ -254,5 +256,19 @@ def run_openmvg_all_tours() -> None:
             shutil.rmtree(dst_dir)
 
 
+@click.command(help="Script to run batched depth map inference using a pretrained HoHoNet model.")
+@click.option(
+    "--raw_dataset_dir",
+    type=click.Path(exists=True),
+    required=True,
+    # default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
+)
+def launch_openmvg_on_all_tours(raw_dataset_dir: str) -> None:
+    """Click entry point for OpenMVG execution on the ZInD dataset."""
+    run_openmvg_all_tours(str(raw_dataset_dir))
+
+
 if __name__ == "__main__":
-    run_openmvg_all_tours()
+    launch_openmvg_on_all_tours()
+
