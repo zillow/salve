@@ -1,6 +1,4 @@
-"""
-Dataset that reads ZinD data, and feeds it to a Pytorch dataloader.
-"""
+"""Dataset that reads ZinD data, and feeds it to a Pytorch dataloader."""
 
 import glob
 import logging
@@ -38,29 +36,11 @@ def pair_idx_from_fpath(fpath: str) -> int:
     parts = fname_stem.split("___")[0].split("_")
     return int(parts[1])
 
-
-def test_pair_idx_from_fpath() -> None:
-    """ """
-    # fpath = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25/gt_alignment_approx/000/pair_10_floor_rgb_floor_01_partial_room_01_pano_15.jpg"
-    fpath = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3/gt_alignment_approx/1394/pair_24___opening_0_0_identity_ceiling_rgb_floor_01_partial_room_01_pano_18.jpg"
-    pair_idx = pair_idx_from_fpath(fpath)
-
-    assert pair_idx == 24
-
-
 def pano_id_from_fpath(fpath: str) -> int:
     """Retrieve the panorama ID from a specially-formatted file path, where the pano ID is the last part of the file path."""
     fname_stem = Path(fpath).stem
     parts = fname_stem.split("_")
     return int(parts[-1])
-
-
-def test_pano_id_from_fpath() -> None:
-    """ """
-    # fpath = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25/gt_alignment_approx/242/pair_58_floor_rgb_floor_01_partial_room_13_pano_25.jpg"
-    fpath = "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3/gt_alignment_approx/1394/pair_24___opening_0_0_identity_ceiling_rgb_floor_01_partial_room_01_pano_18.jpg"
-    pano_id = pano_id_from_fpath(fpath)
-    assert pano_id == 18
 
 
 def get_tuples_from_fpath_list(
@@ -179,10 +159,10 @@ def get_tuples_from_fpath_list(
 def get_available_building_ids(dataset_root: str) -> List[str]:
     """
     Args:
-        dataset_root
+        dataset_root: TODO
 
     Returns:
-        building_ids
+        building_ids: TODO
     """
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{dataset_root}/*") if Path(fpath).is_dir()]
     building_ids = sorted(building_ids, key=lambda x: int(x))
@@ -193,6 +173,11 @@ def make_dataset(
     split: str, data_root: str, args: TrainingConfig
 ) -> List[Union[PathTwoTuple, PathFourTuple, PathSixTuple]]:
     """Gather a list of all examples within a dataset split.
+
+    Args:
+        split: TODO
+        data_root: TODO
+        args: TODO
 
     Returns:
         data_list: list of tuples, where each tuple represents file paths + GT labels for a single example.
@@ -254,10 +239,10 @@ def make_dataset(
 
 
 class ZindData(Dataset):
-    """ """
+    """Dataloader for loading rendered BEV data from ZInD."""
 
     def __init__(self, split: str, transform: Callable, args: TrainingConfig) -> None:
-        """ """
+        """Initialize dataloader."""
 
         self.transform = transform
         if args.modalities == ["layout"]:
@@ -331,24 +316,3 @@ class ZindData(Dataset):
 
         else:
             raise RuntimeError(f"Unsupported modalities. {str(self.modalities)}")
-
-
-def test_ZindData_constructor() -> None:
-    """ """
-    transform = None
-
-    from types import SimpleNamespace
-
-    args = SimpleNamespace(**{"data_root": "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_07_14_v3"})
-    dataset = ZindData(split="val", transform=transform, args=args)
-    assert len(dataset.data_list) > 0
-
-
-def test_ZindData_getitem() -> None:
-    """ """
-    pass
-
-
-if __name__ == "__main__":
-    """ """
-    test_ZindData_constructor()
