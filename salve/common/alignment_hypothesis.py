@@ -3,6 +3,10 @@
 from typing import List, NamedTuple
 
 from salve.common.sim2 import Sim2
+from salve.utils.logger_utils import get_logger
+
+logger = get_logger()
+
 
 class AlignmentHypothesis(NamedTuple):
     """Represents a relative pose hypothesis between two panoramas.

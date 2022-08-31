@@ -1,7 +1,7 @@
 # <Copyright 2019, Argo AI, LLC. Released under the MIT license.>
 # Ref: https://github.com/argoai/argoverse-api/blob/master/argoverse/utils/interpolate.py
 
-from typing import Tuple, cast
+from typing import Tuple
 
 import numpy as np
 
