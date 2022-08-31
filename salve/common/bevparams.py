@@ -68,34 +68,6 @@ class BEVParams:
         return Sim2(R=np.eye(2), t=np.array([-grid_xmin, -grid_ymin]), s=1 / self.meters_per_px)
 
 
-def test_bevimg_Sim2_world() -> None:
-    """Ensure that class constructor works, and Sim(2) generated is correct."""
-    # 10 meters x 10 meters in total.
-    params = BEVParams(img_h=20, img_w=20, meters_per_px=0.5)
-
-    # fmt: off
-    world_pts = np.array(
-        [
-            [2,2],
-            [-5,-5],
-            [5,5] # out of bounds
-        ]
-    )
-    # fmt: on
-    img_pts = params.bevimg_Sim2_world.transform_from(world_pts)
-
-    # fmt: off
-    expected_img_pts = np.array(
-        [
-            [14,14],
-            [0,0],
-            [20,20]
-        ]
-    )
-    # fmt: on
-    assert np.allclose(img_pts, expected_img_pts)
-
-
 def get_line_width_by_resolution(resolution: float) -> int:
     """Compute an appropriate polyline width, in pixels, for a specific rendering resolution.
     Note: this is not dependent upon image size -- solely dependent upon image resolution.
@@ -114,19 +86,3 @@ def get_line_width_by_resolution(resolution: float) -> int:
     line_width = round(line_width)
     # must be at least 1 pixel thick.
     return max(line_width, 1)
-
-
-def test_get_line_width_by_resolution() -> None:
-    """Ensure polyline thickness is computed properly."""
-
-    line_width = get_line_width_by_resolution(resolution=0.005)
-    assert line_width == 30
-    assert isinstance(line_width, int)
-
-    line_width = get_line_width_by_resolution(resolution=0.01)
-    assert line_width == 15
-    assert isinstance(line_width, int)
-
-    line_width = get_line_width_by_resolution(resolution=0.02)
-    assert line_width == 8
-    assert isinstance(line_width, int)
