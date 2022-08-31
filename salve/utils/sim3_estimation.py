@@ -1,10 +1,9 @@
-
 """Utility for Sim(3) estimation between two point clouds."""
 
 from typing import Optional, Tuple
 
 import numpy as np
-from gtsam import Pose3, Point3Pairs, Similarity3
+from gtsam import Point3Pairs, Similarity3
 
 import salve.utils.rotation_utils as rotation_utils
 from salve.common.sim2 import Sim2
