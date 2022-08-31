@@ -1,11 +1,14 @@
-
 """Stores hyperparameters for training a model (for a single experiment)."""
 
+from typing import List
+
 from dataclasses import dataclass
+
 
 @dataclass(frozen=False)
 class TrainingConfig:
     """Model training parameters."""
+
     lr_annealing_strategy: str
     base_lr: float
     weight_decay: float
@@ -21,7 +24,7 @@ class TrainingConfig:
     train_h: int
     train_w: int
     apply_photometric_augmentation: bool
-    modalities: ["layout"]
+    modalities: List[str] = ["layout"]
 
     cfg_stem: str
     num_epochs: int

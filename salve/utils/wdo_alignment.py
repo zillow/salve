@@ -9,13 +9,14 @@ Cohen16: A single match between an indoor and outdoor window determines an align
 Computing the alignment boils down to finding a  transformation between the models.
 
 Can perform alignment in 2d or 3d (fewer unknowns in 2d).
-Note: when fitting Sim(3), note that if the heights are the same, but door width scale is different, perfect door-width alignment
-cannot be possible, since the height figures into the least squares problem.
+Note: when fitting Sim(3), note that if the heights are the same, but door width scale is different, perfect
+door-width alignment cannot be possible, since the height figures into the least squares problem.
 
 We make sure wide door cannot fit inside a narrow door (e.g. 2x width not allowed).
 
 What heuristic tells us if they should be identity or mirrored in configuration?
-Are there any new WDs that should not be visible? walls should not cross on top of each other? know same-room connections, first
+Are there any new WDs that should not be visible? walls should not cross on top of each other? know same-room
+connections, first.
 
 Cannot expect a match for each door or window. Find nearest neighbor -- but then choose min dist on rows or cols?
 may not be visible?
@@ -26,7 +27,7 @@ may not be visible?
 
 import os
 from enum import Enum
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -299,7 +300,8 @@ def align_rooms_by_wd(
                         # plt.plot(inter_poly_verts[:,0],inter_poly_verts[:,1], color='m')
 
                         plt.title(
-                            f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid}, aligned via {alignment_object}, \n  config={configuration}"
+                            f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid}, aligned via {alignment_object}, "
+                            "\n  config={configuration}"
                         )
                         # window_normals_compatible={window_normals_compatible},
                         plt.axis("equal")

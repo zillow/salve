@@ -1,10 +1,19 @@
-import os, sys, time, glob
+"""Infer a depth map using a HoHoNet model.
+From HoHoNet: https://github.com/sunset1995/HoHoNet/blob/master/infer_depth.py
+
+Style is modified, but functionality unchanged.
+"""
+
 import argparse
+import glob
+import os
+import sys
 import importlib
+
 from tqdm import tqdm
 from imageio import imread, imwrite
-import torch
 import numpy as np
+import torch
 
 try:
     from lib.config import config, update_config
@@ -14,7 +23,7 @@ except Exception as e:
 
 
 def infer_depth(args):
-
+    """ """
     update_config(config, args)
     device = "cuda" if config.cuda else "cpu"
 
@@ -22,8 +31,6 @@ def infer_depth(args):
     rgb_lst = glob.glob(args.inp)
     if len(rgb_lst) == 0:
         print("No images found")
-        import sys
-
         sys.exit()
 
     # Init model

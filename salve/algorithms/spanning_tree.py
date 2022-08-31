@@ -219,7 +219,8 @@ def ransac_spanning_trees(
     )
     print(
         REDTEXT
-        + f"Chose hypothesis with {avg_rot_error:.1f}, {med_rot_error:.1f}, {avg_trans_error:.2f}, {med_trans_error:.2f} "
+        + f"Chose hypothesis with {avg_rot_error:.1f}, {med_rot_error:.1f},"
+        f" {avg_trans_error:.2f}, {med_trans_error:.2f} "
         + ENDCOLOR
     )
     return best_wSi_list

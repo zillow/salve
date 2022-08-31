@@ -1,9 +1,9 @@
-
 """
 Utility to create a TANGO-image based colormap.
 """
 
 import numpy as np
+
 
 def colormap(rgb: bool = True) -> np.ndarray:
     """Create an array of visually distinctive RGB values.
@@ -12,7 +12,7 @@ def colormap(rgb: bool = True) -> np.ndarray:
 
     Args:
         rgb: boolean, whether to return in RGB or BGR order. BGR corresponds to OpenCV default.
-    
+
     Returns:
         color_list: Numpy array of dtype uin8 representing RGB color palette.
     """
