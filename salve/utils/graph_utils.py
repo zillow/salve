@@ -8,7 +8,7 @@ import numpy as np
 import seaborn as sns
 
 
-def find_connected_components(nodes: List[int], edges: List[Tuple[int,int]]) -> List[Set[int]]:
+def find_connected_components(nodes: List[int], edges: List[Tuple[int, int]]) -> List[Set[int]]:
     """Find connected components of a graph."""
     G = nx.Graph()
     G.add_nodes_from(nodes)
@@ -18,7 +18,9 @@ def find_connected_components(nodes: List[int], edges: List[Tuple[int,int]]) -> 
     return list(ccs)
 
 
-def analyze_cc_distribution(nodes: List[int], edges: List[Tuple[int,int]], visualize: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+def analyze_cc_distribution(
+    nodes: List[int], edges: List[Tuple[int, int]], visualize: bool = False
+) -> Tuple[np.ndarray, np.ndarray]:
     """Analyze connected component distribution. We sort from largest CC to smallest CC.
 
     Args:
@@ -52,7 +54,7 @@ def plot_pdf_cdf(pdf: np.ndarray, cdf: np.ndarray, truncation_limit: int = 5) ->
         truncation_limit: max number of CCs to plot PDF/CDF information about.
     """
     plt.style.use("ggplot")
-    #sns.set_style({"font.family": "Times New Roman"})
+    # sns.set_style({"font.family": "Times New Roman"})
 
     palette = np.array(sns.color_palette("hls", 2))
 
@@ -68,13 +70,12 @@ def plot_pdf_cdf(pdf: np.ndarray, cdf: np.ndarray, truncation_limit: int = 5) ->
 
     plt.plot(range(C), pdf[:C], color=palette[0], label="p.d.f.")
     plt.plot(range(C), cdf[:C], color=palette[1], label="c.d.f.")
-    plt.scatter(range(C), pdf[:C], 100, color=palette[0], marker='.')
-    plt.scatter(range(C), cdf[:C], 100, color=palette[1], marker='.')
+    plt.scatter(range(C), pdf[:C], 100, color=palette[0], marker=".")
+    plt.scatter(range(C), cdf[:C], 100, color=palette[1], marker=".")
     plt.xticks(np.arange(C))
     plt.xlabel(r"$i$'th Connected Component")
     plt.ylabel("% of Panoramas Localized")
-    plt.ylim([0,100])
+    plt.ylim([0, 100])
     plt.legend()
     plt.savefig("2021_11_17_conn_comp_distribution_v1.pdf")
     plt.show()
-

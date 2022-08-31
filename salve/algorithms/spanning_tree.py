@@ -79,9 +79,10 @@ def greedily_construct_st_Sim2(
     Walk along each edge in that path, and chain the relative pose to the previous absolute (global) pose,
     to get a new absolute (global) pose. Cache away this new global pose in a dictionary of Sim(2) objects.
 
-    Intuition: shortest path is a way to try to minimize drift. 
+    Intuition: shortest path is a way to try to minimize drift.
 
-    Note: The scale of the Sim(2) objects is set to 1, though, this is just an artifact of the old way I had implemented this.
+    Note: The scale of the Sim(2) objects is set to 1, though, this is just an artifact of the old way I
+    had implemented this.
 
     TODOs:
         - could use a MST.
@@ -202,7 +203,8 @@ def ransac_spanning_trees(
         )
 
         print(
-            f"Hypothesis {h_counter} had Rot errors {avg_rot_error:.1f}(mean) {med_rot_error:.1f} (med), Trans errors {avg_trans_error:.2f}(mean) {med_trans_error:.2f} (med)"
+            f"Hypothesis {h_counter} had Rot errors {avg_rot_error:.1f}(mean) {med_rot_error:.1f} (med),"
+            " Trans errors {avg_trans_error:.2f}(mean) {med_trans_error:.2f} (med)"
         )
 
         # TODO: or could use MEDIAN instead
@@ -270,4 +272,3 @@ def compute_hypothesis_errors(
     med_trans_error = np.median(trans_errors)
 
     return avg_rot_error, med_rot_error, avg_trans_error, med_trans_error
-
