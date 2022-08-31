@@ -1,18 +1,18 @@
-"""
+"""TODO: Add module docstring.
 """
 
 import glob
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import gtsfm.utils.io as io_utils
 import numpy as np
 
 from salve.common.sim2 import Sim2
 import salve.common.posegraph2d as posegraph2d
-#import salve.utils.pr_utils as pr_utils # TODO: introduces a dependency cycle, need to refactor
+# import salve.utils.pr_utils as pr_utils # TODO: introduces a dependency cycle, need to refactor
 
 
 @dataclass(frozen=False)
@@ -71,7 +71,8 @@ def get_edge_classifications_from_serialized_preds(
             is_identity = "identity" in Path(fp0).stem
             configuration = "identity" if is_identity else "rotated"
 
-            # Rip out the WDO indices (`wdo_pair_uuid`), given `pair_3905___door_3_0_identity_floor_rgb_floor_01_partial_room_02_pano_38.jpg`
+            # Rip out the WDO indices (`wdo_pair_uuid`), given a filename such as
+            # `pair_3905___door_3_0_identity_floor_rgb_floor_01_partial_room_02_pano_38.jpg`
             k = Path(fp0).stem.split("___")[1].find(f"_{configuration}")
             assert k != -1
             wdo_pair_uuid = Path(fp0).stem.split("___")[1][:k]

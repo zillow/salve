@@ -37,7 +37,7 @@ class Sim2:
         if not isinstance(t, np.ndarray):
             raise ValueError("Input array `t` must be a Numpy n-d array.")
 
-        if not R.shape == (2,2):
+        if not R.shape == (2, 2):
             raise ValueError("Input array `R` must have shape (2,2).")
 
         if not t.shape == (2,):

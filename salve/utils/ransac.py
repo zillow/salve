@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import gtsfm.utils.geometry_comparisons as gtsfm_geometry_comparisons
-from gtsam import Rot3, Pose3, Similarity3
+from gtsam import Pose3, Similarity3
 
 
 DEFAULT_RANSAC_ALIGNMENT_DELETE_FRAC = 0.33
