@@ -1,6 +1,5 @@
 """Utilities for vector graphics rendering with Matplotlib."""
 
-from enum import Enum
 from typing import Optional, Tuple, Union
 
 import matplotlib
@@ -42,13 +41,13 @@ def plot_polygon_patch_mpl(
     zorder: int = 1,
 ) -> None:
     """Plot a lane segment polyon using matplotlib's PathPatch object.
-    
+
     From https://github.com/argoai/av2-api/blob/main/src/av2/rendering/vector.py (MIT license)
 
     Reference:
     See Descartes (https://github.com/benjimin/descartes/blob/master/descartes/patch.py)
     and Matplotlib: https://matplotlib.org/stable/gallery/shapes_and_collections/path_patch.html
-    
+
     Args:
         polygon_pts: Array of shape (N, 2) representing the points of the polygon
         ax: Matplotlib axes.
@@ -64,7 +63,6 @@ def plot_polygon_patch_mpl(
     mpath = MPath(vertices, codes)
     patch = mpatches.PathPatch(mpath, facecolor=color, edgecolor=color, alpha=alpha, zorder=zorder)
     ax.add_patch(patch)
-
 
 
 def legend_without_duplicate_labels(ax: matplotlib.axes.Axes) -> None:

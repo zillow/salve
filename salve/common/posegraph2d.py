@@ -667,7 +667,7 @@ def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> 
 
     Args:
         building_id: unique ID of ZInD building.
-        floor_id: TODO
+        floor_id: unique floor ID within a ZInD building.
         raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API).
 
     Returns:

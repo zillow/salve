@@ -32,7 +32,7 @@ def setup_file_logger(home_dir: str, program_name: str):
         format="[%(asctime)s %(levelname)-8s %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p",
         filename=log_output_fpath,
-        level=logging.INFO
+        level=logging.INFO,
     )
     logging.debug("Init Debug")
     logging.info("Init Info")

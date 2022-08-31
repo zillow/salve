@@ -47,8 +47,8 @@ def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
 
     polygon_shrunk = polygon.buffer(-shrink_distance)  # shrink
 
-    # It's possible for a MultiPolygon to result as a result of the buffer operation, i.e. especially for unusual shapes
-    # We choose the largest polygon inside the MultiPolygon, and return it
+    # It's possible for a MultiPolygon to result as a result of the buffer operation, i.e. especially for unusual
+    # shapes. We choose the largest polygon inside the MultiPolygon, and return it.
     if isinstance(polygon_shrunk, MultiPolygon):
         subpolygon_areas = [subpolygon.area for subpolygon in polygon_shrunk.geoms]
         largest_poly_idx = np.argmax(subpolygon_areas)
@@ -140,8 +140,9 @@ def determine_invalid_wall_overlap(
     polygon1 = Polygon(pano1_room_vertices)
     polygon2 = Polygon(pano2_room_vertices)
 
-    pano1_room_vertices_interp = interp_evenly_spaced_points(pano1_room_vertices, interval_m=0.1)  # in normalized coords
-    pano2_room_vertices_interp = interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)  # in normalized coords
+    # Vertices in two lines below are in normalized coords.
+    pano1_room_vertices_interp = interp_evenly_spaced_points(pano1_room_vertices, interval_m=0.1)
+    pano2_room_vertices_interp = interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)
 
     shrunk_poly1 = shrink_polygon(polygon1, shrink_factor=shrink_factor)
     shrunk_poly1_verts = np.array(list(shrunk_poly1.exterior.coords))

@@ -1,41 +1,19 @@
+"""Unit tests on feature data association."""
 
-"""
-Unit tests on data association.
-"""
+from pathlib import Path
+from types import SimpleNamespace
 
 import salve.algorithms.data_association as data_association
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 from salve.common.edge_classification import EdgeClassification
 
+_TEST_DATA_ROOT = Path(__file__).resolve().parent / "test_data"
 
-def test_get_kpt_idx() -> None:
-    """For 1 opening and 3 windows, and no doors, get keypoint index.
+# fmt: off
 
-    [s] - openings
-    [e]
-    [s] - windows
-    [e]
-    [s]
-    [e]
-    [s]
-    [e]
-    """
-    from types import SimpleNamespace
-
-    # fill with dummy objects
-    pano_data = SimpleNamespace(
-        openings=[None],
-        windows=[None,None,None],
-        doors=[]
-    )
-    wdo_idx = 1
-    wdo_object_type = "window"
-    kpt_idx = data_association.get_kpt_idx(wdo_idx, wdo_object_type, pano_data)
-    assert kpt_idx == 4
-
-
-# These come from building 0544, floor_01.
-MEASUREMENTS = [
+# These pairwise relative pose measurements between panos come from building 0544, floor_01.
+# They correspond to inferred W/D/Os (not GT).
+RELATIVE_POSE_MEASUREMENTS = [
     EdgeClassification(i1=18, i2=24, prob=0.9995291233062744, y_hat=1, y_true=0, pair_idx='1781', wdo_pair_uuid='opening_1_2', configuration='identity'),
     EdgeClassification(i1=14, i2=16, prob=0.9809442758560181, y_hat=1, y_true=0, pair_idx='870', wdo_pair_uuid='opening_1_1', configuration='identity'),
     EdgeClassification(i1=53, i2=56, prob=0.981810986995697, y_hat=1, y_true=0, pair_idx='7994', wdo_pair_uuid='opening_0_0', configuration='identity'),
@@ -348,21 +326,49 @@ MEASUREMENTS = [
     EdgeClassification(i1=23, i2=24, prob=0.9985001087188721, y_hat=1, y_true=1, pair_idx='95', wdo_pair_uuid='door_0_1', configuration='identity')
 ]
 
+# fmt: on
+
+
 def test_perform_data_association() -> None:
-    """ """
+    """Smokescreen to ensure that feature tracks for SLAM can be generated successfully.
+
+    Inferred W/D/O indices are used for the feature tracks.
+    """
     building_id = "0544"
     floor_id = "floor_01"
 
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = _TEST_DATA_ROOT / "ZInD"
+    predictions_data_root = _TEST_DATA_ROOT / "HorizonNet_Predictions"
+
     floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-        query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
+        building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=predictions_data_root
     )
     pano_dict_inferred = floor_pose_graphs[floor_id].nodes
 
-    tracks_2d = data_association.perform_data_association(MEASUREMENTS, pano_dict_inferred)
+    tracks_2d = data_association.perform_data_association(RELATIVE_POSE_MEASUREMENTS, pano_dict_inferred)
     assert len(tracks_2d) > 0
 
 
-if __name__ == "__main__":
-    test_perform_data_association()
+def test_get_kpt_idx() -> None:
+    """Test that we can retrieve the unique W/D/O index for a single panorama for a start vertex of one of its W/D/O's.
 
+    For 1 opening and 3 windows, and no doors, get keypoint index.
+
+    [s] - openings
+    [e]
+    [s] - windows
+    [e]
+    [s]
+    [e]
+    [s]
+    [e]
+    """
+
+    # Fill PanoData with dummy objects.
+    pano_data = SimpleNamespace(openings=[None], windows=[None, None, None], doors=[])
+    wdo_idx = 1
+    wdo_object_type = "window"
+    kpt_idx = data_association.get_kpt_idx(wdo_idx, wdo_object_type, pano_data)
+    # Global list ordering: openings, then windows, and finally doors.
+    # Therefore, the index `1` window corresponds to global vertex index `4`.
+    assert kpt_idx == 4

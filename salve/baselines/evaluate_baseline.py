@@ -1,9 +1,9 @@
-"""
-Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
+"""Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
 
 # TODO: only measure localization precision for connected components with 3+ cameras. (or measure separately)
-# 2-camera connected components should always achieve perfect translation alignment under Sim(3)? (TODO: write unit tests).
+# 2-camera connected components should always achieve perfect translation alignment under Sim(3)?
 (not true -- close -- but rotation also plays a role in it.)
+(TODO: write unit tests for this).
 """
 
 import argparse
@@ -11,11 +11,10 @@ import glob
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import gtsfm.utils.geometry_comparisons as geometry_comparisons
 import gtsfm.utils.io as io_utils
 from gtsam import Pose3, Rot3
 
@@ -23,7 +22,6 @@ import salve.baselines.opensfm as opensfm_utils
 import salve.baselines.openmvg as openmvg_utils
 import salve.common.floor_reconstruction_report as floor_reconstruction_report
 import salve.common.posegraph2d as posegraph2d
-import salve.dataset.zind_partition as zind_partition
 import salve.utils.ransac as ransac
 from salve.baselines.openmvg import OPENMVG_DEMO_ROOT
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
