@@ -24,7 +24,7 @@ class TrainingConfig:
     train_h: int
     train_w: int
     apply_photometric_augmentation: bool
-    modalities: List[str] = ["layout"]
+    modalities = ["layout"]
 
     cfg_stem: str
     num_epochs: int
