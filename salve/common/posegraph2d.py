@@ -607,12 +607,19 @@ def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
 
 
 def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_fpath: str) -> Dict[str, PoseGraph2d]:
-    """
-    floor_map_json has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'
+    """Retrieve ground truth 2d pose graphs for all floors for a specific ZInD building.
+
+    TODO: consider simplifying arguments to this function by merging with `get_gt_pose_graph`.
+
+    Args:
+        building_id: unique ID of ZInD building.
+        pano_dir: path to `{ZInD}/{building_id}/panos` directory.
+        json_annot_fpath: path to `{ZInD}/{building_id}/zind_data.json"
 
     Returns:
-        floor_pg_dict: mapping from floor_id to pose graph
+        floor_pg_dict: mapping from floor_id to pose graph.
     """
+    # Note: `floor_map_json` has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'.
     floor_map_json = io_utils.read_json_file(json_annot_fpath)
     scale_meters_per_coordinate_dict = floor_map_json["scale_meters_per_coordinate"]
 
@@ -649,24 +656,6 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
         floor_pg_dict[floor_id] = pg
 
     return floor_pg_dict
-
-
-def export_dataset_pose_graphs(raw_dataset_dir: str) -> None:
-    """ """
-    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
-    building_ids.sort()
-
-    for building_id in building_ids:
-
-        if building_id != "000":  # '1442':
-            continue
-
-        print(f"Render floor maps for {building_id}")
-        pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
-        floor_pg_dict = get_single_building_pose_graphs(
-            building_id=building_id, pano_dir=pano_dir, json_annot_fpath=json_annot_fpath
-        )
 
 
 def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> PoseGraph2d:
@@ -711,8 +700,3 @@ def compute_available_floors_for_building(building_id: str, raw_dataset_dir: str
     available_floor_ids = list(merger_data.keys())
     return available_floor_ids
 
-
-if __name__ == "__main__":
-    """ """
-    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # export_dataset_pose_graphs(raw_dataset_dir)
