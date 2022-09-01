@@ -181,11 +181,14 @@ class PoseGraph2d(NamedTuple):
     def from_wRi_wti_lists(
         cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], gt_floor_pg: "PoseGraph2d"
     ) -> "PoseGraph2d":
-        """
-        2x2
-        and 2,
+        """Generate 2d pose graph from global rotations and global translations of panos.
 
-        Fill other pano metadata with values from the ground truth pose graph.
+        Args:
+            wRi_list: list of 2x2 matrices.
+            wti_list: list of (2,) vectors.
+            gt_floor_pg: ground truth floor pose graph. We ignore its poses, but
+                scrape it for other pano metadata (image paths, building id, floor id, room vertices)
+                to use to populate the new pose graph object.
         """
         building_id = gt_floor_pg.building_id
         floor_id = gt_floor_pg.floor_id
@@ -221,7 +224,7 @@ class PoseGraph2d(NamedTuple):
                 openings=openings,
             )
 
-        # when scale is unknown, use average value over ZinD.
+        # When scale is unknown, use average value over ZInD.
         return cls(
             building_id=building_id,
             floor_id=floor_id,
@@ -274,9 +277,10 @@ class PoseGraph2d(NamedTuple):
         pass
 
     def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float, np.ndarray, np.ndarray]:
-        """
+        """Measure pose errors between two pose graphs that have already been aligned.
+
         Args:
-            gt_floor_pg:
+            gt_floor_pg: ground truth pose graph.
 
         Returns:
             mean_rot_err: average rotation error per camera, measured in degrees.
@@ -296,6 +300,8 @@ class PoseGraph2d(NamedTuple):
         self, gt_floor_pg: "PoseGraph2d"
     ) -> Tuple[float, float, np.ndarray, np.ndarray]:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
+
+        Applicable for pose graphs that have NOT been aligned yet.
 
         Args:
             gt_floor_pg:
@@ -410,12 +416,13 @@ class PoseGraph2d(NamedTuple):
         return mean_err
 
     def measure_avg_rel_rotation_err(
-        self, gt_floor_pg: "PoseGraph2d", gt_edges: List[Tuple[int, int]], verbose: bool
+        self, gt_floor_pg: "PoseGraph2d", gt_edges: List[Tuple[int, int]], verbose: bool = True
     ) -> float:
-        """
+        """Measure average relative rotation error over relative pose edges.
 
         Args:
-            gt_edges: list of (i1,i2) pairs representing panorama pairs where a WDO is found closeby between the two
+            gt_floor_pg: ground truth pose graph.
+            gt_edges: list of (i1,i2) pairs representing panorama pairs where a W/D/O is found closeby between the two
         """
         errs = []
         for (i1, i2) in gt_edges:
@@ -600,12 +607,19 @@ def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
 
 
 def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_fpath: str) -> Dict[str, PoseGraph2d]:
-    """
-    floor_map_json has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'
+    """Retrieve ground truth 2d pose graphs for all floors for a specific ZInD building.
+
+    TODO: consider simplifying arguments to this function by merging with `get_gt_pose_graph`.
+
+    Args:
+        building_id: unique ID of ZInD building.
+        pano_dir: path to `{ZInD}/{building_id}/panos` directory.
+        json_annot_fpath: path to `{ZInD}/{building_id}/zind_data.json"
 
     Returns:
-        floor_pg_dict: mapping from floor_id to pose graph
+        floor_pg_dict: mapping from floor_id to pose graph.
     """
+    # Note: `floor_map_json` has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'.
     floor_map_json = io_utils.read_json_file(json_annot_fpath)
     scale_meters_per_coordinate_dict = floor_map_json["scale_meters_per_coordinate"]
 
@@ -642,24 +656,6 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
         floor_pg_dict[floor_id] = pg
 
     return floor_pg_dict
-
-
-def export_dataset_pose_graphs(raw_dataset_dir: str) -> None:
-    """ """
-    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
-    building_ids.sort()
-
-    for building_id in building_ids:
-
-        if building_id != "000":  # '1442':
-            continue
-
-        print(f"Render floor maps for {building_id}")
-        pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-        json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
-        floor_pg_dict = get_single_building_pose_graphs(
-            building_id=building_id, pano_dir=pano_dir, json_annot_fpath=json_annot_fpath
-        )
 
 
 def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> PoseGraph2d:
@@ -704,8 +700,3 @@ def compute_available_floors_for_building(building_id: str, raw_dataset_dir: str
     available_floor_ids = list(merger_data.keys())
     return available_floor_ids
 
-
-if __name__ == "__main__":
-    """ """
-    raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-    # export_dataset_pose_graphs(raw_dataset_dir)

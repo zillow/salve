@@ -1,15 +1,15 @@
-"""
-Utilities to verify if two set of walls intersect into another room's free-space, which is infeasible.
-"""
+"""Utilities to verify if two set of walls intersect into another room's free-space, which is infeasible."""
 
 import os
-from typing import Tuple
+from typing import Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import MultiPolygon, Point, Polygon
 
 from salve.utils.interpolate import interp_arc, get_duplicate_indices_1d
+
+EPS = 1e-9
 
 
 def get_polyline_length(polyline: np.ndarray) -> float:
@@ -88,7 +88,8 @@ def eliminate_duplicates_2d(px: np.ndarray, py: np.ndarray) -> Tuple[np.ndarray,
 
 
 def count_verts_inside_poly(polygon: Polygon, query_verts: np.ndarray) -> int:
-    """
+    """Count the number of vertices located inside of a polygon.
+
     Args:
         polygon: reference shape.
         query_verts: query vertices that may or may not lie within the polygon's area
@@ -105,33 +106,36 @@ def count_verts_inside_poly(polygon: Polygon, query_verts: np.ndarray) -> int:
 
 
 def determine_invalid_wall_overlap(
-    pano1_id: int,
-    pano2_id: int,
-    i: int,
-    j: int,
     pano1_room_vertices: np.ndarray,
     pano2_room_vertices: np.ndarray,
-    shrink_factor: float = 0.1,
+    shrink_factor: float,
+    pano1_id: Optional[int] = None,
+    pano2_id: Optional[int] = None,
+    i: Optional[int] = None,
+    j: Optional[int] = None,
     visualize: bool = False,
 ) -> bool:
-    """
+    """Determine whether two rooms have an invalid configuration form wall overlap/freespace penetration.
+
+    Note: the amount of intersection of the two polygons is not a useful signal BC ...
+
     TODO: consider adding allowed_overlap_pct: float = 0.01
 
-    Amount of intersection of the two polygons is not a useful signal.
-
     Args:
-        pano1_id: ID for panorama 1
-        pano2_id: ID for panorama 2
-        i: ID of WDO to use for matching from pano1
-        j: ID of WDO to use for matching from pano2
-        pano1_room_vertices:
-        pano2_room_vertices: in the same coordinate frame as `pano1_room_vertices'
-        shrink_factor: related to amount of buffer away from boundaries (e.g. away from walls).
+        pano1_room_vertices: room vertices of pano 1.
+        pano2_room_vertices: room vertices of pano 2, in the same coordinate frame as `pano1_room_vertices'.
+        shrink_factor: related to amount of buffer away from boundaries (e.g. away from walls). A good default
+            is 0.1, i.e. 10%.
+        pano1_id: optional ID for panorama 1, used only for debug/visualization messages.
+        pano2_id: optional ID for panorama 2, used only for debug/visualization messages.
+        i: optional ID of WDO to use for matching from pano1, used only for debug/visualization messages.
+        j: optional ID of WDO to use for matching from pano2, used only for debug/visualization messages.
+        visualize: whether to save a visualization to disk.
 
     Returns:
         is_valid: 
     """
-    EPS = 1e-9 # must add eps to avoid being detected as a duplicate vertex
+    # must add epsilon to avoid being detected as a duplicate vertex
     # Note: polygon does not contain loop closure (no vertex is repeated twice). Thus, must add first
     # vertex to end of vertex list.
     pano1_room_vertices = np.vstack([pano1_room_vertices, pano1_room_vertices[0] + EPS])

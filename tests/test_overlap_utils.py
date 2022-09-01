@@ -12,7 +12,7 @@ from salve.utils.interpolate import interp_arc
 
 
 def test_determine_invalid_wall_overlap1() -> None:
-    """large horseshoe, and small horseshoe
+    """Ensure that wall overlap computation is correct for two rooms -- large and small horseshoe-shaped rooms.
 
     .---.---.
     |       |
@@ -43,12 +43,14 @@ def test_determine_invalid_wall_overlap1() -> None:
     wall_buffer_m = 0.2  # 20 centimeter noise buffer
     allowed_overlap_pct = 0.01  # TODO: allow 1% of violations ???
 
-    is_valid = overlap_utils.determine_invalid_wall_overlap(pano1_room_vertices, pano2_room_vertices, wall_buffer_m)
+    is_valid = overlap_utils.determine_invalid_wall_overlap(
+        pano1_room_vertices=pano1_room_vertices, pano2_room_vertices=pano2_room_vertices, shrink_factor=wall_buffer_m
+    )
     assert not is_valid
 
 
-def test_determine_invalid_wall_overlap2() -> None:
-    """identical shape
+def test_determine_invalid_wall_overlap_identical_shape() -> None:
+    """Ensure that wall overlap computation is correct for two identical shapes.
 
     .---.---.
     |       |
@@ -79,13 +81,15 @@ def test_determine_invalid_wall_overlap2() -> None:
     wall_buffer_m = 0.2  # 20 centimeter noise buffer
     allowed_overlap_pct = 0.01  # TODO: allow 1% of violations ???
 
-    is_valid = overlap_utils.determine_invalid_wall_overlap(pano1_room_vertices, pano2_room_vertices, wall_buffer_m)
+    is_valid = overlap_utils.determine_invalid_wall_overlap(
+        pano1_room_vertices=pano1_room_vertices, pano2_room_vertices=pano2_room_vertices, shrink_factor=wall_buffer_m
+    )
     assert is_valid
 
 
 def test_determine_invalid_wall_overlap3() -> None:
     """
-    panos (0,8) below. similar to 
+    panos (0,8) below. similar to
 
     TODO: determine why this was considered valid for Building "0003" and panos (0.7)
     "opening_0_7___step3_identity_2_0.jpg".
@@ -96,36 +100,27 @@ def test_determine_invalid_wall_overlap3() -> None:
     j = 0
     # 1 is in magenta.
     pano1_room_vertices = np.array(
-        [
-            [-1.20350544,  2.19687034],
-            [-0.14832726,  3.12533515],
-            [ 2.14896215,  0.51452036],
-            [ 1.09378396, -0.41394445]
-        ])
+        [[-1.20350544, 2.19687034], [-0.14832726, 3.12533515], [2.14896215, 0.51452036], [1.09378396, -0.41394445]]
+    )
     # 2 is in green.
     pano2_room_vertices = np.array(
-        [
-            [-0.08913514, -1.02572344],
-            [-2.17362494,  1.34324966],
-            [-0.15560001,  3.11893567],
-            [ 1.92888979,  0.74996256]
-        ])
+        [[-0.08913514, -1.02572344], [-2.17362494, 1.34324966], [-0.15560001, 3.11893567], [1.92888979, 0.74996256]]
+    )
     shrink_factor = 0.1
     visualize = True
 
     freespace_is_valid = overlap_utils.determine_invalid_wall_overlap(
+        pano1_room_vertices=pano1_room_vertices,
+        pano2_room_vertices=pano2_room_vertices,
+        shrink_factor=shrink_factor,
         pano1_id=pano1_id,
         pano2_id=pano2_id,
         i=i,
         j=j,
-        pano1_room_vertices=pano1_room_vertices,
-        pano2_room_vertices=pano2_room_vertices,
-        shrink_factor=shrink_factor,
-        visualize=visualize
+        visualize=visualize,
     )
-    
-    assert False
 
+    assert False
 
 
 def test_eliminate_duplicates_2d() -> None:
@@ -212,7 +207,9 @@ def test_interp_evenly_spaced_points() -> None:
             [0.15388028, 1.68013345],
         ]
     )
-    pano2_room_vertices_interp = overlap_utils.interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)  # meters
+    pano2_room_vertices_interp = overlap_utils.interp_evenly_spaced_points(
+        pano2_room_vertices, interval_m=0.1
+    )  # meters
 
     assert isinstance(pano2_room_vertices_interp, np.ndarray)
     assert pano2_room_vertices_interp.shape == (104, 2)
@@ -277,5 +274,3 @@ if __name__ == "__main__":
     # test_determine_invalid_wall_overlap1()
     # test_determine_invalid_wall_overlap2()
     test_determine_invalid_wall_overlap3()
-
-

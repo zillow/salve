@@ -1,4 +1,3 @@
-
 """Utility for SE(2) estimation between two point clouds."""
 
 from typing import Optional, Tuple
@@ -10,7 +9,7 @@ from salve.common.sim2 import Sim2
 
 
 def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], np.ndarray]:
-    """
+    r"""
     TODO: move this into GTSAM outright.
 
         It finds the angle using a linear method:
@@ -44,14 +43,14 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim
     n = pts_a.shape[0]
     assert n == pts_b.shape[0]
 
-    # we need at least 2 pairs
+    # We need at least 2 pairs.
     if n < 2:
         return None
 
     if pts_a.shape[1] != 2 or pts_b.shape[1] != 2:
         raise RuntimeError(f"Input point clouds were of shape {pts_a.shape}, but should have been (N,2)")
 
-    # calculate centroids
+    # Calculate centroids.
     cp = np.zeros(2)
     cq = np.zeros(2)
 
@@ -63,7 +62,7 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim
     cp *= f
     cq *= f
 
-    # calculate cos and sin
+    # Calculate cos and sin.
     c, s = 0, 0
 
     for pt_a, pt_b in zip(pts_a, pts_b):
@@ -72,7 +71,7 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim
         c += dp[0] * dq[0] + dp[1] * dq[1]
         s += -dp[1] * dq[0] + dp[0] * dq[1]
 
-    # calculate angle and translation
+    # Calculate angle and translation.
     theta = np.arctan2(s, c)
     R = Rot2.fromAngle(theta)
     t = cq - R.matrix() @ cp

@@ -1,4 +1,3 @@
-
 """Utility for merging disjoint two clusters (connected components)."""
 
 from typing import Dict, List, NamedTuple, Set, Tuple
@@ -12,7 +11,7 @@ from salve.algorithms.spanning_tree import greedily_construct_st_Sim2
 
 
 def get_connected_components(edges: List[Tuple[int, int]]) -> List[Set[int]]:
-    """
+    """TODO
 
     Args:
         edges: edges of the bi-directional graph.
@@ -38,8 +37,7 @@ def merge_clusters(
     gt_floor_pose_graph: PoseGraph2d,
     two_view_reports_dict,
 ):
-    """ "
-    Incremental cluster merging.
+    """Incrementally merge clusters.
 
     Note: no guarantee there should be high IoU, or zero IoU, unless you knew it was the same room
 
@@ -158,7 +156,13 @@ def merge_clusters(
                 pano2_room_vertices = est_floor_pose_graph.nodes[pano2_id].room_vertices_global_2d
 
                 is_valid = determine_invalid_wall_overlap(
-                    pano1_id, pano2_id, i_wdo, j_wdo, pano1_room_vertices, pano2_room_vertices, shrink_factor=0.40
+                    pano1_room_vertices=pano1_room_vertices,
+                    pano2_room_vertices=pano2_room_vertices,
+                    shrink_factor=0.40,
+                    pano1_id=pano1_id,
+                    pano2_id=pano2_id,
+                    i=i_wdo,
+                    j=j_wdo,
                 )
                 # print(f"({pano1_id},{pano2_id}) is valid? {is_valid}")
 

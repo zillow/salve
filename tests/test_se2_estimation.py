@@ -28,7 +28,7 @@ def test_align_points_SE2() -> None:
         ])
 
     # fmt: on
-    aTb, pts_a_ = align_points_SE2(pts_a, pts_b)
+    aTb, pts_a_ = se2_estimation.align_points_SE2(pts_a, pts_b)
     assert aTb is not None
 
     for pt_a, pt_b in zip(pts_a, pts_b):
