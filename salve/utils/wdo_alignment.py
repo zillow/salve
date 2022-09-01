@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import salve.utils.overlap_utils as overlap_utils
+import salve.utils.rotation_utils as rotation_utils
 import salve.utils.se2_estimation as se2_estimation
 import salve.utils.sim3_estimation as sim3_estimation
 from salve.common.alignment_hypothesis import AlignmentHypothesis

@@ -118,7 +118,6 @@ def test_align_rooms_by_wd() -> None:
     assert len(possible_alignment_info) == 2
 
 
-
 def test_obj_almost_equal() -> None:
     """Verify that Sim(2) comparison works as expected.
 
@@ -147,11 +146,9 @@ def test_obj_almost_equal() -> None:
         s=0.9999999999999999,
     )
     # fmt: on
-    assert wdo_alignment_utils.obj_almost_equal(i2Ti1_pred, i2Ti1_gt)
-    assert wdo_alignment_utils.obj_almost_equal(i2Ti1_gt, i2Ti1_pred)
 
-
-
-
-if __name__ == "__main__":
-    test_align_rooms_by_wd()
+    # Check for different types of W/D/Os used in alignment.
+    # These two Sim(2) objects should be considered close enough to be "identical" under all 3 W/D/O types.
+    for wdo_alignment_object in ["door", "window", "opening"]:
+        assert wdo_alignment_utils.obj_almost_equal(i2Ti1_pred, i2Ti1_gt, wdo_alignment_object=wdo_alignment_object)
+        assert wdo_alignment_utils.obj_almost_equal(i2Ti1_gt, i2Ti1_pred, wdo_alignment_object=wdo_alignment_object)
