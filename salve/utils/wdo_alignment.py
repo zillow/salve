@@ -50,6 +50,8 @@ OPENING_ALIGNMENT_ANGLE_TOLERANCE = 9.0
 DOOR_WINDOW_ALIGNMENT_ANGLE_TOLERANCE = 7.0  # set to 5.0 for GT
 ALIGNMENT_TRANSLATION_TOLERANCE = 0.35  # was set to 0.2 for GT
 
+DEFAULT_OVERLAP_CHECK_SHRINK_FACTOR = 0.1
+
 
 class AlignTransformType(str, Enum):
     """Represents the type of alignment transformation used/fitted between two panoramas.
@@ -251,13 +253,13 @@ def align_rooms_by_wd(
                             pano1_wd=pano1_wd, pano2_wd=pano2_wd_, use_inferred_wdos_layout=use_inferred_wdos_layout
                         )
                         freespace_is_valid = overlap_utils.determine_invalid_wall_overlap(
-                            pano1_id,
-                            pano2_id,
-                            i,
-                            j,
-                            pano1_room_vertices,
-                            pano2_room_vertices,
-                            shrink_factor=0.1,
+                            pano1_room_vertices=pano1_room_vertices,
+                            pano2_room_vertices=pano2_room_vertices,
+                            shrink_factor=DEFAULT_OVERLAP_CHECK_SHRINK_FACTOR,
+                            pano1_id=pano1_id,
+                            pano2_id=pano2_id,
+                            i=i,
+                            j=j,
                             visualize=False,
                         )
                         is_valid = freespace_is_valid and width_is_valid
