@@ -21,7 +21,7 @@ jobs:
       # - name: Cache conda env
       #   uses: actions/cache@v2
       #   env:
-      #     # Increase this value to reset cache if environment_linux_cpuonly.yml has not changed
+      #     # Increase this value to reset cache if environment_ubuntu-latest.yml has not changed
       #     CACHE_NUMBER: 0
       #   with:
       #     path: ~/conda_pkgs_dir
