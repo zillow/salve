@@ -1,5 +1,7 @@
 """Ensure that 2d pose graph evaluation is correct."""
 
+from unittest.mock import MagicMock
+
 import numpy as np
 from gtsam import Pose3, Rot3, Similarity3
 
@@ -58,7 +60,7 @@ def test_convert_Sim3_to_Sim2() -> None:
         s=1.0
     )
     a_Sim2_i = a_Sim2_b.compose(b_Sim2_i)
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
 
 def test_Sim2_compose():
@@ -173,7 +175,7 @@ def test_measure_avg_rel_rotation_err_unestimated() -> None:
     mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
         gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges
     )
-    assert mean_rel_rot_err == 5.0
+    assert np.isclose(mean_rel_rot_err, 5.0, atol=1e-5)
 
 
 def test_measure_avg_abs_rotation_err() -> None:
@@ -242,13 +244,14 @@ def test_measure_abs_pose_error_shifted() -> None:
     wRi_list = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
     wti_list = [np.array([-1, 0]), np.array([-1, 4]), np.array([3, 0])]
 
-    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, building_id, floor_id)
+    gt_floor_pg = MagicMock()
+    est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pg=gt_floor_pg)
 
     wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
     wti_list_gt = [np.array([0, 0]), np.array([0, 4]), np.array([4, 0])]
-    gt_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list_gt, wti_list, building_id, floor_id)
+    gt_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list_gt, wti_list, gt_floor_pg=gt_floor_pg)
 
-    avg_rot_error, avg_trans_error = est_floor_pose_graph.measure_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+    avg_rot_error, avg_trans_error, _, _ = est_floor_pose_graph.measure_unaligned_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
 
     assert np.isclose(avg_rot_error, 0.0, atol=1e-3)
     assert np.isclose(avg_trans_error, 0.0, atol=1e-3)
