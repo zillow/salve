@@ -21,11 +21,11 @@ Code is organized under the `salve` directory as follows:
 
 We use Conda to manage dependencies. Please install the environment on Linux using:
 ```bash
-conda env create -f environment_linux.yml
+conda env create -f environment_ubuntu-latest.yml
 ```
 or on Mac
 ```bash
-conda env create -f environment_mac.yml
+conda env create -f environment_macos-latest.yml
 ```
 
 We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. GTSAM is included in the Conda environment.
