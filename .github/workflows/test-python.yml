@@ -30,7 +30,7 @@ jobs:
         with:
           miniconda-version: "latest"
           activate-environment: salve-v8
-          environment-file: echo "${{ matrix.os }}" | cut -d "-" -f 1 | awk '{print "environment_"$1".yml"}'
+          environment-file: "environment_${{ matrix.os }}.yml"
           python-version: 3.8
       - name: Environment setup
         run: |
