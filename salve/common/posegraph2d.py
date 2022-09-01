@@ -181,11 +181,14 @@ class PoseGraph2d(NamedTuple):
     def from_wRi_wti_lists(
         cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], gt_floor_pg: "PoseGraph2d"
     ) -> "PoseGraph2d":
-        """
-        2x2
-        and 2,
+        """Generate 2d pose graph from global rotations and global translations of panos.
 
-        Fill other pano metadata with values from the ground truth pose graph.
+        Args:
+            wRi_list: list of 2x2 matrices.
+            wti_list: list of (2,) vectors.
+            gt_floor_pg: ground truth floor pose graph. We ignore its poses, but
+                scrape it for other pano metadata (image paths, building id, floor id, room vertices)
+                to use to populate the new pose graph object.
         """
         building_id = gt_floor_pg.building_id
         floor_id = gt_floor_pg.floor_id
@@ -221,7 +224,7 @@ class PoseGraph2d(NamedTuple):
                 openings=openings,
             )
 
-        # when scale is unknown, use average value over ZinD.
+        # When scale is unknown, use average value over ZInD.
         return cls(
             building_id=building_id,
             floor_id=floor_id,
@@ -274,9 +277,10 @@ class PoseGraph2d(NamedTuple):
         pass
 
     def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float, np.ndarray, np.ndarray]:
-        """
+        """Measure pose errors between two pose graphs that have already been aligned.
+
         Args:
-            gt_floor_pg:
+            gt_floor_pg: ground truth pose graph.
 
         Returns:
             mean_rot_err: average rotation error per camera, measured in degrees.
@@ -296,6 +300,8 @@ class PoseGraph2d(NamedTuple):
         self, gt_floor_pg: "PoseGraph2d"
     ) -> Tuple[float, float, np.ndarray, np.ndarray]:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
+
+        Applicable for pose graphs that have NOT been aligned yet.
 
         Args:
             gt_floor_pg:
@@ -410,12 +416,13 @@ class PoseGraph2d(NamedTuple):
         return mean_err
 
     def measure_avg_rel_rotation_err(
-        self, gt_floor_pg: "PoseGraph2d", gt_edges: List[Tuple[int, int]], verbose: bool
+        self, gt_floor_pg: "PoseGraph2d", gt_edges: List[Tuple[int, int]], verbose: bool = True
     ) -> float:
-        """
+        """Measure average relative rotation error over relative pose edges.
 
         Args:
-            gt_edges: list of (i1,i2) pairs representing panorama pairs where a WDO is found closeby between the two
+            gt_floor_pg: ground truth pose graph.
+            gt_edges: list of (i1,i2) pairs representing panorama pairs where a W/D/O is found closeby between the two
         """
         errs = []
         for (i1, i2) in gt_edges:
