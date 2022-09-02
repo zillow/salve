@@ -34,7 +34,6 @@ def test_bevimg_Sim2_world() -> None:
     assert np.allclose(img_pts, expected_img_pts)
 
 
-
 def test_get_line_width_by_resolution() -> None:
     """Ensure polyline thickness is computed properly."""
 

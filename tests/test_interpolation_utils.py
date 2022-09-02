@@ -67,7 +67,7 @@ def test_interp_dense_grid_from_sparse() -> None:
     BLUE = [0, 0, 255]
     bev_img = np.zeros((4, 4, 3))
 
-    # provided as (x,y) tuples
+    # Points provided as (x,y) tuples.
     points = np.array([[0, 0], [0, 3], [3, 3], [3, 0]])
     rgb_values = np.array([RED, GREEN, BLUE, RED])
     grid_h = 4
@@ -94,7 +94,7 @@ def test_remove_hallucinated_content() -> None:
             [0, 0, 0, 0, 0, 0],
         ]
     )
-    # simulate 3-channel image
+    # Simulate 3-channel image.
     sparse_bev_img = np.stack([sparse_bev_img, sparse_bev_img, sparse_bev_img], axis=-1)
 
     interp_bev_img = np.array(
@@ -107,7 +107,7 @@ def test_remove_hallucinated_content() -> None:
             [1, 2, 3, 4, 5, 6],
         ]
     )
-    # simulate 3-channel image
+    # Simulate 3-channel image.
     interp_bev_img = np.stack([interp_bev_img, interp_bev_img, interp_bev_img], axis=-1)
 
     bev_img = interpolation_utils.remove_hallucinated_content(sparse_bev_img, interp_bev_img, K=3)
