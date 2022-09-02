@@ -67,20 +67,19 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
     "--serialized_preds_json_dir",
     type=click.Path(exists=True),
     required=True,
-    #default="/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"  # noqa
-    help=""
+    # default="/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"  # noqa
+    help="",
 )
 @click.option(
     "--raw_dataset_dir",
     type=click.Path(exists=True),
     required=True,
-    #default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+    # default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
     help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
 )
-
-def run_vis_edge_classifications() -> None:
+def run_vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
     """Click entry point for visualization of model predictions on pano-pano edges."""
-    vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
+    vis_edge_classifications(serialized_preds_json_dir=serialized_preds_json_dir, raw_dataset_dir=raw_dataset_dir)
 
 
 if __name__ == "__main__":
