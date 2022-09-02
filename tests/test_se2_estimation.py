@@ -6,10 +6,9 @@ import salve.utils.se2_estimation as se2_estimation
 
 
 def test_align_points_SE2() -> None:
-    """
-    Two horseshoes of the same size, just rotated and translated.
+    """Check SE(2) least squares fit for two unaligned horseshoe-shaped rooms of the same size.
 
-    TODO: fix bug in GTSAM where the inverse() object bTa is inappropriately returned for ab pairs.
+    The two rooms are unaligned because rotated and translated away from each other.
     """
     # fmt: off
     pts_a = np.array(
@@ -41,18 +40,21 @@ def test_align_points_SE2() -> None:
 
 
 def test_align_points_SE2_doorway() -> None:
-    """
-    Check least-squares fit, for endpoints of a large doorway and small doorway, in presence of noise.
+    """Check SE(2) least-squares fit, for endpoints of a large doorway and small doorway, in presence of noise.
+
+    W/D/O "A" represented by X--X, and W/D/O "B" represented by o--o.
 
     X o -- o X
 
     """
     # fmt: off
+    # Door with width of 2 units.
     pts_a = np.array(
         [
             [-4, 2],
             [-2, 2]
         ])
+    # Door with width of 4 units.
     pts_b = np.array(
         [
             [-5, 2],
@@ -62,17 +64,21 @@ def test_align_points_SE2_doorway() -> None:
     # fmt: on
     aTb, _ = se2_estimation.align_points_SE2(pts_a, pts_b)
 
+    # Since the small door is sandwiched in the middle of the large door, the SE(2) alignment won't move the small one.
     assert aTb.theta_deg == 0.0
     assert np.allclose(aTb.translation, np.zeros(2))
 
 
 def test_align_points_SE2_doorway_rotated() -> None:
-    """
-    Check least-squares fit, for endpoints of a large doorway and small doorway, in presence of noise.
+    """Check SE(2) least-squares fit, for endpoints of a large doorway and small doorway, in presence of noise.
     
+    W/D/O "A" represented by o--o, and W/D/O "B" represented by X--X.
+
     X
     |
     | o -- o
+    |
+    |
     X
 
     """
@@ -92,60 +98,11 @@ def test_align_points_SE2_doorway_rotated() -> None:
     aTb, _ = se2_estimation.align_points_SE2(pts_a, pts_b)
     bTa = aTb.inverse()
 
+    # Vertices from W/D/O "A" at (7,3) and (9,3) will be moved as close as possible to W/D/O "B".
+    # Note that since scale is not fit here, we get vertices close -- to (5,3) and to (5,5), but
+    # we cannot fit a perfect match to W/D/O "B"s vertices at (5,2) and (5,6).
     expected_ptb1 = np.array([5., 3.])
     assert np.allclose(expected_ptb1, bTa.transform_from(np.array([7,3]).reshape(1,2) ) )
 
     expected_ptb2 = np.array([5., 5.])
     assert np.allclose(expected_ptb2, bTa.transform_from(np.array([9,3]).reshape(1,2) ) )
-
-
-
-# NOTE: TEST BELOW IS BASED OFF OF AN ANNOTATION ERROR I THINK -- CAN DELETE.
-# def test_align_points_SE2_door() -> None:
-#     """ """
-#     # fmt: off
-#     pano2_wd_pts = np.array(
-#         [
-#             [ 0.31029039,  5.0409614 ],
-#             [ 0.31029039,  5.0409614 ],
-#             [-0.19424723,  4.51055183],
-#             [-0.19424723,  4.51055183],
-#             [ 0.31029039,  5.0409614 ]
-#         ]
-#     )
-#     pano1_wd_pts = np.array(
-#         [
-#             [ 1.44758631,  0.30243336],
-#             [ 1.44758631,  0.30243336],
-#             [ 1.38693234, -0.40765391],
-#             [ 1.38693234, -0.40765391],
-#             [ 1.44758631,  0.30243336]
-#         ]
-#     )
-#     # fmt: on
-#     # passed in as target, source
-#     i2Ti1, pano1_pts_aligned = align_points_SE2(pts_a=pano2_wd_pts, pts_b=pano1_wd_pts)
-
-    
-
-#     # fmt: off
-#     i2Ti1_gt = Sim2(
-#         R = np.array(
-#             [
-#                 [ 0.65135753, -0.758771  ],
-#                 [ 0.758771  ,  0.65135753]
-#             ], dtype=np.float32
-#         ),
-#         t = np.array([-3.9725296 ,  0.15346308], dtype=np.float32),
-#         s = 0.9999999999999999
-#     )
-
-#     import pdb; pdb.set_trace()
-
-
-
-if __name__ == "__main__":
-
-    test_align_points_SE2()
-    test_align_points_SE2_doorway()
-    test_align_points_SE2_doorway_rotated()
