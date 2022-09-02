@@ -12,7 +12,7 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
     """Visualize model predictions on pano-pano edges, coloring by FP/FN/TN w.r.t. ground truth.
 
     Args:
-        serialized_preds_json_dir:
+        serialized_preds_json_dir: Path to directory where serialized model predictions are stored.
         raw_dataset_dir: path to directory where the full ZinD dataset is stored (in raw form as downloaded from
             Bridge API).
     """
@@ -72,7 +72,8 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
     type=click.Path(exists=True),
     required=True,
     # default="/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications"  # noqa
-    help="",
+    help="Path to directory where serialized model predictions are stored (equivalent"
+    " to `--serialization_save_dir` from test.py).",
 )
 @click.option(
     "--raw_dataset_dir",
