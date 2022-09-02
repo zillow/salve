@@ -39,6 +39,63 @@ def test_align_points_SE2() -> None:
     assert np.allclose(pts_a, pts_a_)
 
 
+def check_parity():
+
+    from gtsam import Rot2, Pose2, Point2Pairs
+
+    def method1(pts_a, pts_b):
+        """ """
+        ab_pairs = Point2Pairs(list(zip(pts_a, pts_b)))
+        aTb = Pose2.Align(ab_pairs)
+        return aTb
+
+
+    def method2(pts_a, pts_b):
+        """ """
+        # Calculate centroids.
+        cp = np.zeros(2)
+        cq = np.zeros(2)
+        
+        for pt_a, pt_b in zip(pts_a, pts_b):
+            cp += pt_a
+            cq += pt_b
+        
+        f = 1.0 / n
+        cp *= f
+        cq *= f
+        
+        # Calculate cos and sin.
+        c, s = 0, 0
+        
+        for pt_a, pt_b in zip(pts_a, pts_b):
+            dp = pt_a - cp
+            dq = pt_b - cq
+            c += dp[0] * dq[0] + dp[1] * dq[1]
+            s += -dp[1] * dq[0] + dp[0] * dq[1]
+        
+        # Calculate angle and translation.
+        theta = np.arctan2(s, c)
+        R = Rot2.fromAngle(theta)
+        t = cq - R.matrix() @ cp
+        
+        bTa = Pose2(R, t)
+        aTb = bTa.inverse()
+        return aTb
+
+    for _ in range(10000):
+
+        n = 10
+        pts_a = np.random.randn(n, 2)
+        pts_b = np.random.randn(n, 2)
+
+        result1 = method1(pts_a, pts_b)
+        result2 = method2(pts_a, pts_b)
+
+        #import pdb; pdb.set_trace()
+
+        assert result1.equals(result2, tol=1e-7)
+
+
 def test_align_points_SE2_doorway() -> None:
     """Check SE(2) least-squares fit, for endpoints of a large doorway and small doorway, in presence of noise.
 
@@ -106,3 +163,7 @@ def test_align_points_SE2_doorway_rotated() -> None:
 
     expected_ptb2 = np.array([5., 5.])
     assert np.allclose(expected_ptb2, bTa.transform_from(np.array([9,3]).reshape(1,2) ) )
+
+
+if __name__ == "__main__":
+    check_parity()
