@@ -4,11 +4,11 @@ import numpy as np
 
 
 def texture_map_iou(f1: np.ndarray, f2: np.ndarray) -> float:
-    """floor texture maps
+    """Compute IoU between two floor texture maps.
 
     Args:
-        f1: array of shape (H,W,C)
-        f2: array of shape (H,W,C)
+        f1: array of shape (H,W,C) representing floor RGB texture maps.
+        f2: array of shape (H,W,C) representing floor RGB texture maps.
 
     Returns:
         iou: scalar in the range [0,1] representing intersection over union.
@@ -22,7 +22,7 @@ def texture_map_iou(f1: np.ndarray, f2: np.ndarray) -> float:
 
 
 def binary_mask_iou(mask1: np.ndarray, mask2: np.ndarray) -> float:
-    """ """
+    """Compute IoU between two binary masks."""
     eps = 1e-12
     inter = np.logical_and(mask1, mask2)
     union = np.logical_or(mask1, mask2)

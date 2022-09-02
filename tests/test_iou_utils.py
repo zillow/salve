@@ -1,4 +1,3 @@
-
 """Unit tests to ensure IoU is computed correctly between two masks/images."""
 
 import numpy as np
@@ -7,7 +6,7 @@ import salve.utils.iou_utils as iou_utils
 
 
 def test_texture_map_iou() -> None:
-    """
+    """Ensures that IoU computation between two floor texture maps is correct.
     f1 [1,0]
        [0,1]
 
@@ -26,7 +25,7 @@ def test_texture_map_iou() -> None:
     assert np.isclose(iou, 1 / 3)
 
 def test_binary_mask_iou() -> None:
-    """ """
+    """Ensures that IoU computation between two binary masks is correct."""
     # fmt: off
     mask1 = np.array(
         [

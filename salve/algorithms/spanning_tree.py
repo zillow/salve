@@ -20,6 +20,14 @@ from salve.common.sim2 import Sim2
 logger = logger_utils.get_logger()
 
 
+@dataclass
+class RelativePoseMeasurement:
+    """Represents a Sim(2) relative pose, with named panos for To() and From() indices."""
+    i1: int
+    i2: int
+    i2Si1: Sim2
+
+
 def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[np.ndarray]:
     """Greedily assemble a spanning tree (not a minimum spanning tree).
 
@@ -137,13 +145,6 @@ def greedily_construct_st_Sim2(
         wSi_list[dst_node] = wSi
 
     return wSi_list
-
-
-@dataclass
-class RelativePoseMeasurement:
-    i1: int
-    i2: int
-    i2Si1: Sim2
 
 
 def ransac_spanning_trees(
