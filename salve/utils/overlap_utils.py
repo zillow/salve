@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import MultiPolygon, Point, Polygon
 
-from salve.utils.interpolate import interp_arc, get_duplicate_indices_1d
+import salve.utils.interpolate as interp_utils
+
 
 EPS = 1e-9
 
@@ -26,7 +27,8 @@ def get_polyline_length(polyline: np.ndarray) -> float:
 
 
 def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
-    """
+    """Shrink a polygon's boundaries by a `shrink_factor`.
+
     Reference: https://stackoverflow.com/questions/49558464/shrink-polygon-using-corner-coordinates
 
     Args:
@@ -38,7 +40,7 @@ def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
     """
     xs = list(polygon.exterior.coords.xy[0])
     ys = list(polygon.exterior.coords.xy[1])
-    # find the minimum volume enclosing bounding box, and treat its center as polygon centroid
+    # Find the minimum volume enclosing bounding box, and treat its center as polygon centroid.
     x_center = 0.5 * min(xs) + 0.5 * max(xs)
     y_center = 0.5 * min(ys) + 0.5 * max(ys)
     min_corner = Point(min(xs), min(ys))
@@ -63,13 +65,13 @@ def interp_evenly_spaced_points(polyline: np.ndarray, interval_m: float) -> np.n
     length_m = get_polyline_length(polyline)
     n_waypoints = int(np.ceil(length_m / interval_m))
     px, py = eliminate_duplicates_2d(polyline[:, 0], py=polyline[:, 1])
-    interp_polyline = interp_arc(t=n_waypoints, px=px, py=py)
+    interp_polyline = interp_utils.interp_arc(t=n_waypoints, px=px, py=py)
 
     return interp_polyline
 
 
 def eliminate_duplicates_2d(px: np.ndarray, py: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
+    """Remove consecutive duplicate waypoints. 
 
     Note: Differs from the argoverse implementation.
 
@@ -77,8 +79,9 @@ def eliminate_duplicates_2d(px: np.ndarray, py: np.ndarray) -> Tuple[np.ndarray,
     adjacent to each other in the polyline sequence.
     """
     assert px.shape[0] == py.shape[0]
-    px_dup_inds = get_duplicate_indices_1d(px)
-    py_dup_inds = get_duplicate_indices_1d(py)
+    px_dup_inds = interp_utils.get_duplicate_indices_1d(px)
+    py_dup_inds = interp_utils.get_duplicate_indices_1d(py)
+    # Must be considered `duplicate` for both the x and y dimensions to be a true duplicate.
     shared_dup_inds = np.intersect1d(px_dup_inds, py_dup_inds)
 
     px = np.delete(px, [shared_dup_inds])
@@ -117,6 +120,11 @@ def determine_invalid_wall_overlap(
 ) -> bool:
     """Determine whether two rooms have an invalid configuration form wall overlap/freespace penetration.
 
+    First, we densely interpolate points (at 0.1 m discretization) for both room polygon boundaries. Second,
+    we shrink both original polygons by `shrink_factor`, and then count the number of interpolated boundary
+    points that fall into the shrunk polygons (one room cannot be located within another room, as the layout
+    prediction represents freespace up to the wall boundary).
+
     Note: the amount of intersection of the two polygons is not a useful signal BC ...
 
     TODO: consider adding allowed_overlap_pct: float = 0.01
@@ -125,7 +133,7 @@ def determine_invalid_wall_overlap(
         pano1_room_vertices: room vertices of pano 1.
         pano2_room_vertices: room vertices of pano 2, in the same coordinate frame as `pano1_room_vertices'.
         shrink_factor: related to amount of buffer away from boundaries (e.g. away from walls). A good default
-            is 0.1, i.e. 10%.
+            is 0.1, i.e. 10%. This allows us to compensate for noisy room layouts.
         pano1_id: optional ID for panorama 1, used only for debug/visualization messages.
         pano2_id: optional ID for panorama 2, used only for debug/visualization messages.
         i: optional ID of WDO to use for matching from pano1, used only for debug/visualization messages.
@@ -133,9 +141,9 @@ def determine_invalid_wall_overlap(
         visualize: whether to save a visualization to disk.
 
     Returns:
-        is_valid: 
+        is_valid: boolean indicating whether room pair is a potentially valid configuration.
     """
-    # must add epsilon to avoid being detected as a duplicate vertex
+    # Must add epsilon to avoid being detected as a duplicate vertex
     # Note: polygon does not contain loop closure (no vertex is repeated twice). Thus, must add first
     # vertex to end of vertex list.
     pano1_room_vertices = np.vstack([pano1_room_vertices, pano1_room_vertices[0] + EPS])
@@ -164,21 +172,21 @@ def determine_invalid_wall_overlap(
     is_valid = num_violations == 0
 
     if visualize:
-        # plot the overlap region
+        # Plot the overlap region. Original room vertices are shown as thick lines.
         plt.close("all")
 
-        # plot the interpolated points via scatter, but keep the original lines
+        # Plot both the original lines (as thick lines) and also the interpolated points scattered on top.
         plt.scatter(pano1_room_vertices_interp[:, 0], pano1_room_vertices_interp[:, 1], 10, color="m")
         plt.plot(pano1_room_vertices[:, 0], pano1_room_vertices[:, 1], color="m", linewidth=20, alpha=0.1)
 
         plt.scatter(pano2_room_vertices_interp[:, 0], pano2_room_vertices_interp[:, 1], 10, color="g")
         plt.plot(pano2_room_vertices[:, 0], pano2_room_vertices[:, 1], color="g", linewidth=10, alpha=0.1)
 
-        # render shrunk polygon 1 in red.
+        # Render shrunk polygon 1 in red (with thin lines).
         plt.scatter(shrunk_poly1_verts[:, 0], shrunk_poly1_verts[:, 1], 10, color="r")
         plt.plot(shrunk_poly1_verts[:, 0], shrunk_poly1_verts[:, 1], color="r", linewidth=1, alpha=0.1)
 
-        # render shrunk polygon 2 in blue.
+        # Render shrunk polygon 2 in blue (with thin lines).
         plt.scatter(shrunk_poly2_verts[:, 0], shrunk_poly2_verts[:, 1], 10, color="b")
         plt.plot(shrunk_poly2_verts[:, 0], shrunk_poly2_verts[:, 1], color="b", linewidth=1, alpha=0.1)
 

@@ -14,10 +14,13 @@ from salve.utils.interpolate import interp_arc
 def test_determine_invalid_wall_overlap1() -> None:
     """Ensure that wall overlap computation is correct for two rooms -- large and small horseshoe-shaped rooms.
 
+    Pano 1's room indicated by .--. edges (large horse-shoe).
+    Pano 2's room indicated by .xxx. edges (small horse-shoe).
+
     .---.---.
     |       |
     .   .xxx.
-    |       x|
+    |      x|
     .   .xxx.
     |       |
     .       .
@@ -41,16 +44,16 @@ def test_determine_invalid_wall_overlap1() -> None:
 
     # fmt: on
     wall_buffer_m = 0.2  # 20 centimeter noise buffer
-    allowed_overlap_pct = 0.01  # TODO: allow 1% of violations ???
 
     is_valid = overlap_utils.determine_invalid_wall_overlap(
         pano1_room_vertices=pano1_room_vertices, pano2_room_vertices=pano2_room_vertices, shrink_factor=wall_buffer_m
     )
+    # Wall pair is invalid, since the small horseshoe is located within the large horseshoe-shaped room.
     assert not is_valid
 
 
 def test_determine_invalid_wall_overlap_identical_shape() -> None:
-    """Ensure that wall overlap computation is correct for two identical shapes.
+    """Ensure that wall overlap computation is correct for two identical shapes (a horseshoe).
 
     .---.---.
     |       |
@@ -79,12 +82,15 @@ def test_determine_invalid_wall_overlap_identical_shape() -> None:
 
     # fmt: on
     wall_buffer_m = 0.2  # 20 centimeter noise buffer
-    allowed_overlap_pct = 0.01  # TODO: allow 1% of violations ???
 
+    import pdb; pdb.set_trace()
     is_valid = overlap_utils.determine_invalid_wall_overlap(
         pano1_room_vertices=pano1_room_vertices, pano2_room_vertices=pano2_room_vertices, shrink_factor=wall_buffer_m
     )
-    assert is_valid
+    # Identical shapes are not OK. Although they would mean that we have two very accurate room layout predictions within
+    # the same room, our code does not allow them BECAUSE ???
+    # TODO: failing
+    assert not is_valid
 
 
 def test_determine_invalid_wall_overlap3() -> None:
@@ -124,9 +130,9 @@ def test_determine_invalid_wall_overlap3() -> None:
 
 
 def test_eliminate_duplicates_2d() -> None:
-    """Ensure two duplicated waypoints are removed.
+    """Ensure two duplicated polyline waypoints are removed.
 
-    Duplicates are at indices 4,5 and 6,7, so rows 5 and 7 should be removed.
+    Duplicates are located at indices 4,5 and 6,7, so rows 5 and 7 should be removed.
     """
     polyline = np.array(
         [
@@ -144,6 +150,7 @@ def test_eliminate_duplicates_2d() -> None:
             [0.15388028, 1.68013345],  # 11
         ]
     )
+
     px, py = overlap_utils.eliminate_duplicates_2d(px=polyline[:, 0], py=polyline[:, 1])
     polyline_no_dups = np.stack([px, py], axis=-1)
 
@@ -161,36 +168,41 @@ def test_eliminate_duplicates_2d() -> None:
             [0.15388028, 1.68013345],
         ]
     )
+    assert len(polyline_no_dups) == len(polyline) - 2
     assert np.allclose(polyline_no_dups, expected_polyline_no_dups)
 
 
-# def test_interp_arc() -> None:
-#     """ """
-#     polyline = np.array(
-#         [
-#             [ 3.41491678,  0.82735686],
-#             [ 2.5812492 , -2.36060637],
-#             [ 0.2083626 , -1.74008522],
-#             [ 0.53871724, -0.47680178],
-#             [ 0.40395381, -0.4415605 ],
-#             [ 0.40395381, -0.4415605 ],
-#             [-0.36244272, -0.24114416],
-#             [-0.36244272, -0.24114416],
-#             [-0.56108295, -0.18919879],
-#             [-0.14397634,  1.40582611],
-#             [ 0.06767395,  1.35047855],
-#             [ 0.15388028,  1.68013345]
-#         ]
-#     )
-#     n_waypoints = 104
-#     import pdb; pdb.set_trace()
-#     interp_polyline = interp_arc(t=n_waypoints, px=polyline[:, 0], py=polyline[:, 1])
+def test_interp_arc() -> None:
+    """ """
+    polyline = np.array(
+        [
+            [ 3.41491678,  0.82735686],
+            [ 2.5812492 , -2.36060637],
+            [ 0.2083626 , -1.74008522],
+            [ 0.53871724, -0.47680178],
+            [ 0.40395381, -0.4415605 ],
+            [ 0.40395381, -0.4415605 ],
+            [-0.36244272, -0.24114416],
+            [-0.36244272, -0.24114416],
+            [-0.56108295, -0.18919879],
+            [-0.14397634,  1.40582611],
+            [ 0.06767395,  1.35047855],
+            [ 0.15388028,  1.68013345]
+        ]
+    )
+    n_waypoints = 104
+    import pdb; pdb.set_trace()
+    # Currently, only 1 duplicated index is allowed in `interpolate.py` due to legacy Argoverse reasons?
+    # TODO: failing
+    interp_polyline = interp_arc(t=n_waypoints, px=polyline[:, 0], py=polyline[:, 1])
 
-#     assert isinstance(interp_polyline, np.ndarray)
+    assert isinstance(interp_polyline, np.ndarray)
 
 
 def test_interp_evenly_spaced_points() -> None:
-    """ """
+    """Ensures that 2d polyline interpolation at a fixed-length waypoint discretization is successful."""
+
+    # Assume vertices are given in units of meters.
     pano2_room_vertices = np.array(
         [
             [3.41491678, 0.82735686],
@@ -207,12 +219,13 @@ def test_interp_evenly_spaced_points() -> None:
             [0.15388028, 1.68013345],
         ]
     )
-    pano2_room_vertices_interp = overlap_utils.interp_evenly_spaced_points(
-        pano2_room_vertices, interval_m=0.1
-    )  # meters
-
+    pano2_room_vertices_interp = overlap_utils.interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)
     assert isinstance(pano2_room_vertices_interp, np.ndarray)
     assert pano2_room_vertices_interp.shape == (104, 2)
+
+    waypoint_separations = np.linalg.norm(np.diff(pano2_room_vertices_interp, axis=0), axis=1)
+    assert np.allclose(waypoint_separations, 0.1, atol=0.03)
+    assert np.isclose(np.mean(waypoint_separations), 0.1, atol=1e-3)
 
 
 def test_shrink_polygon() -> None:
@@ -265,12 +278,17 @@ def test_shrink_polygon() -> None:
 
 
 if __name__ == "__main__":
+
+    #test_determine_invalid_wall_overlap1()
+    #test_determine_invalid_wall_overlap_identical_shape()
+
+
     # test_shrink_polygon()
 
-    # test_interp_evenly_spaced_points()
-    # test_interp_arc()
+    test_interp_evenly_spaced_points()
+    #test_interp_arc()
     # test_eliminate_duplicates_2d()
 
     # test_determine_invalid_wall_overlap1()
     # test_determine_invalid_wall_overlap2()
-    test_determine_invalid_wall_overlap3()
+    # test_determine_invalid_wall_overlap3()
