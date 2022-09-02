@@ -1,4 +1,4 @@
-""" """
+"""Unit tests for RANSAC based pose graph alignment."""
 import copy
 
 import numpy as np
@@ -36,13 +36,14 @@ def test_ransac_align_poses_sim3_ignore_missing_pureidentity() -> None:
             t=np.array([7.21399, 5.41445, 0]),
         ),
     ]
-    # make twice as long
+    # Make list of poses twice as long to increase complexity.
     aTi_list = aTi_list + aTi_list
 
     bTi_list = copy.deepcopy(aTi_list)
 
     aligned_bTi_list_est, aSb = ransac_utils.ransac_align_poses_sim3_ignore_missing(aTi_list, bTi_list)
 
+    # Alignment of one pose graph to itself should yield an identical pose graph to the input.
     for aTi, aTi_ in zip(aTi_list, aligned_bTi_list_est):
         assert np.allclose(aTi.rotation().matrix(), aTi_.rotation().matrix(), atol=1e-3)
         assert np.allclose(aTi.translation(), aTi_.translation(), atol=1e-3)
@@ -59,7 +60,7 @@ def test_ransac_align_poses_sim3_ignore_missing() -> None:
         None,
     ]
 
-    # below was previously in b's frame. Has a bit of noise compared to pose graph above.
+    # Poses below were previously in b's frame. Has a bit of noise compared to pose graph above.
     bTi_list = [
         None,
         Pose3(Rot3(), np.array([50.1, 0, 0])),
@@ -69,10 +70,8 @@ def test_ransac_align_poses_sim3_ignore_missing() -> None:
     ]
 
     aligned_bTi_list_est, aSb = ransac_utils.ransac_align_poses_sim3_ignore_missing(aTi_list, bTi_list)
+    # Third noisy pose should have been filtered out by RANSAC. Using the two clean poses should
+    # roughly give a scale of 1.0.
     assert np.isclose(aSb.scale(), 1.0, atol=1e-2)
     assert np.allclose(aligned_bTi_list_est[1].translation(), np.array([50.0114, 0.0576299, 0]), atol=1e-3)
     assert np.allclose(aligned_bTi_list_est[2].translation(), np.array([-0.0113879, 9.94237, 0]), atol=1e-3)
-
-
-if __name__ == "__main__":
-    test_ransac_align_poses_sim3_ignore_missing()
