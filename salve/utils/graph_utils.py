@@ -47,7 +47,8 @@ def analyze_cc_distribution(
 
 
 def plot_pdf_cdf(pdf: np.ndarray, cdf: np.ndarray, truncation_limit: int = 5) -> None:
-    """
+    """Plot probability density and cumulative density functions.
+
     Args:
         pdf: values in [0,1]
         cdf: values in [0,1]
