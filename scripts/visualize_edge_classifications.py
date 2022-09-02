@@ -1,7 +1,9 @@
 """Visualize model predictions on pano-pano edges, coloring by FP/FN/TN w.r.t. ground truth."""
 
 import click
+import numpy as np
 
+import salve.common.posegraph2d as posegraph2d
 import salve.utils.pr_utils as pr_utils
 from salve.common.edge_classification import edge_classification
 
@@ -14,6 +16,8 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
         raw_dataset_dir: path to directory where the full ZinD dataset is stored (in raw form as downloaded from
             Bridge API).
     """
+
+    # Retrieve EdgeClassifications for thi
     floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
         serialized_preds_json_dir
     )
@@ -29,15 +33,15 @@ def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: st
         print(f"On building {building_id}, {floor_id}")
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
 
-        # gather all of the edge classifications
+        # Gather all of the edge classifications.
         y_hat = np.array([m.y_hat for m in measurements])
         y_true = np.array([m.y_true for m in measurements])
 
-        # classify into TPs, FPs, FNs, TNs
+        # Classify into TPs, FPs, FNs, TNs
         is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true, y_pred=y_hat)
         for m, is_tp, is_fp, is_fn, is_tn in zip(measurements, is_TP, is_FP, is_FN, is_TN):
 
-            # then render the edges
+            # Then, render the edges.
             if is_tp:
                 color = color_dict["TP"]
                 # gt_floor_pose_graph.draw_edge(m.i1, m.i2, color)

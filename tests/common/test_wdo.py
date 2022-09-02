@@ -1,9 +1,8 @@
-
-""" """
+"""Unit tests for W/D/O (window, door, opening) class/data structure."""
 
 import numpy as np
 
-from salve.common.pano_data import WDO
+from salve.common.wdo import WDO
 
 
 def test_get_wd_normal_2d() -> None:
