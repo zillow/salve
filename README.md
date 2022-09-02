@@ -53,7 +53,7 @@ pip install -e .
 
 
 ## Installation
-To install the Auto-Floorplan (`afp`) library, run:
+To install the `salve` library, run:
 ```
 pip install -e .
 ```
@@ -67,7 +67,7 @@ pytest tests/
 
 ## Download ZInD
 
-Register on Bridge API and request access. Then copy the server token and run the following commands:
+Register on [Bridge API](https://bridgedataoutput.com/register/zgindoor) and request access. Then copy the server token and run the following commands:
 
 ```bash
 git clone https://github.com/zillow/zind.git
@@ -78,14 +78,11 @@ python download_data.py --num_process 10 \
     --verbose
 ```
 
-For example, `SAVE_DIR` could be `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`, and `BRIDGE_API_SERVER_TOKEN` could be a 32-character alphanumeric sequence.
-
-On DGX, you can find `ZInD` stored here:
-`/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
+For example, `SAVE_DIR` could be `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`, and `BRIDGE_API_SERVER_TOKEN` could be a 32-character alphanumeric sequence. More instructions can be found in the [ZInD Github repo](https://github.com/zillow/zind#registration-for-download-request).
 
 ## Running Reconstruction
 
-Make sure you are within the conda environment (`afp-v1`).
+Make sure you are within the conda environment (`salve-v1`).
 
 **Download HorizonNet predictions.**
 Download and unzip the Madori-V1 HorizonNet predictions from [Google Drive here](https://drive.google.com/file/d/1VBTBYIaFSHDtP31_FnM6vII3_p1On3tE/view?usp=sharing).
@@ -288,3 +285,8 @@ python {SALVE_REPO_DIRPATH}/afp/baselines/evaluate_baseline.py \
     --opensfm_results_dir {PATH TO WHERE OPENMVG SCRIPT DUMPED RECONSTRUCTION RESULTS} \
     --save_dir {WHERE TO SAVE VISUALIZATIONS/RESULT SUMMARIES }
 ```
+
+## Other
+
+On DGX, you can find `ZInD` stored here:
+`/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
