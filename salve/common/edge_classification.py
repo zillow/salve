@@ -1,5 +1,4 @@
-"""TODO: Add module docstring.
-"""
+"""Data structure representing a CNN-classification result on a relative pose hypothesis (from a W/D/O alignment)."""
 
 import glob
 from collections import defaultdict
@@ -12,14 +11,13 @@ import numpy as np
 
 from salve.common.sim2 import Sim2
 import salve.common.posegraph2d as posegraph2d
-# import salve.utils.pr_utils as pr_utils # TODO: introduces a dependency cycle, need to refactor
 
 
 @dataclass(frozen=False)
 class EdgeClassification:
     """Represents a model prediction for a particular alignment hypothesis between Panorama i1 and Panorama i2.
 
-    Note: i1 and i2 are panorama id's
+    Note: i1 and i2 are panorama id's.
     """
 
     i1: int  # ID of panorama 1
@@ -35,14 +33,18 @@ class EdgeClassification:
 def get_edge_classifications_from_serialized_preds(
     serialized_preds_json_dir: str, allowed_wdo_types: List[str] = ["door", "window", "opening"]
 ) -> Dict[Tuple[str, str], List[EdgeClassification]]:
-    """Given a directory of JSON files containing model predictions into predictions per ZinD building and per floor.
+    """Convert serialized predictions into EdgeClassification objects.
+
+    Given a directory of JSON files containing model predictions into predictions per ZinD building and per floor.
 
     Args:
         serialized_preds_json_dir: path to directory where model predictions (per edge) have been serialized as JSON.
+            The serializations are stored per batch, and thus are mixed across ZInD buildings and floors.
         allowed_wdo_types: allowed types of semantic objects (W/D/O) to use for reconstruction. Others will be ignored.
 
     Returns:
-        floor_edgeclassifications_dict: a mapping from (building_id, floor_id) to corresponding edge measurements.
+        floor_edgeclassifications_dict: a mapping from (building_id, floor_id) to corresponding EdgeClassification
+            measurements.
     """
     floor_edgeclassifications_dict = defaultdict(list)
 
@@ -99,9 +101,10 @@ def get_edge_classifications_from_serialized_preds(
 def get_alignment_hypothesis_for_measurement(
     m: EdgeClassification, hypotheses_save_root: str, building_id: str, floor_id: str
 ) -> Sim2:
-    """
+    """Given a classification result (measurement), find corresponding Sim(2) alignment JSON file on disk.
+
     Args:
-        m: 
+        m:  measurement.
         hypotheses_save_root:
         building_id: unique ID for ZinD building.
         floor_id: unique ID for floor of a ZinD building.
@@ -115,79 +118,10 @@ def get_alignment_hypothesis_for_measurement(
     # look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
     label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
     fpaths = glob.glob(
-        f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
+        f"{hypotheses_save_root}/{building_id}/{floor_id}"
+        f"/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
     )
     if not len(fpaths) == 1:
         import pdb; pdb.set_trace()
     i2Si1 = Sim2.from_json(fpaths[0])
     return i2Si1
-
-
-def vis_edge_classifications(serialized_preds_json_dir: str, raw_dataset_dir: str) -> None:
-    """
-    TODO: this function may need to be deleted (possibly deprecated and not used anywhere).
-
-    Args:
-        serialized_preds_json_dir
-        raw_dataset_dir: path to directory where the full ZinD dataset is stored (in raw form as downloaded from Bridge API).
-    """
-    floor_edgeclassifications_dict = get_edge_classifications_from_serialized_preds(serialized_preds_json_dir)
-
-    color_dict = {"TP": "green", "FP": "red", "FN": "orange", "TN": "blue"}
-
-    # loop over each building and floor
-    for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
-
-        # if building_id != '1490': # '1394':# '1635':
-        # 	continue
-
-        print(f"On building {building_id}, {floor_id}")
-        gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
-
-        # gather all of the edge classifications
-        y_hat = np.array([m.y_hat for m in measurements])
-        y_true = np.array([m.y_true for m in measurements])
-
-        # classify into TPs, FPs, FNs, TNs
-        is_TP, is_FP, is_FN, is_TN = pr_utils.assign_tp_fp_fn_tn(y_true, y_pred=y_hat)
-        for m, is_tp, is_fp, is_fn, is_tn in zip(measurements, is_TP, is_FP, is_FN, is_TN):
-
-            # then render the edges
-            if is_tp:
-                color = color_dict["TP"]
-                # gt_floor_pose_graph.draw_edge(m.i1, m.i2, color)
-                print(f"\tFP: ({m.i1},{m.i2}) for pair {m.pair_idx}")
-
-            elif is_fp:
-                color = color_dict["FP"]
-
-            elif is_fn:
-                color = color_dict["FN"]
-                # gt_floor_pose_graph.draw_edge(m.i1, m.i2, color)
-
-            elif is_tn:
-                color = color_dict["TN"]
-                gt_floor_pose_graph.draw_edge(m.i1, m.i2, color)
-
-            # if m.i1 or m.i2 not in gt_floor_pose_graph.nodes:
-            # 	import pdb; pdb.set_trace()
-
-        # import pdb; pdb.set_trace()
-        # render the pose graph first
-        gt_floor_pose_graph.render_estimated_layout(show_plot=True)
-        # continue
-
-
-if __name__ == "__main__":
-    """ """
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_binary_model_edge_classifications"
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_07_13_edge_classifications_fixed_argmax_bug/2021_07_13_edge_classifications_fixed_argmax_bug" # noqa
-    # serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25/2021_06_28_07_01_26/2021_07_15_serialized_edge_classifications/2021_07_15_serialized_edge_classifications" # noqa
-
-    # raw_dataset_dir = "/Users/johnlam/Downloads/ZInD_release/complete_zind_paper_final_localized_json_6_3_21"
-    # raw_dataset_dir = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw"
-
-    serialized_preds_json_dir = "/Users/johnlam/Downloads/ZinD_trained_models_2021_10_22/2021_10_21_22_13_20/2021_10_22_serialized_edge_classifications" # noqa
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-
-    vis_edge_classifications(serialized_preds_json_dir, raw_dataset_dir)
