@@ -57,7 +57,9 @@ def interp_dense_grid_from_sparse(
 
 
 def is_collinear(points: np.ndarray) -> bool:
-    """
+    """Use a cheap collinearity check (whether the first coordinate is repeated later).
+    TODO: rename this function.
+
     Args:
         points: (N,2) array.
     """
@@ -76,10 +78,10 @@ def remove_hallucinated_content(
 ) -> np.ndarray:
     """Zero-out portions of an interpolated image where the signal is unreliable due to no measurements.
 
-        If a KxK subgrid of an image has no sparse signals within it, and is initialized to a default value of zero,
-        then convolution of the subgrid with a box filter of all 1's will yield zero back. These are the `counts`
-        variable. In short, if the convolved output is zero in any ij cell, then we know that there was no true
-        support for interpolation in this region, and we should mask out this interpolated value to zero.
+    If a KxK subgrid of an image has no sparse signals within it, and is initialized to a default value of zero,
+    then convolution of the subgrid with a box filter of all 1's will yield zero back. These are the `counts`
+    variable. In short, if the convolved output is zero in any ij cell, then we know that there was no true
+    support for interpolation in this region, and we should mask out this interpolated value to zero.
 
     Args:
         sparse_bev_img: array of shape (H,W,C) representing a sparse bird's-eye-view image
@@ -87,17 +89,17 @@ def remove_hallucinated_content(
         K: integer representing kernel size, e.g. 3 for 3x3, 5 for 5x5
 
     Returns:
-        unhalluc_img: array of shape (H,W,C)
+        unhalluc_img: array of shape (H,W,C) representing image with hallucinated content removed.
     """
     H, W, _ = interp_bev_img.shape
 
-    # check if any channel is populated
+    # Check if any channel is populated.
     mul_bev_img = sparse_bev_img[:, :, 0] * sparse_bev_img[:, :, 1] * sparse_bev_img[:, :, 2]
 
     mul_bev_img = torch.from_numpy(mul_bev_img).reshape(1, 1, H, W)
     nonempty = (mul_bev_img > 0).type(torch.float32)
 
-    # box filter to sum neighbors
+    # Use a box filter to sum neighbors.
     weight = torch.ones(1, 1, K, K).type(torch.float32)
 
     # Use GPU whenever is possible, as convolution with a large kernel on the CPU is extremely slow
@@ -105,7 +107,7 @@ def remove_hallucinated_content(
         weight = weight.cuda()
         nonempty = nonempty.cuda()
 
-    # check counts of valid sparse pixel signals in each cell's KxK neighborhood
+    # Check counts of valid sparse pixel signals in each cell's KxK neighborhood.
     counts = F.conv2d(input=nonempty, weight=weight, bias=None, stride=1, padding=K // 2)
 
     if torch.cuda.is_available():
@@ -117,7 +119,7 @@ def remove_hallucinated_content(
     # CHW -> HWC
     mask = np.tile(mask, (3, 1, 1)).transpose(1, 2, 0)
 
-    # multiply interpolated image with binary unreliability mask to zero-out unreliable values
+    # Multiply interpolated image with binary unreliability mask to zero-out unreliable values.
     unhalluc_img = (mask * interp_bev_img).astype(np.uint8)
     return unhalluc_img
 
