@@ -70,13 +70,14 @@ def poly_learning_rate(base_lr: float, curr_iter: int, max_iter: int, power: flo
 
 
 def get_train_transform(args: TrainingConfig) -> Callable:
-    """
-    For a single modality, we will get a pair of images (two panoramas in the image pair).
-    For two modalities, we will get 2 images for each panorama in the image pair (4 images in total).
-    For three modalities, we will get 3 images for each panorama in the image pair (6 images in total).
+    """Get data transforms for train split.
+
+    For a single modality, we will get 1 rendering for each panorama in the image pair (2 images in total).
+    For two modalities, we will get 2 renderings for each panorama in the image pair (4 images in total).
+    For three modalities, we will get 3 renderings for each panorama in the image pair (6 images in total).
 
     Args:
-        args: training hyperparamaters.
+        args: training hyperparameters.
 
     Returns:
         A callable object with sequentially chained data transformations.
@@ -111,7 +112,7 @@ def get_train_transform(args: TrainingConfig) -> Callable:
     mean, std = get_imagenet_mean_std()
 
     # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
-    # random crops to prevent memorization
+    # We use random crops to prevent memorization.
 
     transform_list = [Resize(size=(args.resize_h, args.resize_w))]
 
@@ -132,7 +133,7 @@ def get_train_transform(args: TrainingConfig) -> Callable:
 
 
 def get_val_test_transform(args: TrainingConfig) -> Callable:
-    """Get data transforms for val or test split"""
+    """Get data transforms for val or test split."""
     if len(args.modalities) == 1:
         Resize = transform.ResizePair
         Crop = transform.CropPair
@@ -156,6 +157,7 @@ def get_val_test_transform(args: TrainingConfig) -> Callable:
 
     mean, std = get_imagenet_mean_std()
 
+    # Uses deterministic center crops instead of random crops.
     transform_list = [
         Resize((args.resize_h, args.resize_w)),
         Crop(size=(args.train_h, args.train_w), crop_type="center", padding=mean),
@@ -167,7 +169,7 @@ def get_val_test_transform(args: TrainingConfig) -> Callable:
 
 
 def get_img_transform_list(args: TrainingConfig, split: str):
-    """ """
+    """Get data transform for specified dataset split."""
     if split == "train":
         split_transform = get_train_transform(args)
 
