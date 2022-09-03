@@ -42,13 +42,13 @@ def ransac_align_poses_sim3_ignore_missing(
     valid_idxs = [i for i, bTi in enumerate(bTi_list_est) if bTi is not None]
     num_to_delete = math.ceil(delete_frac * len(valid_idxs))
     if len(valid_idxs) - num_to_delete < 2:
-        # run without RANSAC! want at least 2 frame pairs for good alignment.
+        # Run without RANSAC! want at least 2 frame pairs for good alignment.
         aligned_bTi_list_est, aSb = gtsfm_geometry_comparisons.align_poses_sim3_ignore_missing(
             aTi_list_ref, bTi_list_est
         )
         return aligned_bTi_list_est, aSb
 
-    # randomly delete some elements
+    # Randomly delete some elements.
     for _ in range(num_iters):
 
         aTi_list_ref_subset = copy.deepcopy(aTi_list_ref)
@@ -77,7 +77,7 @@ def ransac_align_poses_sim3_ignore_missing(
             best_trans_error = trans_error
             best_rot_error = rot_error
 
-    # now go back and transform the full, original list (not just a subset).
+    # Now go back and transform the full, original list (not just a subset).
     best_aligned_bTi_list_est_full = [None] * len(bTi_list_est)
     for i, bTi_ in enumerate(bTi_list_est):
         if bTi_ is None:
@@ -91,7 +91,7 @@ def compute_pose_errors_3d(
 ) -> Tuple[float, float, np.ndarray, np.ndarray]:
     """Compute average pose errors over all cameras (separately in rotation and translation).
 
-    Note: pose graphs must already be aligned.
+    Note: pose graphs must already be aligned to obtain expected functionality.
 
     Args:
         aTi_list_gt: ground truth 3d pose graph.
