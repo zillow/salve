@@ -7,10 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import gtsfm.utils.io as io_utils
-import numpy as np
 
 from salve.common.sim2 import Sim2
-import salve.common.posegraph2d as posegraph2d
 
 
 @dataclass(frozen=False)

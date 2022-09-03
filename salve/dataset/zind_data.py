@@ -10,7 +10,7 @@ import imageio
 from torch.utils.data import Dataset
 from torch import Tensor
 
-from salve.dataset.zind_partition import DATASET_SPLITS, OLD_HOME_ID_TEST_SET, NEW_HOME_ID_TEST_SET
+from salve.dataset.zind_partition import DATASET_SPLITS, NEW_HOME_ID_TEST_SET
 from salve.training_config import TrainingConfig
 
 
@@ -36,8 +36,12 @@ def pair_idx_from_fpath(fpath: str) -> int:
     parts = fname_stem.split("___")[0].split("_")
     return int(parts[1])
 
+
 def pano_id_from_fpath(fpath: str) -> int:
-    """Retrieve the panorama ID from a specially-formatted file path, where the pano ID is the last part of the file path."""
+    """Retrieve the panorama ID from a specially-formatted file path.
+
+    After an underscore delimiter, the pano ID is the last part of the file path, before the suffix.
+    """
     fname_stem = Path(fpath).stem
     parts = fname_stem.split("_")
     return int(parts[-1])
@@ -218,7 +222,8 @@ def make_dataset(
         for building_id in split_building_ids:
 
             logging.info(
-                f"\t{label_name}: On building {building_id} -- so far, for split {split}, found {len(data_list)} tuples..."
+                f"\t{label_name}: On building {building_id} -- "
+                f"so far, for split {split}, found {len(data_list)} tuples..."
             )
 
             for floor_id in ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04"]:

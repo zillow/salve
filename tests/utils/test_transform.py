@@ -260,31 +260,11 @@ def test_photometric_shift_quadruplet_no_jitter_types_is_identity() -> None:
         assert np.allclose(image3, image3_)
         assert np.allclose(image4, image4_)
 
-# def test_PhotometricShiftQuadruplet_speed():
-#     """ """
-#     transform = transform_utils.PhotometricShiftQuadruplet(jitter_types=[])
-
-#     image1, image2, image3, image4 = _get_quadruplet_image_data()
-
-#     start = time.time()
-
-#     for _ in range(10000):
-#         image1_, image2_, image3_, image4_ = transform(image1, image2, image3, image4)
-
-#     end = time.time()
-#     duration = end - start
-#     print(f"Took {duration} sec.")
 
 
 if __name__ == '__main__':
 
-    #test_crop_quadruplet()
-    #test_random_horizontal_flip_quadruplet()
-    #test_resize_quadruplet()
-    # test_random_vertical_flip_quadruplet()
+    #test_normalize_quadruplet()
+    test_totensor_quadruplet()
 
-    #test_photometric_shift_quadruplet()
-    test_photometric_shift_quadruplet_no_jitter_types_is_identity()
-
-    #test_PhotometricShift_speed()
 

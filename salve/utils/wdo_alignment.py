@@ -268,7 +268,8 @@ def align_rooms_by_wd(
                     if verbose:
                         # (i1) pink, (i2) orange
                         print(
-                            f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} -> {width_ratio:.2f}"
+                            f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} "
+                            f"-> {width_ratio:.2f}"
                             + ""  # f", Uncertainty: {pano1_uncertainty_factor:.2f}, {pano2_uncertainty_factor:.2f}"
                         )
 
@@ -310,7 +311,8 @@ def align_rooms_by_wd(
                         plt.axis("equal")
                         os.makedirs(f"debug_plots/{classification}", exist_ok=True)
                         plt.savefig(
-                            f"debug_plots/{classification}/{alignment_object}_{pano1_id}_{pano2_id}___step3_{configuration}_{i}_{j}.jpg"
+                            f"debug_plots/{classification}/"
+                            f"{alignment_object}_{pano1_id}_{pano2_id}___step3_{configuration}_{i}_{j}.jpg"
                         )
 
                         # plt.show()

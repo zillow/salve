@@ -1,5 +1,8 @@
-"""
-Utilities for data augmentation and preprocessing.
+"""Utilities for data augmentation and preprocessing.
+
+Some transforms are adapted from https://github.com/hszhao/semseg/blob/master/util/transform.py.
+Note: we do not define or use any random scaling transforms (`RandScale`) here, in order to preserve metric scale.
+However, some very minor scale perturbations could potentially help prevent overfitting.
 """
 
 import collections
@@ -291,38 +294,6 @@ class ResizeSextuplet(object):
         image6 = cv2.resize(image6, (w, h), interpolation=cv2.INTER_LINEAR)
 
         return image1, image2, image3, image4, image5, image6
-
-
-# class RandScale(object):
-#     # Randomly resize image & label with scale factor in [scale_min, scale_max]
-#     def __init__(self, scale, aspect_ratio=None):
-#         assert (isinstance(scale, collections.Iterable) and len(scale) == 2)
-#         if isinstance(scale, collections.Iterable) and len(scale) == 2 \
-#                 and isinstance(scale[0], numbers.Number) and isinstance(scale[1], numbers.Number) \
-#                 and 0 < scale[0] < scale[1]:
-#             self.scale = scale
-#         else:
-#             raise (RuntimeError("segtransform.RandScale() scale param error.\n"))
-#         if aspect_ratio is None:
-#             self.aspect_ratio = aspect_ratio
-#         elif isinstance(aspect_ratio, collections.Iterable) and len(aspect_ratio) == 2 \
-#                 and isinstance(aspect_ratio[0], numbers.Number) and isinstance(aspect_ratio[1], numbers.Number) \
-#                 and 0 < aspect_ratio[0] < aspect_ratio[1]:
-#             self.aspect_ratio = aspect_ratio
-#         else:
-#             raise (RuntimeError("segtransform.RandScale() aspect_ratio param error.\n"))
-
-#     def __call__(self, image, label):
-#         temp_scale = self.scale[0] + (self.scale[1] - self.scale[0]) * random.random()
-#         temp_aspect_ratio = 1.0
-#         if self.aspect_ratio is not None:
-#             temp_aspect_ratio = self.aspect_ratio[0] + (self.aspect_ratio[1] - self.aspect_ratio[0]) * random.random()
-#             temp_aspect_ratio = math.sqrt(temp_aspect_ratio)
-#         scale_factor_x = temp_scale * temp_aspect_ratio
-#         scale_factor_y = temp_scale / temp_aspect_ratio
-#         image = cv2.resize(image, None, fx=scale_factor_x, fy=scale_factor_y, interpolation=cv2.INTER_LINEAR)
-#         label = cv2.resize(label, None, fx=scale_factor_x, fy=scale_factor_y, interpolation=cv2.INTER_NEAREST)
-#         return image, label
 
 
 class CropBase(object):
