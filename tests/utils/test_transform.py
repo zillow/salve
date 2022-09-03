@@ -1,6 +1,6 @@
 """Unit tests to make sure data augmentation / preprocessing transforms work correctly."""
 
-import time
+import copy
 from pathlib import Path
 from typing import Tuple
 
@@ -38,26 +38,6 @@ def _get_quadruplet_image_data() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np
     x1f = imageio.imread(_BUILDING_RENDERINGS_ROOT / IMG_FNAME_FLOOR_1)
     x2f = imageio.imread(_BUILDING_RENDERINGS_ROOT / IMG_FNAME_FLOOR_2)
     return x1c, x2c, x1f, x2f
-
-
-    # if len(args.modalities) == 1:
-    #     Resize = transform.ResizePair
-    #     Crop = transform.CropPair
-    #     ToTensor = transform.ToTensorPair
-    #     Normalize = transform.NormalizePair
-    #     RandomHorizontalFlip = transform.RandomHorizontalFlipPair
-    #     RandomVerticalFlip = transform.RandomVerticalFlipPair
-    #     Compose = transform.ComposePair
-
-    # elif len(args.modalities) == 3:
-    #     Resize = transform.ResizeSextuplet
-    #     Crop = transform.CropSextuplet
-    #     ToTensor = transform.ToTensorSextuplet
-    #     Normalize = transform.NormalizeSextuplet
-    #     RandomHorizontalFlip = transform.RandomHorizontalFlipSextuplet
-    #     RandomVerticalFlip = transform.RandomVerticalFlipSextuplet
-    #     Compose = transform.ComposeSextuplet
-
 
 
 def test_compose_quadruplet() -> None:
@@ -105,24 +85,27 @@ def test_compose_quadruplet() -> None:
 
 
 def test_normalize_quadruplet() -> None:
-    """ """
-    x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
+    """Ensures that pixel value normlization by mean and standard deviation is correct."""
+    img_h, img_w = 501, 501
+    fill_value = 220
+    img = np.ones((3, img_h, img_w), dtype=np.float32) * fill_value
+    img = torch.from_numpy(img)
 
+    # Make 4 separate identical images for quadruplet.
+    x1c, x2c, x1f, x2f = copy.deepcopy(img), copy.deepcopy(img), copy.deepcopy(img), copy.deepcopy(img)
 
-#     mean, std = get_imagenet_mean_std()
+    mean = [110, 110, 110]
+    std = [55, 55, 55]
 
-#     transform = transform_utils.NormalizeQuadruplet(mean=mean, std=std)
-#     x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
+    transform = transform_utils.NormalizeQuadruplet(mean=mean, std=std)
+    x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
 
-    # import matplotlib.pyplot as plt
-    # plt.subplot(1,2,1)
-    # plt.imshow(x1f)
-
-    # plt.subplot(1,2,2)
-    # plt.imshow(x1f_)
-
-    # plt.show()
-
+    expected_output = torch.ones((3, img_h, img_w), dtype=torch.float32) * 2.0 
+    assert torch.allclose(x1c_, expected_output)
+    assert torch.allclose(x2c_, expected_output)
+    assert torch.allclose(x1f_, expected_output)
+    assert torch.allclose(x2f_, expected_output)
+    
 
 def test_totensor_quadruplet() -> None:
     """Ensures that ToTensor() transform converts HWC numpy arrays to CHW Pytorch tensors, preserving dims."""
@@ -281,12 +264,3 @@ def test_photometric_shift_quadruplet_no_jitter_types_is_identity() -> None:
         assert np.allclose(image2, image2_)
         assert np.allclose(image3, image3_)
         assert np.allclose(image4, image4_)
-
-
-
-if __name__ == '__main__':
-
-    #test_normalize_quadruplet()
-    test_compose_quadruplet()
-
-
