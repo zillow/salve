@@ -1,5 +1,8 @@
-"""
-Utilities for data augmentation and preprocessing.
+"""Utilities for data augmentation and preprocessing.
+
+Some transforms are adapted from https://github.com/hszhao/semseg/blob/master/util/transform.py.
+Note: we do not define or use any random scaling transforms (`RandScale`) here, in order to preserve metric scale.
+However, some very minor scale perturbations could potentially help prevent overfitting.
 """
 
 import collections
@@ -25,9 +28,7 @@ TensorSextuplet = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]
 
 
 class ComposePair(object):
-    """
-    Composes transforms together into a chain of operations, for 4 aligned inputs.
-    """
+    """Composes transforms together into a chain of operations, for 2 aligned inputs."""
 
     def __init__(self, transforms: List[Callable]) -> None:
         self.transforms = transforms
@@ -40,9 +41,7 @@ class ComposePair(object):
 
 
 class ComposeQuadruplet(object):
-    """
-    Composes transforms together into a chain of operations, for 4 aligned inputs.
-    """
+    """Composes transforms together into a chain of operations, for 4 aligned inputs."""
 
     def __init__(self, transforms: List[Callable]) -> None:
         self.transforms = transforms
@@ -57,9 +56,7 @@ class ComposeQuadruplet(object):
 
 
 class ComposeSextuplet(object):
-    """
-    Composes transforms together into a chain of operations, for 4 aligned inputs.
-    """
+    """Composes transforms together into a chain of operations, for 6 aligned inputs."""
 
     def __init__(self, transforms: List[Callable]) -> None:
         self.transforms = transforms
@@ -89,14 +86,15 @@ def to_tensor_op(img: np.ndarray) -> Tensor:
 
 
 class ToTensorPair(object):
-    # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
+    """Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W)."""
+
     def __call__(self, image1: np.ndarray, image2: np.ndarray) -> TensorPair:
         """ """
         if not all([isinstance(img, np.ndarray) for img in [image1, image2]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
 
         if not all([img.ndim == 3 for img in [image1, image2]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
 
         image1 = to_tensor_op(image1)
         image2 = to_tensor_op(image2)
@@ -105,16 +103,17 @@ class ToTensorPair(object):
 
 
 class ToTensorQuadruplet(object):
-    # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
+    """Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W)."""
+
     def __call__(
         self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
     ) -> TensorQuadruplet:
         """ """
         if not all([isinstance(img, np.ndarray) for img in [image1, image2, image3, image4]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
 
         if not all([img.ndim == 3 for img in [image1, image2, image3, image4]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
 
         image1 = to_tensor_op(image1)
         image2 = to_tensor_op(image2)
@@ -125,7 +124,8 @@ class ToTensorQuadruplet(object):
 
 
 class ToTensorSextuplet(object):
-    # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
+    """Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W)."""
+
     def __call__(
         self,
         image1: np.ndarray,
@@ -137,10 +137,10 @@ class ToTensorSextuplet(object):
     ) -> TensorSextuplet:
         """ """
         if not all([isinstance(img, np.ndarray) for img in [image1, image2, image3, image4, image5, image6]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
 
         if not all([img.ndim == 3 for img in [image1, image2, image3, image4, image5, image6]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
 
         image1 = to_tensor_op(image1)
         image2 = to_tensor_op(image2)
@@ -153,7 +153,7 @@ class ToTensorSextuplet(object):
 
 
 class NormalizePair(object):
-    # Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std
+    """Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std."""
     def __init__(self, mean, std=None):
         """ """
         if std is None:
@@ -175,7 +175,7 @@ class NormalizePair(object):
 
 
 class NormalizeQuadruplet(object):
-    # Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std
+    """Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std."""
     def __init__(self, mean, std=None):
         """ """
         if std is None:
@@ -203,7 +203,7 @@ class NormalizeQuadruplet(object):
 
 
 class NormalizeSextuplet(object):
-    # Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std
+    """Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std."""
     def __init__(self, mean, std=None):
         """ """
         if std is None:
@@ -239,7 +239,7 @@ class NormalizeSextuplet(object):
 
 
 class ResizePair(object):
-    # Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w).
+    """Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w)."""
     def __init__(self, size: Tuple[int, int]) -> None:
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
@@ -254,7 +254,7 @@ class ResizePair(object):
 
 
 class ResizeQuadruplet(object):
-    # Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w).
+    """Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w)."""
     def __init__(self, size: Tuple[int, int]) -> None:
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
@@ -273,7 +273,7 @@ class ResizeQuadruplet(object):
 
 
 class ResizeSextuplet(object):
-    # Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w).
+    """Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w)."""
     def __init__(self, size: Tuple[int, int]) -> None:
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
@@ -299,51 +299,16 @@ class ResizeSextuplet(object):
         return image1, image2, image3, image4, image5, image6
 
 
-# class RandScale(object):
-#     # Randomly resize image & label with scale factor in [scale_min, scale_max]
-#     def __init__(self, scale, aspect_ratio=None):
-#         assert (isinstance(scale, collections.Iterable) and len(scale) == 2)
-#         if isinstance(scale, collections.Iterable) and len(scale) == 2 \
-#                 and isinstance(scale[0], numbers.Number) and isinstance(scale[1], numbers.Number) \
-#                 and 0 < scale[0] < scale[1]:
-#             self.scale = scale
-#         else:
-#             raise (RuntimeError("segtransform.RandScale() scale param error.\n"))
-#         if aspect_ratio is None:
-#             self.aspect_ratio = aspect_ratio
-#         elif isinstance(aspect_ratio, collections.Iterable) and len(aspect_ratio) == 2 \
-#                 and isinstance(aspect_ratio[0], numbers.Number) and isinstance(aspect_ratio[1], numbers.Number) \
-#                 and 0 < aspect_ratio[0] < aspect_ratio[1]:
-#             self.aspect_ratio = aspect_ratio
-#         else:
-#             raise (RuntimeError("segtransform.RandScale() aspect_ratio param error.\n"))
-
-#     def __call__(self, image, label):
-#         temp_scale = self.scale[0] + (self.scale[1] - self.scale[0]) * random.random()
-#         temp_aspect_ratio = 1.0
-#         if self.aspect_ratio is not None:
-#             temp_aspect_ratio = self.aspect_ratio[0] + (self.aspect_ratio[1] - self.aspect_ratio[0]) * random.random()
-#             temp_aspect_ratio = math.sqrt(temp_aspect_ratio)
-#         scale_factor_x = temp_scale * temp_aspect_ratio
-#         scale_factor_y = temp_scale / temp_aspect_ratio
-#         image = cv2.resize(image, None, fx=scale_factor_x, fy=scale_factor_y, interpolation=cv2.INTER_LINEAR)
-#         label = cv2.resize(label, None, fx=scale_factor_x, fy=scale_factor_y, interpolation=cv2.INTER_NEAREST)
-#         return image, label
-
-
 class CropBase(object):
-    """Crops the given ndarray image (H*W*C or H*W).
-    Args:
-        size (sequence or int): Desired output size of the crop. If size is an
-        int instead of sequence like (h, w), a square crop (size, size) is made.
-    """
+    """Crops the given N-tuple of ndarray images (H*W*C or H*W)."""
 
     def __init__(
         self, size, crop_type: str = "center", padding: Optional[Tuple[int, int, int]] = None, ignore_label: int = 255
-    ):
+    ) -> None:
         """
         Args:
-            size: (h,w) tuple representing (crop height, crop width)
+            size: Desired output size of the crop. Either (h,w) tuple representing (crop height, crop width), or may
+               be an a single integer, in which case a square crop (size, size) is made.
         """
         if isinstance(size, int):
             self.crop_h = size
@@ -385,7 +350,7 @@ class CropBase(object):
 
 
 class CropPair(CropBase):
-    """ """
+    """Crops the given pair of ndarray images (H*W*C or H*W)."""
 
     def __call__(self, image1: np.ndarray, image2: np.ndarray) -> ArrayPair:
         """ """
@@ -416,7 +381,7 @@ class CropPair(CropBase):
 
 
 class CropQuadruplet(CropBase):
-    """ """
+    """Crops the given quadruplet of ndarray images (H*W*C or H*W)."""
 
     def __call__(
         self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
@@ -453,7 +418,7 @@ class CropQuadruplet(CropBase):
 
 
 class CropSextuplet(CropBase):
-    """ """
+    """Crops the given 6-tuple of ndarray images (H*W*C or H*W)."""
 
     def __call__(
         self,
@@ -659,21 +624,31 @@ class RandomVerticalFlipSextuplet(object):
 
 
 class PhotometricShiftQuadruplet(object):
+    """Apply photometric shifts to each image in an 4-tuple independently.
+    
+    Note: we find that utitilization of this transform at training time does not improve generalization.
+    """
+
     def __init__(self, jitter_types: List[str] = ["brightness", "contrast", "saturation", "hue"]) -> None:
-        """
-        brightness (float or tuple of python:float (min, max)) – How much to jitter brightness.
+        """Initialize photometric shift parameters.
+
+        We use the `ColorJitter` transfrom from `torchvision`. 
+        Ref: https://pytorch.org/vision/main/generated/torchvision.transforms.ColorJitter.html
+        From the official documentation:
+
+        `brightness` (float or tuple of python:float (min, max)) – How much to jitter brightness.
         brightness_factor is chosen uniformly from [max(0, 1 - brightness), 1 + brightness] or the given [min, max].
         Should be non negative numbers.
 
-        contrast (float or tuple of python:float (min, max)) – How much to jitter contrast.
+        `contrast` (float or tuple of python:float (min, max)) – How much to jitter contrast.
         contrast_factor is chosen uniformly from [max(0, 1 - contrast), 1 + contrast] or the given [min, max].
         Should be non negative numbers.
 
-        saturation (float or tuple of python:float (min, max)) – How much to jitter saturation.
+        `saturation` (float or tuple of python:float (min, max)) – How much to jitter saturation.
         saturation_factor is chosen uniformly from [max(0, 1 - saturation), 1 + saturation] or the given [min, max].
         Should be non negative numbers.
 
-        hue (float or tuple of python:float (min, max)) – How much to jitter hue.
+        `hue` (float or tuple of python:float (min, max)) – How much to jitter hue.
         hue_factor is chosen uniformly from [-hue, hue] or the given [min, max].
         Should have 0<= hue <= 0.5 or -0.5 <= min <= max <= 0.5.
 
@@ -696,10 +671,8 @@ class PhotometricShiftQuadruplet(object):
     def __call__(
         self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """
-        If the image is torch Tensor, it is expected to have […, 3, H, W] shape, where … means an arbitrary number of leading dimensions.
+        """Applies photometric shifts to each image in an 4-tuple independently."""
 
-        """
         jitter = torchvision.transforms.ColorJitter(
             brightness=self.brightness_jitter,
             contrast=self.contrast_jitter,

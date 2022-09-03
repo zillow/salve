@@ -6,7 +6,6 @@ Can use Pose2 instead of Similarity(2) from the get-go.
 """
 
 import copy
-import glob
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -411,7 +410,8 @@ class PoseGraph2d(NamedTuple):
 
         mean_err = np.mean(errs)
         print(
-            f"Mean absolute rot. error: {mean_err:.1f}. Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos."
+            f"Mean absolute rot. error: {mean_err:.1f}. "
+            f"Estimated rotation for {len(self.nodes)} of {len(gt_floor_pg.nodes)} GT panos."
         )
         return mean_err
 
