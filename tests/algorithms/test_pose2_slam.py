@@ -1,4 +1,4 @@
-"""Unit tests on lannmark-based SLAM utilities."""
+"""Unit tests on landmark-based SLAM utilities."""
 
 import math
 
