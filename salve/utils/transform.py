@@ -25,9 +25,7 @@ TensorSextuplet = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]
 
 
 class ComposePair(object):
-    """
-    Composes transforms together into a chain of operations, for 4 aligned inputs.
-    """
+    """Composes transforms together into a chain of operations, for 2 aligned inputs."""
 
     def __init__(self, transforms: List[Callable]) -> None:
         self.transforms = transforms
@@ -40,9 +38,7 @@ class ComposePair(object):
 
 
 class ComposeQuadruplet(object):
-    """
-    Composes transforms together into a chain of operations, for 4 aligned inputs.
-    """
+    """Composes transforms together into a chain of operations, for 4 aligned inputs."""
 
     def __init__(self, transforms: List[Callable]) -> None:
         self.transforms = transforms
@@ -57,9 +53,7 @@ class ComposeQuadruplet(object):
 
 
 class ComposeSextuplet(object):
-    """
-    Composes transforms together into a chain of operations, for 4 aligned inputs.
-    """
+    """Composes transforms together into a chain of operations, for 6 aligned inputs."""
 
     def __init__(self, transforms: List[Callable]) -> None:
         self.transforms = transforms
@@ -153,7 +147,7 @@ class ToTensorSextuplet(object):
 
 
 class NormalizePair(object):
-    # Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std
+    """Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std."""
     def __init__(self, mean, std=None):
         """ """
         if std is None:
@@ -175,7 +169,7 @@ class NormalizePair(object):
 
 
 class NormalizeQuadruplet(object):
-    # Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std
+    """Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std."""
     def __init__(self, mean, std=None):
         """ """
         if std is None:
@@ -203,7 +197,7 @@ class NormalizeQuadruplet(object):
 
 
 class NormalizeSextuplet(object):
-    # Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std
+    """Normalize tensor with mean and standard deviation along channel: channel = (channel - mean) / std."""
     def __init__(self, mean, std=None):
         """ """
         if std is None:
@@ -239,7 +233,7 @@ class NormalizeSextuplet(object):
 
 
 class ResizePair(object):
-    # Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w).
+    """Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w)."""
     def __init__(self, size: Tuple[int, int]) -> None:
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
@@ -254,7 +248,7 @@ class ResizePair(object):
 
 
 class ResizeQuadruplet(object):
-    # Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w).
+    """Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w)."""
     def __init__(self, size: Tuple[int, int]) -> None:
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
@@ -273,7 +267,7 @@ class ResizeQuadruplet(object):
 
 
 class ResizeSextuplet(object):
-    # Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w).
+    """Resize the input to the given size, 'size' is a 2-element tuple or list in the order of (h, w)."""
     def __init__(self, size: Tuple[int, int]) -> None:
         assert isinstance(size, collections.Iterable) and len(size) == 2
         self.size = size
@@ -332,18 +326,15 @@ class ResizeSextuplet(object):
 
 
 class CropBase(object):
-    """Crops the given ndarray image (H*W*C or H*W).
-    Args:
-        size (sequence or int): Desired output size of the crop. If size is an
-        int instead of sequence like (h, w), a square crop (size, size) is made.
-    """
+    """Crops the given N-tuple of ndarray images (H*W*C or H*W)."""
 
     def __init__(
         self, size, crop_type: str = "center", padding: Optional[Tuple[int, int, int]] = None, ignore_label: int = 255
-    ):
+    ) -> None:
         """
         Args:
-            size: (h,w) tuple representing (crop height, crop width)
+            size: Desired output size of the crop. Either (h,w) tuple representing (crop height, crop width), or may
+               be an a single integer, in which case a square crop (size, size) is made.
         """
         if isinstance(size, int):
             self.crop_h = size
@@ -385,7 +376,7 @@ class CropBase(object):
 
 
 class CropPair(CropBase):
-    """ """
+    """Crops the given pair of ndarray images (H*W*C or H*W)."""
 
     def __call__(self, image1: np.ndarray, image2: np.ndarray) -> ArrayPair:
         """ """
@@ -416,7 +407,7 @@ class CropPair(CropBase):
 
 
 class CropQuadruplet(CropBase):
-    """ """
+    """Crops the given quadruplet of ndarray images (H*W*C or H*W)."""
 
     def __call__(
         self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
@@ -453,7 +444,7 @@ class CropQuadruplet(CropBase):
 
 
 class CropSextuplet(CropBase):
-    """ """
+    """Crops the given 6-tuple of ndarray images (H*W*C or H*W)."""
 
     def __call__(
         self,
@@ -659,21 +650,31 @@ class RandomVerticalFlipSextuplet(object):
 
 
 class PhotometricShiftQuadruplet(object):
+    """Apply photometric shifts to each image in an 4-tuple independently.
+    
+    Note: we find that utitilization of this transform at training time does not improve generalization.
+    """
+
     def __init__(self, jitter_types: List[str] = ["brightness", "contrast", "saturation", "hue"]) -> None:
-        """
-        brightness (float or tuple of python:float (min, max)) – How much to jitter brightness.
+        """Initialize photometric shift parameters.
+
+        We use the `ColorJitter` transfrom from `torchvision`. 
+        Ref: https://pytorch.org/vision/main/generated/torchvision.transforms.ColorJitter.html
+        From the official documentation:
+
+        `brightness` (float or tuple of python:float (min, max)) – How much to jitter brightness.
         brightness_factor is chosen uniformly from [max(0, 1 - brightness), 1 + brightness] or the given [min, max].
         Should be non negative numbers.
 
-        contrast (float or tuple of python:float (min, max)) – How much to jitter contrast.
+        `contrast` (float or tuple of python:float (min, max)) – How much to jitter contrast.
         contrast_factor is chosen uniformly from [max(0, 1 - contrast), 1 + contrast] or the given [min, max].
         Should be non negative numbers.
 
-        saturation (float or tuple of python:float (min, max)) – How much to jitter saturation.
+        `saturation` (float or tuple of python:float (min, max)) – How much to jitter saturation.
         saturation_factor is chosen uniformly from [max(0, 1 - saturation), 1 + saturation] or the given [min, max].
         Should be non negative numbers.
 
-        hue (float or tuple of python:float (min, max)) – How much to jitter hue.
+        `hue` (float or tuple of python:float (min, max)) – How much to jitter hue.
         hue_factor is chosen uniformly from [-hue, hue] or the given [min, max].
         Should have 0<= hue <= 0.5 or -0.5 <= min <= max <= 0.5.
 
@@ -696,10 +697,8 @@ class PhotometricShiftQuadruplet(object):
     def __call__(
         self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """
-        If the image is torch Tensor, it is expected to have […, 3, H, W] shape, where … means an arbitrary number of leading dimensions.
+        """Applies photometric shifts to each image in an 4-tuple independently."""
 
-        """
         jitter = torchvision.transforms.ColorJitter(
             brightness=self.brightness_jitter,
             contrast=self.contrast_jitter,
