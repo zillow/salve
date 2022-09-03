@@ -192,10 +192,10 @@ def test_ransac_spanning_trees() -> None:
 
     i2Ti0_noisy = wT2_noisy.between(wT0)
 
-    i1Si0 = convert_Pose2_to_Sim2(i1Ti0)
-    i2Si1 = convert_Pose2_to_Sim2(i2Ti1)
-    i2Si0 = convert_Pose2_to_Sim2(i2Ti0)
-    i2Si0_noisy = convert_Pose2_to_Sim2(i2Ti0_noisy)
+    i1Si0 = _convert_Pose2_to_Sim2(i1Ti0)
+    i2Si1 = _convert_Pose2_to_Sim2(i2Ti1)
+    i2Si0 = _convert_Pose2_to_Sim2(i2Ti0)
+    i2Si0_noisy = _convert_Pose2_to_Sim2(i2Ti0_noisy)
 
     # fmt: off
     high_conf_measurements = [
