@@ -86,14 +86,15 @@ def to_tensor_op(img: np.ndarray) -> Tensor:
 
 
 class ToTensorPair(object):
-    # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
+    """Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W)."""
+
     def __call__(self, image1: np.ndarray, image2: np.ndarray) -> TensorPair:
         """ """
         if not all([isinstance(img, np.ndarray) for img in [image1, image2]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
 
         if not all([img.ndim == 3 for img in [image1, image2]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
 
         image1 = to_tensor_op(image1)
         image2 = to_tensor_op(image2)
@@ -102,16 +103,17 @@ class ToTensorPair(object):
 
 
 class ToTensorQuadruplet(object):
-    # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
+    """Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W)."""
+
     def __call__(
         self, image1: np.ndarray, image2: np.ndarray, image3: np.ndarray, image4: np.ndarray
     ) -> TensorQuadruplet:
         """ """
         if not all([isinstance(img, np.ndarray) for img in [image1, image2, image3, image4]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
 
         if not all([img.ndim == 3 for img in [image1, image2, image3, image4]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
 
         image1 = to_tensor_op(image1)
         image2 = to_tensor_op(image2)
@@ -122,7 +124,8 @@ class ToTensorQuadruplet(object):
 
 
 class ToTensorSextuplet(object):
-    # Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W).
+    """Converts numpy.ndarray (H x W x C) to a torch.FloatTensor of shape (C x H x W)."""
+
     def __call__(
         self,
         image1: np.ndarray,
@@ -134,10 +137,10 @@ class ToTensorSextuplet(object):
     ) -> TensorSextuplet:
         """ """
         if not all([isinstance(img, np.ndarray) for img in [image1, image2, image3, image4, image5, image6]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray [eg: data readed by cv2.imread()].\n")
 
         if not all([img.ndim == 3 for img in [image1, image2, image3, image4, image5, image6]]):
-            raise RuntimeError("segtransform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
+            raise RuntimeError("transform.ToTensor() only handle np.ndarray with 3 dims or 2 dims.\n")
 
         image1 = to_tensor_op(image1)
         image2 = to_tensor_op(image2)

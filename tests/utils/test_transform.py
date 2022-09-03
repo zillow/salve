@@ -8,7 +8,8 @@ import imageio.v2 as imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
+# from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
+import torch
 
 import salve.utils.transform as transform_utils
 
@@ -94,16 +95,9 @@ def test_compose_quadruplet() -> None:
     # x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
 
 
-# def test_totensor_quadruplet() -> None:
-#     """ """
-#     x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
-#     transform = transform_utils.ToTensorQuadruplet()
-#     x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
-
-
-# def test_normalize_quadruplet() -> None:
-#     """ """
-#     x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
+def test_normalize_quadruplet() -> None:
+    """ """
+    x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
 
 #     mean, std = get_imagenet_mean_std()
 
@@ -120,6 +114,23 @@ def test_compose_quadruplet() -> None:
     # plt.show()
 
 
+def test_totensor_quadruplet() -> None:
+    """Ensures that ToTensor() transform converts HWC numpy arrays to CHW Pytorch tensors, preserving dims."""
+    x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
+    transform = transform_utils.ToTensorQuadruplet()
+    x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
+
+    # All outputs should be Pytorch tensors.
+    assert isinstance(x1c_, torch.Tensor)
+    assert isinstance(x2c_, torch.Tensor)
+    assert isinstance(x1f_, torch.Tensor)
+    assert isinstance(x2f_, torch.Tensor)
+
+    # Shape should be preserved.
+    assert x1c_.shape == (3, 501, 501)
+    assert x2c_.shape == (3, 501, 501)
+    assert x1f_.shape == (3, 501, 501)
+    assert x2f_.shape == (3, 501, 501)
 
 
 def test_resize_quadruplet() -> None:
@@ -145,7 +156,8 @@ def test_crop_quadruplet(crop_type: str) -> None:
     x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
 
     train_h, train_w = 224, 224
-    mean, _ = get_imagenet_mean_std()
+    # Using ImageNet's mean below.
+    mean = [123.675, 116.28, 103.53]
 
     transform = transform_utils.CropQuadruplet(size=(train_h, train_w), crop_type=crop_type, padding=mean)
     x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
@@ -264,7 +276,6 @@ def test_photometric_shift_quadruplet_no_jitter_types_is_identity() -> None:
 
 if __name__ == '__main__':
 
-    #test_normalize_quadruplet()
-    test_totensor_quadruplet()
+    test_normalize_quadruplet()
 
 
