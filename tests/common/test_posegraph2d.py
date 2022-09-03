@@ -1,4 +1,4 @@
-"""Ensure that 2d pose graph evaluation is correct."""
+"""Unit tests for 2d pose graph utilities (including accuracy evaluation)."""
 
 from unittest.mock import MagicMock
 
@@ -27,40 +27,6 @@ def test_convert_Sim3_to_Sim2() -> None:
     assert np.allclose(a_Sim2_b.rotation, expected_aRb)
     assert np.allclose(a_Sim2_b.translation, expected_atb)
     assert np.isclose(a_Sim2_b.scale, expected_scale)
-
-    """
-    #bTi_list_est[16]
-    bTi = Pose3(
-        Rot3(
-            np.array(
-                [
-                    [1, 1.45117e-13, 0],
-                    [-1.45117e-13, 1, 0],
-                    [0, 0, 1]
-                ]
-            )
-        ),
-        np.array([ 3.16638e-13, 4.05347e-13,           0 ])
-    )
-    """
-
-    a_Sim2_b = Sim2(
-        R=expected_aRb,
-        t=expected_atb,
-        s=expected_scale
-    )
-    b_Sim2_i = Sim2(
-        R=np.array(
-            [
-                [1, 1.45117e-13],
-                [-1.45117e-13, 1]
-            ]
-        ),
-        t=np.array([ 3.16638e-13, 4.05347e-13]),
-        s=1.0
-    )
-    a_Sim2_i = a_Sim2_b.compose(b_Sim2_i)
-    # import pdb; pdb.set_trace()
 
 
 def test_Sim2_compose():
@@ -211,9 +177,9 @@ def test_measure_avg_abs_rotation_err() -> None:
 
 
 def test_measure_abs_pose_error_shifted() -> None:
-    """Pose graph is shifted to the left by 1 meter, but Sim(3) alignment should fix this. Should have zero error.
-
-    TODO: fix rotations to be +90
+    """Ensures that error is zero between two 2d pose graphs identical besides a (-1,0) translation shift.
+    
+    Pose graph is shifted to the left by 1 meter, but Sim(3) alignment resolves this, yielding zero error.
 
     GT pose graph:
 
@@ -241,13 +207,13 @@ def test_measure_abs_pose_error_shifted() -> None:
     building_id = "000"
     floor_id = "floor_01"
 
-    wRi_list = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
+    wRi_list = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(90), rotation_utils.rotmat2d(0)]
     wti_list = [np.array([-1, 0]), np.array([-1, 4]), np.array([3, 0])]
 
     gt_floor_pg = MagicMock()
     est_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pg=gt_floor_pg)
 
-    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
+    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(90), rotation_utils.rotmat2d(0)]
     wti_list_gt = [np.array([0, 0]), np.array([0, 4]), np.array([4, 0])]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list_gt, wti_list, gt_floor_pg=gt_floor_pg)
 
@@ -259,11 +225,8 @@ def test_measure_abs_pose_error_shifted() -> None:
 
 
 if __name__ == "__main__":
-    test_convert_Sim3_to_Sim2()
 
     # test_measure_avg_rel_rotation_err()
-    # test_measure_avg_abs_rotation_err()
+    test_measure_avg_abs_rotation_err()
     # test_measure_avg_rel_rotation_err_unestimated()
     # test_measure_abs_pose_error()
-
-    # test_measure_abs_pose_error_shifted()
