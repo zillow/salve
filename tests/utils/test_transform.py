@@ -8,7 +8,6 @@ import imageio.v2 as imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-# from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
 import torch
 
 import salve.utils.transform as transform_utils
@@ -41,11 +40,6 @@ def _get_quadruplet_image_data() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np
     return x1c, x2c, x1f, x2f
 
 
-def test_compose_quadruplet() -> None:
-    """ """
-    x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
-    #transform = transform_utils.ComposeQuadruplet(transforms=)
-
     # if len(args.modalities) == 1:
     #     Resize = transform.ResizePair
     #     Crop = transform.CropPair
@@ -54,15 +48,6 @@ def test_compose_quadruplet() -> None:
     #     RandomHorizontalFlip = transform.RandomHorizontalFlipPair
     #     RandomVerticalFlip = transform.RandomVerticalFlipPair
     #     Compose = transform.ComposePair
-
-    # elif len(args.modalities) == 2:
-    #     Resize = transform.ResizeQuadruplet
-    #     Crop = transform.CropQuadruplet
-    #     ToTensor = transform.ToTensorQuadruplet
-    #     Normalize = transform.NormalizeQuadruplet
-    #     RandomHorizontalFlip = transform.RandomHorizontalFlipQuadruplet
-    #     RandomVerticalFlip = transform.RandomVerticalFlipQuadruplet
-    #     Compose = transform.ComposeQuadruplet
 
     # elif len(args.modalities) == 3:
     #     Resize = transform.ResizeSextuplet
@@ -73,31 +58,56 @@ def test_compose_quadruplet() -> None:
     #     RandomVerticalFlip = transform.RandomVerticalFlipSextuplet
     #     Compose = transform.ComposeSextuplet
 
-    # mean, std = get_imagenet_mean_std()
 
-    # # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
-    # # random crops to prevent memorization
 
-    # transform_list = [Resize(size=(args.resize_h, args.resize_w))]
+def test_compose_quadruplet() -> None:
+    """Ensures that composing together many transforms can yield tensors of expected shape."""
+    x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
 
-    # if args.apply_photometric_augmentation:
-    #     transform_list += [transform.PhotometricShift(jitter_types=["brightness", "contrast", "saturation", "hue"])]
+    # As if using 2 input modalities (2 renderings per pano).
+    Resize = transform_utils.ResizeQuadruplet
+    Crop = transform_utils.CropQuadruplet
+    ToTensor = transform_utils.ToTensorQuadruplet
+    Normalize = transform_utils.NormalizeQuadruplet
+    RandomHorizontalFlip = transform_utils.RandomHorizontalFlipQuadruplet
+    RandomVerticalFlip = transform_utils.RandomVerticalFlipQuadruplet
+    Compose = transform_utils.ComposeQuadruplet
 
-    # transform_list.extend(
-    #     [
-    #         Crop(size=(args.train_h, args.train_w), crop_type="rand", padding=mean),
-    #         RandomHorizontalFlip(),
-    #         RandomVerticalFlip(),
-    #         ToTensor(),
-    #         Normalize(mean=mean, std=std),
-    #     ]
+    # Corresponds to ImageNet mean and std.
+    mean = [123.675, 116.28, 103.53]
+    std = [58.395, 57.120000000000005, 57.375]
 
-    # x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
+    resize_h, resize_w = 300, 300
+    train_h, train_w = 200, 200
+
+    transform_list = [
+        Resize(size=(resize_h, resize_w)),
+        Crop(size=(train_h, train_w), crop_type="rand", padding=mean),
+        RandomHorizontalFlip(),
+        RandomVerticalFlip(),
+        ToTensor(),
+        Normalize(mean=mean, std=std),
+    ]
+    transform = transform_utils.ComposeQuadruplet(transforms=transform_list)
+    x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
+
+    # All outputs should be Pytorch tensors.
+    assert isinstance(x1c_, torch.Tensor)
+    assert isinstance(x2c_, torch.Tensor)
+    assert isinstance(x1f_, torch.Tensor)
+    assert isinstance(x2f_, torch.Tensor)
+
+    # Shape should be preserved.
+    assert x1c_.shape == (3, 200, 200)
+    assert x2c_.shape == (3, 200, 200)
+    assert x1f_.shape == (3, 200, 200)
+    assert x2f_.shape == (3, 200, 200)
 
 
 def test_normalize_quadruplet() -> None:
     """ """
     x1c, x2c, x1f, x2f = _get_quadruplet_image_data()
+
 
 #     mean, std = get_imagenet_mean_std()
 
@@ -276,6 +286,7 @@ def test_photometric_shift_quadruplet_no_jitter_types_is_identity() -> None:
 
 if __name__ == '__main__':
 
-    test_normalize_quadruplet()
+    #test_normalize_quadruplet()
+    test_compose_quadruplet()
 
 
