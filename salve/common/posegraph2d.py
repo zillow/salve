@@ -438,9 +438,15 @@ class PoseGraph2d(NamedTuple):
     ) -> float:
         """Measure average relative rotation error over relative pose edges.
 
+        Because evaluation here is relative, rather than absolute, pose-graph alignment is not required.
+
         Args:
             gt_floor_pg: ground truth pose graph.
-            gt_edges: list of (i1,i2) pairs representing panorama pairs where a W/D/O is found closeby between the two
+            gt_edges: list of pano-pano edges to use for evaluation. These generally should represent a list of
+                (i1,i2) pairs representing panorama pairs where a W/D/O is found closeby between the two.
+
+        Returns:
+            Scalar indicating mean relative rotation error.
         """
         errs = []
         for (i1, i2) in gt_edges:
