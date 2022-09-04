@@ -1,6 +1,7 @@
-"""
-Utilities for interpolating a regular grid of values from sparse points, and for removing
-interpolation artifacts from areas where there was no signal.
+"""Utilities for interpolating a regular 2d grid of values from sparse points.
+
+Utilities are also included for removing interpolation artifacts. Interpolation artifacts arise in areas where
+there was no signal.
 """
 
 import numpy as np
@@ -12,11 +13,10 @@ import scipy.interpolate  # not quite the same as `matplotlib.mlab.griddata`
 from salve.utils.mesh_grid import get_mesh_grid_as_point_cloud
 
 
-# DEFAULT_KERNEL_SZ = 41
-# DEFAULT_KERNEL_SZ = 21
+# We use a 11x11 kernel at 501x501 resolution. a 41x41 kernel is recommended at 2001x2001 resolution.
 DEFAULT_KERNEL_SZ = 11
 
-# minimum number of points required by QHull to construct an initial simplex, for interpolation.
+# Minimum number of points required by QHull to construct an initial simplex, for interpolation.
 MIN_REQUIRED_POINTS_SIMPLEX = 4
 
 

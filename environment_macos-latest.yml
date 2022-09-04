@@ -1,4 +1,4 @@
-name: salve-v8
+name: salve-v9
 channels:
   # The mac environment closely follows the linux conda environment file, 
   # except for two noticeable differences: no CUDA support and no DEGENSAC support.

@@ -15,7 +15,7 @@ import salve.utils.transform as transform_utils
 _TEST_DATA_ROOT = Path(__file__).parent.parent / "test_data"
 
 # Sample renderings taken from `Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8`.
-_BUILDING_RENDERINGS_ROOT = _TEST_DATA_ROOT / "Renderings" / "1208" / "gt_alignment_approx"
+_BUILDING_RENDERINGS_ROOT = _TEST_DATA_ROOT / "Renderings" / "gt_alignment_approx" / "1208"
 
 IMG_FNAME_CEILING_1 = "pair_58___door_0_0_rotated_ceiling_rgb_floor_01_partial_room_04_pano_5.jpg"
 IMG_FNAME_CEILING_2 = "pair_58___door_0_0_rotated_ceiling_rgb_floor_01_partial_room_07_pano_8.jpg"

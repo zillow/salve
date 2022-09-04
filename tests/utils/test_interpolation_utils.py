@@ -1,4 +1,4 @@
-"""Unit tests to ensure interpolation is performed correctly."""
+"""Unit tests to ensure 2d interpolation is performed correctly."""
 
 import numpy as np
 
@@ -142,7 +142,10 @@ def test_remove_hallucinated_content_largekernel() -> None:
 
 
 if __name__ == "__main__":
-    #test_remove_hallucinated_content()
-    #test_remove_hallucinated_content_largekernel()
+
     test_interp_dense_grid_from_sparse_collinear()
+    test_interp_dense_grid_from_sparse_insufficient_points_simplex()
+    test_interp_dense_grid_from_sparse()
+    # test_remove_hallucinated_content() # Can cause segfault.
+    # test_remove_hallucinated_content_largekernel() # Can cause segfault.
 

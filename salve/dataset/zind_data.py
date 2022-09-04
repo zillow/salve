@@ -179,9 +179,9 @@ def make_dataset(
     """Gather a list of all examples within a dataset split.
 
     Args:
-        split: TODO
-        data_root: TODO
-        args: TODO
+        split: dataset split from which to search for examples under `data_root`.
+        data_root: directory where BEV renderings are located.
+        args: training hyperparameters, including dataset specification.
 
     Returns:
         data_list: list of tuples, where each tuple represents file paths + GT labels for a single example.
@@ -196,22 +196,8 @@ def make_dataset(
     # TODO: search from both folders instead
     available_building_ids = get_available_building_ids(dataset_root=f"{data_root}/gt_alignment_approx")
 
-    custom_splits = False
-    if custom_splits:
-        val_building_ids = NEW_HOME_ID_TEST_SET
-        train_building_ids = set(available_building_ids) - set(val_building_ids)
-        train_building_ids = list(train_building_ids)
-
-        if split == "train":
-            split_building_ids = sorted(train_building_ids)
-        elif split in "val":
-            split_building_ids = sorted(val_building_ids)
-        elif split == "test":
-            raise RuntimeError
-
-    else:
-        # We never split off at random. We use official ZinD splits.
-        split_building_ids = list(set(DATASET_SPLITS[split]).intersection(set(available_building_ids)))
+    # We use official ZinD splits.
+    split_building_ids = list(set(DATASET_SPLITS[split]).intersection(set(available_building_ids)))
 
     logging.info(f"{split} split building ids: {split_building_ids}")
     print(f"{split} split building ids: {split_building_ids}")
