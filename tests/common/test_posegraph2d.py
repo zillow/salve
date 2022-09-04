@@ -145,12 +145,10 @@ def test_measure_avg_rel_rotation_err_unestimated() -> None:
 
 
 def test_measure_avg_abs_rotation_err() -> None:
-    """
+    """Ensures that absolute rotation errors are evaluated correctly.
     Create a dummy scenario, to make sure absolute rotation errors are evaluated properly.
 
-    TODO: fix rotations to be +90
-
-    GT rotation graph:
+    GT rotation graph: (dummy scenario)
 
       | 1
     --o
@@ -164,16 +162,17 @@ def test_measure_avg_abs_rotation_err() -> None:
     building_id = "000"
     floor_id = "floor_01"
 
-    wRi_list = [rotation_utils.rotmat2d(-5), rotation_utils.rotmat2d(-95), rotation_utils.rotmat2d(0)]
+    wRi_list = [rotation_utils.rotmat2d(105), rotation_utils.rotmat2d(195), rotation_utils.rotmat2d(100)]
 
     est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
 
-    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(-90), rotation_utils.rotmat2d(0)]
+    wRi_list_gt = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(90), rotation_utils.rotmat2d(0)]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
 
     mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
-
-    assert np.isclose(mean_abs_rot_err, 10 / 3, atol=1e-3)
+    
+    # Large absolute differences become tiny relative differences after alignment (1.7, 1.7, and -3.3 degree errors).
+    assert np.isclose(mean_abs_rot_err, 2.222, atol=1e-3)
 
 
 def test_measure_abs_pose_error_shifted() -> None:
