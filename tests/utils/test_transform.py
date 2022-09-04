@@ -100,12 +100,12 @@ def test_normalize_quadruplet() -> None:
     transform = transform_utils.NormalizeQuadruplet(mean=mean, std=std)
     x1c_, x2c_, x1f_, x2f_ = transform(x1c, x2c, x1f, x2f)
 
-    expected_output = torch.ones((3, img_h, img_w), dtype=torch.float32) * 2.0 
+    expected_output = torch.ones((3, img_h, img_w), dtype=torch.float32) * 2.0
     assert torch.allclose(x1c_, expected_output)
     assert torch.allclose(x2c_, expected_output)
     assert torch.allclose(x1f_, expected_output)
     assert torch.allclose(x2f_, expected_output)
-    
+
 
 def test_totensor_quadruplet() -> None:
     """Ensures that ToTensor() transform converts HWC numpy arrays to CHW Pytorch tensors, preserving dims."""
@@ -142,7 +142,8 @@ def test_resize_quadruplet() -> None:
 
 
 @pytest.mark.parametrize(
-    "crop_type", ["center", "rand"],
+    "crop_type",
+    ["center", "rand"],
 )
 def test_crop_quadruplet(crop_type: str) -> None:
     """Ensures we can take a (224,224) crop from a (501,501) RGB image, with two different crop types."""
@@ -216,15 +217,19 @@ def test_random_vertical_flip_quadruplet() -> None:
 
 
 def test_photometric_shift_quadruplet() -> None:
-    """Ensures we can apply several photometric transforms (brightness, constrast, saturation, hue changes) to 4 images."""
+    """Ensures we can apply several photometric transforms to 4 images.
+
+    These photometric transforms include brightness, constrast, saturation, and hue changes.
+    """
 
     for trial in range(10):
 
         image1, image2, image3, image4 = _get_quadruplet_image_data()
         grid_row1 = np.hstack([image1, image2, image3, image4])
 
-
-        transform = transform_utils.PhotometricShiftQuadruplet(jitter_types=["brightness", "contrast", "saturation", "hue"])
+        transform = transform_utils.PhotometricShiftQuadruplet(
+            jitter_types=["brightness", "contrast", "saturation", "hue"]
+        )
         image1_, image2_, image3_, image4_ = transform(image1, image2, image3, image4)
 
         # Shape should be preserved.
@@ -244,7 +249,7 @@ def test_photometric_shift_quadruplet() -> None:
             grid_row2 = np.hstack([image1, image2, image3, image4])
             grid = np.vstack([grid_row1, grid_row2])
 
-            plt.figure(figsize=(16,10))
+            plt.figure(figsize=(16, 10))
             plt.tight_layout()
             plt.axis("off")
             plt.imshow(grid)
