@@ -24,6 +24,7 @@ def test_texture_map_iou() -> None:
     iou = iou_utils.texture_map_iou(f1, f2)
     assert np.isclose(iou, 1 / 3)
 
+
 def test_binary_mask_iou() -> None:
     """Ensures that IoU computation between two binary masks is correct."""
     # fmt: off
