@@ -1,6 +1,4 @@
-
-"""Visualization utilities that use the Open3d library.
-"""
+"""3d pose graph visualization utilities that use the Open3d library."""
 
 from typing import List, Optional
 
@@ -26,13 +24,14 @@ def get_colormap(N: int) -> np.ndarray:
 
 
 def get_colormapped_spheres(wTi_list: List[Optional[Pose3]]) -> np.ndarray:
-    """
+    """Render each camera as a sphere, with sphere colors incrementally transitioning from red to green.
+
     Args:
-        wTi_list
+        wTi_list: global poses of N cameras.
 
     Returns:
-        point_cloud
-        rgb
+        point_cloud: float array of shape (N,3) representing sphere center coordinates.
+        rgb: uint8 array of shape (N,3) representing sphere RGB colors.
     """
     num_valid_poses = sum([1 if wTi is not None else 0 for wTi in wTi_list])
     colormap = get_colormap(N=num_valid_poses)
