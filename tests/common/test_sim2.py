@@ -15,7 +15,7 @@ import pytest
 from salve.common.sim2 import Sim2
 
 
-TEST_DATA_ROOT = Path(__file__).resolve().parent / "test_data"
+TEST_DATA_ROOT = Path(__file__).resolve().parent.parent / "test_data"
 
 
 def test_constructor() -> None:
