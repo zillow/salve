@@ -34,9 +34,9 @@ def choose_elevated_repeated_vals(
     num_pts = x.shape[0]
     global_idxs = np.arange(num_pts)
 
-    # find min x, max x
+    # Find min x, max x.
     xmin, xmax = 0, x.max()
-    # find min y, max y
+    # Find min y, max y.
     ymin, ymax = 0, y.max()
 
     img_h = ymax - ymin + 1

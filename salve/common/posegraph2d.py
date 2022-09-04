@@ -1,9 +1,9 @@
-"""
-Class to represent 2d pose graphs, render them, and compute error between two of them.
+"""Class to represent 2d pose graphs, render them, and compute error between two of them.
 
 TODO: transformFrom() operation on Similarity(2) needs to be patched from current hacky solution.
 Can use Pose2 instead of Similarity(2) from the get-go.
 """
+from __future__ import annotations
 
 import copy
 import os
@@ -12,9 +12,10 @@ from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import gtsfm.utils.io as io_utils
+import gtsfm.utils.geometry_comparisons as gtsfm_geometry_comparisons
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Point3, Pose3, Similarity3
+from gtsam import Point3, Pose3, Rot3, Similarity3
 from scipy.spatial.transform import Rotation
 
 import salve.utils.ransac as ransac
@@ -77,9 +78,7 @@ class PoseGraph2d(NamedTuple):
         """
         if pano_id not in self.nodes:
             print(f"Pano id {pano_id} not found among {self.nodes.keys()}")
-            import pdb
-
-            pdb.set_trace()
+            import pdb; pdb.set_trace()
 
         # from zillow_floor_map["scale_meters_per_coordinate"][floor_id]
         worldmetric_s_worldnormalized = self.scale_meters_per_coordinate
@@ -96,7 +95,7 @@ class PoseGraph2d(NamedTuple):
         return camera_height_m
 
     @classmethod
-    def from_floor_data(cls, building_id: str, fd: FloorData, scale_meters_per_coordinate: float) -> "PoseGraph2d":
+    def from_floor_data(cls, building_id: str, fd: FloorData, scale_meters_per_coordinate: float) -> PoseGraph2d:
         """ """
         # print(f"scale_meters_per_coordinate: {scale_meters_per_coordinate:.2f}")
         return cls(
@@ -107,14 +106,8 @@ class PoseGraph2d(NamedTuple):
         )
 
     @classmethod
-    def from_json(cls, json_fpath: str) -> "PoseGraph2d":
-        """ """
-        pass
-
-    @classmethod
-    def from_wRi_list(cls, wRi_list: List[np.ndarray], building_id: str, floor_id: str) -> "PoseGraph2d":
-        """
-        from 2x2 rotations
+    def from_wRi_list(cls, wRi_list: List[np.ndarray], building_id: str, floor_id: str) -> PoseGraph2d:
+        """Generate a 2d pose graph from a list of 2x2 rotations.
 
         Fill other pano metadata with dummy values. Alternatively, could populate them from the GT pose graph.
         """
@@ -143,7 +136,7 @@ class PoseGraph2d(NamedTuple):
         )
 
     @classmethod
-    def from_wSi_list(cls, wSi_list: List[Optional[Sim2]], gt_floor_pose_graph: "PoseGraph2d") -> "PoseGraph2d":
+    def from_wSi_list(cls, wSi_list: List[Optional[Sim2]], gt_floor_pose_graph: PoseGraph2d) -> PoseGraph2d:
         """Create a 2d pose graph, given a subset of global poses, and ground truth pose graph.
 
         GT pose graph input provides only GT W/D/O and GT Layout, not poses.
@@ -155,7 +148,7 @@ class PoseGraph2d(NamedTuple):
         return PoseGraph2d.from_wRi_wti_lists(wRi_list, wti_list, gt_floor_pose_graph)
 
     def as_3d_pose_graph(self) -> List[Optional[Pose3]]:
-        """
+        """Return a version of the 2d pose graph that has trivially been lifted to 3d.
 
         Returns:
             wTi_list: list of length N, where N is the one greater than the largest index
@@ -178,8 +171,8 @@ class PoseGraph2d(NamedTuple):
 
     @classmethod
     def from_wRi_wti_lists(
-        cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], gt_floor_pg: "PoseGraph2d"
-    ) -> "PoseGraph2d":
+        cls, wRi_list: List[np.ndarray], wti_list: List[np.ndarray], gt_floor_pg: PoseGraph2d
+    ) -> PoseGraph2d:
         """Generate 2d pose graph from global rotations and global translations of panos.
 
         Args:
@@ -233,8 +226,8 @@ class PoseGraph2d(NamedTuple):
 
     @classmethod
     def from_aligned_est_poses_and_inferred_layouts(
-        cls, aligned_est_floor_pose_graph: "PoseGraph2d", inferred_floor_pose_graph: "PoseGraph2d"
-    ) -> "PoseGraph2d":
+        cls, aligned_est_floor_pose_graph: PoseGraph2d, inferred_floor_pose_graph: PoseGraph2d
+    ) -> PoseGraph2d:
         """Combine estimated global poses with inferred room layouts.
 
         Args:
@@ -275,7 +268,7 @@ class PoseGraph2d(NamedTuple):
         """ """
         pass
 
-    def measure_aligned_abs_pose_error(self, gt_floor_pg: "PoseGraph2d") -> Tuple[float, float, np.ndarray, np.ndarray]:
+    def measure_aligned_abs_pose_error(self, gt_floor_pg: PoseGraph2d) -> Tuple[float, float, np.ndarray, np.ndarray]:
         """Measure pose errors between two pose graphs that have already been aligned.
 
         Args:
@@ -296,7 +289,7 @@ class PoseGraph2d(NamedTuple):
         return mean_rot_err, mean_trans_err, rot_errors, trans_errors
 
     def measure_unaligned_abs_pose_error(
-        self, gt_floor_pg: "PoseGraph2d"
+        self, gt_floor_pg: PoseGraph2d
     ) -> Tuple[float, float, np.ndarray, np.ndarray]:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
 
@@ -322,7 +315,7 @@ class PoseGraph2d(NamedTuple):
         )
         return mean_rot_err, mean_trans_err, rot_errors, trans_errors
 
-    def align_by_Sim3_to_ref_pose_graph(self, ref_pose_graph: "PoseGraph2d") -> "PoseGraph2d":
+    def align_by_Sim3_to_ref_pose_graph(self, ref_pose_graph: PoseGraph2d) -> PoseGraph2d:
         """
         TODO: should it be a class method?
         """
@@ -347,7 +340,7 @@ class PoseGraph2d(NamedTuple):
         aligned_est_pose_graph = self.apply_Sim3(a_Sim3_b=aSb, gt_scale=gt_scale)
         return aligned_est_pose_graph, aligned_bTi_list_est
 
-    def apply_Sim3(self, a_Sim3_b: Similarity3, gt_scale: float) -> "PoseGraph2d":
+    def apply_Sim3(self, a_Sim3_b: Similarity3, gt_scale: float) -> PoseGraph2d:
         """Create a new pose instance of the entire pose graph, after applying a Similarity(2) transform to every pose.
 
         The Similarity(2) transformation is computed by projecting a Similarity(3) transformation to 2d.
@@ -382,29 +375,54 @@ class PoseGraph2d(NamedTuple):
 
         return aligned_est_pose_graph
 
-    def measure_avg_abs_rotation_err(self, gt_floor_pg: "PoseGraph2d") -> float:
-        """Measure how the absolute poses satisfy the individual binary measurement constraints.
+
+    def measure_avg_abs_rotation_err(self, gt_floor_pg: PoseGraph2d) -> float:
+        """After aligning two (potentially rotation-only) pose graphs by Karcher, evaluate rotation angle differences.
 
         If `self` is the estimate, then we measure our error w.r.t. GT argument.
+        An alternative eval method would be to measure how the absolute rotations satisfy the individual binary
+        measurement constraints introduced by the ground truth pose graph.
 
         Args:
-            gt_floor_pg: ground truth pose graph for a single floor
+            gt_floor_pg: ground truth pose graph for a single floor.
 
         Returns:
-            mean_relative_rot_err: average error on each relative rotation.
+            mean_relative_rot_err: average error, aggregated over all relative rotations.
         """
-        raise NotImplementedError("Add alignment")
-        # TODO: have to do a pose-graph alignment first, or Karcher-mean alignment first.
+        # First, perform Karcher-mean alignment of the rotation-only pose graphs.
+        # Use only the number of estimated images as #nodes (not # of GT images).
+        num_images = max(self.nodes.keys()) + 1
+
+        def convert_posegraph2d_to_Rot3_list(pg: PoseGraph2d) -> List[Optional[Rot3]]:
+            """Convert 2d pose graph to list of Rot(3) objects."""
+            wRi_list = [None] * num_images
+            for i, pano_obj in pg.nodes.items():
+                wRi = pano_obj.global_Sim2_local.rotation
+                wRi_list[i] = rotation_utils.rot2x2_to_Rot3(wRi)
+            return wRi_list
+
+        aRi_list = convert_posegraph2d_to_Rot3_list(pg=gt_floor_pg)
+        bRi_list = convert_posegraph2d_to_Rot3_list(pg=self)
+
+        # Obtained transformed input rotations (previously known as "bRi_list", but now living in "a" frame).
+        aRi_list_ = gtsfm_geometry_comparisons.align_rotations(aRi_list=aRi_list, bRi_list=bRi_list)
+
+        def _convert_Rot3_to_Sim2(R: Rot3) -> Sim2:
+            return Sim2(R=R.matrix()[:2,:2], t=np.zeros(2), s=1.0)
 
         errs = []
-        for pano_id, est_pano_obj in self.nodes.items():
+        for pano_id, (aRi, aRi_) in enumerate(zip(aRi_list, aRi_list_)):
+            if aRi is None or aRi_ is None:
+                continue
+            aSi = _convert_Rot3_to_Sim2(aRi)
+            aSi_ = _convert_Rot3_to_Sim2(aRi_)
 
-            theta_deg_est = est_pano_obj.global_Sim2_local.theta_deg
-            theta_deg_gt = gt_floor_pg.nodes[pano_id].global_Sim2_local.theta_deg
+            theta_deg_est = aSi.theta_deg
+            theta_deg_gt = aSi_.theta_deg
 
-            print(f"\tPano {pano_id}: GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}")
+            print(f"\tPano {pano_id} error (post-alignment): GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f} deg.")
 
-            # need to wrap around at 360
+            # We must wrap around the angles at 360.
             err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
             errs.append(err)
 
@@ -416,13 +434,19 @@ class PoseGraph2d(NamedTuple):
         return mean_err
 
     def measure_avg_rel_rotation_err(
-        self, gt_floor_pg: "PoseGraph2d", gt_edges: List[Tuple[int, int]], verbose: bool = True
+        self, gt_floor_pg: PoseGraph2d, gt_edges: List[Tuple[int, int]], verbose: bool = True
     ) -> float:
         """Measure average relative rotation error over relative pose edges.
 
+        Because evaluation here is relative, rather than absolute, pose-graph alignment is not required.
+
         Args:
             gt_floor_pg: ground truth pose graph.
-            gt_edges: list of (i1,i2) pairs representing panorama pairs where a W/D/O is found closeby between the two
+            gt_edges: list of pano-pano edges to use for evaluation. These generally should represent a list of
+                (i1,i2) pairs representing panorama pairs where a W/D/O is found closeby between the two.
+
+        Returns:
+            Scalar indicating mean relative rotation error.
         """
         errs = []
         for (i1, i2) in gt_edges:
