@@ -40,12 +40,6 @@ jobs:
           pip install flake8
           conda info
 
-          # TODO: replace these lines with use of a GTSFM pypi wheel.
-          git clone https://github.com/borglab/gtsfm.git
-          cd gtsfm
-          pip install -e .
-          cd ..
-
       # - name: Flake check
       #   run: |
       #     flake8 --max-line-length 120 --ignore E201,E202,E203,E231,W291,W293,E303,W391,E402,W503,E731 salve

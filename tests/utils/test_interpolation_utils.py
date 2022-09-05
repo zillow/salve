@@ -21,7 +21,7 @@ def test_interp_dense_grid_from_sparse_collinear() -> None:
     rgb_values = np.array([RED, GREEN, RED, GREEN])
     grid_h = 10
     grid_w = 10
-    
+
     # since all collinear, interpolation is impossible
     dense_grid = interpolation_utils.interp_dense_grid_from_sparse(
         bev_img=bev_img, points=points, rgb_values=rgb_values, grid_h=grid_h, grid_w=grid_w, is_semantics=False
@@ -29,10 +29,9 @@ def test_interp_dense_grid_from_sparse_collinear() -> None:
     expected_dense_grid = np.zeros((10, 10, 3))
     assert np.allclose(dense_grid, expected_dense_grid)
 
-
     # now, check for points collinear in y.
     bev_img = np.zeros((10, 10, 3))
-    points = np.array([[0, 0], [3,0], [2,0], [4,0]])
+    points = np.array([[0, 0], [3, 0], [2, 0], [4, 0]])
     # since all collinear, interpolation is impossible
     dense_grid = interpolation_utils.interp_dense_grid_from_sparse(
         bev_img=bev_img, points=points, rgb_values=rgb_values, grid_h=grid_h, grid_w=grid_w, is_semantics=False
@@ -73,13 +72,14 @@ def test_interp_dense_grid_from_sparse() -> None:
     grid_h = 4
     grid_w = 4
 
-    dense_grid = interpolation_utils.interp_dense_grid_from_sparse(bev_img, points, rgb_values, grid_h, grid_w, is_semantics=False)
+    dense_grid = interpolation_utils.interp_dense_grid_from_sparse(
+        bev_img, points, rgb_values, grid_h, grid_w, is_semantics=False
+    )
     assert isinstance(dense_grid, np.ndarray)
     assert dense_grid.shape == (4, 4, 3)
     # import matplotlib.pyplot as plt
     # plt.imshow(dense_grid)
     # plt.show()
-
 
 
 def test_remove_hallucinated_content() -> None:
@@ -148,4 +148,3 @@ if __name__ == "__main__":
     test_interp_dense_grid_from_sparse()
     # test_remove_hallucinated_content() # Can cause segfault.
     # test_remove_hallucinated_content_largekernel() # Can cause segfault.
-

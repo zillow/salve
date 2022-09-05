@@ -3,12 +3,11 @@
 from unittest.mock import MagicMock
 
 import numpy as np
-from gtsam import Pose3, Rot3, Similarity3
+from gtsam import Rot3, Similarity3
 
 import salve.common.posegraph2d as posegraph2d
 import salve.utils.rotation_utils as rotation_utils
 from salve.common.posegraph2d import PoseGraph2d
-from salve.common.sim2 import Sim2
 
 
 def test_convert_Sim3_to_Sim2() -> None:
@@ -129,14 +128,14 @@ def test_measure_avg_abs_rotation_err() -> None:
     gt_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list_gt, building_id, floor_id)
 
     mean_abs_rot_err = est_floor_pose_graph.measure_avg_abs_rotation_err(gt_floor_pg=gt_floor_pose_graph)
-    
+
     # Large absolute differences become tiny relative differences after alignment (1.7, 1.7, and -3.3 degree errors).
     assert np.isclose(mean_abs_rot_err, 2.222, atol=1e-3)
 
 
 def test_measure_abs_pose_error_shifted() -> None:
     """Ensures that error is zero between two 2d pose graphs identical besides a (-1,0) translation shift.
-    
+
     Pose graph is shifted to the left by 1 meter, but Sim(3) alignment resolves this, yielding zero error.
 
     GT pose graph:
@@ -162,9 +161,6 @@ def test_measure_abs_pose_error_shifted() -> None:
     pano 0          pano 2 = (3,0)
       (-1,0)
     """
-    building_id = "000"
-    floor_id = "floor_01"
-
     wRi_list = [rotation_utils.rotmat2d(0), rotation_utils.rotmat2d(90), rotation_utils.rotmat2d(0)]
     wti_list = [np.array([-1, 0]), np.array([-1, 4]), np.array([3, 0])]
 
@@ -175,7 +171,9 @@ def test_measure_abs_pose_error_shifted() -> None:
     wti_list_gt = [np.array([0, 0]), np.array([0, 4]), np.array([4, 0])]
     gt_floor_pose_graph = PoseGraph2d.from_wRi_wti_lists(wRi_list_gt, wti_list, gt_floor_pg=gt_floor_pg)
 
-    avg_rot_error, avg_trans_error, _, _ = est_floor_pose_graph.measure_unaligned_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
+    avg_rot_error, avg_trans_error, _, _ = est_floor_pose_graph.measure_unaligned_abs_pose_error(
+        gt_floor_pg=gt_floor_pose_graph
+    )
 
     assert np.isclose(avg_rot_error, 0.0, atol=1e-3)
     assert np.isclose(avg_trans_error, 0.0, atol=1e-3)

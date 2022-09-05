@@ -1,4 +1,4 @@
-name: salve-v9
+name: salve-v10
 channels:
   # The mac environment closely follows the linux conda environment file, 
   # except for two noticeable differences: no CUDA support and no DEGENSAC support.
@@ -53,3 +53,4 @@ dependencies:
     - gtsam==4.2a7
     - simplejson
     - colour
+    - gtsfm==0.2.0
