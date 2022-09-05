@@ -1,0 +1,92 @@
+{
+	"description": "A representation of HorizonNet predictions on a 1024x512 panorama.",
+	"type": "object",
+	"required": ["predictions"],
+	"properties": {
+		"predictions": {
+			"type": "object",
+			"required": ["room_shape", "wall_features"],
+			"properties": {
+				"room_shape": {
+					"type": "object",
+					"required": ["corners_in_uv", "raw_predictions"],
+					"properties": {
+						"corners_in_uv": {
+							"type": "array",
+							"items": {
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							}
+						},
+						"raw_predictions": {
+							"type": "object",
+							"required": ["floor_boundary", "floor_boundary_uncertainty"],
+							"properties": {
+								"floor_boundary": {
+									"type": "array",
+									"items": {
+										"type": "number"
+									},
+									"minItems": 1024,
+									"maxItems": 1024
+								},
+								"floor_boundary_uncertainty": {
+									"type": "array",
+									"items": {
+										"type": "number"
+									},
+									"minItems": 1024,
+									"maxItems": 1024
+								}
+							}
+						}
+					}
+				},
+				"wall_features": {
+					"type": "object",
+					"required": ["window", "door", "opening"],
+					"properties": {
+			  			"window": {
+							"type": "array",
+							"items": {
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							}
+			  			},
+			  			"door": {
+							"type": "array",
+							"items": {
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							}
+			  			},
+			  			"opening": {
+							"type": "array",
+							"items": {
+								"type": "array",
+								"minItems": 2,
+								"maxItems": 2,
+								"items": {
+									"type": "number"
+								}
+							}
+			  			}
+			  		}
+				}
+			}
+		}
+	}
+}
+
