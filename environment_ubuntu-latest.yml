@@ -49,5 +49,6 @@ dependencies:
     - gtsam==4.2a7
     - simplejson
     - colour
+    - gtsfm==0.2.0
 
 # conda-forge's matplotlib is missing some backends, so we use pypi's.
