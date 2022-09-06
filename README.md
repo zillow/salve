@@ -28,8 +28,6 @@ or on Mac
 conda env create -f environment_macos-latest.yml
 ```
 
-We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization. We use the [`GTSFM`](https://github.com/borglab/gtsfm) library for some geometry-related functionality, including pose graph alignment. GTSAM and GTSFM are both included in the Conda environment.
-
 **Libraries for evaluation** We use `AvgMeter` classes from `mseg-semantic`. Install as follows:
 
 ```bash
@@ -41,7 +39,10 @@ pip install -e .
 **Notes about libraries used**
 - We use Facebook's `hydra` library for configuration files.
 - We use the [`rdp`](https://github.com/fhirschmann/rdp) library for polygon simplification.
+- We use the [`GTSAM`](https://github.com/borglab/gtsam) library for back-end SLAM/pose graph optimization.
+- We use the [`GTSFM`](https://github.com/borglab/gtsfm) library for some geometry-related functionality, including pose graph alignment.
 
+Note: Hydra, rdp, GTSAM and GTSFM are all included in the Conda environment.
 
 ## Installation
 To install the `salve` library, run:
@@ -84,9 +85,9 @@ Download the (prod pano GUID) -> (ZInD pano filename) mapping information from [
 unzip {PATH_TO_HORIZONNET PREDS ZIP FILE}/zind2_john.zip
 RMX_MADORI_V1_PREDICTIONS_DIRPATH = {}
 ```
-First, set `RMX_MADORI_V1_PREDICTIONS_DIRPATH` inside `afp/dataset/hnet_prediction_loader.py`.
-Next, set `PANO_MAPPING_TSV_FPATH` also inside `afp/dataset/hnet_prediction_loader.py`.
-Next, set `RAW_DATASET_DIR` in `afp/algorithms/pose2_slam.py` and in `afp/utils/axis_alignment_utils.py` and in `afp/utils/graph_rendering_utils.py`.
+First, set `RMX_MADORI_V1_PREDICTIONS_DIRPATH` inside `salve/dataset/hnet_prediction_loader.py`.
+Next, set `PANO_MAPPING_TSV_FPATH` also inside `salve/dataset/hnet_prediction_loader.py`.
+Next, set `RAW_DATASET_DIR` in `salve/algorithms/pose2_slam.py` and in `salve/utils/axis_alignment_utils.py` and in `salve/utils/graph_rendering_utils.py`.
 
 
 ### Generate alignment hypotheses
@@ -160,7 +161,7 @@ python scripts/test.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
     --config_fpath {PATH TO YAML MODEL CONFIG} \
     --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
-Please note that the YAML config must be the path to a config in `afp/configs/*`.
+Please note that the YAML config must be the path to a config in `salve/configs/*`.
 
 For example, if your model checkpoint was stored in a directory accessible at:
 ```
@@ -198,7 +199,7 @@ Above, we use pose-graph optimization (`pgo`) as the global aggregation method f
 
 ```bash
 python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
-    --config_name {FILE NAME OF YAML CONFIG under afp/configs/}
+    --config_name {FILE NAME OF YAML CONFIG under salve/configs/}
 ```
 
 A directory will be created which contains the config file used for training (yaml), and a pytorch model checkpoint (.pth), and JSON results, e.g.:
@@ -230,11 +231,11 @@ Additional Notes:
 ## Run Static Analysis of Codebase
 
 ```bash
-flake8 --max-line-length 120 --ignore E201,E202,E203,E231,W291,W293,E303,W391,E402,W503,E731 afp
+flake8 --max-line-length 120 --ignore E201,E202,E203,E231,W291,W293,E303,W391,E402,W503,E731 salve
 ```
 
 ```bash
-pytest tests --cov afp --ignore tests/test_export_alignment_hypotheses.py
+pytest tests --cov salve --ignore tests/test_export_alignment_hypotheses.py
 coverage report
 ```
 
@@ -251,17 +252,17 @@ Now, build the library/binaries, as described [here](https://opensfm.org/docs/bu
 
 Next, inside the `OpenSfM` directory, now run:
 ```bash
-python {SALVE_REPO_DIRPATH}/afp/baselines/opensfm.py
+python {SALVE_REPO_DIRPATH}/salve/baselines/opensfm.py
 ```
 
 **OpenMVG**:
 ```bash
-python {SALVE_REPO_DIRPATH}/afp/baselines/openmvg.py
+python {SALVE_REPO_DIRPATH}/salve/baselines/openmvg.py
 ```
 
 Next, evaluate the OpenSfM results:
 ```python
-python {SALVE_REPO_DIRPATH}/afp/baselines/evaluate_baseline.py \
+python {SALVE_REPO_DIRPATH}/salve/baselines/evaluate_baseline.py \
     --algorithm_name opensfm \
     --raw_dataset_dir {PATH_TO_ZIND} \
     --opensfm_results_dir {PATH TO WHERE OPENSFM SCRIPT DUMPED RECONSTRUCTION RESULTS} \
@@ -270,7 +271,7 @@ python {SALVE_REPO_DIRPATH}/afp/baselines/evaluate_baseline.py \
 
 and for OpenMVG:
 ```python
-python {SALVE_REPO_DIRPATH}/afp/baselines/evaluate_baseline.py \
+python {SALVE_REPO_DIRPATH}/salve/baselines/evaluate_baseline.py \
     --algorithm_name openmvg \
     --raw_dataset_dir {PATH_TO_ZIND} \
     --opensfm_results_dir {PATH TO WHERE OPENMVG SCRIPT DUMPED RECONSTRUCTION RESULTS} \
