@@ -5,8 +5,14 @@
 	"properties": {
 		"predictions": {
 			"type": "object",
-			"required": ["room_shape", "wall_features"],
+			"required": ["room_shape", "wall_features", "image_width", "image_height"],
 			"properties": {
+				"image_width": {
+					"type": "integer"
+				},
+				"image_height": {
+					"type": "integer"
+				},
 				"room_shape": {
 					"type": "object",
 					"required": ["corners_in_uv", "raw_predictions"],
@@ -42,9 +48,11 @@
 									"minItems": 1024,
 									"maxItems": 1024
 								}
-							}
+							},
+							"additionalProperties": false
 						}
-					}
+					},
+					"additionalProperties": false
 				},
 				"wall_features": {
 					"type": "object",
@@ -85,8 +93,8 @@
 			  			}
 			  		}
 				}
-			}
+			},
+			"additionalProperties": false
 		}
 	}
 }
-
