@@ -58,6 +58,8 @@ class PanoStructurePredictionRmxMadoriV1:
     """Attributes predicted for a single panorama by HorizonNet.
 
     Attributes:
+        image_height: image height (in pixels).
+        image_width: image width (in pixels).
         ceiling_height:
         floor_height:
         corners_in_uv: array of shape (K,2) in range [0,1]
@@ -67,14 +69,16 @@ class PanoStructurePredictionRmxMadoriV1:
         wall_wall_boundary: 
     """
 
-    ceiling_height: float
-    floor_height: float
+    #ceiling_height: float
+    #floor_height: float
     corners_in_uv: np.ndarray  # (N,2)
-    wall_wall_probabilities: np.ndarray  # (M,)
-    wall_uncertainty_score: np.ndarray  # (N,)
+    #wall_wall_probabilities: np.ndarray  # (M,)
+    #wall_uncertainty_score: np.ndarray  # (N,)
+    image_height: int
+    image_width: int
 
     floor_boundary: np.ndarray
-    wall_wall_boundary: np.ndarray
+    #wall_wall_boundary: np.ndarray
     floor_boundary_uncertainty: np.ndarray
     doors: List[RmxMadoriV1DWO]
     openings: List[RmxMadoriV1DWO]
@@ -103,13 +107,15 @@ class PanoStructurePredictionRmxMadoriV1:
             return None
 
         return cls(
-            ceiling_height=json_data["room_shape"]["ceiling_height"],
-            floor_height=json_data["room_shape"]["floor_height"],
+            image_height=json_data["image_height"],
+            image_width=json_data["image_width"],
+            #ceiling_height=json_data["room_shape"]["ceiling_height"],
+            #floor_height=json_data["room_shape"]["floor_height"],
             corners_in_uv=np.array(json_data["room_shape"]["corners_in_uv"]),
-            wall_wall_probabilities=np.array(json_data["room_shape"]["wall_wall_probabilities"]),
-            wall_uncertainty_score=np.array(json_data["room_shape"]["wall_uncertainty_score"]),
+            #wall_wall_probabilities=np.array(json_data["room_shape"]["wall_wall_probabilities"]),
+            #wall_uncertainty_score=np.array(json_data["room_shape"]["wall_uncertainty_score"]),
             floor_boundary=np.array(json_data["room_shape"]["raw_predictions"]["floor_boundary"]),
-            wall_wall_boundary=np.array(json_data["room_shape"]["raw_predictions"]["wall_wall_boundary"]),
+            #wall_wall_boundary=np.array(json_data["room_shape"]["raw_predictions"]["wall_wall_boundary"]),
             floor_boundary_uncertainty=np.array(
                 json_data["room_shape"]["raw_predictions"]["floor_boundary_uncertainty"]
             ),
@@ -146,14 +152,14 @@ class PanoStructurePredictionRmxMadoriV1:
         ceiling_uv = uv[1::2]
         return ceiling_uv
 
-    def render_layout_on_pano(self, img_h: int, img_w: int) -> None:
+    def render_layout_on_pano(self) -> None:
         """Render the predicted wall-floor boundary and wall corners onto the equirectangular projection,
         for visualization.
 
-        Args:
-            img_h: image height (in pixels).
-            img_w: image width (in pixels).
         """
+        img_h = self.image_height
+        img_w = self.image_width
+
         linewidth = 5 #20 # use 20 for paper figures, but 5 for debug visualizations.
 
         floor_uv = self.get_floor_corners_image(img_h=img_h, img_w=img_w)
@@ -321,7 +327,8 @@ def merge_wdos_straddling_img_border(wdo_instances: List[RmxMadoriV1DWO]) -> Lis
 
     # first ensure that the WDOs are provided left to right, sorted
 
-    # for each set. if one end is located within 50 px of the border (or 1% of image width), than it may have been a byproduct of a seam
+    # For each set. If one end is located within 50 px of the border (or 1% of image width),
+    # then it may have been a byproduct of a seam.
     straddles_left = [wdo.s < 0.01 for wdo in wdo_instances]
     straddles_right = [wdo.e > 0.99 for wdo in wdo_instances]
 
@@ -343,8 +350,8 @@ def merge_wdos_straddling_img_border(wdo_instances: List[RmxMadoriV1DWO]) -> Lis
             continue
         wdo_instances_merged.append(wdo)
 
-    # merge with last (far-right) if exists, if it also straddles far-right edge
-    # merge with first (far-left) if exists, and it straddles far-left edge
+    # Merge with last (far-right) if exists, if it also straddles far-right edge.
+    # Merge with first (far-left) if exists, and it straddles far-left edge.
     left_wdo = wdo_instances[left_idx]
     right_wdo = wdo_instances[right_idx]
     merged_wdo = RmxMadoriV1DWO(s=right_wdo.s, e=left_wdo.e)
