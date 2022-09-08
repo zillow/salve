@@ -1,5 +1,3 @@
-
-
 """Utility to execute a process for a limited amount of allowed execution time.
 
 Reference: https://stackoverflow.com/questions/2281850/timeout-function-if-it-takes-too-long-to-finish
