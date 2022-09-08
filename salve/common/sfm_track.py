@@ -11,15 +11,15 @@ Authors: Ayush Baid, Sushmita Warrier, John Lambert
 
 (From GTSFM)
 """
+import logging
 from typing import Dict, List, NamedTuple, Tuple
 
 import gtsam
 import numpy as np
 
-import gtsfm.utils.logger as logger_utils
 from gtsfm.common.keypoints import Keypoints
 
-logger = logger_utils.get_logger()
+logger = logging.getLogger(__name__)
 
 
 class SfmMeasurement(NamedTuple):

@@ -1,6 +1,6 @@
 """Infer a depth map using a HoHoNet model.
-From HoHoNet: https://github.com/sunset1995/HoHoNet/blob/master/infer_depth.py
 
+From HoHoNet: https://github.com/sunset1995/HoHoNet/blob/master/infer_depth.py
 Style is modified, but functionality unchanged.
 """
 

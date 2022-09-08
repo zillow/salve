@@ -1,8 +1,7 @@
-"""
-Utility for converting equirectangular panorama coordinates to spherical coordinates.
-Specifically for the HoHoNet coordinate system (not for ZinD coordinate systems).
+"""Utility for converting equirectangular panorama coordinates to spherical coordinates.
 
-see https://github.com/sunset1995/PanoPlane360
+Specifically implemented for the HoHoNet coordinate system (not for ZinD coordinate systems).
+See: https://github.com/sunset1995/PanoPlane360
 """
 
 import numpy as np
