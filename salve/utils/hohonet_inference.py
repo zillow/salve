@@ -1,7 +1,4 @@
-
-"""
-Utilities for HoHoNet monocular depth estimation.
-"""
+"""Utilities for HoHoNet monocular depth estimation."""
 
 import os
 from pathlib import Path
@@ -9,7 +6,6 @@ from types import SimpleNamespace
 
 # refers to the HoHoNet repo
 from salve.utils.infer_depth import infer_depth
-
 
 
 HOHONET_CONFIG_FPATH = "config/mp3d_depth/HOHO_depth_dct_efficienthc_TransEn1_hardnet.yaml"

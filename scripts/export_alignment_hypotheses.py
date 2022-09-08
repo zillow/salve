@@ -25,8 +25,10 @@ import salve.utils.wdo_alignment as wdo_alignment_utils
 from salve.common.pano_data import FloorData, PanoData
 from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 from salve.common.sim2 import Sim2
+from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.utils.wdo_alignment import AlignTransformType
 from salve.common.alignment_hypothesis import AlignmentHypothesis
+
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
 HEADER = "\033[95m"
@@ -286,91 +288,12 @@ def export_alignment_hypotheses_to_json(
     Args:
         num_processes: number of processes to use for parallel alignment generation.
         raw_dataset_dir: path to ZinD dataset.
-        hypotheses_save_root
+        hypotheses_save_root: directory where JSON files with alignment hypotheses will be saved to.
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
-        hnet_predictions_data_root
+        hnet_predictions_data_root: path to directory containing HorizonNet predictions.
     """
-    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
-
-    building_ids = [
-        "0969",
-        "0245",
-        "0297",
-        "0299",
-        "0308",
-        "0336",
-        "0353",
-        "0354",
-        "0406",
-        "0420",
-        "0429",
-        "0431",
-        "0453",
-        "0490",
-        "0496",
-        "0528",
-        "0534",
-        "0564",
-        "0575",
-        "0579",
-        "0583",
-        "0588",
-        "0605",
-        "0629",
-        "0668",
-        "0681",
-        "0684",
-        "0691",
-        "0792",
-        "0800",
-        "0809",
-        "0819",
-        "0854",
-        "0870",
-        "0905",
-        "0957",
-        "0963",
-        "0964",
-        "0966",
-        "1001",
-        "1027",
-        "1028",
-        "1041",
-        "1050",
-        "1068",
-        "1069",
-        "1075",
-        "1130",
-        "1160",
-        "1175",
-        "1184",
-        "1185",
-        "1203",
-        "1207",
-        "1210",
-        "1218",
-        "1239",
-        "1248",
-        "1326",
-        "1328",
-        "1330",
-        "1368",
-        "1383",
-        "1388",
-        "1398",
-        "1401",
-        "1404",
-        "1409",
-        "1479",
-        "1490",
-        "1494",
-        "1500",
-        "1538",
-        "1544",
-        "1551",
-        "1566",
-    ]
-
+    # TODO: allow user to specify the split via CLI.
+    building_ids = DATASET_SPLITS["test"]
     building_ids.sort()
 
     args = []
@@ -433,7 +356,7 @@ def export_alignment_hypotheses_to_json(
     type=str,
     default=None,
     required=False,
-    help="Path to HorizonNet predictions.",
+    help="Path to directory containing HorizonNet predictions.",
 )
 def run_export_alignment_hypotheses(
     raw_dataset_dir: str,

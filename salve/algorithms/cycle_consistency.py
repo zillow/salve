@@ -1,15 +1,14 @@
-"""
-Utilities for cycle triplet extraction and cycle error computation.
+"""Utilities for cycle triplet extraction and cycle error computation.
 
 Author: John Lambert
 """
 
+import logging
 import os
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import DefaultDict, Dict, List, Optional, Set, Tuple
 
-import gtsfm.utils.logger as logger_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from gtsam import Pose2, Rot2, Rot3, Unit3
@@ -19,7 +18,7 @@ from salve.common.sim2 import Sim2
 from salve.utils.pr_utils import compute_precision_recall
 from salve.utils.rotation_utils import rotmat2d, rotmat2theta_deg
 
-logger = logger_utils.get_logger()
+logger = logging.getLogger(__name__)
 
 
 ROT_CYCLE_ERROR_THRESHOLD = 0.5  # 1.0 # 5.0 # 2.5 # 1.0 # 0.3

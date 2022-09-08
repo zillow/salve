@@ -1,5 +1,4 @@
-"""
-Tools for aligning room predictions to dominant axes.
+"""Tools for aligning room predictions to dominant axes.
 
 Can use vanishing points, PCA or polgon edge angles.
 """
@@ -17,11 +16,6 @@ from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.pano_data import PanoData
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
-
-
-# RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
-
 
 # This allows angles in the range [84.3, 95.7] to be considered close to 90 degrees.
 MAX_RIGHT_ANGLE_DEVIATION = 0.1
@@ -136,6 +130,7 @@ def align_pairs_by_vanishing_angle(
     i2Si1_dict: Dict[Tuple[int, int], Sim2],
     gt_floor_pose_graph: PoseGraph2d,
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair],
+    raw_dataset_dir: str,
     visualize: bool = False,
 ) -> Dict[Tuple[int, int], Sim2]:
     """Align a collection of image pairs by vanishing angle, up to a maximum allowed refinement threshold.
@@ -154,8 +149,9 @@ def align_pairs_by_vanishing_angle(
     Returns:
         i2Si1_dict: refined relative pose measurements.
     """
+    # TODO: determine whether we actually need the raw dataset dir, just to load inferred pose graphs.
     floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=RAW_DATASET_DIR
+        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
     )
     pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes
 

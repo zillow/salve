@@ -32,10 +32,6 @@ from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.sim2 import Sim2
 
 
-#RAW_DATASET_DIR = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-RAW_DATASET_DIR = "/srv/scratch/jlambert30/salve/zind_bridgeapi_2021_10_05"
-
-
 # Create noise models
 PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))  # np.array([1e-6, 1e-6, 1e-8])
 ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
@@ -251,6 +247,7 @@ def execute_planar_slam(
     plot_save_dir: str,
     use_axis_alignment: bool,
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair],
+    raw_dataset_dir: str,
     optimize_poses_only: bool = False,
     verbose: bool = True,
 ) -> None:
@@ -266,6 +263,7 @@ def execute_planar_slam(
         plot_save_dir:
         use_axis_alignment: whether to refine relative rotations by vanishing angle.
         per_edge_wdo_dict
+        raw_dataset_dir,
         optimize_poses_only: whether to only optimize poses, or instead to optimize poses + landmarks jointly.
         verbose:
 
@@ -274,7 +272,7 @@ def execute_planar_slam(
     """
     if (not optimize_poses_only) or use_axis_alignment:
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-            query_building_id=building_id, raw_dataset_dir=RAW_DATASET_DIR
+            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
         )
         pano_dict_inferred = floor_pose_graphs[floor_id].nodes
 

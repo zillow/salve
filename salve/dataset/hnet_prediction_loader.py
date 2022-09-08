@@ -62,24 +62,31 @@ def load_hnet_predictions(
         )
         for i in floor_gt_pose_graph.pano_ids():
 
+            # TODO: get corresponding prediction file based on the filename, not on the integer ID
+
             # If the file doesn't exist, return None for now (TODO: throw an error)
-            model_prediction_fpath = f"{predictions_data_root}/horizon_net/{building_id}/{i}.json"
-            if not Path(model_prediction_fpath).exists():
-                print(
-                    f"Missing predictions for building {building_id}.",
-                    building_id,
-                )
-                # skip this building.
-                return None
+            model_prediction_fpaths = glob.glob(f"{predictions_data_root}/horizon_net/{building_id}/*_{i}.json")
+            if len(model_prediction_fpaths) != 1:
+                print("\tShould only be one prediction for this (building id, pano id) tuple.")
+                print(f"\tPrediction {i} was missing")
+                plt.close("all")
+                continue
+
+            model_prediction_fpath = model_prediction_fpaths[0]
+            fname_stem = Path(model_prediction_fpath).stem
 
             img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/floor*_pano_{i}.jpg")
-            if not len(img_fpaths) == 1:
+            if len(img_fpaths) != 1:
                 print("\tShould only be one image for this (building id, pano id) tuple.")
                 print(f"\tPano {i} was missing")
                 plt.close("all")
                 continue
 
-            img_fpath = img_fpaths[0]
+            img_fpath = f"{raw_dataset_dir}/{building_id}/panos/{fname_stem}.jpg"
+            if not Path(img_fpath).exists():
+                print("\tImage missing for this (building id, pano id) tuple.")
+                continue
+
             model_name = "rmx-madori-v1_predictions"
             prediction_data = io_utils.read_json_file(model_prediction_fpath)
 
@@ -149,9 +156,9 @@ def load_inferred_floor_pose_graphs(
     if hnet_predictions_dict is None:
         print(f"HorizonNet predictions could not be loaded for {building_id}")
         return None
-    building_vanishing_angles_dict = load_vanishing_angles(
-        predictions_data_root=predictions_data_root, building_id=building_id
-    )
+
+    # TODO: add back vanishing angle utilization (and check where they are being used downstream here).
+    building_vanishing_angles_dict = defaultdict(int) # load_vanishing_angles(predictions_data_root=predictions_data_root, building_id=building_id)
 
     # Populate the pose graph for each floor, pano-by-pano.
     for floor_id, floor_predictions in hnet_predictions_dict.items():

@@ -519,7 +519,10 @@ def run_incremental_reconstruction(
 
             if use_axis_alignment:
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
-                    i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict
+                    i2Si1_dict=i2Si1_dict,
+                    gt_floor_pose_graph=gt_floor_pose_graph,
+                    per_edge_wdo_dict=per_edge_wdo_dict,
+                    raw_dataset_dir=raw_dataset_dir
                 )
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
@@ -535,7 +538,10 @@ def run_incremental_reconstruction(
             if use_axis_alignment:
                 # Align here to compute initialization with aligned pairs.
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
-                    i2Si1_dict, gt_floor_pose_graph, per_edge_wdo_dict
+                    i2Si1_dict=i2Si1_dict,
+                    gt_floor_pose_graph=gt_floor_pose_graph,
+                    per_edge_wdo_dict=per_edge_wdo_dict,
+                    raw_dataset_dir=raw_dataset_dir
                 )
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
@@ -550,6 +556,7 @@ def run_incremental_reconstruction(
                 optimize_poses_only="pgo" == method,
                 use_axis_alignment=use_axis_alignment,
                 per_edge_wdo_dict=per_edge_wdo_dict,
+                raw_dataset_dir=raw_dataset_dir
             )
             reconstruction_reports.append(report)
 

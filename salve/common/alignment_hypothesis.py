@@ -1,11 +1,11 @@
 """Class definition and utility for relative pose hypotheses (from a W/D/O alignment)."""
 
+import logging
 from typing import List, NamedTuple
 
 from salve.common.sim2 import Sim2
-from salve.utils.logger_utils import get_logger
 
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
 
 class AlignmentHypothesis(NamedTuple):

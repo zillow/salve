@@ -1,11 +1,9 @@
-"""
-Wrapper around GTSAM's Shonan rotation averaging.
-"""
+"""Wrapper around GTSAM's Shonan rotation averaging."""
 
+import logging
 from typing import Dict, List, Optional, Tuple
 
 import gtsam
-import gtsfm.utils.logger as logger_utils
 import numpy as np
 from gtsam import (
     BetweenFactorPose2,
@@ -18,7 +16,7 @@ from gtsam import (
 
 from salve.utils.rotation_utils import rotmat2theta_deg
 
-logger = logger_utils.get_logger()
+logger = logging.getLogger(__name__)
 
 
 def ShonanAveraging2_BetweenFactorPose2s_wrapper(
