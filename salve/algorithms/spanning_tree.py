@@ -1,14 +1,14 @@
-"""
-Utilities for greedily assembling a spanning tree, by shortest paths to an origin node within
-a single connected component.
+"""Utilities for greedily assembling a spanning tree.
+
+Greedy search identifies shortest paths from each node to an origin node (within a single connected component).
 """
 
+import logging
 import math
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 import gtsfm.utils.graph as graph_utils
-import gtsfm.utils.logger as logger_utils
 import networkx as nx
 import numpy as np
 import scipy
@@ -17,7 +17,7 @@ import salve.utils.rotation_utils as rotation_utils
 from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 from salve.common.sim2 import Sim2
 
-logger = logger_utils.get_logger()
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -32,7 +32,7 @@ def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List
     """Greedily assemble a spanning tree (not a minimum spanning tree).
 
     Args:
-        i2Ri1_dict: relative rotations
+        i2Ri1_dict: mapping from pano ID pair (i1,i2) to relative rotation i2Ri1.
 
     Returns:
         wRi_list: global 2d rotations
@@ -53,10 +53,10 @@ def greedily_construct_st(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List
     G = nx.Graph()
     G.add_edges_from(edges)
 
-    # ignore 0th node, as we already set its global pose as the origin
+    # Ignore 0th node, as we already set its global pose as the origin
     for dst_node in cc_nodes[1:]:
 
-        # determine the path to this node from the origin. ordered from [origin_node,...,dst_node]
+        # Determine the path to this node from the origin. ordered from [origin_node,...,dst_node]
         path = nx.shortest_path(G, source=origin_node, target=dst_node)
 
         wRi = np.eye(2)

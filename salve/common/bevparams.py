@@ -32,21 +32,26 @@ class BEVParams:
         img_w: int = DEFAULT_BEV_IMG_W_PX,
         meters_per_px: float = DEFAULT_METERS_PER_PX,
     ) -> None:
-        """meters_per_px is resolution
+        """Representation of a BEV texture map on a regular grid at a specified resolution.
 
-        1000 pixels * (0.005 m / px) = 5 meters in each direction
+        For example, 1000 pixels * (0.005 m / px) = 5 meters in each direction.
+
+        Attributes
+            img_h: texture map height (in pixels).
+            img_w: texture map width (in pixels).
+            meters_per_px: resolution, representing the ratio of (#meters/1 pixel) in the grid.
         """
         self.img_h = img_h
         self.img_w = img_w
         self.meters_per_px = meters_per_px
 
-        # num px in horizontal direction from center
+        # Number of pixels in horizontal direction from center.
         h_px = img_w / 2
 
-        # num px in vertical direction from center
+        # Number of pixels in vertical direction from center.
         v_px = img_h / 2
 
-        # get grid boundaries in meters
+        # Get grid boundaries in meters.
         xmin_m = -int(h_px * meters_per_px)
         xmax_m = int(h_px * meters_per_px)
         ymin_m = -int(v_px * meters_per_px)
@@ -75,6 +80,7 @@ def get_line_width_by_resolution(resolution: float) -> int:
 
     Args:
         resolution:
+    
     Returns:
         line_width: line width (thickness) in pixels to use for rendering polylines with OpenCV. Must be an integer.
     """
