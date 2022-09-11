@@ -25,13 +25,6 @@ from salve.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
 from salve.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-
-
-IMAGE_HEIGHT_PX = 512
-IMAGE_WIDTH_PX = 1024
-
-
 def load_hnet_predictions(
     building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
