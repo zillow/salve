@@ -2,11 +2,14 @@
 Utilities and containers for working with the output of model predictions for "rmx-madori-v1_predictions"
 This is Ethan’s new shape DWO joint model.
 """
+from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, List
 
+import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
 import rdp
@@ -22,7 +25,7 @@ RED = (1.0, 0, 0)
 GREEN = (0, 1.0, 0)
 BLUE = (0, 0, 1.0)
 
-# in accordance with color scheme in salve/common/pano_data.py
+# Colormap in accordance with color scheme in salve/common/pano_data.py
 WINDOW_COLOR = RED
 DOOR_COLOR = GREEN
 OPENING_COLOR = BLUE
@@ -60,18 +63,20 @@ class PanoStructurePredictionRmxMadoriV1:
     Attributes:
         image_height: image height (in pixels).
         image_width: image width (in pixels).
-        ceiling_height:
-        floor_height:
-        corners_in_uv: array of shape (K,2) in range [0,1]
-        wall_wall_probabilities:
-        wall_uncertainty_score:
-        floor_boundary: array of shape (1024,) in range [0, image_height]
-        wall_wall_boundary: 
+        corners_in_uv: array of shape (C,2) in range [0,1] indicating normalized (u,v) coordinates of room corner
+            locations, interleaved as (floor corner 1, ceiling corner 1), (floor corner 2, ceiling corner 2), ...,
+            (floor corner C//2, ceiling corner C//2).
+        floor_boundary: array of shape (1024,) in range [0, image_height] indicating of floor boundary.
+        floor_boundary_uncertainty: array of shape (1024,) in range [0, image_height] indicating uncertainty of floor boundary.
+        doors: in range [0,1]
+        openings: in range [0,1]
+        windows: in range [0,1]
+        image_fpath: path to corresponding image (360 deg. panorama).
     """
 
     #ceiling_height: float
     #floor_height: float
-    corners_in_uv: np.ndarray  # (N,2)
+    corners_in_uv: np.ndarray  # (K,2)
     #wall_wall_probabilities: np.ndarray  # (M,)
     #wall_uncertainty_score: np.ndarray  # (N,)
     image_height: int
@@ -83,18 +88,30 @@ class PanoStructurePredictionRmxMadoriV1:
     doors: List[RmxMadoriV1DWO]
     openings: List[RmxMadoriV1DWO]
     windows: List[RmxMadoriV1DWO]
+    image_fpath: Path
 
     @classmethod
-    def from_json(cls, json_data: Any) -> "PanoStructurePredictionRmxMadoriV1":
+    def from_json_fpath(cls, json_fpath: Path, image_fpath: Path) -> PanoStructurePredictionRmxMadoriV1:
         """Generate an object from dictionary containing data loaded from JSON.
 
         Args:
-            json_data: nested dictionaries with structure:
-                "room_shape":
-                  keys: 'ceiling_height', 'floor_height', 'corners_in_uv', 'wall_wall_probabilities', 'wall_uncertainty_score', 'raw_predictions'
-                "wall_features":
-                  keys: 'window', 'door', 'opening'
+            json_fpath: path to JSON file. JSON data conforms to the schema in `salve/horizon_net_schema.json`.
+            image_fpath: path to corresponding image (360 deg. panorama).
         """
+        if not isinstance(image_fpath, Path):
+            raise ValueError("Image file path provided to `PanoStructurePredictionRmxMadoriV1` must"
+                " be a `pathlib.Path` object.")
+
+        if not isinstance(json_fpath, Path):
+            raise ValueError("JSON file path provided to `PanoStructurePredictionRmxMadoriV1` must"
+                " be a `pathlib.Path` object.")
+
+        if not Path(json_fpath).exists():
+            raise ValueError(f"No JSON file found at {json_fpath} while loading `PanoStructurePredictionRmxMadoriV1`.")
+
+        json_data = io_utils.read_json_file(json_fpath)
+        json_data = json_data["predictions"]
+
         doors = [RmxMadoriV1DWO.from_json(d) for d in json_data["wall_features"]["door"]]
         windows = [RmxMadoriV1DWO.from_json(w) for w in json_data["wall_features"]["window"]]
         openings = [RmxMadoriV1DWO.from_json(o) for o in json_data["wall_features"]["opening"]]
@@ -102,9 +119,6 @@ class PanoStructurePredictionRmxMadoriV1:
         doors = merge_wdos_straddling_img_border(doors)
         windows = merge_wdos_straddling_img_border(windows)
         openings = merge_wdos_straddling_img_border(openings)
-
-        if len(json_data["room_shape"]["raw_predictions"]["floor_boundary"]) == 0:
-            return None
 
         return cls(
             image_height=json_data["image_height"],
@@ -122,6 +136,7 @@ class PanoStructurePredictionRmxMadoriV1:
             doors=doors,
             openings=openings,
             windows=windows,
+            image_fpath=image_fpath
         )
 
     def get_floor_corners_image(self, img_h: int, img_w: int) -> np.ndarray:
