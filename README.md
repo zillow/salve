@@ -282,3 +282,5 @@ python {SALVE_REPO_DIRPATH}/salve/baselines/evaluate_baseline.py \
 
 On DGX, you can find `ZInD` stored here:
 `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
+
+TODO: remove all mentions of Madori or RMX from class names.
