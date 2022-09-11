@@ -83,7 +83,7 @@ def load_hnet_predictions(
 
             floor_hnet_predictions[floor_id][i] = pred_obj
 
-            render_on_pano = True
+            render_on_pano = False
             if render_on_pano:
                 plt.figure(figsize=(20, 10))
                 img = imageio.imread(img_fpath)
