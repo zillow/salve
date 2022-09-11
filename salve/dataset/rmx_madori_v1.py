@@ -74,16 +74,11 @@ class PanoStructurePredictionRmxMadoriV1:
         image_fpath: path to corresponding image (360 deg. panorama).
     """
 
-    #ceiling_height: float
-    #floor_height: float
     corners_in_uv: np.ndarray  # (K,2)
-    #wall_wall_probabilities: np.ndarray  # (M,)
-    #wall_uncertainty_score: np.ndarray  # (N,)
     image_height: int
     image_width: int
 
     floor_boundary: np.ndarray
-    #wall_wall_boundary: np.ndarray
     floor_boundary_uncertainty: np.ndarray
     doors: List[RmxMadoriV1DWO]
     openings: List[RmxMadoriV1DWO]
@@ -123,13 +118,8 @@ class PanoStructurePredictionRmxMadoriV1:
         return cls(
             image_height=json_data["image_height"],
             image_width=json_data["image_width"],
-            #ceiling_height=json_data["room_shape"]["ceiling_height"],
-            #floor_height=json_data["room_shape"]["floor_height"],
             corners_in_uv=np.array(json_data["room_shape"]["corners_in_uv"]),
-            #wall_wall_probabilities=np.array(json_data["room_shape"]["wall_wall_probabilities"]),
-            #wall_uncertainty_score=np.array(json_data["room_shape"]["wall_uncertainty_score"]),
             floor_boundary=np.array(json_data["room_shape"]["raw_predictions"]["floor_boundary"]),
-            #wall_wall_boundary=np.array(json_data["room_shape"]["raw_predictions"]["wall_wall_boundary"]),
             floor_boundary_uncertainty=np.array(
                 json_data["room_shape"]["raw_predictions"]["floor_boundary_uncertainty"]
             ),
@@ -139,46 +129,46 @@ class PanoStructurePredictionRmxMadoriV1:
             image_fpath=image_fpath
         )
 
-    def get_floor_corners_image(self, img_h: int, img_w: int) -> np.ndarray:
+    def get_floor_corners_image(self) -> np.ndarray:
         """Get predicted floor corners, in pixel coordinates.
 
-        Args:
-            img_h: image height (in pixels).
-            img_w: image width (in pixels).
+        Returns:
+            floor_uv: array of shape (C//2, 2), where C is the total number of floor & ceiling corners
+                in the room.
         """
         uv = copy.deepcopy(self.corners_in_uv)
-        uv[:, 0] *= img_w
-        uv[:, 1] *= img_h
+        uv[:, 0] *= self.image_width
+        uv[:, 1] *= self.image_height
 
         floor_uv = uv[::2]
         return floor_uv
 
-    def get_ceiling_corners_image(self, img_h: int, img_w: int) -> np.ndarray:
+    def get_ceiling_corners_image(self) -> np.ndarray:
         """Get predicted ceiling corners, in pixel coordinates.
 
-        Args:
-            img_h: image height (in pixels).
-            img_w: image width (in pixels).
+        Returns:
+            ceiling_uv: array of shape (C//2, 2), where C is the total number of floor & ceiling corners
+                in the room.
         """
         uv = copy.deepcopy(self.corners_in_uv)
-        uv[:, 0] *= img_w
-        uv[:, 1] *= img_h
+        uv[:, 0] *= self.image_width
+        uv[:, 1] *= self.image_height
 
         ceiling_uv = uv[1::2]
         return ceiling_uv
 
     def render_layout_on_pano(self) -> None:
-        """Render the predicted wall-floor boundary and wall corners onto the equirectangular projection,
-        for visualization.
+        """Render the predicted wall-floor boundary and wall corners onto the equirectangular projection.
 
+        Note: assumes plt.imshow(panorama_image) has been called previously.
         """
         img_h = self.image_height
         img_w = self.image_width
 
         linewidth = 5 #20 # use 20 for paper figures, but 5 for debug visualizations.
 
-        floor_uv = self.get_floor_corners_image(img_h=img_h, img_w=img_w)
-        ceiling_uv = self.get_ceiling_corners_image(img_h=img_h, img_w=img_w)
+        floor_uv = self.get_floor_corners_image()
+        ceiling_uv = self.get_ceiling_corners_image()
 
         plt.scatter(floor_uv[:, 0], floor_uv[:, 1], 100, color="r", marker="o")
         plt.scatter(ceiling_uv[:, 0], ceiling_uv[:, 1], 100, color="g", marker="o")
