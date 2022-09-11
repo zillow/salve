@@ -25,19 +25,10 @@ from salve.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
 from salve.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-
-MODEL_NAMES = [ "rmx-madori-v1_predictions"]  # Shape D/W/O joint model.
-
-
-IMAGE_HEIGHT_PX = 512
-IMAGE_WIDTH_PX = 1024
-
-
 def load_hnet_predictions(
     building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
-    """Load raw pixelwise HorizonNet predictions...
+    """Load raw pixelwise HorizonNet predictions for each pano in a specified ZInD building.
 
     # TODO: remove dependency on getting pano paths from ZInD in this function (put them inside the predictions).
 
@@ -72,45 +63,29 @@ def load_hnet_predictions(
                 plt.close("all")
                 continue
 
-            model_prediction_fpath = model_prediction_fpaths[0]
+            model_prediction_fpath = Path(model_prediction_fpaths[0])
             fname_stem = Path(model_prediction_fpath).stem
-
-            img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/floor*_pano_{i}.jpg")
-            if len(img_fpaths) != 1:
-                print("\tShould only be one image for this (building id, pano id) tuple.")
-                print(f"\tPano {i} was missing")
-                plt.close("all")
+            img_fpath = Path(f"{raw_dataset_dir}/{building_id}/panos/{fname_stem}.jpg")
+            pred_obj = PanoStructurePredictionRmxMadoriV1.from_json_fpath(
+                json_fpath=model_prediction_fpath, image_fpath=img_fpath
+            )
+            if pred_obj is None:  # malformatted pred for some reason
                 continue
 
-            img_fpath = f"{raw_dataset_dir}/{building_id}/panos/{fname_stem}.jpg"
-            if not Path(img_fpath).exists():
-                print("\tImage missing for this (building id, pano id) tuple.")
-                continue
-
-            model_name = "rmx-madori-v1_predictions"
-            prediction_data = io_utils.read_json_file(model_prediction_fpath)
-
-            if model_name == "rmx-madori-v1_predictions":
-                pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data["predictions"])
-                if pred_obj is None:  # malformatted pred for some reason
-                    continue
-
-                floor_hnet_predictions[floor_id][i] = pred_obj
+            floor_hnet_predictions[floor_id][i] = pred_obj
 
             render_on_pano = False
             if render_on_pano:
                 plt.figure(figsize=(20, 10))
                 img = imageio.imread(img_fpath)
-                img_resized = cv2.resize(img, (IMAGE_WIDTH_PX, IMAGE_HEIGHT_PX))
-                img_h, img_w, _ = img_resized.shape
-
+                img_resized = cv2.resize(img, (pred_obj.image_width, pred_obj.image_height))
                 plt.imshow(img_resized)
-                pred_obj.render_layout_on_pano(img_h, img_w)
+                pred_obj.render_layout_on_pano()
                 plt.title(f"Pano {i} from Building {building_id}")
                 plt.tight_layout()
-                os.makedirs(f"HorizonNet_pred_model_visualizations_2022_07_18_bridge/{model_name}_bev", exist_ok=True)
+                os.makedirs(f"HorizonNet_pred_model_visualizations_2022_09_11_bridge/{model_name}_bev", exist_ok=True)
                 plt.savefig(
-                    f"HorizonNet_pred_model_visualizations_2022_07_18_bridge/{model_name}_bev/{building_id}_{i}.jpg",
+                    f"HorizonNet_pred_model_visualizations_2022_09_11_bridge/{model_name}_bev/{building_id}_{i}.jpg",
                     dpi=400,
                 )
                 # plt.show()
@@ -158,7 +133,7 @@ def load_inferred_floor_pose_graphs(
         return None
 
     # TODO: add back vanishing angle utilization (and check where they are being used downstream here).
-    building_vanishing_angles_dict = defaultdict(int) # load_vanishing_angles(predictions_data_root=predictions_data_root, building_id=building_id)
+    building_vanishing_angles_dict = defaultdict(int)  # load_vanishing_angles(predictions_data_root=predictions_data_root, building_id=building_id)
 
     # Populate the pose graph for each floor, pano-by-pano.
     for floor_id, floor_predictions in hnet_predictions_dict.items():
@@ -231,10 +206,6 @@ def main() -> None:
     building_ids = [str(v).zfill(4) for v in range(NUM_ZIND_BUILDINGS)]
 
     for building_id in building_ids:
-
-        # if building_id != "0767":
-        # if building_id != "0879":
-        #     continue
 
         floor_pose_graphs = load_inferred_floor_pose_graphs(building_id=building_id, raw_dataset_dir=raw_dataset_dir)
         continue
