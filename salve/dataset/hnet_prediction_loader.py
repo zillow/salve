@@ -37,7 +37,7 @@ IMAGE_WIDTH_PX = 1024
 def load_hnet_predictions(
     building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
-    """Load raw pixelwise HorizonNet predictions...
+    """Load raw pixelwise HorizonNet predictions for each pano in a speicfied ZInD building.
 
     # TODO: remove dependency on getting pano paths from ZInD in this function (put them inside the predictions).
 
@@ -144,9 +144,7 @@ def load_inferred_floor_pose_graphs(
         return None
 
     # TODO: add back vanishing angle utilization (and check where they are being used downstream here).
-    building_vanishing_angles_dict = defaultdict(
-        int
-    )  # load_vanishing_angles(predictions_data_root=predictions_data_root, building_id=building_id)
+    building_vanishing_angles_dict = defaultdict(int)  # load_vanishing_angles(predictions_data_root=predictions_data_root, building_id=building_id)
 
     # Populate the pose graph for each floor, pano-by-pano.
     for floor_id, floor_predictions in hnet_predictions_dict.items():

@@ -1,7 +1,4 @@
-"""
-Utilities and containers for working with the output of model predictions for "rmx-madori-v1_predictions"
-This is Ethan’s new shape DWO joint model.
-"""
+"""Utilities and data structures for HorizonNet model predictions (using a joint shape + W/D/O model)."""
 from __future__ import annotations
 
 import copy
@@ -319,18 +316,18 @@ def merge_wdos_straddling_img_border(wdo_instances: List[RmxMadoriV1DWO]) -> Lis
     """Merge an object that has been split by the panorama seam (merge two pieces into one).
 
     Args:
-        wdo_instances: of a single type (all doors, all windows, or all openings)
+        wdo_instances: W/D/O instances of a single type (all doors, all windows, or all openings).
 
     Returns:
-        wdo_instances_merged
+        wdo_instances_merged: W/D/O instances of a single type, after merging has been performed.
     """
     if len(wdo_instances) <= 1:
-        # we require at least two objects of the same type to attempt a merge
+        # We require at least two objects of the same type to attempt a merge
         return wdo_instances
 
     wdo_instances_merged = []
 
-    # first ensure that the WDOs are provided left to right, sorted
+    # First, ensure that the W/D/Os are provided left to right, sorted.
 
     # For each set. If one end is located within 50 px of the border (or 1% of image width),
     # then it may have been a byproduct of a seam.
