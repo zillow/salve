@@ -27,8 +27,6 @@ from salve.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-MODEL_NAMES = ["rmx-madori-v1_predictions"]  # Shape D/W/O joint model.
-
 
 IMAGE_HEIGHT_PX = 512
 IMAGE_WIDTH_PX = 1024
@@ -37,7 +35,7 @@ IMAGE_WIDTH_PX = 1024
 def load_hnet_predictions(
     building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
-    """Load raw pixelwise HorizonNet predictions for each pano in a speicfied ZInD building.
+    """Load raw pixelwise HorizonNet predictions for each pano in a specified ZInD building.
 
     # TODO: remove dependency on getting pano paths from ZInD in this function (put them inside the predictions).
 
@@ -87,9 +85,7 @@ def load_hnet_predictions(
             if render_on_pano:
                 plt.figure(figsize=(20, 10))
                 img = imageio.imread(img_fpath)
-                img_resized = cv2.resize(img, (IMAGE_WIDTH_PX, IMAGE_HEIGHT_PX))
-                img_h, img_w, _ = img_resized.shape
-
+                img_resized = cv2.resize(img, (pred_obj.image_width, pred_obj.image_height))
                 plt.imshow(img_resized)
                 pred_obj.render_layout_on_pano()
                 plt.title(f"Pano {i} from Building {building_id}")
