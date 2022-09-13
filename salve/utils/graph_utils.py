@@ -35,9 +35,8 @@ def analyze_cc_distribution(
     ccs_increasing = sorted(ccs, key=len)
     ccs_decreasing = ccs_increasing[::-1]
 
-    C = len(ccs)
     cc_sizes = [len(cc) for cc in ccs_decreasing]
-    # compute CC localization percents.
+    # Compute CC localization percentages.
     pdf = np.array(cc_sizes) / len(nodes)
     cdf = np.cumsum(pdf)
 

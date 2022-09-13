@@ -1,24 +1,16 @@
 """Precision/recall computation utilities."""
 
-import os
-from enum import Enum, auto
-from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 import sklearn
 
 from salve.common.edge_classification import EdgeClassification
 
-
-_PathLike = Union[str, "os.PathLike[str]"]
-
-
 EPS = 1e-7
 
 
-def assign_tp_fp_fn_tn(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[int,int,int,int]:
+def assign_tp_fp_fn_tn(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[int, int, int, int]:
     """Assign true positives, false positives, false negatives, true negatives.
 
     Args:
@@ -39,7 +31,7 @@ def assign_tp_fp_fn_tn(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[int,int,
     return is_TP, is_FP, is_FN, is_TN
 
 
-def compute_tp_fp_fn_tn_counts(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[int,int,int,int]:
+def compute_tp_fp_fn_tn_counts(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[int, int, int, int]:
     """Compute counts of true positives, false positives, false negatives, true negatives.
 
     Args:
@@ -61,7 +53,7 @@ def compute_tp_fp_fn_tn_counts(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[
     return TP, FP, FN, TN
 
 
-def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[float,float,float]:
+def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[float, float, float]:
     """Compute precision and recall over a set of predictions, using ground-truth.
 
     Define 1 as the target class (positive).
@@ -85,16 +77,16 @@ def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[fl
     TP, FP, FN, TN = compute_tp_fp_fn_tn_counts(y_true, y_pred)
 
     # form a confusion matrix
-    C = np.zeros((2,2))
-    C[0,0] = TP
-    C[0,1] = FN
+    C = np.zeros((2, 2))
+    C[0, 0] = TP
+    C[0, 1] = FN
 
-    C[1,0] = FP
-    C[1,1] = TN
+    C[1, 0] = FP
+    C[1, 1] = TN
 
     # Normalize the confusion matrix
-    C[0] /= (C[0].sum() + EPS)
-    C[1] /= (C[1].sum() + EPS)
+    C[0] /= C[0].sum() + EPS
+    C[1] /= C[1].sum() + EPS
 
     mAcc = np.mean(np.diag(C))
 
@@ -104,10 +96,10 @@ def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[fl
     if (TP + FN) == 0:
         # there were no positive GT elements
         print("Recall undefined...")
-        #raise Warning("Recall undefined...")
+        # raise Warning("Recall undefined...")
 
-    #import sklearn.metrics
-    #prec, rec, _, support = sklearn.metrics.precision_recall_fscore_support(y_true, y_pred)
+    # import sklearn.metrics
+    # prec, rec, _, support = sklearn.metrics.precision_recall_fscore_support(y_true, y_pred)
     return prec, rec, mAcc
 
 
@@ -121,8 +113,8 @@ def plot_precision_recall_curve_sklearn(measurements: List[EdgeClassification]) 
         prec: array of shape (K,) representing monotonically increasing precision values such that element i is the
             precision of predictions with score >= thresholds[i] and the last element is 1.
             We do NOT force monotonicity.
-        recall: array of shape (K,) representing decreasing recall values such that element i is the recall of predictions
-            with score >= thresholds[i] and the last element is 0.
+        recall: array of shape (K,) representing decreasing recall values such that element i is the recall of
+            predictions with score >= thresholds[i] and the last element is 0.
         thresholds: array of shape (K-1,) representing confidence thresholds for each precision and recall value.
             see https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
     """
@@ -139,9 +131,7 @@ def plot_precision_recall_curve_sklearn(measurements: List[EdgeClassification]) 
 
         probas_pred.append(pos_prob)
 
-    # from sklearn.metrics import PrecisionRecallDisplay
-    prec, recall, thresholds = sklearn.metrics.precision_recall_curve(y_true=y_true_list, probas_pred=probas_pred, pos_label=1)
-    # pr_display = PrecisionRecallDisplay(precision=prec, recall=recall).plot()
-    # plt.show()
-
+    prec, recall, thresholds = sklearn.metrics.precision_recall_curve(
+        y_true=y_true_list, probas_pred=probas_pred, pos_label=1
+    )
     return prec, recall, thresholds

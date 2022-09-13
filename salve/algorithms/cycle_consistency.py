@@ -12,12 +12,11 @@ from typing import DefaultDict, Dict, List, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Pose2, Rot2, Rot3, Unit3
-from scipy.spatial.transform import Rotation
+from gtsam import Rot3, Unit3
 
 import salve.utils.pr_utils as pr_utils
 from salve.common.sim2 import Sim2
-from salve.utils.rotation_utils import rotmat2d, rotmat2theta_deg
+from salve.utils.rotation_utils import rotmat2theta_deg
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,7 @@ ROT_CYCLE_ERROR_THRESHOLD = 0.5  # 1.0 # 5.0 # 2.5 # 1.0 # 0.3
 
 @dataclass(frozen=False)
 class TwoViewEstimationReport:
-    """ TODO(john): improve documentation here.
+    """TODO(john): improve documentation here.
 
     Args:
         gt_class: ground truth category, 0 represents negative (WDO mismatch), and 1 represents positive (a WDO match)
@@ -230,21 +229,24 @@ def compute_SE2_cycle_error(
 
     if verbose:
         edges = [(i0, i1), (i1, i2), (i0, i2)]
-        num_outliers = sum([ int(two_view_reports_dict[edge].gt_class != 1) for edge in edges])
+        num_outliers = sum([int(two_view_reports_dict[edge].gt_class != 1) for edge in edges])
 
         logger.info("\n")
-        logger.info(f"{i0},{i1},{i2} --> Rot cycle error {rot_cycle_error:.2f}, Trans. Cycle error is: {trans_cycle_error:.2f} w/ {num_outliers} outliers")
+        logger.info(
+            f"{i0},{i1},{i2} --> Rot cycle error {rot_cycle_error:.2f}, "
+            f"Trans. Cycle error is: {trans_cycle_error:.2f} w/ {num_outliers} outliers."
+        )
 
     return rot_cycle_error, trans_cycle_error
 
 
 def filter_to_SE2_cycle_consistent_edges(
-    i2Si1_dict: Dict[Tuple[int,int], Sim2],
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
     two_view_reports_dict,
     SE2_cycle_rot_threshold_deg: float = 0.5,
     SE2_cycle_trans_threshold: float = 0.01,
-    visualize: bool = True
-) -> Dict[Tuple[int,int], Sim2]:
+    visualize: bool = True,
+) -> Dict[Tuple[int, int], Sim2]:
     """ """
     rot_cycle_errors = []
     trans_cycle_errors = []
@@ -257,7 +259,7 @@ def filter_to_SE2_cycle_consistent_edges(
 
     triplets = extract_triplets(i2Si1_dict)
     for (i0, i1, i2) in triplets:
-        
+
         rot_cycle_error, trans_cycle_error = compute_SE2_cycle_error(
             i2Si1_dict, cycle_nodes=(i0, i1, i2), two_view_reports_dict=two_view_reports_dict, verbose=False
         )
@@ -322,7 +324,7 @@ def filter_to_rotation_cycle_consistent_edges(
 
     Args:
         i2Ri1_dict: mapping from image pair indices to relative rotation.
-        i2Ui1_dict: smapping from image pair indices to relative translation direction.
+        i2Ui1_dict: mapping from image pair indices to relative translation direction.
             Should have same keys as i2Ri1_dict.
         two_view_reports_dict
         visualize: boolean indicating whether to plot cycle error vs. pose error w.r.t. GT
@@ -458,7 +460,9 @@ def filter_to_translation_cycle_consistent_edges(
     return i2Si1_dict_consistent
 
 
-def render_binned_cycle_errors(num_outliers_per_cycle: np.ndarray, cycle_errors: np.ndarray, max_err_bin_edge: float = 2) -> None:
+def render_binned_cycle_errors(
+    num_outliers_per_cycle: np.ndarray, cycle_errors: np.ndarray, max_err_bin_edge: float = 2
+) -> None:
     """Consider how many edges of the 3 triplet edges are corrupted.
 
     For translations, show [0,2]
@@ -556,4 +560,3 @@ def estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consi
 
     prec, rec, mAcc = pr_utils.compute_precision_recall(y_true=gt_idxs, y_pred=pred_idxs)
     return prec, rec, mAcc
-
