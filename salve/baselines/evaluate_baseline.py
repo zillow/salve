@@ -555,8 +555,6 @@ def main(args: Namespace) -> None:
     #     raw_dataset_dir=args.raw_dataset_dir, json_results_dir=f"{args.save_dir}/result_summaries"
     # )
 
-    # visualize_side_by_side()
-
 
 if __name__ == "__main__":
 
