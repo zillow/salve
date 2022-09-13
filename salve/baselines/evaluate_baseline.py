@@ -29,7 +29,7 @@ from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.utils.logger_utils import get_logger
 
 try:
-    import afp.visualization.utils as vis_utils
+    import salve.visualization.utils as vis_utils
 except Exception as e:
     print("Open3D could not be loaded, skipping...")
     print("Exception: ", e)
@@ -92,7 +92,7 @@ def save_empty_json_results_file(results_dir: str, building_id: str, floor_id: s
     """ """
     floor_results_dicts = [
         {
-            "id": f"Reconstruction 0",
+            "id": "Reconstruction 0",
             "num_cameras": 0,
             "num_points": 0,
             "mean_abs_rot_err": np.nan,
@@ -115,8 +115,8 @@ def measure_algorithm_localization_accuracy(
 ) -> FloorReconstructionReport:
     """Evaluate reconstruction from a single floor against GT poses, via Sim(3) alignment.
 
-    Note: we do not refer to 3rd part SfM implementations as "baselines", but rather as "algorithms", as "baseline" means
-    something quite different in the context of SfM.
+    Note: we do not refer to 3rd part SfM implementations as "baselines", but rather as "algorithms", as "baseline"
+    means something quite different in the context of SfM (distance between two cameras).
 
     Args:
         building_id: unique ID of ZinD building.
@@ -176,12 +176,12 @@ def measure_algorithm_localization_accuracy(
 
         # vis_utils.plot_3d_poses(aTi_list_gt, bTi_list_est)
 
-        # align it to the 2d pose graph using Sim(3)
+        # Align it to the 2d pose graph using Sim(3).
         aligned_bTi_list_est, _ = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
         # vis_utils.plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
 
-        # project to 2d
+        # Project to 2d.
         est_floor_pose_graph = PoseGraph3d.from_wTi_list(aligned_bTi_list_est, building_id, floor_id)
         est_floor_pose_graph = est_floor_pose_graph.project_to_2d(gt_floor_pose_graph)
 
@@ -255,10 +255,10 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
     num_reconstructed_floors = len(json_fpaths)
 
     for json_fpath in json_fpaths:
-        # each entry in the list contains info about a single CC
+        # Each entry in the list contains info about a single CC
         all_cc_data = io_utils.read_json_file(json_fpath)
 
-        # set to zero, in case the floor has no CCs, to avoid defaulting to previous variable value
+        # Set to zero, in case the floor has no CCs, to avoid defaulting to previous variable value
         num_cameras = 0
         mean_abs_rot_err = 0
         mean_abs_trans_err = 0
@@ -568,10 +568,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--results_dir",
         type=str,
-        #default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
+        # default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
         default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
         # default="/Users/johnlam/Downloads/OpenSfM/data/OpenSfM_results_2021_12_02_BridgeAPI"
-        help="Location where OpenSfM or OpenMVG raw JSON results are saved (default would be to ~/OpenSfM/data or OPENMVG_DEMO_ROOT).",
+        help="Location where OpenSfM or OpenMVG raw JSON results are saved (default would be to ~/OpenSfM/data "
+        "or OPENMVG_DEMO_ROOT).",
     )
     parser.add_argument(
         "--baseline_name",
