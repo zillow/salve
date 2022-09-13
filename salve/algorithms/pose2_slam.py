@@ -1,16 +1,4 @@
-"""Utilities for SLAM.
-
-A 2D Pose SLAM example that reads input from g2o, and solve the Pose2 problem.
-using LAGO (Linear Approximation for Graph Optimization).
-Output is written to a file, in g2o format.
-
-Reference:
-L. Carlone, R. Aragues, J. Castellanos, and B. Bona, A fast and accurate
-approximation for planar pose graph optimization, IJRR, 2014.
-
-L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
-for graph-based simultaneous localization and mapping, RSS, 2011.
-"""
+"""Utilities for 2d pose SLAM and landmark-based SLAM."""
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -25,7 +13,7 @@ import salve.algorithms.data_association as data_association
 import salve.common.edge_classification as edge_classification
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.axis_alignment_utils as axis_alignment_utils
-import salve.utils.graph_rendering_utils as graph_rendering_utils
+import salve.utils.graph_rendering_utils as graph_rendering_utils  # flake8: noqa
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
@@ -72,7 +60,16 @@ class OdometryMeasurement:
 
 
 def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]:
-    """Does not require an initial estimate.
+    """Estimate camera poses using LAGO (Linear Approximation for Graph Optimization) SLAM.
+
+    Reference:
+    L. Carlone, R. Aragues, J. Castellanos, and B. Bona, A fast and accurate
+    approximation for planar pose graph optimization, IJRR, 2014.
+
+    L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
+    for graph-based simultaneous localization and mapping, RSS, 2011.
+    
+    Does not require an initial estimate.
 
     Can also estimate over landmarks if we can solve data association (s & e for shared door).
 
@@ -83,7 +80,7 @@ def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]
 
     graph = gtsam.NonlinearFactorGraph()
 
-    # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model
+    # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model.
     graph.add(PriorFactorPose2(X(0), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
 
     for (i1, i2), i2Ti1 in i2Ti1_dict.items():
@@ -101,24 +98,6 @@ def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]
     max_frame_id = max([max(i1, i2) for (i1, i2) in i2Ti1_dict.keys()]) + 1
     for i in range(max_frame_id):
         wTi_list.append(estimate_lago.atPose2(i))
-
-
-def test_estimate_poses_lago() -> None:
-    """Ensure pose graph is correctly estimated for simple 4-pose scenario."""
-    wTi_list = [
-        Pose2(Rot2(), np.array([2, 0])),
-        Pose2(Rot2(), np.array([2, 2])),
-        Pose2(Rot2(), np.array([0, 2])),
-        Pose2(Rot2(), np.array([0, 0])),
-    ]
-    i2Ti1_dict = {
-        (0, 1): wTi_list[1].between(wTi_list[0]),
-        (1, 2): wTi_list[2].between(wTi_list[1]),
-        (2, 3): wTi_list[3].between(wTi_list[2]),
-        (0, 3): wTi_list[3].between(wTi_list[0]),
-    }
-
-    wTi_list_computed = estimate_poses_lago(i2Ti1_dict)
 
 
 def planar_slam(
@@ -360,9 +339,9 @@ def execute_planar_slam(
     report = FloorReconstructionReport.from_est_floor_pose_graph(
         est_floor_pose_graph, gt_floor_pose_graph=gt_floor_pg, plot_save_dir=plot_save_dir
     )
-    #graph_rendering_utils.draw_multigraph(
-    #    measurements, est_floor_pose_graph, raw_dataset_dir=raw_dataset_dir, confidence_threshold=0.93
-    #)
+    # graph_rendering_utils.draw_multigraph(
+    #     measurements, est_floor_pose_graph, raw_dataset_dir=raw_dataset_dir, confidence_threshold=0.93
+    # )
 
     return report
 
