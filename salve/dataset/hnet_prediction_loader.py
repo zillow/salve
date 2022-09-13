@@ -21,8 +21,6 @@ import salve.dataset.zind_data as zind_data
 import salve.utils.csv_utils as csv_utils
 from salve.common.posegraph2d import PoseGraph2d
 from salve.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
-from salve.dataset.rmx_tg_manh_v1 import PanoStructurePredictionRmxTgManhV1
-from salve.dataset.rmx_dwo_rcnn import PanoStructurePredictionRmxDwoRCNN
 
 
 def load_hnet_predictions(

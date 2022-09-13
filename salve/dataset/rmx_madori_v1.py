@@ -64,7 +64,8 @@ class PanoStructurePredictionRmxMadoriV1:
             locations, interleaved as (floor corner 1, ceiling corner 1), (floor corner 2, ceiling corner 2), ...,
             (floor corner C//2, ceiling corner C//2).
         floor_boundary: array of shape (1024,) in range [0, image_height] indicating of floor boundary.
-        floor_boundary_uncertainty: array of shape (1024,) in range [0, image_height] indicating uncertainty of floor boundary.
+        floor_boundary_uncertainty: array of shape (1024,) in range [0, image_height] indicating uncertainty of floor
+            boundary.
         doors: in range [0,1]
         openings: in range [0,1]
         windows: in range [0,1]
@@ -91,12 +92,14 @@ class PanoStructurePredictionRmxMadoriV1:
             image_fpath: path to corresponding image (360 deg. panorama).
         """
         if not isinstance(image_fpath, Path):
-            raise ValueError("Image file path provided to `PanoStructurePredictionRmxMadoriV1` must"
-                " be a `pathlib.Path` object.")
+            raise ValueError(
+                "Image file path provided to `PanoStructurePredictionRmxMadoriV1` must be a `pathlib.Path` object."
+            )
 
         if not isinstance(json_fpath, Path):
-            raise ValueError("JSON file path provided to `PanoStructurePredictionRmxMadoriV1` must"
-                " be a `pathlib.Path` object.")
+            raise ValueError(
+                "JSON file path provided to `PanoStructurePredictionRmxMadoriV1` must be a `pathlib.Path` object."
+            )
 
         if not Path(json_fpath).exists():
             raise ValueError(f"No JSON file found at {json_fpath} while loading `PanoStructurePredictionRmxMadoriV1`.")
@@ -123,7 +126,7 @@ class PanoStructurePredictionRmxMadoriV1:
             doors=doors,
             openings=openings,
             windows=windows,
-            image_fpath=image_fpath
+            image_fpath=image_fpath,
         )
 
     def get_floor_corners_image(self) -> np.ndarray:
@@ -162,7 +165,7 @@ class PanoStructurePredictionRmxMadoriV1:
         img_h = self.image_height
         img_w = self.image_width
 
-        linewidth = 5 #20 # use 20 for paper figures, but 5 for debug visualizations.
+        linewidth = 5  # 20 # use 20 for paper figures, but 5 for debug visualizations.
 
         floor_uv = self.get_floor_corners_image()
         ceiling_uv = self.get_ceiling_corners_image()
@@ -184,7 +187,13 @@ class PanoStructurePredictionRmxMadoriV1:
         plt.plot(np.arange(1024), self.floor_boundary, color=LAYOUT_COLOR, linewidth=linewidth)
 
     def convert_to_pano_data(
-        self, img_h: int, img_w: int, pano_id: int, gt_pose_graph: PoseGraph2d, img_fpath: str, vanishing_angle_deg: float
+        self,
+        img_h: int,
+        img_w: int,
+        pano_id: int,
+        gt_pose_graph: PoseGraph2d,
+        img_fpath: str,
+        vanishing_angle_deg: float,
     ) -> PanoData:
         """Convert HorizonNet W/D/O and layout predictions into a PanoData object.
 
@@ -197,17 +206,16 @@ class PanoStructurePredictionRmxMadoriV1:
             pano_id: integer ID of panorama
             gt_pose_graph: ground-truth 2d pose graph, with GT shapes and GT global poses.
             img_fpath: file path to panorama image.
-            vanishing_angle_deg: 
+            vanishing_angle_deg:
 
         Returns:
             PanoData containing predicted W/D/O's and predicted layout for this panorama.
         """
         camera_height_m = gt_pose_graph.get_camera_height_m(pano_id)
-        camera_height_m = 1.0 # TODO: REMOVE THIS
+        camera_height_m = 1.0  # TODO: REMOVE THIS
 
         u, v = np.arange(1024), np.round(self.floor_boundary)  # .astype(np.int32)
         pred_floor_wall_boundary_pixel = np.hstack([u.reshape(-1, 1), v.reshape(-1, 1)])
-        image_width = 1024
 
         # layout pts in `worldmetric` system
         room_vertices_local_2d = zind_pano_utils.convert_points_px_to_worldmetric(
@@ -268,7 +276,7 @@ class PanoStructurePredictionRmxMadoriV1:
             doors=doors,
             windows=windows,
             openings=openings,
-            vanishing_angle_deg=vanishing_angle_deg
+            vanishing_angle_deg=vanishing_angle_deg,
         )
         return pano_data
 
@@ -360,4 +368,3 @@ def merge_wdos_straddling_img_border(wdo_instances: List[RmxMadoriV1DWO]) -> Lis
     wdo_instances_merged.append(merged_wdo)
 
     return wdo_instances_merged
-

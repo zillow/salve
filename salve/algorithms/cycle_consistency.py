@@ -12,7 +12,6 @@ from typing import DefaultDict, Dict, List, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Rot3, Unit3
 
 import salve.utils.pr_utils as pr_utils
 from salve.common.sim2 import Sim2
@@ -403,7 +402,6 @@ def filter_to_translation_cycle_consistent_edges(
 
     num_outliers_per_cycle = []
     cycle_errors = []
-    valid_edges = []
     n_valid_edges = len([i2Si1 for (i1, i2), i2Si1 in i2Si1_dict.items() if i2Si1 is not None])
 
     cycle_consistent_keys = set()
