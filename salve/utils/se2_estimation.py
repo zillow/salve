@@ -3,7 +3,7 @@
 from typing import Optional, Tuple
 
 import numpy as np
-from gtsam import Rot2, Point2Pairs, Pose2
+from gtsam import Point2Pairs, Pose2
 
 from salve.common.sim2 import Sim2
 

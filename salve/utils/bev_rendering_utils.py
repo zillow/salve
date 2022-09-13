@@ -1,6 +1,5 @@
-"""TODO... """
+"""Utilities for rendering bird's eye view texture maps."""
 
-import json
 import os
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -18,6 +17,7 @@ import imageio
 
 # from vis_zind_annotations import rotmat2d
 
+import salve.common.bevparams as bevparams
 import salve.utils.hohonet_pano_utils as hohonet_pano_utils
 import salve.utils.interpolation_utils as interpolation_utils
 import salve.utils.rotation_utils as rotation_utils
@@ -34,6 +34,10 @@ GREEN = [0, 255, 0]
 BLUE = [0, 0, 255]
 WDO_COLOR_DICT_CV2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
 
+CEILING_CLASS_IDX = 36
+MIRROR_CLASS_IDX = 85
+WALL_CLASS_IDX = 191
+
 
 
 def prune_to_2d_bbox(
@@ -44,19 +48,6 @@ def prune_to_2d_bbox(
     y = pts[:, 1]
     is_valid = np.logical_and.reduce([xmin <= x, x <= xmax, ymin <= y, y <= ymax])
     return pts[is_valid], rgb[is_valid]
-
-
-def test_prune_to_2d_bbox():
-    """ """
-    pts = np.array([[-2, 2], [2, 0], [1, 2], [0, 1]])  # will be discarded  # will be discarded
-    xmin = -1
-    ymin = -1
-    xmax = 1
-    ymax = 2
-
-    pts = prune_to_2d_bbox(pts, xmin, ymin, xmax, ymax)
-    gt_pts = np.array([[1, 2], [0, 1]])
-    assert np.allclose(pts, gt_pts)
 
 
 def rasterize_room_layout_pair(
@@ -137,8 +128,8 @@ def rasterize_single_layout(
 
     WHITE = (255, 255, 255)
 
-    # thickness will be 30 px at 2000 x 2000, and just 8 px at 500 x 500
-    wdo_thickness_px = get_line_width_by_resolution(DEFAULT_METERS_PER_PX)
+    # Thickness will be 30 px at 2000 x 2000, and just 8 px at 500 x 500
+    wdo_thickness_px = bevparams.get_line_width_by_resolution(DEFAULT_METERS_PER_PX)
     if render_mask:
         bev_img = rasterize_polygon(
             polygon_xy=room_vertices * HOHO_S_ZIND_SCALE_FACTOR,
@@ -359,11 +350,6 @@ def grayscale_to_color(gray_img: np.ndarray) -> np.ndarray:
     return rgb_img
 
 
-CEILING_CLASS_IDX = 36
-MIRROR_CLASS_IDX = 85
-WALL_CLASS_IDX = 191
-
-
 def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: bool) -> np.ndarray:
     """
     Args:
@@ -486,7 +472,7 @@ def vis_depth(args):
 def render_bev_pair(
     args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
-    """
+    """Render ... TODO
 
     Args:
         args:

@@ -84,9 +84,7 @@ def draw_multigraph(
         raw_dataset_dir: path to where ZInD has been downloaded on disk, from Bridge API.
         save_dir: experiment directory, which will be parent directory for visualizations subdir.
     """
-
     edges = []
-    edge_colors = []
 
     G = nx.MultiGraph()
 
