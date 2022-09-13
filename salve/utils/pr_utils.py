@@ -120,8 +120,7 @@ def plot_precision_recall_curve_sklearn(measurements: List[EdgeClassification]) 
     Returns:
         prec: array of shape (K,) representing monotonically increasing precision values such that element i is the
             precision of predictions with score >= thresholds[i] and the last element is 1.
-            (TODO: issue bug report on the documentation for this)
-            We force monotonicity.
+            We do NOT force monotonicity.
         recall: array of shape (K,) representing decreasing recall values such that element i is the recall of predictions
             with score >= thresholds[i] and the last element is 0.
         thresholds: array of shape (K-1,) representing confidence thresholds for each precision and recall value.
