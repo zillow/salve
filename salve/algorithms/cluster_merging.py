@@ -1,6 +1,6 @@
 """Utility for merging disjoint two clusters (connected components)."""
 
-from typing import Dict, List, NamedTuple, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import networkx as nx
 import numpy as np

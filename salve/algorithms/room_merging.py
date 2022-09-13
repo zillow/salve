@@ -1,7 +1,7 @@
 """Merge rooms together based on layout overlap ratios."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import List
 
 import matplotlib.pyplot as plt
 import networkx as nx
