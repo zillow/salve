@@ -57,7 +57,7 @@ def determine_dominant_rotation_angle(poly: np.ndarray) -> Tuple[Optional[float]
         v1 = np.array(p2) - np.array(p1)
         v2 = np.array(p3) - np.array(p2)
 
-        # normalize directions to unit length
+        # Normalize directions to unit length.
         v1 = v1 / np.linalg.norm(v1)
         v2 = v2 / np.linalg.norm(v2)
 
@@ -135,15 +135,15 @@ def align_pairs_by_vanishing_angle(
 ) -> Dict[Tuple[int, int], Sim2]:
     """Align a collection of image pairs by vanishing angle, up to a maximum allowed refinement threshold.
 
-    Note:
-    - rotating in place about the room center yields wrong results.
-    - the rotation must be about a specific point (not about the origin).
-    - The rotation must be about the W/D/O object (we choose the midpoint here).
+    Note: Rotating in-place about the room center yields wrong results. Rather, the rotation must be about
+    a specific point (not about the origin). Specifically, the rotation must be about the W/D/O object
+    (we choose the W/D/O midpoint here).
 
     Args:
         i2Si1_dict: relative pose measurements.
         gt_floor_pose_graph: ground truth pose graph for specified ZInD floor.
         per_edge_wdo_dict:
+        raw_dataset_dir:
         visualize: whether to visualize intermediate results.
 
     Returns:
@@ -189,6 +189,7 @@ def align_pair_measurement_by_vanishing_angle(
         i2Si1: initial relative pose measurement, from possibly noisy W/D/O detections.
         edge_wdo_pair:
         pano_dict_inferred:
+        visualize:
 
     Returns:
         i2rSi1: updated measurement, to an updated i2 frame. (or can think of it as updated i1 pose).
@@ -320,7 +321,7 @@ def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
     i2Si1 = Similarity3.Align(abPointPairs=pt_pairs_i2i1)
     # TODO: we should use Pose2.Align()
 
-    # project back to 2d
+    # Project back to 2d.
     i2Ri1 = i2Si1.rotation().matrix()[:2, :2]
     theta_deg = rotation_utils.rotmat2theta_deg(i2Ri1)
     i2Ti1 = Pose2(Rot2.fromDegrees(theta_deg), i2Si1.translation()[:2])

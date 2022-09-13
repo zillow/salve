@@ -1,5 +1,4 @@
-"""Make precision-recall curves for different models.
-"""
+"""Make precision-recall curves for different SALVe verifier models."""
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,24 +8,15 @@ import salve.common.edge_classification as edge_classification
 import salve.utils.pr_utils as pr_utils
 
 
-# # ResNet-152 for all 3 models here.
-model_dict = {
-    "ceiling + floor": "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02",
-    "floor-only": "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09",
-    "ceiling-only": "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12",
-    "layout-only": "/Users/johnlam/Downloads/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test2021_11_15",
-}
-# ResNet-152 for all 4 models here.
-# model_dict = {
-#     "ceiling + floor": "/Users/johnlam/Downloads/2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23",
-#     "floor-only": "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test109buildings_2021_11_16",
-#     "ceiling-only": "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test109buildings_2021_11_16",
-#     "layout-only": "/Users/johnlam/Downloads/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test109buildings_2021_11_16"
-# }
+def compare_precision_recall_across_models(model_dict: Dict[str, str]) -> None:
+    """Make precision-recall curves on a single plot for different trained models.
 
+    Recall thresholds represent the x-axis, and precision thresholds represent the y-axis.
 
-def compare_precision_recall_across_models() -> None:
-    """Make precision-recall curves on a single plot for different trained models."""
+    Args:
+        model_dict: mapping from modality input types to corresponding model predictions. Each (key, value)
+            pair represents a separate trained model.
+    """
     plt.style.use("ggplot")
     # sns.set_style({"font.family": "Times New Roman"})
 
@@ -46,7 +36,7 @@ def compare_precision_recall_across_models() -> None:
         all_model_measurements = []
         for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-            # stack predictions together across tours
+            # Stack predictions together across tours.
             all_model_measurements.extend(measurements)
 
         # plt.title(model_name)
@@ -61,12 +51,20 @@ def compare_precision_recall_across_models() -> None:
     plt.show()
 
 
-def make_thresholds_plot() -> None:
-    """ "Compare how confidence thresholds affect performance."""
+def make_thresholds_plot(model_dict: Dict[str, str]) -> None:
+    """Compare how confidence thresholds affect performance.
+
+    Generates a plot with confidence thresholds on the x-axis, and separate precision and
+    recall curves on the y-axis.
+
+    Args:
+        model_dict: mapping from modality input types to corresponding model predictions. Each (key, value)
+            pair represents a separate trained model.
+    """
     plt.style.use("ggplot")
     # sns.set_style({"font.family": "Times New Roman"})
 
-    # this is the current operating point -- 93% confidence and above.
+    # This is the current operating point -- 93% confidence and above.
     op_conf_thresh = 0.93
 
     palette = np.array(sns.color_palette("hls", 5))
@@ -85,7 +83,7 @@ def make_thresholds_plot() -> None:
         all_model_measurements = []
         for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
-            # stack predictions together across tours
+            # Stack predictions together across tours.
             all_model_measurements.extend(measurements)
 
         # plt.title(model_name)
@@ -107,7 +105,7 @@ def make_thresholds_plot() -> None:
             linestyle="dashed",
         )
 
-    # show the operating point
+    # Show the operating point.
     plt.plot([op_conf_thresh, op_conf_thresh], [0, 1], color=palette[4])
 
     plt.xlabel("CNN probability for 'positive' class")
@@ -120,5 +118,20 @@ def make_thresholds_plot() -> None:
 
 if __name__ == "__main__":
 
-    compare_precision_recall_across_models()
-    make_thresholds_plot()
+    # # ResNet-152 for all 3 models here.
+    model_dict = {
+        "ceiling + floor": "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02",
+        "floor-only": "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09",
+        "ceiling-only": "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12",
+        "layout-only": "/Users/johnlam/Downloads/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test2021_11_15",
+    }
+    # ResNet-152 for all 4 models here.
+    # model_dict = {
+    #     "ceiling + floor": "/Users/johnlam/Downloads/2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23",
+    #     "floor-only": "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test109buildings_2021_11_16",
+    #     "ceiling-only": "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test109buildings_2021_11_16",
+    #     "layout-only": "/Users/johnlam/Downloads/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test109buildings_2021_11_16"
+    # }
+
+    compare_precision_recall_across_models(model_dict)
+    make_thresholds_plot(model_dict)

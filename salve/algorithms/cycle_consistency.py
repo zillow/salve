@@ -14,8 +14,8 @@ import numpy as np
 from gtsam import Pose2, Rot2, Rot3, Unit3
 from scipy.spatial.transform import Rotation
 
+import salve.utils.pr_utils as pr_utils
 from salve.common.sim2 import Sim2
-from salve.utils.pr_utils import compute_precision_recall
 from salve.utils.rotation_utils import rotmat2d, rotmat2theta_deg
 
 logger = logging.getLogger(__name__)
@@ -628,7 +628,7 @@ def estimate_rot_cycle_filtering_classification_acc(i2Ri1_dict, i2Ri1_dict_consi
         gt_idxs[i] = two_view_reports_dict[key].gt_class
         pred_idxs[i] = 1 if key in i2Ri1_dict_consistent else 0
 
-    prec, rec, mAcc = compute_precision_recall(y_true=gt_idxs, y_pred=pred_idxs)
+    prec, rec, mAcc = pr_utils.compute_precision_recall(y_true=gt_idxs, y_pred=pred_idxs)
     return prec, rec, mAcc
 
 

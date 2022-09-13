@@ -15,12 +15,22 @@ from salve.common.edge_classification import EdgeClassification
 _PathLike = Union[str, "os.PathLike[str]"]
 
 
-class InterpType(Enum):
-    ALL = auto()
+EPS = 1e-7
 
 
 def assign_tp_fp_fn_tn(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[int,int,int,int]:
-    """ """
+    """Assign true positives, false positives, false negatives, true negatives.
+
+    Args:
+        y_true: integer array representing ground truth categories.
+        y_pred: integer array representing predicted categories.
+
+    Returns:
+        is_TP: boolean mask for true positives.
+        is_FP: boolean mask for false positives.
+        is_FN: boolean mask for false negatives.
+        is_TN: boolean mask for true negatives.
+    """
     is_TP = np.logical_and(y_true == y_pred, y_pred == 1)
     is_FP = np.logical_and(y_true != y_pred, y_pred == 1)
     is_FN = np.logical_and(y_true != y_pred, y_pred == 0)
@@ -30,8 +40,18 @@ def assign_tp_fp_fn_tn(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[int,int,
 
 
 def compute_tp_fp_fn_tn_counts(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[int,int,int,int]:
-    """ """
+    """Compute counts of true positives, false positives, false negatives, true negatives.
 
+    Args:
+        y_true: integer array representing ground truth categories.
+        y_pred: integer array representing predicted categories.
+
+    Returns:
+        is_TP: number of true positives.
+        is_FP: number of false positives.
+        is_FN: number of false negatives.
+        is_TN: number of true negatives.
+    """
     TP = np.logical_and(y_true == y_pred, y_pred == 1).sum()
     FP = np.logical_and(y_true != y_pred, y_pred == 1).sum()
 
@@ -42,7 +62,9 @@ def compute_tp_fp_fn_tn_counts(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[
 
 
 def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[float,float,float]:
-    """ Define 1 as the target class (positive)
+    """Compute precision and recall over a set of predictions, using ground-truth.
+
+    Define 1 as the target class (positive).
 
     In confusion matrix, `actual` are along rows, `predicted` are columns:
 
@@ -51,13 +73,15 @@ def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[fl
     Actual P TP FN
            N FP TN
 
-    Returns:
-        prec:
-        rec: 
-        mAcc:
-    """
-    EPS = 1e-7
+    Args:
+        y_true: integer array representing ground truth categories.
+        y_pred: integer array representing predicted categories (assumed to already be thresholded by confidence).
 
+    Returns:
+        prec: precision.
+        rec: recall.
+        mAcc: mean accuracy.
+    """
     TP, FP, FN, TN = compute_tp_fp_fn_tn_counts(y_true, y_pred)
 
     # form a confusion matrix
@@ -87,122 +111,18 @@ def compute_precision_recall(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[fl
     return prec, rec, mAcc
 
 
-def compute_prec_recall_curve(
-    y_true: np.ndarray, y_pred: np.ndarray, confidences: np.ndarray, n_rec_samples: int = 101, figs_fpath: _PathLike = Path("pr_plots")
-) -> None:
-    """ """
-    import pdb; pdb.set_trace()
-    recalls_interp = np.linspace(0, 1, n_rec_samples)
-
-    if not figs_fpath.is_dir():
-        figs_fpath.mkdir(parents=True, exist_ok=True)
-
-    # only 1 class of interest -- the match class
-    is_TP, is_FP, is_FN, is_TN = assign_tp_fp_fn_tn(y_true, y_pred)
-    ninst = is_TP.sum() + is_TN.sum()
-    ranks = confidences.argsort()[::-1]  # sort by last column, i.e. confidences
-    ninst = tp + fn 
-
-    tp = cls_stats[:, i].astype(bool)
-    ap_th, precisions_interp = calc_ap(tp, recalls_interp, ninst)
-
-    # from sklearn.metrics import precision_recall_curve
-    # y_true_array = np.array([m.y_true for m in measurements])
-    # y_pred_probs_array = np.array([m.prob for m in measurements])
-    # prec, rec, thresholds = precision_recall_curve(y_true_array, y_pred_probs_array)
-
-
-def calc_ap(gt_ranked: np.ndarray, recalls_interp: np.ndarray, ninst: int) -> Tuple[float, np.ndarray]:
-    """Compute precision and recall, interpolated over n fixed recall points.
-    Args:
-        gt_ranked: Ground truths, ranked by confidence.
-        recalls_interp: Interpolated recall values.
-        ninst: Number of instances of this class.
-    Returns:
-        avg_precision: Average precision.
-        precisions_interp: Interpolated precision values.
-    """
-    tp = gt_ranked
-
-    cumulative_tp = np.cumsum(tp, dtype=np.int)
-    cumulative_fp = np.cumsum(~tp, dtype=np.int)
-    cumulative_fn = ninst - cumulative_tp
-
-    precisions = cumulative_tp / (cumulative_tp + cumulative_fp + np.finfo(float).eps)
-    recalls = cumulative_tp / (cumulative_tp + cumulative_fn)
-    precisions = interp(precisions)
-    precisions_interp = np.interp(recalls_interp, recalls, precisions, right=0)
-    avg_precision = precisions_interp.mean()
-    return avg_precision, precisions_interp
-
-
-def interp(prec: np.ndarray, method: InterpType = InterpType.ALL) -> np.ndarray:
-    """Interpolate the precision over all recall levels. See equation 2 in
-    http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.167.6629&rep=rep1&type=pdf
-    for more information.
-    Args:
-        prec: Precision at all recall levels (N,).
-        method: Accumulation method.
-    Returns:
-        prec_interp: Interpolated precision at all recall levels (N,).
-    """
-    if method == InterpType.ALL:
-        prec_interp = np.maximum.accumulate(prec[::-1])[::-1]
-    else:
-        raise NotImplementedError("This interpolation method is not implemented!")
-    return prec_interp
-
-
-
-def rank(dts: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Rank the detections in descending order according to score (detector confidence).
-    Args:
-        dts: Array of `ObjectLabelRecord` objects. (N,).
-    Returns:
-        ranked_dts: Array of `ObjectLabelRecord` objects ranked by score (N,) where N <= MAX_NUM_BOXES.
-        ranked_scores: Array of floats sorted in descending order (N,) where N <= MAX_NUM_BOXES.
-    """
-    scores = np.array([dt.score for dt in dts.tolist()])
-    ranks = scores.argsort()[::-1]
-
-    ranked_dts = dts[ranks]
-    ranked_scores = scores[ranks]
-
-    # Ensure the number of boxes considered per class is at most `MAX_NUM_BOXES`.
-    return ranked_dts[:MAX_NUM_BOXES], ranked_scores[:MAX_NUM_BOXES]
-
-
-def plot(rec_interp: np.ndarray, prec_interp: np.ndarray, cls_name: str, figs_fpath: Path) -> Path:
-    """Plot and save the precision recall curve.
-    Args:
-        rec_interp: Interpolated recall data of shape (N,).
-        prec_interp: Interpolated precision data of shape (N,).
-        cls_name: Class name.
-        figs_fpath: Path to the folder which will contain the output figures.
-    Returns:
-        dst_fpath: Plot file path.
-    """
-    plt.plot(rec_interp, prec_interp)
-    plt.title("PR Curve")
-    plt.xlabel("Recall")
-    plt.ylabel("Precision")
-
-    dst_fpath = Path(f"{figs_fpath}/{cls_name}.png")
-    plt.savefig(dst_fpath)
-    plt.close()
-    return dst_fpath
-
-
 def plot_precision_recall_curve_sklearn(measurements: List[EdgeClassification]) -> None:
-    """
+    """Compute a P/R curve using the sklearn library.
+
     Args:
-        measurements: list of length (K,) representing model predictions.
+        measurements: list of length (K,) representing model predictions on pose graph edges.
 
     Returns:
-        prec: array of shape (K,) represen
-            Precision values such that element i is the precision of predictions with score >= thresholds[i] and the last element is 1.
-        recall: array of shape (K,) represen
-            Decreasing recall values such that element i is the recall of predictions with score >= thresholds[i] and the last element is 0.
+        prec: array of shape (K,) representing monotonically increasing precision values such that element i is the
+            precision of predictions with score >= thresholds[i] and the last element is 1.
+            We do NOT force monotonicity.
+        recall: array of shape (K,) representing decreasing recall values such that element i is the recall of predictions
+            with score >= thresholds[i] and the last element is 0.
         thresholds: array of shape (K-1,) representing confidence thresholds for each precision and recall value.
             see https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
     """
@@ -225,16 +145,3 @@ def plot_precision_recall_curve_sklearn(measurements: List[EdgeClassification]) 
     # plt.show()
 
     return prec, recall, thresholds
-
-
-if __name__ == '__main__':
-    #test_compute_prec_recall_curve()
-
-    # test_compute_precision_recall_1()
-    # test_compute_precision_recall_2()
-    # #test_compute_precision_recall_3()
-    # test_compute_precision_recall_4()
-
-    #test_plot_precision_recall_curve_sklearn1()
-    test_plot_precision_recall_curve_sklearn2()
-
