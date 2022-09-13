@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 
 import salve.common.floor_reconstruction_report as floor_reconstruction_report
 import salve.common.posegraph2d as posegraph2d
-import salve.dataset.zind_data as zind_data
 from salve.common.posegraph2d import PoseGraph2d
 from salve.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
 
@@ -128,7 +127,9 @@ def load_inferred_floor_pose_graphs(
 
     # TODO: add back vanishing angle utilization (and check where they are being used downstream here).
     building_vanishing_angles_dict = defaultdict(int)
-    # building_vanishing_angles_dict = load_vanishing_angles(predictions_data_root=predictions_data_root, building_id=building_id)
+    # building_vanishing_angles_dict = load_vanishing_angles(
+    #     predictions_data_root=predictions_data_root, building_id=building_id
+    # )
 
     # Populate the pose graph for each floor, pano-by-pano.
     for floor_id, floor_predictions in hnet_predictions_dict.items():

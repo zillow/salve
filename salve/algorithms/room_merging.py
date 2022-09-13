@@ -6,8 +6,7 @@ from typing import List
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from shapely.geometry import Point, Polygon
-from matplotlib.figure import Figure
+from shapely.geometry import Polygon
 
 import salve.utils.matplotlib_utils as matplotlib_utils
 from salve.common.posegraph2d import PoseGraph2d
