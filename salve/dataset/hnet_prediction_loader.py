@@ -69,9 +69,6 @@ def load_hnet_predictions(
             pred_obj = PanoStructurePredictionRmxMadoriV1.from_json_fpath(
                 json_fpath=model_prediction_fpath, image_fpath=img_fpath
             )
-            if pred_obj is None:  # malformatted pred for some reason
-                continue
-
             floor_hnet_predictions[floor_id][i] = pred_obj
 
             render_on_pano = False
