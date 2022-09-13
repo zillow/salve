@@ -9,8 +9,14 @@ import salve.utils.pr_utils as pr_utils
 from salve.common.edge_classification import EdgeClassification
 
 
-def make_dummy_edge_classification(prob: float, y_hat: int, y_true: int) -> EdgeClassification:
-    """ """
+def _make_dummy_edge_classification(prob: float, y_hat: int, y_true: int) -> EdgeClassification:
+    """Generates a dummy EdgeClassification object with the specified GT & predicted category, and confidence.
+
+    Args:
+        prob: confidence probability.
+        y_hat: predicted category.
+        y_true: ground truth category.
+    """
     measurement = EdgeClassification(
         i1=0, # dummy val
         i2=1, # dummy val
@@ -24,8 +30,8 @@ def make_dummy_edge_classification(prob: float, y_hat: int, y_true: int) -> Edge
     return measurement
 
 
-def test_compute_precision_recall_1() -> None:
-    """All incorrect predictions."""
+def test_compute_precision_recall_all_incorrect_predictions() -> None:
+    """Ensures that precision, recall, and accuracy are zero for all incorrect predictions."""
     y_pred = np.array([0,0,1])
     y_true = np.array([1,1,0])
 
@@ -36,8 +42,8 @@ def test_compute_precision_recall_1() -> None:
     assert mAcc == 0.0
     
 
-def test_compute_precision_recall_2() -> None:
-    """All correct predictions."""
+def test_compute_precision_recall_all_correct_predictions() -> None:
+    """Ensures that precision, recall, and accuracy are one for all correct predictions."""
     y_pred = np.array([1,1,0])
     y_true = np.array([1,1,0])
 
@@ -48,98 +54,95 @@ def test_compute_precision_recall_2() -> None:
     assert np.isclose(mAcc, 1.0)
     
 
-def test_compute_precision_recall_3() -> None:
-    """No positive predictions. 2 incorrect, 1 correct prediction."""
+def test_compute_precision_recall_no_positive_predictions() -> None:
+    """Ensures that precision, recall, and mean accuracy are correct for mixed correct and incorrect predictions."""
+
+    # Scenario data indicates no positive predictions. 2 incorrect and 1 correct prediction.
     y_pred = np.array([0,0,0])
     y_true = np.array([1,1,0])
 
     prec, rec, mAcc = pr_utils.compute_precision_recall(y_true, y_pred)
 
-    # no false positives, but low recall
+    # No false positives (since no positive class 1 predictions), but no TPs, so low precision.
     assert np.isclose(prec, 0.0)
+
+    # Two false negatives, but no TPs, so low recall.
     assert np.isclose(rec, 0.0)
-    assert np.isclose(mAcc, 0.5) # 0% acc on class 1, but 100% acc on class 0.
+    # Achieves 0% acc on class 1, but 100% acc on class 0.
+    assert np.isclose(mAcc, 0.5)
 
 
-def test_compute_precision_recall_4() -> None:
-    """All correct predictions."""
+def test_compute_precision_recall_mixed() -> None:
+    """Ensures that precision, recall, and mean accuracy are correct for mixed correct and incorrect predictions."""
     y_pred = np.array([0,1,0,1])
     y_true = np.array([1,1,0,0])
 
     prec, rec, mAcc = pr_utils.compute_precision_recall(y_true, y_pred)
 
-    # no false positives, but low recall
+    # 1 FN, 1 TP, 1 FN, 1 TN. Precision is (1/2) and recall is (1/2).
     assert np.isclose(prec, 0.5)
     assert np.isclose(rec, 0.5)
     assert np.isclose(mAcc, 0.5)
 
 
-def test_compute_prec_recall_curve() -> None:
-    """ """
-    y_true = np.array([1, 1, 0])
-    y_pred = np.array([1, 1, 1])
-    confidences = np.array([1.0, 1.0, 0.5])
+def test_plot_precision_recall_curve_sklearn_all_correct() -> None:
+    """Ensures that precision, recall, and thresholds from Sklearn (for P/R curve) are correct."""
 
-    import pdb; pdb.set_trace()
-    ap = pr_utils.compute_prec_recall_curve(y_true, y_pred, confidences, n_rec_samples = 4, figs_fpath = Path("pr_plots"))
-    assert ap == 0.67
-
-
-
-def test_plot_precision_recall_curve_sklearn1() -> None:
-    """For all correct predictions, with increasing amounts of confidence."""
+    # We test a scenario with all correct predictions, with increasing amounts of confidence.
     y_pred = np.array([1,1,1])
     y_true = np.array([1,1,1])
     probs =  np.array([0.1, 0.2, 0.3])
 
     measurements = []
     for i in range(3):
-        measurements.append(make_dummy_edge_classification(prob=probs[i], y_hat=y_pred[i], y_true=y_true[i]))
+        measurements.append(_make_dummy_edge_classification(prob=probs[i], y_hat=y_pred[i], y_true=y_true[i]))
 
     prec, rec, thresholds = pr_utils.plot_precision_recall_curve_sklearn(measurements)
 
+    # There are no false positives, with 4 TPs, so precision is always perfect (equal to 1).
     expected_prec = np.array([1., 1., 1., 1.])
+
+    # We can get false negatives if we require high-confidence; thus recall is not perfect
+    # at all thresholds.
     expected_rec = np.array([1., 0.667, 0.333, 0. ])
+    # At 0.1 threshold, get perfect recall, since no false positives.
+    # At 0.2 threshold, 1 FP, so get 2/3 recall.
+    # At 0.3 threshold, 2 FPs, so get 1/3 recall.
     expected_thresholds = np.array([0.1, 0.2, 0.3])
 
     assert np.allclose(prec, expected_prec)
-    assert np.allclose(rec, expected_rec)
+    assert np.allclose(rec, expected_rec, 0.3)
     assert np.allclose(thresholds, expected_thresholds)
 
 
-def test_plot_precision_recall_curve_sklearn2() -> None:
-    """For some incorrect and correct predictions.
+def test_plot_precision_recall_curve_sklearn_all_positive_predictions() -> None:
+    """Ensures that precision, recall, and thresholds from Sklearn (for P/R curve) are correct.
 
-    @ >= 0.3 thresh, 2 TPs, 1 FP. (prec 2/3). Recall 1.
-    @ >= 0.8 thresh, 1 FP, 1 TP. (prec 1/2). Recall 1/2.
-    @ >= 0.9 thresh, 0 FP, 1 TP (prec 1). Recall 1/2.
+    Represents all positive predictions (resulting in some incorrect and correct predictions).
+
+    @ >= 0.2 thresh, 2 FP, 2 TP, 0 FN. (prec 1/2). Recall 1.
+    @ >= 0.3 thresh, 1 FP, 2 TP, 0 FN. (prec 2/3). Recall 1.
+    @ >= 0.8 thresh, 1 FP, 1 TP, 1 FN. (prec 1/2). Recall 1/2.
+    @ >= 0.9 thresh, 0 FP, 1 TP, 1 FN. (prec 1). Recall 1/2.
     """
-    y_pred = np.array([1,1,1,1])
-    y_true = np.array([1,0,1,0])
+    # fmt: off
+    y_pred = np.array([  1,   1,   1,   1])
+    y_true = np.array([  1,   0,   1,   0])
     probs =  np.array([0.9, 0.8, 0.3, 0.2])
+    # fmt: on
 
     measurements = []
     for i in range(4):
-        measurements.append(make_dummy_edge_classification(prob=probs[i], y_hat=y_pred[i], y_true=y_true[i]))
+        measurements.append(_make_dummy_edge_classification(prob=probs[i], y_hat=y_pred[i], y_true=y_true[i]))
 
     prec, rec, thresholds = pr_utils.plot_precision_recall_curve_sklearn(measurements)
 
-    expected_prec = np.array([0.66666667, 0.5 , 1. , 1. ])
-    expected_rec = np.array([1. , 0.5, 0.5, 0. ])
-    expected_thresholds = np.array([0.3, 0.8, 0.9])
+    # fmt: off
+    expected_prec = np.array([      0.5, 0.667, 0.5,   1, 1 ])
+    expected_rec = np.array([         1,     1, 0.5, 0.5, 0 ])
+    expected_thresholds = np.array([0.2,   0.3, 0.8, 0.9])
+    # fmt: on
 
-    assert np.allclose(prec, expected_prec)
+    assert np.allclose(prec, expected_prec, atol=1e-3)
     assert np.allclose(rec, expected_rec)
     assert np.allclose(thresholds, expected_thresholds)
-
-if __name__ == "__main__":
-
-    # test_compute_precision_recall_1()
-    # test_compute_precision_recall_2()
-    # test_compute_precision_recall_3()
-    # test_compute_precision_recall_4()
-
-    test_compute_prec_recall_curve()
-
-    # test_plot_precision_recall_curve_sklearn1()
-    # test_plot_precision_recall_curve_sklearn2()
