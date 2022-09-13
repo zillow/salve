@@ -304,8 +304,8 @@ def align_rooms_by_wd(
                         # plt.plot(inter_poly_verts[:,0],inter_poly_verts[:,1], color='m')
 
                         plt.title(
-                            f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid}, aligned via {alignment_object}, "
-                            "\n  config={configuration}"
+                            f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid},"
+                            f" aligned via {alignment_object}, \n  config={configuration}"
                         )
                         # window_normals_compatible={window_normals_compatible},
                         plt.axis("equal")

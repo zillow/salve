@@ -35,7 +35,6 @@ def get_kpt_idx(wdo_idx: int, wdo_object_type: str, pano_data: PanoData) -> int:
     """
     num_openings = len(pano_data.openings)
     num_windows = len(pano_data.windows)
-    num_doors = len(pano_data.doors)
 
     if wdo_object_type == "opening":
         kpt_idx = wdo_idx * 2
@@ -90,7 +89,7 @@ def perform_data_association(
         s_1 = get_kpt_idx(wdo_idx=i, wdo_object_type=alignment_object, pano_data=pano_dict_inferred[i1])
         s_2 = get_kpt_idx(wdo_idx=j, wdo_object_type=alignment_object, pano_data=pano_dict_inferred[i2])
 
-        # by convention here, end vertex is always 1 greater than start vertex index.
+        # By convention here, end vertex is always 1 greater than start vertex index.
         e_1 = s_1 + 1
         e_2 = s_2 + 1
 
@@ -116,7 +115,8 @@ def perform_data_association(
 def get_ith_wdo_room_endpoints_from_pano(
     pano_data: PanoData, i: int, alignment_object: str, use_rotated: bool
 ) -> Tuple[float, float]:
-    """
+    """TODO
+    
     Args:
         pano_data:
         i:

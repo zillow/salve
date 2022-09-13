@@ -1,5 +1,7 @@
 
 
+import numpy as np
+
 def convert_points_worldmetric_to_px(points_worldmetric: np.ndarray, image_width: int, camera_height_m: float) -> np.ndarray:
     """TODO
 

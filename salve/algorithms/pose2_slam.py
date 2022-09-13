@@ -1,15 +1,4 @@
-"""
-A 2D Pose SLAM example that reads input from g2o, and solve the Pose2 problem
-using LAGO (Linear Approximation for Graph Optimization).
-Output is written to a file, in g2o format
-
-Reference:
-L. Carlone, R. Aragues, J. Castellanos, and B. Bona, A fast and accurate
-approximation for planar pose graph optimization, IJRR, 2014.
-
-L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
-for graph-based simultaneous localization and mapping, RSS, 2011.
-"""
+"""Utilities for 2d pose SLAM and landmark-based SLAM."""
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -24,7 +13,7 @@ import salve.algorithms.data_association as data_association
 import salve.common.edge_classification as edge_classification
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.axis_alignment_utils as axis_alignment_utils
-import salve.utils.graph_rendering_utils as graph_rendering_utils
+import salve.utils.graph_rendering_utils as graph_rendering_utils  # flake8: noqa
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
@@ -32,7 +21,7 @@ from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.sim2 import Sim2
 
 
-# Create noise models
+# Create noise models.
 PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))  # np.array([1e-6, 1e-6, 1e-8])
 ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
 MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
@@ -40,7 +29,7 @@ MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
 
 @dataclass
 class BearingRangeMeasurement:
-    """Bearing is provided in degrees.
+    """Bearing-range measurement between camera and landmark.
 
     Args:
         pano_id: panorama ID
@@ -57,19 +46,30 @@ class BearingRangeMeasurement:
 
 @dataclass
 class OdometryMeasurement:
-    """
+    """Odometry measurement.
+
     Args:
         i1: unique ID of panorama 1
         i2: unique ID of panorama 2
         i2Ti1: relative pose
     """
+
     i1: int
     i2: int
     i2Ti1: Pose2
 
 
 def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]:
-    """Does not require an initial estimate.
+    """Estimate camera poses using LAGO (Linear Approximation for Graph Optimization) SLAM.
+
+    Reference:
+    L. Carlone, R. Aragues, J. Castellanos, and B. Bona, A fast and accurate
+    approximation for planar pose graph optimization, IJRR, 2014.
+
+    L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
+    for graph-based simultaneous localization and mapping, RSS, 2011.
+    
+    Does not require an initial estimate.
 
     Can also estimate over landmarks if we can solve data association (s & e for shared door).
 
@@ -80,7 +80,7 @@ def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]
 
     graph = gtsam.NonlinearFactorGraph()
 
-    # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model
+    # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model.
     graph.add(PriorFactorPose2(X(0), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
 
     for (i1, i2), i2Ti1 in i2Ti1_dict.items():
@@ -90,7 +90,6 @@ def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]
     print(graph)
 
     import pdb
-
     pdb.set_trace()
 
     print("Computing LAGO estimate")
@@ -99,24 +98,6 @@ def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]
     max_frame_id = max([max(i1, i2) for (i1, i2) in i2Ti1_dict.keys()]) + 1
     for i in range(max_frame_id):
         wTi_list.append(estimate_lago.atPose2(i))
-
-
-def test_estimate_poses_lago() -> None:
-    """Ensure pose graph is correctly estimated for simple 4-pose scenario."""
-    wTi_list = [
-        Pose2(Rot2(), np.array([2, 0])),
-        Pose2(Rot2(), np.array([2, 2])),
-        Pose2(Rot2(), np.array([0, 2])),
-        Pose2(Rot2(), np.array([0, 0])),
-    ]
-    i2Ti1_dict = {
-        (0, 1): wTi_list[1].between(wTi_list[0]),
-        (1, 2): wTi_list[2].between(wTi_list[1]),
-        (2, 3): wTi_list[3].between(wTi_list[2]),
-        (0, 3): wTi_list[3].between(wTi_list[0]),
-    }
-
-    wTi_list_computed = estimate_poses_lago(i2Ti1_dict)
 
 
 def planar_slam(
@@ -163,7 +144,7 @@ def planar_slam(
     # Create an empty nonlinear factor graph
     graph = gtsam.NonlinearFactorGraph()
 
-    # find the first pano for which the initial pose estimate is not None
+    # Find the first pano for which the initial pose estimate is not None.
     origin_pano_id = np.argmax([wTi is not None for wTi in wTi_list_init])
 
     # keys corresponding to unknown variables in the factor graph.
@@ -346,7 +327,7 @@ def execute_planar_slam(
         i2Ti1_measurements=i2Ti1_measurements,
         landmark_positions_init=landmark_positions_init,
         landmark_measurements=landmark_measurements,
-        optimize_poses_only=optimize_poses_only
+        optimize_poses_only=optimize_poses_only,
     )
     wSi_list = [None] * len(wTi_list)
     for i, wTi in enumerate(wTi_list):
@@ -354,30 +335,29 @@ def execute_planar_slam(
             continue
         wSi_list[i] = Sim2(R=wTi.rotation().matrix(), t=wTi.translation(), s=1.0)
 
-
     est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pg)
     report = FloorReconstructionReport.from_est_floor_pose_graph(
-        est_floor_pose_graph,
-        gt_floor_pose_graph=gt_floor_pg,
-        plot_save_dir=plot_save_dir
+        est_floor_pose_graph, gt_floor_pose_graph=gt_floor_pg, plot_save_dir=plot_save_dir
     )
-    #graph_rendering_utils.draw_multigraph(measurements, est_floor_pose_graph, raw_dataset_dir=raw_dataset_dir, confidence_threshold=0.93)
+    # graph_rendering_utils.draw_multigraph(
+    #     measurements, est_floor_pose_graph, raw_dataset_dir=raw_dataset_dir, confidence_threshold=0.93
+    # )
 
     return report
 
 
 def draw_coordinate_frame(wTi: Pose2, text: str) -> None:
-    """Draw a 2d coordinate frame using matplotlib."""
-    """
+    """Draw a 2d coordinate frame using matplotlib.
+
     Args:
         wTi: camera pose in global frame.
         text:
     """
-    # camera center
+    # Camera center.
     cc = wTi.translation()
     plt.text(cc[0], cc[1], text)
 
-    # loop over the x-axis and then y-axis
+    # Loop over the x-axis and then y-axis.
     for a, color in zip(range(2), ["r", "g"]):
         axis = np.zeros(2)
         axis[a] = 1

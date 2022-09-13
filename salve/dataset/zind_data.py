@@ -10,7 +10,7 @@ import imageio
 from torch.utils.data import Dataset
 from torch import Tensor
 
-from salve.dataset.zind_partition import DATASET_SPLITS, NEW_HOME_ID_TEST_SET
+from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.training_config import TrainingConfig
 
 

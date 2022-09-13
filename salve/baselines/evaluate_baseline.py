@@ -23,14 +23,13 @@ import salve.baselines.openmvg as openmvg_utils
 import salve.common.floor_reconstruction_report as floor_reconstruction_report
 import salve.common.posegraph2d as posegraph2d
 import salve.utils.ransac as ransac
-from salve.baselines.openmvg import OPENMVG_DEMO_ROOT
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph3d import PoseGraph3d
 from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.utils.logger_utils import get_logger
 
 try:
-    import afp.visualization.utils as vis_utils
+    import salve.visualization.utils as vis_utils
 except Exception as e:
     print("Open3D could not be loaded, skipping...")
     print("Exception: ", e)
@@ -53,7 +52,7 @@ def get_opensfm_T_zillow() -> Pose3:
 
     See https://github.com/mapillary/OpenSfM/issues/794
     """
-    # in radians
+    # Angles provided in radians.
     Rx = np.pi / 2
     Ry = 0.0
     Rz = 0.0
@@ -79,7 +78,7 @@ def get_openmvg_T_zillow() -> Pose3:
     Note: x,y,z axes correspond to red, green, blue colors.
 
     """
-    # in radians
+    # Angles provided in radians.
     Rx = np.pi / 2
     Ry = 0.0
     Rz = 0.0
@@ -93,7 +92,7 @@ def save_empty_json_results_file(results_dir: str, building_id: str, floor_id: s
     """ """
     floor_results_dicts = [
         {
-            "id": f"Reconstruction 0",
+            "id": "Reconstruction 0",
             "num_cameras": 0,
             "num_points": 0,
             "mean_abs_rot_err": np.nan,
@@ -116,8 +115,8 @@ def measure_algorithm_localization_accuracy(
 ) -> FloorReconstructionReport:
     """Evaluate reconstruction from a single floor against GT poses, via Sim(3) alignment.
 
-    Note: we do not refer to 3rd part SfM implementations as "baselines", but rather as "algorithms", as "baseline" means
-    something quite different in the context of SfM.
+    Note: we do not refer to 3rd part SfM implementations as "baselines", but rather as "algorithms", as "baseline"
+    means something quite different in the context of SfM (distance between two cameras).
 
     Args:
         building_id: unique ID of ZinD building.
@@ -154,11 +153,11 @@ def measure_algorithm_localization_accuracy(
     floor_results_dicts = []
     for r, reconstruction in enumerate(reconstructions):
 
-        # just use the largest connected component for now.
+        # Just use the largest connected component for now.
         if r > 0:
             continue
 
-        # create a 3d pose graph
+        # Create a 3d pose graph.
         aTi_list_gt = gt_floor_pose_graph.as_3d_pose_graph()
         bTi_list_est = [reconstruction.pose_dict.get(i, None) for i in range(len(aTi_list_gt))]
 
@@ -177,12 +176,12 @@ def measure_algorithm_localization_accuracy(
 
         # vis_utils.plot_3d_poses(aTi_list_gt, bTi_list_est)
 
-        # align it to the 2d pose graph using Sim(3)
+        # Align it to the 2d pose graph using Sim(3).
         aligned_bTi_list_est, _ = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
         # vis_utils.plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
 
-        # project to 2d
+        # Project to 2d.
         est_floor_pose_graph = PoseGraph3d.from_wTi_list(aligned_bTi_list_est, building_id, floor_id)
         est_floor_pose_graph = est_floor_pose_graph.project_to_2d(gt_floor_pose_graph)
 
@@ -247,7 +246,7 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
     avg_rot_err_per_cc = []
     avg_trans_err_per_cc = []
 
-    # stats over all floors, independent of which building they came from.
+    # Statistics over all floors, independent of which building they came from.
     num_dropped_cameras_per_floor = []
     percent_reconstructed_cameras_per_floor = []
     percent_in_largest_cc_per_floor = []
@@ -256,10 +255,10 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
     num_reconstructed_floors = len(json_fpaths)
 
     for json_fpath in json_fpaths:
-        # each entry in the list contains info about a single CC
+        # Each entry in the list contains info about a single CC
         all_cc_data = io_utils.read_json_file(json_fpath)
 
-        # set to zero, in case the floor has no CCs, to avoid defaulting to previous variable value
+        # Set to zero, in case the floor has no CCs, to avoid defaulting to previous variable value
         num_cameras = 0
         mean_abs_rot_err = 0
         mean_abs_trans_err = 0
@@ -273,8 +272,7 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
 
             pdb.set_trace()
 
-        # loop through the connected components
-        # CC's are sorted by cardinality
+        # Loop through the connected components. CC's are sorted by cardinality.
         for cc_idx, cc_info in enumerate(all_cc_data):
 
             if cc_idx >= 10:
@@ -363,7 +361,7 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
     plt.xlabel("Avg. Rot. Error per CC")
     plt.show()
 
-    # average number of cameras in first 10 components
+    # Average number of cameras in first 10 components.
     camera_counts_per_cc_idx = np.zeros(10)
     for (cc_idx, num_cameras) in zip(cc_idx_arr, num_cameras_in_cc):
         camera_counts_per_cc_idx[cc_idx] += num_cameras
@@ -376,7 +374,7 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
     plt.ylabel("Avg. # Cameras")
     plt.show()
 
-    # Histogram of number of CCs per floor
+    # Histogram of number of CCs per floor.
     plt.hist(num_ccs_per_floor, bins=np.arange(0, 20) - 0.5)  # center the bins
     plt.xticks(range(20))
     plt.xlabel("Number of CCs per Floor")
@@ -384,21 +382,21 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
     plt.title("Histogram of Number of CCs per Floor")
     plt.show()
 
-    # average rot error vs. number of cameras in component
+    # Average rotation error vs. number of cameras in component.
     plt.scatter(num_cameras_in_cc, avg_rot_err_per_cc, 10, color="r", marker=".")
     plt.title("Avg Rot Error per CC vs. Num Cameras in CC")
     plt.xlabel("Num Cameras in CC")
     plt.ylabel("Avg Rot Error per CC (degrees)")
     plt.show()
 
-    # average trans error vs. number of cameras in component
+    # Average translation error vs. number of cameras in component.
     plt.scatter(num_cameras_in_cc, avg_trans_err_per_cc, 10, color="r", marker=".")
     plt.title("Avg Translation Error per CC vs. Num Cameras in CC")
     plt.xlabel("Num Cameras in CC")
     plt.ylabel("Avg Translation Error per CC")
     plt.show()
 
-    # histogram of CC size
+    # Histogram of CC size.
     plt.hist(num_cameras_in_cc, bins=np.arange(0, 20) - 0.5)  # center the bins
     plt.xticks(range(20))
     plt.xlabel("Number of Cameras in CC")
@@ -451,7 +449,7 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
                 f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/reconstruction/sfm_data.json"
             )
 
-            # whether we want consider failed reconstructions (when OpenMVG times out / runs indefinitely)
+            # Whether we want consider failed reconstructions (when OpenMVG times out / runs indefinitely)
             if Path(matches_dirpath).exists() and not Path(reconstruction_json_fpath).exists():
                 # import pdb; pdb.set_trace()
                 # save_empty_json_results_file(openmvg_results_dir, building_id, floor_id)
@@ -531,56 +529,6 @@ def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str
     floor_reconstruction_report.summarize_reports(reconstruction_reports)
 
 
-def visualize_side_by_side() -> None:
-    """
-    Visualize SALVe results side-by-side with OpenSfM and OpenMVG results.
-    """
-    import imageio
-
-    openmvg_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_viz_2021_11_09_largest"
-    opensfm_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_viz_2021_11_09_largest"
-    afp_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02___2021_11_03_pgo_floorplans_with_conf_0.93"
-
-    for openmvg_fpath in glob.glob(f"{openmvg_dir}/*.jpg"):
-
-        building_floor_id = Path(openmvg_fpath).stem
-        k = building_floor_id.find("_floor")
-        building_id = building_floor_id[:k]
-        floor_id = building_floor_id[k + 1 :]
-
-        if building_id not in DATASET_SPLITS["test"]:
-            continue
-
-        print(f"On Test ID {building_id}")
-        opensfm_fpath = f"{opensfm_dir}/{building_id}_{floor_id}.jpg"
-        afp_fpath = f"{afp_dir}/{building_id}_{floor_id}.jpg"
-
-        if not Path(opensfm_fpath).exists():
-            print("\tOpenSfM result missing.")
-            continue
-
-        if not Path(afp_fpath).exists():
-            print("\tAFP result missing.", afp_fpath)
-            continue
-
-        openmvg_img = imageio.imread(openmvg_fpath)
-        opensfm_img = imageio.imread(opensfm_fpath)
-        afp_img = imageio.imread(afp_fpath)
-
-        plt.figure(figsize=(20, 10))
-        plt.subplot(1, 3, 1)
-        plt.axis("off")
-        plt.imshow(openmvg_img)
-        plt.subplot(1, 3, 2)
-        plt.axis("off")
-        plt.imshow(opensfm_img)
-        plt.subplot(1, 3, 3)
-        plt.axis("off")
-        plt.imshow(afp_img)
-        plt.tight_layout()
-        plt.show()
-
-
 def main(args: Namespace) -> None:
     """
     # for OpenSFM -- analyze error results dumped to JSON files.
@@ -607,8 +555,6 @@ def main(args: Namespace) -> None:
     #     raw_dataset_dir=args.raw_dataset_dir, json_results_dir=f"{args.save_dir}/result_summaries"
     # )
 
-    # visualize_side_by_side()
-
 
 if __name__ == "__main__":
 
@@ -622,10 +568,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--results_dir",
         type=str,
-        #default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
+        # default="/srv/scratch/jlambert30/salve/openmvg_demo_NOSEEDPAIR_UPRIGHTMATCHING__UPRIGHT_ESSENTIAL_ANGULAR/OpenMVG_results_2021_12_03",
         default="/srv/scratch/jlambert30/salve/OpenSfM_results_2021_12_02_BridgeAPI",
         # default="/Users/johnlam/Downloads/OpenSfM/data/OpenSfM_results_2021_12_02_BridgeAPI"
-        help="Location where OpenSfM or OpenMVG raw JSON results are saved (default would be to ~/OpenSfM/data or OPENMVG_DEMO_ROOT).",
+        help="Location where OpenSfM or OpenMVG raw JSON results are saved (default would be to ~/OpenSfM/data "
+        "or OPENMVG_DEMO_ROOT).",
     )
     parser.add_argument(
         "--baseline_name",

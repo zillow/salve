@@ -3,7 +3,7 @@
 import math
 
 import numpy as np
-from gtsam import Point2, Pose2
+from gtsam import Rot2, Point2, Pose2
 
 import salve.algorithms.pose2_slam as pose2_slam
 from salve.algorithms.pose2_slam import BearingRangeMeasurement, OdometryMeasurement
@@ -160,8 +160,28 @@ def test_planar_slam() -> None:
             assert np.isclose(wTi_list[i].y(), expected_wTi_list[i].y())
 
 
+def test_estimate_poses_lago() -> None:
+    """Ensure pose graph is correctly estimated for simple 4-pose scenario."""
+    wTi_list = [
+        Pose2(Rot2(), np.array([2, 0])),
+        Pose2(Rot2(), np.array([2, 2])),
+        Pose2(Rot2(), np.array([0, 2])),
+        Pose2(Rot2(), np.array([0, 0])),
+    ]
+    # Compute synthetic relative pose i2Ti1 from global camera poses.
+    i2Ti1_dict = {
+        (0, 1): wTi_list[1].between(wTi_list[0]),
+        (1, 2): wTi_list[2].between(wTi_list[1]),
+        (2, 3): wTi_list[3].between(wTi_list[2]),
+        (0, 3): wTi_list[3].between(wTi_list[0]),
+    }
+
+    wTi_list_computed = pose2_slam.estimate_poses_lago(i2Ti1_dict)
+
+
 
 if __name__ == "__main__":
     #test_planar_slam()
-    test_planar_slam_pgo_only()
+    #test_planar_slam_pgo_only()
+    test_estimate_poses_lago()
 
