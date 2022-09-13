@@ -43,7 +43,7 @@ WALL_CLASS_IDX = 191
 def prune_to_2d_bbox(
     pts: np.ndarray, rgb: np.ndarray, xmin: float, ymin: float, xmax: float, ymax: float
 ) -> np.ndarray:
-    """"""
+    """Prune 2d point cloud to box with corners [xmin,ymin] and [xmax,ymax], inclusive of boundaries."""
     x = pts[:, 0]
     y = pts[:, 1]
     is_valid = np.logical_and.reduce([xmin <= x, x <= xmax, ymin <= y, y <= ymax])

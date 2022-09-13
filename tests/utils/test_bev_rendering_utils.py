@@ -6,8 +6,15 @@ import salve.utils.bev_rendering_utils as bev_rendering_utils
 
 
 def test_prune_to_2d_bbox() -> None:
-    """ """
-    pts = np.array([[-2, 2], [2, 0], [1, 2], [0, 1]])  # will be discarded  # will be discarded
+    """Tests that a 2d point cloud can be pruned to rectangular box boundaries."""
+    # fmt: off
+    pts = np.array(
+    	[[-2, 2], # will be discarded
+    	[2, 0], # will be discarded
+    	[1, 2],
+    	[0, 1]
+    ])
+    # fmt: on
     xmin = -1
     ymin = -1
     xmax = 1
