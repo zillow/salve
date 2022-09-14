@@ -39,7 +39,16 @@ def register_all_scenes(depthmap_dirpath: str, pano_dirpath: str) -> None:
 
         depthmap_fpaths = glob.glob(f"{depthmap_dirpath}/*{floor_id}*.png")
         depthmap_fpaths.sort()
+        
+        # Generate potential panorama pairs.
+        pairs = []
         for i1, depthmap_fpath1 in enumerate(depthmap_fpaths):
+        	for i2, depthmap_fpath2 in enumerate(depthmap_fpaths):
+                if i2 <= i1:
+                    continue
+                pairs.append(depthmap_fpath1, depthmap_fpath2)
+
+        for (depthmap_fpath1, depthmap_fpath2) in pairs:
 
             depthmap_img1 = imageio.imread(depthmap_fpath1)
             pano_fname1 = Path(depthmap_fpath1).stem.replace(".depth", "") + ".jpg"
@@ -62,61 +71,53 @@ def register_all_scenes(depthmap_dirpath: str, pano_dirpath: str) -> None:
             # )
             open3d.visualization.draw_geometries([pcd1])
 
-            for i2, depthmap_fpath2 in enumerate(depthmap_fpaths):
+            depthmap_img2 = imageio.imread(depthmap_fpath2)
+            pano_fname2 = Path(depthmap_fpath2).stem.replace(".depth", "") + ".jpg"
+            pano_fpath2 = f"{pano_dirpath}/{pano_fname2}"
 
-                if i2 <= i1:
-                    continue
+            if int(Path(pano_fpath2).stem.split("_")[-1]) != 43:
+                continue
 
-                depthmap_img2 = imageio.imread(depthmap_fpath2)
-                pano_fname2 = Path(depthmap_fpath2).stem.replace(".depth", "") + ".jpg"
-                pano_fpath2 = f"{pano_dirpath}/{pano_fname2}"
+            if not Path(pano_fpath2).exists():
+                continue
 
-                if int(Path(pano_fpath2).stem.split("_")[-1]) != 43:
-                    continue
+            pano_img2 = imageio.imread(pano_fpath2)
 
-                if not Path(pano_fpath2).exists():
-                    continue
+            plt.subplot(2, 2, 1)
+            plt.imshow(pano_img1)
+            plt.subplot(2, 2, 2)
+            plt.imshow(depthmap_img1)
 
-                pano_img2 = imageio.imread(pano_fpath2)
+            plt.subplot(2, 2, 3)
+            plt.imshow(pano_img2)
+            plt.subplot(2, 2, 4)
+            plt.imshow(depthmap_img2)
 
-                plt.subplot(2, 2, 1)
-                plt.imshow(pano_img1)
-                plt.subplot(2, 2, 2)
-                plt.imshow(depthmap_img1)
+            plt.show()
 
-                plt.subplot(2, 2, 3)
-                plt.imshow(pano_img2)
-                plt.subplot(2, 2, 4)
-                plt.imshow(depthmap_img2)
+            xyzrgb2 = bev_rendering_utils.get_xyzrgb_from_depth(
+                args=args, depth_fpath=depthmap_fpath2, rgb_fpath=pano_fpath2, is_semantics=False
+            )
 
-                plt.show()
+            pcd2 = open3d_icp.xyzrgb_to_open3d_point_cloud(xyzrgb2)
+            # pcd2.estimate_normals(
+            #     search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
+            # )
+            open3d.visualization.draw_geometries([pcd2])
 
-                xyzrgb2 = bev_rendering_utils.get_xyzrgb_from_depth(
-                    args=args, depth_fpath=depthmap_fpath2, rgb_fpath=pano_fpath2, is_semantics=False
-                )
+            print(f"Register {i1} {i2}")
+            import pdb
 
-                pcd2 = open3d_icp.xyzrgb_to_open3d_point_cloud(xyzrgb2)
-                # pcd2.estimate_normals(
-                #     search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
-                # )
-                open3d.visualization.draw_geometries([pcd2])
+            pdb.set_trace()
+            i2Ti1 = register_colored_point_clouds(source=pcd1, target=pcd2)
+            # i2Ti1 = register_point_clouds(source=pcd1, target=pcd2)
 
-                print(f"Register {i1} {i2}")
-                import pdb
-
-                pdb.set_trace()
-                i2Ti1 = register_colored_point_clouds(source=pcd1, target=pcd2)
-                # i2Ti1 = register_point_clouds(source=pcd1, target=pcd2)
-
-                open3d.visualization.draw_geometries([pcd2, pcd1.transform(i2Ti1)])
+            open3d.visualization.draw_geometries([pcd2, pcd1.transform(i2Ti1)])
 
 
 if __name__ == "__main__":
 
-    # depthmap_dirpath = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps/000"
-    # pano_dirpath = "/Users/johnlam/Downloads/2021_05_28_Will_amazon_raw/000/panos"
-
-    depthmap_dirpath = "/Users/johnlam/Downloads/HoHoNet_Depth_Maps/267"
-    pano_dirpath = "/Users/johnlam/Downloads/complete_07_10_new/267/panos"
+    depthmap_dirpath = "/Users/johnlambert/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps/0000"
+    pano_dirpath = "/Users/johnlambert/Downloads/zind_bridgeapi_2021_10_05/0000/panos"
 
     register_all_scenes(depthmap_dirpath=depthmap_dirpath, pano_dirpath=pano_dirpath)

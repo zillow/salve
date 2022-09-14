@@ -37,7 +37,7 @@ def xyzrgb_to_open3d_point_cloud(xyzrgb: np.ndarray) -> open3d.geometry.PointClo
 def register_colored_point_clouds(source: open3d.geometry.PointCloud, target: open3d.geometry.PointCloud) -> np.ndarray:
     """Register source point cloud to the target point cloud, using Colored Point Cloud Registration.
 
-    Note: 3 layers of multi-resolution point clouds are used.
+    Note: 3 layers of multi-resolution point clouds are used in registration.
 
     See J. Park, Q.-Y. Zhou, and V. Koltun, Colored Point Cloud Registration Revisited, ICCV, 2017.
     https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_Colored_Point_Cloud_ICCV_2017_paper.pdf
@@ -51,6 +51,7 @@ def register_colored_point_clouds(source: open3d.geometry.PointCloud, target: op
     """
     voxel_radius = [0.04, 0.02, 0.01]
     max_iter = [50, 30, 14]
+    # Initialize transformation with identity.
     current_transformation = np.identity(4)
     print("Colored point cloud registration")
     for scale in range(3):
@@ -86,8 +87,8 @@ def register_point_clouds(source: open3d.geometry.PointCloud, target: open3d.geo
     """Register source point cloud to the target point cloud, using point to plane ICP (color is not used).
 
     Args:
-        source: point cloud
-        target: point
+        source: source point cloud.
+        target: target point cloud.
 
     Returns:
         tTs: transforms points from the souce frame to the target frame.
