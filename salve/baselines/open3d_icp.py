@@ -1,7 +1,8 @@
-"""Simple ICP baseline that seeks to register two point clouds (backprojected depth maps).
+"""Utilities for ICP and colored ICP registration.
 
 Code adapted from:
 http://www.open3d.org/docs/release/tutorial/pipelines/colored_pointcloud_registration.html#id1
+https://github.com/isl-org/Open3D/blob/master/examples/python/pipelines/colored_icp_registration.py
 """
 
 import glob
@@ -63,7 +64,7 @@ def register_colored_point_clouds(source: open3d.geometry.PointCloud, target: op
         source_down = source.voxel_down_sample(radius)
         target_down = target.voxel_down_sample(radius)
 
-        # Estimate normal.
+        # Estimate normals.
         source_down.estimate_normals(open3d.geometry.KDTreeSearchParamHybrid(radius=radius * 2, max_nn=30))
         target_down.estimate_normals(open3d.geometry.KDTreeSearchParamHybrid(radius=radius * 2, max_nn=30))
 

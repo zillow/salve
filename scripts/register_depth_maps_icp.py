@@ -1,6 +1,6 @@
 """Run simple baseline over all image pairs that uses ICP to fit a relative pose transform.
 
-The ICP is quite slow.
+The ICP is quite slow. We generate point clouds by backprojecting depth maps.
 
 Aligns partial room scans in the spirit of
 "Floorplan-jigsaw: Jointly estimating scene layout and aligning partial scans"
