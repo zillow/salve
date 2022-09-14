@@ -11,7 +11,7 @@ from gtsam import Pose3, Rot3
 import salve.baselines.open3d_icp as open3d_icp
 
 
-TEST_DATA_ROOT = Path(__file__).resolve().parent / "test_data"
+TEST_DATA_ROOT = Path(__file__).resolve().parent.parent / "test_data"
 
 
 def test_register_point_cloud() -> None:
