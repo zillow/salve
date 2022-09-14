@@ -16,14 +16,15 @@ logger = get_logger()
 
 
 def run_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str, overrides_fpath: str) -> None:
-    """TODO
+    """Run OpenSfM in spherical geometry mode, over all tours inside ZinD.
+
+    We copy all of the panos from a particular floor of a ZInD building to a directory, and then feed this to OpenSfM.
 
     Args:
-        raw_dataset_dir
-        opensfm_repo_root
-        overrides_fpath
+        raw_dataset_dir: path to where ZInD dataset is stored on disk (after download from Bridge API).
+        opensfm_repo_root: TODO
+        overrides_fpath: TODO
     """
-
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
