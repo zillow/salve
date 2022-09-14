@@ -1,6 +1,5 @@
-"""
-Unit tests to ensure ICP is working properly.
-"""
+"""Unit tests on colored ICP utilities."""
+
 import copy
 import os
 from pathlib import Path
@@ -133,5 +132,31 @@ def draw_registration_result_original_color(
     )
 
 
+def test_transform() -> None:
+    """ """
+    # fmt: off
+    points_src = np.array(
+        [
+            [3.,0,0],
+            [0,3.,0]
+        ]
+    )
+    # fmt: on
+    R = Rot3.RzRyRx(x=np.pi / 2, y=0, z=0)
+    t = np.array([1, 2, 3])
+    tTs = Pose3(R, t)
 
+    point_t0 = tTs.transformFrom(points_src[0])
+    point_t1 = tTs.transformFrom(points_src[1])
+
+    pcd_s = open3d.geometry.PointCloud()
+    pcd_s.points = open3d.utility.Vector3dVector(points_src)
+
+    # identical to tTs.transformFrom(pcd_s)
+    pcd_t = pcd_s.transform(tTs.matrix())
+
+    # [4,2,3]
+    # [1,2,6]
+    assert np.allclose(np.asarray(pcd_t.points)[0], point_t0)
+    assert np.allclose(np.asarray(pcd_t.points)[1], point_t1)
 
