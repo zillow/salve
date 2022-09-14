@@ -46,7 +46,7 @@ class BearingRangeMeasurement:
 
 @dataclass
 class OdometryMeasurement:
-    """Odometry measurement.
+    """Odometry measurement between two panoramas.
 
     Args:
         i1: unique ID of panorama 1
@@ -88,7 +88,7 @@ def planar_slam(
     """
     # measurement_noise = gtsam.noiseModel.Isotropic.Sigma(IMG_MEASUREMENT_DIM, MEASUREMENT_NOISE_SIGMA)
 
-    # Create noise models
+    # Create noise models.
     PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))
     ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
     MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
@@ -100,7 +100,7 @@ def planar_slam(
         ODOMETRY_NOISE = gtsam.noiseModel.Robust(huber_loss, ODOMETRY_NOISE)
         MEASUREMENT_NOISE = gtsam.noiseModel.Robust(huber_loss, MEASUREMENT_NOISE)
 
-    # Create an empty nonlinear factor graph
+    # Create an empty nonlinear factor graph.
     graph = gtsam.NonlinearFactorGraph()
 
     # Find the first pano for which the initial pose estimate is not None.
@@ -110,9 +110,9 @@ def planar_slam(
     # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model
     graph.add(PriorFactorPose2(X(origin_pano_id), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
 
-    # Add odometry factors between poses
+    # Add odometry factors between poses.
     for om in i2Ti1_measurements:
-        # for unestimated pose, cannot use this odometry measurement
+        # For unestimated pose, cannot use this odometry measurement.
         if wTi_list_init[om.i1] is None:
             continue
 
@@ -122,9 +122,9 @@ def planar_slam(
         graph.add(gtsam.BetweenFactorPose2(X(om.i2), X(om.i1), om.i2Ti1, ODOMETRY_NOISE))
 
     if not optimize_poses_only:
-        # Add Bearing, Range measurements to two different landmarks L1 and L2
+        # Add (bearing, range) measurements to two different landmarks L1 and L2.
         for lm in landmark_measurements:
-            # unestimated pose, cannot use this bearing-range landmark measurement
+            # If unestimated pose, cannot use this bearing-range landmark measurement.
             if wTi_list_init[lm.pano_id] is None:
                 continue
 
@@ -134,7 +134,7 @@ def planar_slam(
                 )
             )
 
-    # Create initial estimate
+    # Create initial estimate.
     initial_estimate = gtsam.Values()
 
     for i, wTi in enumerate(wTi_list_init):
