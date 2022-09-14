@@ -338,10 +338,10 @@ def grayscale_to_color(gray_img: np.ndarray) -> np.ndarray:
     """Duplicate the grayscale channel 3 times.
 
     Args:
-    gray_img: Array with shape (M,N)
+        gray_img: Array with shape (M,N)
 
     Returns:
-    rgb_img: Array with shape (M,N,3)
+        rgb_img: Array with shape (M,N,3)
     """
     h, w = gray_img.shape
     rgb_img = np.zeros((h, w, 3), dtype=np.uint8)
@@ -351,8 +351,15 @@ def grayscale_to_color(gray_img: np.ndarray) -> np.ndarray:
 
 
 def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: bool) -> np.ndarray:
-    """
+    """Obtain Numpy array representing colored point cloud from panorama image and depth map.
+
     Args:
+        args: 
+        depth_fpath: file path to depth map.
+        rgb_fpath: file path to RGB panorama image.
+        is_semantics: whether to interpret image as semantic label map.
+
+    Returns:
         xyzrgb, with rgb in [0,1] as floats
     """
     depth = imageio.imread(depth_fpath)[..., None].astype(np.float32) * args.scale
@@ -365,7 +372,7 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
     rgb = cv2.resize(rgb, (width, height), interpolation=cv2.INTER_NEAREST if is_semantics else cv2.INTER_LINEAR)
 
     if is_semantics:
-        # remove ceiling and mirror points
+        # Remove ceiling and mirror points.
         invalid = np.logical_or(rgb == CEILING_CLASS_IDX, rgb == MIRROR_CLASS_IDX)
         depth[invalid] = np.nan
 
@@ -383,16 +390,17 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
 
     xyzrgb = np.concatenate([xyz, rgb / 255.0], 2)
 
-    # Crop the image and flatten
+    # Crop the image.
     if args.crop_ratio > 0:
         assert args.crop_ratio < 1
         crop = int(H * args.crop_ratio)
-        # remove the bottom rows of pano, and remove the top rows of pano
+        # Remove the bottom rows of pano, and remove the top rows of pano.
         xyzrgb = xyzrgb[crop:-crop]
 
+    # Flatten point cloud from (H,W,6) to (H*W,6).
     xyzrgb = xyzrgb.reshape(-1, 6)
 
-    # Crop in 3d
+    # Crop point cloud in 3d.
     # fmt: off
     within_crop_range = np.logical_and(
         xyzrgb[:, 2] > args.crop_z_range[0],
@@ -400,7 +408,6 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
     )
     # fmt: on
     xyzrgb = xyzrgb[within_crop_range]
-
     return xyzrgb
 
 

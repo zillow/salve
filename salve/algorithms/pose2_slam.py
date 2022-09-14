@@ -46,7 +46,7 @@ class BearingRangeMeasurement:
 
 @dataclass
 class OdometryMeasurement:
-    """Odometry measurement.
+    """Odometry measurement between two panoramas.
 
     Args:
         i1: unique ID of panorama 1
@@ -57,47 +57,6 @@ class OdometryMeasurement:
     i1: int
     i2: int
     i2Ti1: Pose2
-
-
-def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]:
-    """Estimate camera poses using LAGO (Linear Approximation for Graph Optimization) SLAM.
-
-    Reference:
-    L. Carlone, R. Aragues, J. Castellanos, and B. Bona, A fast and accurate
-    approximation for planar pose graph optimization, IJRR, 2014.
-
-    L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
-    for graph-based simultaneous localization and mapping, RSS, 2011.
-    
-    Does not require an initial estimate.
-
-    Can also estimate over landmarks if we can solve data association (s & e for shared door).
-
-    We add factors as load2D (https://github.com/borglab/gtsam/blob/develop/gtsam/slam/dataset.cpp#L500) does.
-    """
-    initial_estimate = Values()
-    initial_estimate.insert(1, gtsam.Pose2(0.5, 0.0, 0.2))
-
-    graph = gtsam.NonlinearFactorGraph()
-
-    # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model.
-    graph.add(PriorFactorPose2(X(0), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
-
-    for (i1, i2), i2Ti1 in i2Ti1_dict.items():
-        # Add odometry factors between X1,X2 and X2,X3, respectively
-        graph.add(gtsam.BetweenFactorPose2(X(i1), X(i2), i2Ti1, ODOMETRY_NOISE))
-
-    print(graph)
-
-    import pdb
-    pdb.set_trace()
-
-    print("Computing LAGO estimate")
-    estimate_lago: Values = gtsam.lago.initialize(graph)
-
-    max_frame_id = max([max(i1, i2) for (i1, i2) in i2Ti1_dict.keys()]) + 1
-    for i in range(max_frame_id):
-        wTi_list.append(estimate_lago.atPose2(i))
 
 
 def planar_slam(
@@ -129,7 +88,7 @@ def planar_slam(
     """
     # measurement_noise = gtsam.noiseModel.Isotropic.Sigma(IMG_MEASUREMENT_DIM, MEASUREMENT_NOISE_SIGMA)
 
-    # Create noise models
+    # Create noise models.
     PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))
     ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))
     MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.1, 0.2]))
@@ -141,7 +100,7 @@ def planar_slam(
         ODOMETRY_NOISE = gtsam.noiseModel.Robust(huber_loss, ODOMETRY_NOISE)
         MEASUREMENT_NOISE = gtsam.noiseModel.Robust(huber_loss, MEASUREMENT_NOISE)
 
-    # Create an empty nonlinear factor graph
+    # Create an empty nonlinear factor graph.
     graph = gtsam.NonlinearFactorGraph()
 
     # Find the first pano for which the initial pose estimate is not None.
@@ -151,9 +110,9 @@ def planar_slam(
     # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model
     graph.add(PriorFactorPose2(X(origin_pano_id), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
 
-    # Add odometry factors between poses
+    # Add odometry factors between poses.
     for om in i2Ti1_measurements:
-        # for unestimated pose, cannot use this odometry measurement
+        # For unestimated pose, cannot use this odometry measurement.
         if wTi_list_init[om.i1] is None:
             continue
 
@@ -163,9 +122,9 @@ def planar_slam(
         graph.add(gtsam.BetweenFactorPose2(X(om.i2), X(om.i1), om.i2Ti1, ODOMETRY_NOISE))
 
     if not optimize_poses_only:
-        # Add Bearing, Range measurements to two different landmarks L1 and L2
+        # Add (bearing, range) measurements to two different landmarks L1 and L2.
         for lm in landmark_measurements:
-            # unestimated pose, cannot use this bearing-range landmark measurement
+            # If unestimated pose, cannot use this bearing-range landmark measurement.
             if wTi_list_init[lm.pano_id] is None:
                 continue
 
@@ -175,7 +134,7 @@ def planar_slam(
                 )
             )
 
-    # Create initial estimate
+    # Create initial estimate.
     initial_estimate = gtsam.Values()
 
     for i, wTi in enumerate(wTi_list_init):

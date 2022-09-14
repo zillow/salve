@@ -1,4 +1,3 @@
-
 """Data structure to hold an SfM reconstruction, as produced by OpenMVG or OpenSfM."""
 
 from dataclasses import dataclass
@@ -11,8 +10,10 @@ from gtsam import Pose3
 
 @dataclass
 class SfmReconstruction:
-    """
-    Modeleed after types.Reconstruction from OpenSfM.
+    """Container for SfM results, including camera parameters, camera poses, 3d points, and their colors.
+
+    Modeled after types.Reconstruction from OpenSfM.
+    (see https://github.com/mapillary/OpenSfM/blob/main/opensfm/types.py#L25)
     """
     camera: SimpleNamespace
     pose_dict: Dict[int, Pose3]

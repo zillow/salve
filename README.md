@@ -218,15 +218,6 @@ python scripts/stitch_floor_plan.py --output-dir output_folder \
     --path-gt ../tests/test_data/example_input_stiching/floor_map_gt.json
 ```
 
-## TODOs:
-
-- Maybe use different schema for Madori-V1 files.
-- Find missing Madori-V1.
-- Keep your training config and inference config in different files.  (Or different sections of the same file.)
-
-Additional Notes:
-- Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
-(in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
 
 ## Run Static Analysis of Codebase
 
@@ -241,7 +232,7 @@ coverage report
 
 ## Running SfM Baselines
 
-In the paper, we compare with OpenMVG and OpenSfM. You can run these baselines yourself as follows.
+In the paper, we compare with [OpenMVG](https://github.com/openMVG/openMVG) and [OpenSfM](https://github.com/mapillary/OpenSfM). You can run these baselines yourself as follows.
 
 **OpenSfM**: First, clone the repository:
 ```bash
@@ -252,35 +243,51 @@ Now, build the library/binaries, as described [here](https://opensfm.org/docs/bu
 
 Next, inside the `OpenSfM` directory, now run:
 ```bash
-python {SALVE_REPO_DIRPATH}/salve/baselines/opensfm.py
-```
-
-**OpenMVG**:
-```bash
-python {SALVE_REPO_DIRPATH}/salve/baselines/openmvg.py
+python {SALVE_REPO_DIRPATH}/salve/scripts/execute_opensfm.py \
+   --raw_dataset_dir {PATH_TO_ZIND} \
+   --opensfm_repo_root {TODO} \
+   --overrides_fpath {TODO}
 ```
 
 Next, evaluate the OpenSfM results:
-```python
+```bash
 python {SALVE_REPO_DIRPATH}/salve/baselines/evaluate_baseline.py \
     --algorithm_name opensfm \
     --raw_dataset_dir {PATH_TO_ZIND} \
-    --opensfm_results_dir {PATH TO WHERE OPENSFM SCRIPT DUMPED RECONSTRUCTION RESULTS} \
+    --results_dir {PATH TO WHERE OPENSFM SCRIPT DUMPED RECONSTRUCTION RESULTS} \
     --save_dir {WHERE TO SAVE VISUALIZATIONS/RESULT SUMMARIES }
 ```
 
-and for OpenMVG:
-```python
+**OpenMVG**:
+
+Follow the instructions [here](https://github.com/openMVG/openMVG/blob/develop/BUILD.md) on how to clone and build the repository.
+
+After compilation, run the following script:
+```bash
+python scripts/execute_openmvg.py \
+    --raw_dataset_dir {PATH_TO_ZIND} \
+    --openmvg_sfm_bin {PATH_TO_DIRECTORY_CONTAINING_COMPILED_BINARIES} \
+    --openmvg_demo_root {TODO}
+```
+
+Evaluate the OpenMVG results using:
+```bash
 python {SALVE_REPO_DIRPATH}/salve/baselines/evaluate_baseline.py \
     --algorithm_name openmvg \
     --raw_dataset_dir {PATH_TO_ZIND} \
-    --opensfm_results_dir {PATH TO WHERE OPENMVG SCRIPT DUMPED RECONSTRUCTION RESULTS} \
+    --results_dir {PATH TO WHERE OPENMVG SCRIPT DUMPED RECONSTRUCTION RESULTS} \
     --save_dir {WHERE TO SAVE VISUALIZATIONS/RESULT SUMMARIES }
 ```
 
-## Other
+## Other TODOS
 
 On DGX, you can find `ZInD` stored here:
 `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
 
-TODO: remove all mentions of Madori or RMX from class names.
+- TODO: remove all mentions of Madori or RMX from class names.
+- Keep your training config and inference config in different files.  (Or different sections of the same file.)
+
+Additional Notes:
+- Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
+(in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
+

@@ -14,12 +14,27 @@ def test_prune_to_2d_bbox() -> None:
     	[1, 2],
     	[0, 1]
     ])
+
+    rgb = np.array(
+        [[255,128,0],
+        [1,2,3],
+        [4,5,6],
+        [7,8,9]
+        ]
+    )
+
     # fmt: on
     xmin = -1
     ymin = -1
     xmax = 1
     ymax = 2
 
-    pts = bev_rendering_utils.prune_to_2d_bbox(pts, xmin, ymin, xmax, ymax)
-    gt_pts = np.array([[1, 2], [0, 1]])
-    assert np.allclose(pts, gt_pts)
+    valid_pts, valid_rgb = bev_rendering_utils.prune_to_2d_bbox(
+        pts=pts, rgb=rgb, xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax
+    )
+    expected_valid_pts = np.array([[1, 2], [0, 1]])
+
+    expected_valid_rgb = np.array([[4, 5, 6], [7, 8, 9]])
+
+    assert np.allclose(valid_pts, expected_valid_pts)
+    assert np.allclose(valid_rgb, expected_valid_rgb)

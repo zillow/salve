@@ -1,11 +1,11 @@
-
-"""Utilities for running OpenSfM via system calls, and reading it the result from disk.
+"""Utilities for loading OpenSfM results from disk.
 
 Note: I/O is based off of the original OpenSfM code here:
 https://github.com/mapillary/OpenSfM/blob/master/opensfm/io.py#L214
 """
 
 import glob
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -19,11 +19,9 @@ from gtsam import Pose3, Rot3, Similarity3
 
 import salve.utils.subprocess_utils as subprocess_utils
 from salve.dataset.zind_partition import DATASET_SPLITS
-from salve.utils.logger_utils import get_logger
 from salve.baselines.sfm_reconstruction import SfmReconstruction
 
-
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
 
 def panoid_from_key(key: str) -> int:
@@ -37,8 +35,7 @@ def panoid_from_key(key: str) -> int:
 def point_from_json(
     key: str, obj: Dict[str, Any]  # types.Reconstruction
 ) -> Tuple[Tuple[float, float, float], Tuple[int, int, int]]:
-    """
-    Read a point from a json object
+    """Read a point from a json object.
 
     Note: OpenSfm's version returns a `pymap.Landmark` object.
     """
@@ -54,8 +51,7 @@ def shot_in_reconstruction_from_json(
     obj: Dict[str, Any],
     is_pano_shot: bool = False,
 ) -> Pose3:
-    """
-    Read shot from a json object and append it to a reconstruction
+    """Read `shot` from a json object and append it to a reconstruction.
 
     Note: OpenSfm's version returns a `pymap.Shot` object.
     """
@@ -105,7 +101,8 @@ def pose_from_json(obj: Dict[str, Any]) -> Pose3:
 
 
 def VectorToRotationMatrix(r: np.ndarray) -> Rot3:
-    """
+    """Convert vector to rotation matrix.
+
     Args:
         array of shape (3,) rpresenting 3d rotation in axis-angle format.
 
@@ -127,19 +124,10 @@ def VectorToRotationMatrix(r: np.ndarray) -> Rot3:
     return R
 
 
-def bias_from_json(obj: Dict[str, Any]):  # -> pygeometry.Similarity:
-    """
-    Args:
-
-    Returns:
-        Similarity(3)
-    """
-    return Similarity3(R=obj["rotation"], t=obj["translation"], s=obj["scale"])
-
-
 def camera_from_json(key: str, obj: Dict[str, Any]):  # -> pygeometry.Camera:
-    """
-    Read camera from a json object
+    """Read camera from a json object
+
+    TODO
     """
     camera = None
     pt = obj.get("projection_type", "perspective")
@@ -205,7 +193,7 @@ def camera_from_json(key: str, obj: Dict[str, Any]):  # -> pygeometry.Camera:
 
 
 def load_opensfm_reconstruction_from_json(obj: Dict[str, Any]) -> SfmReconstruction:
-    """
+    """TODO
 
     We ignore "reference_lla", since set to dummy values, e.g. {'latitude': 0.0, 'longitude': 0.0, 'altitude': 0.0}
 
@@ -269,16 +257,11 @@ def load_opensfm_reconstruction_from_json(obj: Dict[str, Any]) -> SfmReconstruct
     return reconstruction
 
 
-def load_opensfm_reconstructions_from_json(
-    reconstruction_json_fpath: str,
-) -> List[SfmReconstruction]:  # : # -> types.Reconstruction:
-    """
-    Read a reconstruction from a json object
+def load_opensfm_reconstructions_from_json(reconstruction_json_fpath: str) -> List[SfmReconstruction]:
+    """Read a reconstruction from a json object (TODO MAKE PLURAL)
 
     Based on https://github.com/mapillary/OpenSfM/blob/master/opensfm/io.py#L214
     """
-    # reconstruction = types.Reconstruction()
-
     if not Path(reconstruction_json_fpath).exists():
         reconstructions = []
         return reconstructions
@@ -287,82 +270,3 @@ def load_opensfm_reconstructions_from_json(
     reconstructions = [load_opensfm_reconstruction_from_json(obj) for obj in objs]
     return reconstructions
 
-
-def run_opensfm_over_all_zind() -> None:
-    """ """
-    OVERRIDES_FPATH = "/Users/johnlam/Downloads/OpenSfM/data/camera_models_overrides.json"
-
-    OPENSFM_REPO_ROOT = "/Users/johnlam/Downloads/OpenSfM"
-    # reconstruction_json_fpath = "/Users/johnlam/Downloads/OpenSfM/data/ZinD_1442_floor_01/reconstruction.json"
-
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
-
-    building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
-    building_ids.sort()
-
-    for building_id in building_ids:
-
-        # we are only evaluating OpenSfM on ZInD's test split.
-        if building_id not in DATASET_SPLITS["test"]:
-            continue
-
-        floor_ids = ["floor_00", "floor_01", "floor_02", "floor_03", "floor_04", "floor_05"]
-
-        for floor_id in floor_ids:
-            try:
-                src_pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-                pano_fpaths = glob.glob(f"{src_pano_dir}/{floor_id}_*.jpg")
-
-                if len(pano_fpaths) == 0:
-                    continue
-
-                FLOOR_OPENSFM_DATADIR = f"{OPENSFM_REPO_ROOT}/data/ZinD_{building_id}_{floor_id}__2021_12_02_BridgeAPI"
-                os.makedirs(f"{FLOOR_OPENSFM_DATADIR}/images", exist_ok=True)
-                reconstruction_json_fpath = f"{FLOOR_OPENSFM_DATADIR}/reconstruction.json"
-
-                dst_dir = f"{FLOOR_OPENSFM_DATADIR}/images"
-                for pano_fpath in pano_fpaths:
-                    fname = Path(pano_fpath).name
-                    dst_fpath = f"{dst_dir}/{fname}"
-                    shutil.copyfile(src=pano_fpath, dst=dst_fpath)
-
-                # See https://opensfm.readthedocs.io/en/latest/using.html#providing-your-own-camera-parameters
-                shutil.copyfile(OVERRIDES_FPATH, f"{FLOOR_OPENSFM_DATADIR}/camera_models_overrides.json")
-
-                cmd = f"bin/opensfm_run_all {FLOOR_OPENSFM_DATADIR} 2>&1 | tee {FLOOR_OPENSFM_DATADIR}/opensfm.log"
-                print(cmd)
-                subprocess_utils.run_command(cmd)
-
-                # delete copy of all of the copies of the panos
-                shutil.rmtree(dst_dir)
-
-                # take up way too much space!
-                features_dir = f"{FLOOR_OPENSFM_DATADIR}/features"
-                shutil.rmtree(features_dir)
-
-                # contains resampled-perspective images and depth maps.
-                undistorted_depthmaps_dir = f"{FLOOR_OPENSFM_DATADIR}/undistorted/depthmaps"
-                shutil.rmtree(undistorted_depthmaps_dir)
-
-                undistorted_imgs_dir = f"{FLOOR_OPENSFM_DATADIR}/undistorted/images"
-                shutil.rmtree(undistorted_imgs_dir)
-
-                # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
-                # measure_algorithm_localization_accuracy(
-                #     reconstruction_json_fpath, building_id, floor_id, raw_dataset_dir, algorithm_name="opensfm"
-                # )
-
-            except Exception as e:
-                logger.exception(f"OpenSfM failed for {building_id} {floor_id}")
-                print(f"failed on Building {building_id} {floor_id}", e)
-                continue
-
-
-if __name__ == "__main__":
-    """
-    cd ~/Downloads/OpenSfM
-    python ~/Downloads/jlambert-auto-floorplan/afp/baselines/opensfm.py
-
-    """
-    run_opensfm_over_all_zind()
-    # test_measure_opensfm_localization_accuracy()
