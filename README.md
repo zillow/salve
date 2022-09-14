@@ -243,7 +243,10 @@ Now, build the library/binaries, as described [here](https://opensfm.org/docs/bu
 
 Next, inside the `OpenSfM` directory, now run:
 ```bash
-python {SALVE_REPO_DIRPATH}/salve/baselines/opensfm.py
+python {SALVE_REPO_DIRPATH}/salve/scripts/execute_opensfm.py \
+   --raw_dataset_dir {PATH_TO_ZIND} \
+   --opensfm_repo_root {TODO} \
+   --overrides_fpath {TODO}
 ```
 
 Next, evaluate the OpenSfM results:
