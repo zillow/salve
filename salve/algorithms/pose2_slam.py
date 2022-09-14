@@ -59,47 +59,6 @@ class OdometryMeasurement:
     i2Ti1: Pose2
 
 
-def estimate_poses_lago(i2Ti1_dict: Dict[Tuple[int, int], Pose2]) -> List[Pose2]:
-    """Estimate camera poses using LAGO (Linear Approximation for Graph Optimization) SLAM.
-
-    Reference:
-    L. Carlone, R. Aragues, J. Castellanos, and B. Bona, A fast and accurate
-    approximation for planar pose graph optimization, IJRR, 2014.
-
-    L. Carlone, R. Aragues, J.A. Castellanos, and B. Bona, A linear approximation
-    for graph-based simultaneous localization and mapping, RSS, 2011.
-    
-    Does not require an initial estimate.
-
-    Can also estimate over landmarks if we can solve data association (s & e for shared door).
-
-    We add factors as load2D (https://github.com/borglab/gtsam/blob/develop/gtsam/slam/dataset.cpp#L500) does.
-    """
-    initial_estimate = Values()
-    initial_estimate.insert(1, gtsam.Pose2(0.5, 0.0, 0.2))
-
-    graph = gtsam.NonlinearFactorGraph()
-
-    # Add a prior on pose X1 at the origin. A prior factor consists of a mean and a noise model.
-    graph.add(PriorFactorPose2(X(0), gtsam.Pose2(0.0, 0.0, 0.0), PRIOR_NOISE))
-
-    for (i1, i2), i2Ti1 in i2Ti1_dict.items():
-        # Add odometry factors between X1,X2 and X2,X3, respectively
-        graph.add(gtsam.BetweenFactorPose2(X(i1), X(i2), i2Ti1, ODOMETRY_NOISE))
-
-    print(graph)
-
-    import pdb
-    pdb.set_trace()
-
-    print("Computing LAGO estimate")
-    estimate_lago: Values = gtsam.lago.initialize(graph)
-
-    max_frame_id = max([max(i1, i2) for (i1, i2) in i2Ti1_dict.keys()]) + 1
-    for i in range(max_frame_id):
-        wTi_list.append(estimate_lago.atPose2(i))
-
-
 def planar_slam(
     wTi_list_init: List[Optional[Pose2]],
     i2Ti1_measurements: List[Pose2],
