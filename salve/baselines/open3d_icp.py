@@ -43,8 +43,8 @@ def register_colored_point_clouds(source: open3d.geometry.PointCloud, target: op
     https://openaccess.thecvf.com/content_ICCV_2017/papers/Park_Colored_Point_Cloud_ICCV_2017_paper.pdf
 
     Args:
-        source: point cloud
-        target: point
+        source: source point cloud with (x,y,z) and (r,g,b).
+        target: target point cloud with (x,y,z) and (r,g,b).
 
     Returns:
         tTs: transforms points from the source frame to the target frame.
@@ -67,7 +67,7 @@ def register_colored_point_clouds(source: open3d.geometry.PointCloud, target: op
         source_down.estimate_normals(open3d.geometry.KDTreeSearchParamHybrid(radius=radius * 2, max_nn=30))
         target_down.estimate_normals(open3d.geometry.KDTreeSearchParamHybrid(radius=radius * 2, max_nn=30))
 
-        # Applying colored point cloud registration
+        # Apply colored point cloud registration.
         result_icp = open3d.pipelines.registration.registration_colored_icp(
             source=source_down,
             target=target_down,
@@ -87,8 +87,8 @@ def register_point_clouds(source: open3d.geometry.PointCloud, target: open3d.geo
     """Register source point cloud to the target point cloud, using point to plane ICP (color is not used).
 
     Args:
-        source: source point cloud.
-        target: target point cloud.
+        source: source point cloud with (x,y,z) and no color information.
+        target: target point cloud with (x,y,z) and no color information.
 
     Returns:
         tTs: transforms points from the souce frame to the target frame.

@@ -160,3 +160,9 @@ def test_transform() -> None:
     assert np.allclose(np.asarray(pcd_t.points)[0], point_t0)
     assert np.allclose(np.asarray(pcd_t.points)[1], point_t1)
 
+
+
+if __name__ == "__main__":
+    test_transform()
+    
+
