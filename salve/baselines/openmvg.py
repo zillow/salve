@@ -39,7 +39,7 @@ def load_openmvg_reconstructions_from_json(json_fpath: str, building_id: str, fl
     assert data["sfm_data_version"] == "0.3"
 
     intrinsics = data["intrinsics"] # noqa
-    # print("OpenMVG Estimated Instrinsics: ", intrinsics)
+    # print("OpenMVG Estimated Intrinsics: ", intrinsics)
     view_metadata = data["views"] # noqa
     # print("OpenMVG Estimated View Metadata: ", view_metadata)
     extrinsics = data["extrinsics"]

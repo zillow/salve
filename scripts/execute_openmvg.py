@@ -25,7 +25,7 @@ def run_openmvg_commands_single_tour(
     The reconstruction result / estimated global poses will be written to a file named "sfm_data.json".
 
     Args:
-        openmvg_sfm_bin
+        openmvg_sfm_bin: path to directory containing all compiled OpenMVG binaries.
         image_dirpath: path to temp. directory containing all images to use for reconstruction of a single floor.
         matches_dirpath: path to directory where matches info will be stored.
         reconstruction_dirpath: path to directory where reconstruction info will be stored.
@@ -102,7 +102,7 @@ def run_openmvg_all_tours(raw_dataset_dir: str, openmvg_sfm_bin: str, openmvg_de
 
     Args:
         raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API)
-        openmvg_sfm_bin: Path to compiled OpenMVG binary.
+        openmvg_sfm_bin: Path to directory containing all compiled OpenMVG binaries.
         openmvg_demo_root
     """
 
@@ -164,7 +164,7 @@ def run_openmvg_all_tours(raw_dataset_dir: str, openmvg_sfm_bin: str, openmvg_de
             shutil.rmtree(dst_dir)
 
 
-@click.command(help="Script to run batched depth map inference using a pretrained HoHoNet model.")
+@click.command(help="Script to execute SfM using OpenMVG on ZInD panorama data.")
 @click.option(
     "--raw_dataset_dir",
     type=click.Path(exists=True),
@@ -177,7 +177,7 @@ def run_openmvg_all_tours(raw_dataset_dir: str, openmvg_sfm_bin: str, openmvg_de
     type=click.Path(exists=True),
     required=True,
     # default="/Users/johnlam/Downloads/openMVG_Build/Darwin-x86_64-RELEASE"
-    help="Path to compiled OpenMVG binary.",
+    help="Path to directory containing all compiled OpenMVG binaries.",
 )
 @click.option(
     "--openmvg_demo_root",
