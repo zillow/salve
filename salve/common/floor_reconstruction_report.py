@@ -297,9 +297,9 @@ def rasterize_room(
 ) -> np.ndarray:
     """
     Args:
-        bev_params
-        floor_pose_graph
-        scale_meters_per_coordinate
+        bev_params:
+        floor_pose_graph:
+        scale_meters_per_coordinate:
 
     Returns:
         occ_img: occupancy mask.
@@ -389,39 +389,4 @@ def compute_translation_errors_against_threshold(reconstruction_reports: List[Fl
     avg_floor_success_rate = np.mean(floor_success_rates)
     print(f"Avg. Position Localization Floor Success Rate @ {threshold} = {avg_floor_success_rate:.3f}")
     return avg_floor_success_rate
-
-
-def test_compute_translation_errors_against_threshold() -> None:
-    """Ensure that translation localization success rate is computed correctly."""
-    reconstruction_reports = [
-        FloorReconstructionReport(
-            avg_abs_rot_err=np.nan,
-            avg_abs_trans_err=np.nan,
-            percent_panos_localized=np.nan,
-            floorplan_iou=np.nan,
-            rotation_errors=None,
-            translation_errors=np.array([0.0, 0.1, 0.19, 0.3, 0.4, 900]) # 3/6 are under threshold.
-        ),
-        FloorReconstructionReport(
-            avg_abs_rot_err=np.nan,
-            avg_abs_trans_err=np.nan,
-            percent_panos_localized=np.nan,
-            floorplan_iou=np.nan,
-            rotation_errors=None,
-            translation_errors=np.array([0.0, 0.1, 0.18, 0.19, 0.21]) # 4/5 are under threshold
-        ),
-        FloorReconstructionReport(
-            avg_abs_rot_err=np.nan,
-            avg_abs_trans_err=np.nan,
-            percent_panos_localized=np.nan,
-            floorplan_iou=np.nan,
-            rotation_errors=None,
-            translation_errors=np.array([800, 900, 1000]) # 0/3 are under threshold.
-        )
-    ]
-    threshold = 0.2
-    avg_success_rate = compute_translation_errors_against_threshold(reconstruction_reports, threshold)
-    expected_avg_success_rate = np.mean([3/6, 4/5, 0/3])
-    assert np.isclose(avg_success_rate, expected_avg_success_rate)
-
 
