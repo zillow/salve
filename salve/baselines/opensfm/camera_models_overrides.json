@@ -1,0 +1,7 @@
+{
+    "all": {
+        "projection_type": "equirectangular",
+        "width": 2048,
+        "height": 1024
+    }
+}

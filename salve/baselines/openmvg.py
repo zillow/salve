@@ -17,7 +17,7 @@ from salve.baselines.sfm_reconstruction import SfmReconstruction
 def panoid_from_key(key: str) -> int:
     """Extract panorama id from panorama image file name.
 
-    Given 'floor_01_partial_room_01_pano_11.jpg', return 11
+    Given 'floor_01_partial_room_01_pano_11.jpg', return 11 as an integer.
     """
     return int(Path(key).stem.split("_")[-1])
 
@@ -83,19 +83,26 @@ def find_seed_pair(image_dirpath: str) -> Tuple[str, str]:
     """Choose a seed pair for incremental SfM by finding any two images that are next to
     each other in trajectory/capture order.
 
-    TODO: try with 3 different seed pairs, and choose the best among all.
+    Args:
+        image_dirpath: path to directory containing images from a ZInD floor.
+
+    Returns:
+        seed_fname1: file name of panorama 1.
+        seed_fname2: file name of panorama 2.
     """
     image_fpaths = glob.glob(f"{image_dirpath}/*.jpg")
 
-    # choose a seed pair
-    # sort by temporal order (last key)
-    image_fpaths.sort(key=lambda x: int(Path(x).stem.split("_")[-1]))
+    if len(image_fpaths) < 2:
+        raise ValueError("Less than two images were not found in the image directory, so no seed can be assigned.")
 
-    # find an adjacent pair
+    # Choose a seed pair. Sort by temporal order (last key).
+    image_fpaths.sort(key=lambda x: panoid_from_key(x))
+
+    # Find an adjacent pair.
     frame_idxs = np.array([int(Path(x).stem.split("_")[-1]) for x in image_fpaths])
     temporal_dist = np.diff(frame_idxs)
 
-    # this, and the next pair, are useful
+    # This image, and the next frame in the pair, are useful.
     valid_seed_idxs = np.where(np.absolute(temporal_dist) == 1)[0]
 
     seed_idx_1 = valid_seed_idxs[0]

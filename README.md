@@ -85,10 +85,6 @@ Download the (prod pano GUID) -> (ZInD pano filename) mapping information from [
 unzip {PATH_TO_HORIZONNET PREDS ZIP FILE}/zind2_john.zip
 RMX_MADORI_V1_PREDICTIONS_DIRPATH = {}
 ```
-First, set `RMX_MADORI_V1_PREDICTIONS_DIRPATH` inside `salve/dataset/hnet_prediction_loader.py`.
-Next, set `PANO_MAPPING_TSV_FPATH` also inside `salve/dataset/hnet_prediction_loader.py`.
-Next, set `RAW_DATASET_DIR` in `salve/algorithms/pose2_slam.py` and in `salve/utils/axis_alignment_utils.py` and in `salve/utils/graph_rendering_utils.py`.
-
 
 ### Generate alignment hypotheses
 Run SALVe model inference by first generating alignment hypotheses:
@@ -182,7 +178,8 @@ Please note that `serialization_save_dir` is a new directory created at inferenc
 ### Run Global SfM
 Now, pass the front-end measurements to SfM:
 ```bash
-python scripts/run_sfm.py --raw_dataset_dir {PATH TO ZIND} \
+python scripts/run_sfm.py \
+     --raw_dataset_dir {PATH TO ZIND} \
      --method pgo \
      --serialized_preds_json_dir {PATH TO WHERE SERIALIZED PREDS WERE SAVED TO} \
      --hypotheses_save_root {PATH TO PRE-GENERATED ALIGNMENT HYPOTHESES}
@@ -198,7 +195,8 @@ Above, we use pose-graph optimization (`pgo`) as the global aggregation method f
 ## Training a model
 
 ```bash
-python scripts/train.py --gpu_ids {COMMA SEPARATED GPU ID LIST} \
+python scripts/train.py \
+    --gpu_ids {COMMA SEPARATED GPU ID LIST} \
     --config_name {FILE NAME OF YAML CONFIG under salve/configs/}
 ```
 
@@ -251,7 +249,7 @@ python {SALVE_REPO_DIRPATH}/salve/scripts/execute_opensfm.py \
 
 Next, evaluate the OpenSfM results:
 ```bash
-python {SALVE_REPO_DIRPATH}/salve/baselines/evaluate_baseline.py \
+python {SALVE_REPO_DIRPATH}/scripts/evaluate_sfm_baseline.py \
     --algorithm_name opensfm \
     --raw_dataset_dir {PATH_TO_ZIND} \
     --results_dir {PATH TO WHERE OPENSFM SCRIPT DUMPED RECONSTRUCTION RESULTS} \
@@ -272,7 +270,7 @@ python scripts/execute_openmvg.py \
 
 Evaluate the OpenMVG results using:
 ```bash
-python {SALVE_REPO_DIRPATH}/salve/baselines/evaluate_baseline.py \
+python {SALVE_REPO_DIRPATH}/scripts/evaluate_sfm_baseline.py \
     --algorithm_name openmvg \
     --raw_dataset_dir {PATH_TO_ZIND} \
     --results_dir {PATH TO WHERE OPENMVG SCRIPT DUMPED RECONSTRUCTION RESULTS} \
@@ -284,7 +282,6 @@ python {SALVE_REPO_DIRPATH}/salve/baselines/evaluate_baseline.py \
 On DGX, you can find `ZInD` stored here:
 `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
 
-- TODO: remove all mentions of Madori or RMX from class names.
 - Keep your training config and inference config in different files.  (Or different sections of the same file.)
 
 Additional Notes:

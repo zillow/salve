@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
-from salve.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
+from salve.dataset.zillow_horizon_net_prediction import PanoStructurePredictionZillowHorizonNet
 
 
 _PREDICTIONS_SAMPLE_ROOT = Path(__file__).resolve().parent.parent / "test_data" / "ZInD_HorizonNet_predictions"
@@ -28,7 +28,7 @@ def test_load_hnet_predictions() -> None:
     raw_dataset_dir = _ZIND_SAMPLE_ROOT
     predictions_data_root = _PREDICTIONS_SAMPLE_ROOT
 
-    results: Dict[int, PanoStructurePredictionRmxMadoriV1] = hnet_prediction_loader.load_hnet_predictions(
+    results: Dict[int, PanoStructurePredictionZillowHorizonNet] = hnet_prediction_loader.load_hnet_predictions(
         building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=predictions_data_root
     )
 
@@ -36,7 +36,7 @@ def test_load_hnet_predictions() -> None:
     assert "floor_01" in results
 
     for v in results["floor_01"].values():
-        assert isinstance(v, PanoStructurePredictionRmxMadoriV1)
+        assert isinstance(v, PanoStructurePredictionZillowHorizonNet)
 
     expected_pano_ids = [
         2,

@@ -3,6 +3,7 @@
 import numpy as np
 
 import salve.common.posegraph2d as posegraph2d
+import salve.common.floor_reconstruction_report as floor_reconstruction_report
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
@@ -160,6 +161,45 @@ def test_from_est_floor_pose_graph() -> None:
     #assert np.isclose(report.avg_abs_rot_err, 9999)
     assert np.isclose(report.avg_abs_trans_err, 0.05, atol=1e-2)
     #assert np.isclose(report.percent_panos_localized, 9999)
+
+
+
+def test_compute_translation_errors_against_threshold() -> None:
+    """Ensure that translation localization success rate is computed correctly."""
+    reconstruction_reports = [
+        FloorReconstructionReport(
+            avg_abs_rot_err=np.nan,
+            avg_abs_trans_err=np.nan,
+            percent_panos_localized=np.nan,
+            floorplan_iou=np.nan,
+            rotation_errors=None,
+            translation_errors=np.array([0.0, 0.1, 0.19, 0.3, 0.4, 900]) # 3/6 are under threshold.
+        ),
+        FloorReconstructionReport(
+            avg_abs_rot_err=np.nan,
+            avg_abs_trans_err=np.nan,
+            percent_panos_localized=np.nan,
+            floorplan_iou=np.nan,
+            rotation_errors=None,
+            translation_errors=np.array([0.0, 0.1, 0.18, 0.19, 0.21]) # 4/5 are under threshold
+        ),
+        FloorReconstructionReport(
+            avg_abs_rot_err=np.nan,
+            avg_abs_trans_err=np.nan,
+            percent_panos_localized=np.nan,
+            floorplan_iou=np.nan,
+            rotation_errors=None,
+            translation_errors=np.array([800, 900, 1000]) # 0/3 are under threshold.
+        )
+    ]
+    threshold = 0.2
+    avg_success_rate = floor_reconstruction_report.compute_translation_errors_against_threshold(reconstruction_reports, threshold)
+    expected_avg_success_rate = np.mean([3/6, 4/5, 0/3])
+    assert np.isclose(avg_success_rate, expected_avg_success_rate)
+
+
+
+
 
 
 if __name__ == "__main__":

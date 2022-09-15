@@ -16,20 +16,21 @@ logger = get_logger()
 
 
 def run_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str, overrides_fpath: str) -> None:
-    """TODO
+    """Run OpenSfM in spherical geometry mode, over all tours inside ZinD.
+
+    We copy all of the panos from a particular floor of a ZInD building to a directory, and then feed this to OpenSfM.
 
     Args:
-        raw_dataset_dir
-        opensfm_repo_root
-        overrides_fpath
+        raw_dataset_dir: path to where ZInD dataset is stored on disk (after download from Bridge API).
+        opensfm_repo_root: TODO
+        overrides_fpath: path to JSON file with camera override parameters.
     """
-
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
     for building_id in building_ids:
 
-        # we are only evaluating OpenSfM on ZInD's test split.
+        # We are only evaluating OpenSfM on ZInD's test split.
         if building_id not in DATASET_SPLITS["test"]:
             continue
 
@@ -43,7 +44,9 @@ def run_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str, over
                 if len(pano_fpaths) == 0:
                     continue
 
-                floor_opensfm_datadir = f"{opensfm_repo_root}/data/ZinD_{building_id}_{floor_id}__2021_12_02_BridgeAPI"
+                floor_opensfm_datadir = (
+                    f"{opensfm_repo_root}/data/ZinD_{building_id}_{floor_id}__opensfm_results"
+                )
                 os.makedirs(f"{floor_opensfm_datadir}/images", exist_ok=True)
                 # reconstruction_json_fpath = f"{floor_opensfm_datadir}/reconstruction.json"
 
@@ -60,14 +63,14 @@ def run_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str, over
                 print(cmd)
                 subprocess_utils.run_command(cmd)
 
-                # delete copy of all of the copies of the panos
+                # Delete copy of all of the copies of the panos.
                 shutil.rmtree(dst_dir)
 
-                # take up way too much space!
+                # Take up way too much space!
                 features_dir = f"{floor_opensfm_datadir}/features"
                 shutil.rmtree(features_dir)
 
-                # contains resampled-perspective images and depth maps.
+                # Directory contains resampled-perspective images and depth maps.
                 undistorted_depthmaps_dir = f"{floor_opensfm_datadir}/undistorted/depthmaps"
                 shutil.rmtree(undistorted_depthmaps_dir)
 
@@ -98,17 +101,15 @@ def run_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str, over
     type=click.Path(exists=True),
     required=True,
     # default = "/Users/johnlam/Downloads/OpenSfM"
-    help=""
+    help="Path to cloned OpenSfM repository.",
 )
-@click.option(
-    "--overrides_fpath",
-    type=click.Path(exists=True),
-    required=True,
-    # default = "/Users/johnlam/Downloads/OpenSfM/data/camera_models_overrides.json"
-    help=""
-)
-def launch_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str, overrides_fpath: str) -> None:
+def launch_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str) -> None:
     """Click entry point for OpenSfM wrapper."""
+
+    # Path to JSON file with camera override parameters.
+    overrides_fpath = (
+        Path(__file__).resolve().parent.parent / "salve" / "baselines" / "opensfm" / "camera_models_overrides.json"
+    )
     run_opensfm_over_all_zind(raw_dataset_dir, opensfm_repo_root, overrides_fpath)
 
 

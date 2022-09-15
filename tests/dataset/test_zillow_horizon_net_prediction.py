@@ -1,11 +1,11 @@
-"""Unit tests for `PanoStructurePredictionRmxMadoriV1` class."""
+"""Unit tests for `PanoStructurePredictionZillowHorizonNet` class."""
 
 from pathlib import Path
 
 import numpy as np
 
-import salve.dataset.rmx_madori_v1 as madori_utils
-from salve.dataset.rmx_madori_v1 import RmxMadoriV1DWO, PanoStructurePredictionRmxMadoriV1
+import salve.dataset.zillow_horizon_net_prediction as hnet_pred_utils
+from salve.dataset.zillow_horizon_net_prediction import ZillowHorizonNetDWO, PanoStructurePredictionZillowHorizonNet
 
 _PREDICTIONS_SAMPLE_ROOT = Path(__file__).resolve().parent.parent / "test_data" / "ZInD_HorizonNet_predictions"
 _ZIND_SAMPLE_ROOT = Path(__file__).resolve().parent.parent / "test_data" / "ZInD"
@@ -17,7 +17,7 @@ def test_merge_wdos_straddling_img_border_windows() -> None:
     Data from ZinD Building 0000, Pano 17
     """
     windows = []
-    windows_merged = madori_utils.merge_wdos_straddling_img_border(wdo_instances=windows)
+    windows_merged = hnet_pred_utils.merge_wdos_straddling_img_border(wdo_instances=windows)
     assert len(windows_merged) == 0
     assert isinstance(windows_merged, list)
 
@@ -28,13 +28,13 @@ def test_merge_wdos_straddling_img_border_doors() -> None:
     Data from ZinD Building 0000, Pano 17.
     """
     doors = [
-        RmxMadoriV1DWO(s=0.14467253176930597, e=0.3704789833822092),
-        RmxMadoriV1DWO(s=0.45356793743890517, e=0.46920821114369504),
-        RmxMadoriV1DWO(s=0.47702834799608995, e=0.5278592375366569),
-        RmxMadoriV1DWO(s=0.5376344086021505, e=0.5865102639296188),
-        RmxMadoriV1DWO(s=0.6217008797653959, e=0.8084066471163245),
+        ZillowHorizonNetDWO(s=0.14467253176930597, e=0.3704789833822092),
+        ZillowHorizonNetDWO(s=0.45356793743890517, e=0.46920821114369504),
+        ZillowHorizonNetDWO(s=0.47702834799608995, e=0.5278592375366569),
+        ZillowHorizonNetDWO(s=0.5376344086021505, e=0.5865102639296188),
+        ZillowHorizonNetDWO(s=0.6217008797653959, e=0.8084066471163245),
     ]
-    doors_merged = madori_utils.merge_wdos_straddling_img_border(wdo_instances=doors)
+    doors_merged = hnet_pred_utils.merge_wdos_straddling_img_border(wdo_instances=doors)
 
     assert doors == doors_merged
     # Should be same as input -- no doors straddle the image border for this panorama.
@@ -51,13 +51,13 @@ def test_merge_wdos_straddling_img_border_openings() -> None:
     Pano 21 for building 0001.
     """
     openings = [
-        RmxMadoriV1DWO(s=0.0009775171065493646, e=0.10361681329423265),
-        RmxMadoriV1DWO(s=0.9354838709677419, e=1.0),
+        ZillowHorizonNetDWO(s=0.0009775171065493646, e=0.10361681329423265),
+        ZillowHorizonNetDWO(s=0.9354838709677419, e=1.0),
     ]
-    openings_merged = madori_utils.merge_wdos_straddling_img_border(wdo_instances=openings)
+    openings_merged = hnet_pred_utils.merge_wdos_straddling_img_border(wdo_instances=openings)
 
     assert len(openings_merged) == 1
-    assert openings_merged[0] == RmxMadoriV1DWO(s=0.9354838709677419, e=0.10361681329423265)
+    assert openings_merged[0] == ZillowHorizonNetDWO(s=0.9354838709677419, e=0.10361681329423265)
 
 
 def test_pano_structure_prediction_rmx_madori_v1_from_json_fpath() -> None:
@@ -69,7 +69,7 @@ def test_pano_structure_prediction_rmx_madori_v1_from_json_fpath() -> None:
 
     json_fpath = predictions_data_root / "horizon_net" / building_id / f"{image_fname_stem}.json"
     image_fpath = raw_dataset_dir / building_id / "panos" / f"{image_fname_stem}.jpg"
-    result = PanoStructurePredictionRmxMadoriV1.from_json_fpath(json_fpath=json_fpath, image_fpath=image_fpath)
+    result = PanoStructurePredictionZillowHorizonNet.from_json_fpath(json_fpath=json_fpath, image_fpath=image_fpath)
 
     # Verify image metadata associated with prediction.
     assert result.image_width == 1024
@@ -89,30 +89,35 @@ def test_pano_structure_prediction_rmx_madori_v1_from_json_fpath() -> None:
     # Verify floor boundary.
     assert isinstance(result.floor_boundary, np.ndarray)
     assert result.floor_boundary.shape == (1024,)
-    expected_floor_boundary_start = np.array([326.23584 , 325.536102, 324.849243, 324.179382, 323.147888, 322.917572])
+    expected_floor_boundary_start = np.array([326.23584, 325.536102, 324.849243, 324.179382, 323.147888, 322.917572])
     assert np.allclose(result.floor_boundary[:6], expected_floor_boundary_start)
 
     # Verify floor boundary uncertainty.
     assert isinstance(result.floor_boundary_uncertainty, np.ndarray)
     assert result.floor_boundary_uncertainty.shape == (1024,)
-    expected_floor_boundary_uncertainty_start = np.array([10.536544, 10.46075 , 10.376159, 10.330658,  9.964458,  9.891422])
+    expected_floor_boundary_uncertainty_start = np.array(
+        [10.536544, 10.46075, 10.376159, 10.330658, 9.964458, 9.891422]
+    )
     assert np.allclose(result.floor_boundary_uncertainty[:6], expected_floor_boundary_uncertainty_start)
 
     # Verify doors.
-    assert isinstance(result.doors, list) # List[RmxMadoriV1DWO]
-    expected_door_wdos = [RmxMadoriV1DWO(s=0.4359726295210166, e=0.5640273704789834)]
+    assert isinstance(result.doors, list)  # List[ZillowHorizonNetDWO]
+    expected_door_wdos = [ZillowHorizonNetDWO(s=0.4359726295210166, e=0.5640273704789834)]
     assert result.doors == expected_door_wdos
 
     # Verify windows.
-    assert isinstance(result.windows, list) # : List[RmxMadoriV1DWO]
-    expected_window_wdos = [RmxMadoriV1DWO(s=0.6383186705767351, e=0.6598240469208211), RmxMadoriV1DWO(s=0.6695992179863147, e=0.6930596285434996)]
+    assert isinstance(result.windows, list)  # : List[ZillowHorizonNetDWO]
+    expected_window_wdos = [
+        ZillowHorizonNetDWO(s=0.6383186705767351, e=0.6598240469208211),
+        ZillowHorizonNetDWO(s=0.6695992179863147, e=0.6930596285434996),
+    ]
     assert result.windows == expected_window_wdos
 
     # Verify openings.
-    assert isinstance(result.openings, list) #: List[RmxMadoriV1DWO]
+    assert isinstance(result.openings, list)  #: List[ZillowHorizonNetDWO]
     # Two openings become merged, as an opening straddles the image border.
     expected_opening_wdos = [
-        RmxMadoriV1DWO(s=0.8299120234604106, e=0.8690127077223851),
-        RmxMadoriV1DWO(s=0.9130009775171065, e=0.024437927663734114)
+        ZillowHorizonNetDWO(s=0.8299120234604106, e=0.8690127077223851),
+        ZillowHorizonNetDWO(s=0.9130009775171065, e=0.024437927663734114),
     ]
     assert result.openings == expected_opening_wdos

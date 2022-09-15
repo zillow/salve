@@ -23,6 +23,7 @@ def run_openmvg_commands_single_tour(
     """Run OpenMVG over a single floor of a single building, by sequentially executing binaries for each SfM stage.
 
     The reconstruction result / estimated global poses will be written to a file named "sfm_data.json".
+    Alternative: try OpenMVG with 3 different seed pairs, and choose the best among all.
 
     Args:
         openmvg_sfm_bin: path to directory containing all compiled OpenMVG binaries.
@@ -105,7 +106,6 @@ def run_openmvg_all_tours(raw_dataset_dir: str, openmvg_sfm_bin: str, openmvg_de
         openmvg_sfm_bin: Path to directory containing all compiled OpenMVG binaries.
         openmvg_demo_root
     """
-
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
@@ -127,7 +127,7 @@ def run_openmvg_all_tours(raw_dataset_dir: str, openmvg_sfm_bin: str, openmvg_de
         for floor_id in floor_ids:
             print(f"Running OpenMVG on {building_id}, {floor_id}")
 
-            floor_openmvg_datadir = f"{openmvg_demo_root}/ZinD_{building_id}_{floor_id}__2021_12_02"
+            floor_openmvg_datadir = f"{openmvg_demo_root}/ZinD_{building_id}_{floor_id}__openmvg_results"
 
             matches_dirpath = f"{floor_openmvg_datadir}/matches"
             reconstruction_json_fpath = f"{floor_openmvg_datadir}/reconstruction/sfm_data.json"
