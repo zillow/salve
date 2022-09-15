@@ -11,6 +11,7 @@ from pathlib import Path
 
 import click
 
+import salve.utils.datetime_utils as datetime_utils
 import salve.utils.subprocess_utils as subprocess_utils
 from salve.common.posegraph2d import REDTEXT, ENDCOLOR
 from salve.dataset.zind_partition import DATASET_SPLITS
@@ -106,6 +107,7 @@ def run_openmvg_all_tours(raw_dataset_dir: str, openmvg_sfm_bin: str, openmvg_de
         openmvg_sfm_bin: Path to directory containing all compiled OpenMVG binaries.
         openmvg_demo_root
     """
+    experiment_id = datetime_utils.generate_datetime_string()
 
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
@@ -128,7 +130,7 @@ def run_openmvg_all_tours(raw_dataset_dir: str, openmvg_sfm_bin: str, openmvg_de
         for floor_id in floor_ids:
             print(f"Running OpenMVG on {building_id}, {floor_id}")
 
-            floor_openmvg_datadir = f"{openmvg_demo_root}/ZinD_{building_id}_{floor_id}__2021_12_02"
+            floor_openmvg_datadir = f"{openmvg_demo_root}/ZinD_{building_id}_{floor_id}__{experiment_id}"
 
             matches_dirpath = f"{floor_openmvg_datadir}/matches"
             reconstruction_json_fpath = f"{floor_openmvg_datadir}/reconstruction/sfm_data.json"
