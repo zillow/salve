@@ -7,8 +7,6 @@ from pathlib import Path
 
 import click
 
-import salve.utils.datetime_utils as datetime_utils
-
 # import salve.baselines.opensfm as opensfm_utils
 import salve.utils.subprocess_utils as subprocess_utils
 from salve.dataset.zind_partition import DATASET_SPLITS
@@ -27,8 +25,6 @@ def run_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str, over
         opensfm_repo_root: TODO
         overrides_fpath: path to JSON file with camera override parameters.
     """
-    experiment_id = datetime_utils.generate_datetime_string()
-
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()
 
@@ -49,7 +45,7 @@ def run_opensfm_over_all_zind(raw_dataset_dir: str, opensfm_repo_root: str, over
                     continue
 
                 floor_opensfm_datadir = (
-                    f"{opensfm_repo_root}/data/ZinD_{building_id}_{floor_id}__{experiment_id}_BridgeAPI"
+                    f"{opensfm_repo_root}/data/ZinD_{building_id}_{floor_id}__opensfm_results"
                 )
                 os.makedirs(f"{floor_opensfm_datadir}/images", exist_ok=True)
                 # reconstruction_json_fpath = f"{floor_opensfm_datadir}/reconstruction.json"

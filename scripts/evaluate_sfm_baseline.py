@@ -1,4 +1,4 @@
-"""Utility to evaluate an SfM algorithm baseline, such as OpenMVG or OpenSfM.
+"""Script to evaluate results from a 3rd party SfM algorithm, such as OpenMVG or OpenSfM.
 
 # TODO: only measure localization precision for connected components with 3+ cameras. (or measure separately)
 # 2-camera connected components should always achieve perfect translation alignment under Sim(3)?
@@ -41,7 +41,7 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
 
         for floor_id in floor_ids:
 
-            matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/matches"
+            matches_dirpath = f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__openmvg_results/matches"
             if not Path(matches_dirpath).exists():
                 # This floor doesn't exist in ZInD, so skip.
                 continue
@@ -49,7 +49,7 @@ def eval_openmvg_errors_all_tours(raw_dataset_dir: str, openmvg_results_dir: str
             print(f"On Building {building_id}, {floor_id}")
 
             reconstruction_json_fpath = (
-                f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02/reconstruction/sfm_data.json"
+                f"{openmvg_results_dir}/ZinD_{building_id}_{floor_id}__openmvg_results/reconstruction/sfm_data.json"
             )
 
             # Whether we want consider failed reconstructions (when OpenMVG times out / runs indefinitely)
@@ -109,7 +109,7 @@ def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str
 
             print(f"On Building {building_id}, {floor_id}")
 
-            FLOOR_OPENSFM_DATADIR = f"{opensfm_results_dir}/ZinD_{building_id}_{floor_id}__2021_12_02_BridgeAPI"
+            FLOOR_OPENSFM_DATADIR = f"{opensfm_results_dir}/ZinD_{building_id}_{floor_id}__opensfm_results"
             reconstruction_json_fpath = f"{FLOOR_OPENSFM_DATADIR}/reconstruction.json"
 
             # load_opensfm_reconstructions_from_json(reconstruction_json_fpath)
