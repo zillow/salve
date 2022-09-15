@@ -23,7 +23,7 @@ def run_openmvg_commands_single_tour(
     """Run OpenMVG over a single floor of a single building, by sequentially executing binaries for each SfM stage.
 
     The reconstruction result / estimated global poses will be written to a file named "sfm_data.json".
-    Alternative: try OpenSfM with 3 different seed pairs, and choose the best among all.
+    Alternative: try OpenMVG with 3 different seed pairs, and choose the best among all.
 
     Args:
         openmvg_sfm_bin: path to directory containing all compiled OpenMVG binaries.

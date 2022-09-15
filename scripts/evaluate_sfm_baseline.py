@@ -164,7 +164,7 @@ def eval_opensfm_errors_all_tours(raw_dataset_dir: str, opensfm_results_dir: str
     "or OPENMVG_DEMO_ROOT).",
 )
 def run_evaluate_sfm_baseline(raw_dataset_dir: str, save_dir: str, baseline_name: str, results_dir: str) -> None:
-    """Click entry point for ...
+    """Click entry point for camera localization evaluation of third-party SfM libraries.
 
     # for OpenSFM -- analyze error results dumped to JSON files.
     json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
@@ -187,7 +187,7 @@ def run_evaluate_sfm_baseline(raw_dataset_dir: str, save_dir: str, baseline_name
     # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
 
     # sfm_eval.analyze_algorithm_results(
-    #     raw_dataset_dir=args.raw_dataset_dir, json_results_dir=f"{args.save_dir}/result_summaries"
+    #     raw_dataset_dir=raw_dataset_dir, json_results_dir=f"{save_dir}/result_summaries"
     # )
 
 
