@@ -18,12 +18,12 @@ import matplotlib.pyplot as plt
 import salve.common.floor_reconstruction_report as floor_reconstruction_report
 import salve.common.posegraph2d as posegraph2d
 from salve.common.posegraph2d import PoseGraph2d
-from salve.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
+from salve.dataset.zillow_horizon_net_prediction import PanoStructurePredictionZillowHorizonNet
 
 
 def load_hnet_predictions(
     building_id: str, raw_dataset_dir: str, predictions_data_root: str
-) -> Optional[Dict[str, Dict[int, PanoStructurePredictionRmxMadoriV1]]]:
+) -> Optional[Dict[str, Dict[int, PanoStructurePredictionZillowHorizonNet]]]:
     """Load raw pixelwise HorizonNet predictions for each pano in a specified ZInD building.
 
     # TODO: remove dependency on getting pano paths from ZInD in this function (put them inside the predictions).
@@ -62,7 +62,7 @@ def load_hnet_predictions(
             model_prediction_fpath = Path(model_prediction_fpaths[0])
             fname_stem = Path(model_prediction_fpath).stem
             img_fpath = Path(f"{raw_dataset_dir}/{building_id}/panos/{fname_stem}.jpg")
-            pred_obj = PanoStructurePredictionRmxMadoriV1.from_json_fpath(
+            pred_obj = PanoStructurePredictionZillowHorizonNet.from_json_fpath(
                 json_fpath=model_prediction_fpath, image_fpath=img_fpath
             )
             floor_hnet_predictions[floor_id][i] = pred_obj
