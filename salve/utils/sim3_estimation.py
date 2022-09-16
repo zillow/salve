@@ -10,10 +10,15 @@ from salve.common.sim2 import Sim2
 
 
 def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], np.ndarray]:
-    """
+    """Align two points clouds by fitting a Sim(3) transformation between corresponding point pairs.
+
     Args:
-        pts_a: target/reference
-        pts_b: source/query
+        pts_a: target/reference point cloud, as array of shape (N,3).
+        pts_b: source/query point cloud, as array of shape (N,3)
+
+    Returns:
+        aSb: Similarity(2) transformation, such that p_a = aSb * p_b.
+        pts_a_: array of shape (N,3) representing source points, now aligned to reference frame.
     """
     if pts_a.shape != pts_b.shape:
         return None, np.zeros_like(pts_a)
