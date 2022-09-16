@@ -4,8 +4,7 @@ from typing import Optional, Tuple
 
 
 def run_command(cmd: str, return_output: bool = False) -> Tuple[Optional[bytes], Optional[bytes]]:
-    """
-    Block until system call completes
+    """Executes command by system call, and blocks until system call completes.
 
     Args:
         cmd: string, representing shell command
