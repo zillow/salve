@@ -30,7 +30,7 @@ class PoseGraph3d:
                 (image paths, building id, floor id, room vertices).
 
         Returns:
-            est_floor_pose_graph; 2d representation of 3d pose graph object instance.
+            floor_pose_graph_2d: 2d representation of 3d pose graph object instance.
         """
         n = len(gt_floor_pose_graph.as_3d_pose_graph())
 

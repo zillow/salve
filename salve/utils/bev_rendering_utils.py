@@ -422,7 +422,7 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
 def render_bev_pair(
     args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
-    """Render a texture map.
+    """Render a pair of texture maps.
 
     Args:
         args:
