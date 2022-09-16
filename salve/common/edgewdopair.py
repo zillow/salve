@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 
 class EdgeWDOPair(NamedTuple):
-    """ """
+    """Representation of ..."""
 
     i1: int
     i2: int

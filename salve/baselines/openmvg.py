@@ -80,8 +80,10 @@ def load_openmvg_reconstructions_from_json(json_fpath: str, building_id: str, fl
 
 
 def find_seed_pair(image_dirpath: str) -> Tuple[str, str]:
-    """Choose a seed pair for incremental SfM by finding any two images that are next to
-    each other in trajectory/capture order.
+    """Choose a seed pair for incremental SfM.
+
+    We use the heuristic criterion that any two images that are next to each other in trajectory/capture order
+    may be suitable as a seed pair.
 
     Args:
         image_dirpath: path to directory containing images from a ZInD floor.

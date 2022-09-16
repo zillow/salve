@@ -26,15 +26,17 @@ FULL_RES_LINE_WIDTH_PX = 30
 
 
 class BEVParams:
+    """Representation of a BEV texture map on a regular grid at a specified resolution.
+
+    For example, 1000 pixels * (0.005 m / px) = 5 meters in each direction.
+    """
     def __init__(
         self,
         img_h: int = DEFAULT_BEV_IMG_H_PX,
         img_w: int = DEFAULT_BEV_IMG_W_PX,
         meters_per_px: float = DEFAULT_METERS_PER_PX,
     ) -> None:
-        """Representation of a BEV texture map on a regular grid at a specified resolution.
-
-        For example, 1000 pixels * (0.005 m / px) = 5 meters in each direction.
+        """Construct BEVParams object from image dimensions and resolution of interest.
 
         Attributes
             img_h: texture map height (in pixels).
@@ -86,9 +88,9 @@ def get_line_width_by_resolution(resolution: float) -> int:
     """
     scale = resolution / FULL_RES_METERS_PER_PX
 
-    # larger scale means lower resolution, so we make the line width more narrow.
+    # Larger scale means lower resolution, so we make the line width more narrow.
     line_width = FULL_RES_LINE_WIDTH_PX / scale
 
     line_width = round(line_width)
-    # must be at least 1 pixel thick.
+    # Must be at least 1 pixel thick.
     return max(line_width, 1)
