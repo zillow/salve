@@ -362,11 +362,18 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
     Returns:
         xyzrgb: numpy array of shape (N,6), with rgb in [0,1] as floats.
     """
+    if "crop_ratio" not in args:
+        raise ValueError("Crop ratio for panorama top and bottom must be provided as `args.crop_ratio`.")
+    
+    if "crop_z_range" not in args:
+        raise ValueError("Z-coordinate range for cropping must be provided as `args.crop_z_range`.")
+
     depth = imageio.imread(depth_fpath)[..., None].astype(np.float32) * args.scale
 
     # Reading rgb-d
     rgb = imageio.imread(rgb_fpath)
 
+    # Resize panorama from (2048,1024) to (1024, 512).
     width = 1024
     height = 512
     rgb = cv2.resize(rgb, (width, height), interpolation=cv2.INTER_NEAREST if is_semantics else cv2.INTER_LINEAR)
