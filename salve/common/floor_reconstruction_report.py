@@ -1,4 +1,4 @@
-"""Stores information about a floorplan reconstruction."""
+"""Data structure for accuracy results corresponding to a floorplan reconstruction."""
 
 import os
 from dataclasses import dataclass
@@ -22,7 +22,16 @@ EPS = 1e-10
 
 @dataclass(frozen=True)
 class FloorReconstructionReport:
-    """Summary statistics about the quality of the reconstructed floorplan."""
+    """Summary statistics about the quality of the reconstructed floorplan.
+
+    Attributes:
+        avg_abs_rot_err: Angular rotation error (in degrees), averaged over all panos on a floor.
+        avg_abs_trans_err: Absolute translation error, averaged over all panos on a floor.
+        percent_panos_localized: percent of panos localized on floor, in [0,100].
+        floorplan_iou: IoU of estimated floorplan w.r.t. ground truth floorplan.
+        rotation_errors: angular rotation errors for each pano on a floor.
+        translation_errors: absolute translation errors for each pano on a floor.
+    """
 
     avg_abs_rot_err: float
     avg_abs_trans_err: float
@@ -31,15 +40,13 @@ class FloorReconstructionReport:
     rotation_errors: Optional[np.ndarray] = None
     translation_errors: Optional[np.ndarray] = None
 
-
     def __repr__(self) -> str:
         """Concise summary of the class as a string."""
-        summary_str = f"Abs. Rot err (deg) {avg_abs_rot_err:.1f}, "
-        summary_str += f"Abs. trans err {avg_abs_trans_err:.2f}, "
-        summary_str += f"%Localized {percent_panos_localized:.2f},"
-        summary_str += f"Floorplan IoU {floorplan_iou:.2f}"
+        summary_str = f"Abs. Rot err (deg) {self.avg_abs_rot_err:.1f}, "
+        summary_str += f"Abs. trans err {self.avg_abs_trans_err:.2f}, "
+        summary_str += f"%Localized {self.percent_panos_localized:.2f},"
+        summary_str += f"Floorplan IoU {self.floorplan_iou:.2f}"
         return summary_str
-
 
     @classmethod
     def from_est_floor_pose_graph(
@@ -48,19 +55,20 @@ class FloorReconstructionReport:
         gt_floor_pose_graph: PoseGraph2d,
         plot_save_dir: str,
         plot_save_fpath: Optional[str] = None,
+        raw_dataset_dir: Optional[str] = None
     ) -> "FloorReconstructionReport":
         """Create a report from an estimated pose graph for a single floor.
 
         Note: estimated global poses will be saved to JSON at {plot_save_dir}_serialized/*.json.
 
         Args:
-            est_floor_pose_graph: TODO
-            gt_floor_pose_graph: TODO
-            plot_save_dir: TODO
+            est_floor_pose_graph: estimated pose graph for a specific ZInD building floor.
+            gt_floor_pose_graph: ground truth pose graph for the same ZInD building floor.
+            plot_save_dir: path to directory where visualization will be saved.
             plot_save_fpath: TODO
 
         Returns:
-            TODO
+            Report with accuracy results for estimated floorplan.
         """
         num_localized_panos = len(est_floor_pose_graph.nodes)
         num_floor_panos = len(gt_floor_pose_graph.nodes)
@@ -71,11 +79,14 @@ class FloorReconstructionReport:
         aligned_est_floor_pose_graph, _ = est_floor_pose_graph.align_by_Sim3_to_ref_pose_graph(
             ref_pose_graph=gt_floor_pose_graph
         )
-        mean_abs_rot_err, mean_abs_trans_err, rot_errors, trans_errors = aligned_est_floor_pose_graph.measure_aligned_abs_pose_error(
-            gt_floor_pg=gt_floor_pose_graph
-        )
+        (
+            mean_abs_rot_err,
+            mean_abs_trans_err,
+            rot_errors,
+            trans_errors,
+        ) = aligned_est_floor_pose_graph.measure_aligned_abs_pose_error(gt_floor_pg=gt_floor_pose_graph)
 
-        # convert units to meters.
+        # Convert units to meters.
         worldmetric_s_worldnormalized = gt_floor_pose_graph.scale_meters_per_coordinate
         mean_abs_trans_err_m = worldmetric_s_worldnormalized * mean_abs_trans_err
         print(f"Mean rotation error: {mean_abs_rot_err:.2f}, Mean translation error: {mean_abs_trans_err_m:.2f}")
@@ -99,15 +110,18 @@ class FloorReconstructionReport:
 
         render_inferred = False
         if render_inferred:
-        # load up the inferred pose graph.
-            raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+            if raw_dataset_dir is None:
+                raise ValueError("Path to directory root of ZInD dataset must be provided.")
+            # Load up the inferred pose graph.
             floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
                 query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
             )
             inferred_floor_pose_graph = floor_pose_graphs[gt_floor_pose_graph.floor_id]
 
-            # combine the inferred and GT pose graph elements.
-            inferred_aligned_pg = PoseGraph2d.from_aligned_est_poses_and_inferred_layouts(aligned_est_floor_pose_graph, inferred_floor_pose_graph)
+            # Combine the inferred and GT pose graph elements.
+            inferred_aligned_pg = PoseGraph2d.from_aligned_est_poses_and_inferred_layouts(
+                aligned_est_floor_pose_graph, inferred_floor_pose_graph
+            )
             render_floorplans_side_by_side(
                 est_floor_pose_graph=inferred_aligned_pg,
                 show_plot=False,
@@ -120,7 +134,7 @@ class FloorReconstructionReport:
             render_rasterized_room_clustering(
                 inferred_aligned_pg,
                 plot_save_dir=plot_save_dir + "_clustering",
-                scale_meters_per_coordinate=gt_floor_pose_graph.scale_meters_per_coordinate
+                scale_meters_per_coordinate=gt_floor_pose_graph.scale_meters_per_coordinate,
             )
 
         print()
@@ -132,17 +146,22 @@ class FloorReconstructionReport:
             percent_panos_localized=percent_panos_localized,
             floorplan_iou=floorplan_iou,
             rotation_errors=rot_errors,
-            translation_errors=trans_errors
+            translation_errors=trans_errors,
         )
 
 
-
-def render_rasterized_room_clustering(inferred_aligned_pg: PoseGraph2d, plot_save_dir: str, scale_meters_per_coordinate: float) -> None:
+def render_rasterized_room_clustering(
+    inferred_aligned_pg: PoseGraph2d, plot_save_dir: str, scale_meters_per_coordinate: float
+) -> None:
     """ """
     MAX_IOU_MERGE_THRESHOLD = 0.25
 
     from shapely.geometry import Polygon
-    poly_dict = {i: Polygon(pano_data.room_vertices_global_2d * scale_meters_per_coordinate) for i, pano_data in inferred_aligned_pg.nodes.items()}
+
+    poly_dict = {
+        i: Polygon(pano_data.room_vertices_global_2d * scale_meters_per_coordinate)
+        for i, pano_data in inferred_aligned_pg.nodes.items()
+    }
 
     edges = []
 
@@ -158,9 +177,11 @@ def render_rasterized_room_clustering(inferred_aligned_pg: PoseGraph2d, plot_sav
             union = poly1.union(poly2).area
             iou = inter / (union + EPS)
             if iou > MAX_IOU_MERGE_THRESHOLD:
-                edges += [(i1,i2)]
+                edges += [(i1, i2)]
 
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     # greedily cluster rooms by IoU (form adjacency matrix, and then find CCs with networkx)
     # assign color per cluster
     # use polygon patch with no alpha
@@ -172,7 +193,7 @@ def serialize_predicted_pose_graph(
     aligned_est_floor_pose_graph: PoseGraph2d, gt_floor_pose_graph: PoseGraph2d, plot_save_dir: str
 ) -> None:
     """Save Sim(2) poses as (R,t,s) to a JSON file.
-    
+
     Note: JSON files will be saved at {plot_save_dir}_serialized/*.json.
     """
     building_id = gt_floor_pose_graph.building_id
@@ -190,7 +211,7 @@ def serialize_predicted_pose_graph(
         "building_id": building_id,
         "floor_id": floor_id,
         "scale_meters_per_coordinate": gt_floor_pose_graph.scale_meters_per_coordinate,
-        "wSi_dict": global_poses_info
+        "wSi_dict": global_poses_info,
     }
     json_save_fpath = f"{plot_save_dir}_serialized/{building_id}__{floor_id}.json"
     os.makedirs(f"{plot_save_dir}_serialized", exist_ok=True)
@@ -210,7 +231,7 @@ def render_floorplans_side_by_side(
     Either render (show plot) or save plot to disk.
 
     Args:
-        est_floor_pose_graph: 
+        est_floor_pose_graph:
         show_plot: boolean indicating whether to show via GUI a rendering of the plot.
         save_plot: boolean indicating whether to save a rendering of the plot.
         plot_save_dir: if only a general saving directory is provided for saving
@@ -260,8 +281,8 @@ def render_raster_occupancy(
     BUILDING_XLIMS_M = 25
     BUILDING_YLIMS_M = 25
 
-    IOU_EVAL_METERS_PER_PX = 0.1 
-    #IOU_EVAL_METERS_PER_PX = 0.01 #(no appreciable difference in IoU with this resolution)
+    IOU_EVAL_METERS_PER_PX = 0.1
+    # IOU_EVAL_METERS_PER_PX = 0.01 #(no appreciable difference in IoU with this resolution)
     IOU_EVAL_PX_PER_METER = 1 / IOU_EVAL_METERS_PER_PX
 
     img_w = int(IOU_EVAL_PX_PER_METER * BUILDING_XLIMS_M * 2)
@@ -343,12 +364,7 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
         print("Cannot compute error metrics, tested over zero homes.")
         return
 
-    error_metrics = [
-        "avg_abs_rot_err",
-        "avg_abs_trans_err",
-        "percent_panos_localized",
-        "floorplan_iou"
-    ]
+    error_metrics = ["avg_abs_rot_err", "avg_abs_trans_err", "percent_panos_localized", "floorplan_iou"]
     for error_metric in error_metrics:
         avg_val = np.nanmean([getattr(r, error_metric) for r in reconstruction_reports])
         print(f"Averaged over all tours, {error_metric} = {avg_val:.3f}")
@@ -360,12 +376,14 @@ def summarize_reports(reconstruction_reports: List[FloorReconstructionReport]) -
     # thresholded_trans_error_dict[0.2] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=0.2)
     # thresholded_trans_error_dict[0.6] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=0.6)
     # thresholded_trans_error_dict[1.0] = compute_translation_errors_against_threshold(reconstruction_reports, threshold=1.0)
-    
+
     # print("Average position localization success rates: ", thresholded_trans_error_dict)
     print("======> Evaluation complete. ======>")
 
 
-def compute_translation_errors_against_threshold(reconstruction_reports: List[FloorReconstructionReport], threshold: float) -> float:
+def compute_translation_errors_against_threshold(
+    reconstruction_reports: List[FloorReconstructionReport], threshold: float
+) -> float:
     """Compute a success rate against a particular translation error threshold.
 
     See Shabani et al, ICCV 2021.
@@ -389,4 +407,3 @@ def compute_translation_errors_against_threshold(reconstruction_reports: List[Fl
     avg_floor_success_rate = np.mean(floor_success_rates)
     print(f"Avg. Position Localization Floor Success Rate @ {threshold} = {avg_floor_success_rate:.3f}")
     return avg_floor_success_rate
-

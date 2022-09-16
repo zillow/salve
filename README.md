@@ -234,7 +234,7 @@ In the paper, we compare with [OpenMVG](https://github.com/openMVG/openMVG) and 
 
 **OpenSfM**: First, clone the repository:
 ```bash
-git clone https://github.com/mapillary/OpenSfM.git
+git clone --recursive https://github.com/mapillary/OpenSfM
 cd OpenSfM
 ```
 Now, build the library/binaries, as described [here](https://opensfm.org/docs/building.html).
