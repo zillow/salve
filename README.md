@@ -101,7 +101,7 @@ Using 20-30 processes is recommended, and even with 30 processes, the generation
 
 Next, clone the repository:
 ```bash
-git clone https://gitlab.zgtools.net/johnlam/jlambert-auto-floorplan.git
+git clone https://github.com/johnwlambert/salve.git
 ```
 
 Set `SALVE_REPO_DIRPATH` to wherever you have cloned the `salve` repo.
