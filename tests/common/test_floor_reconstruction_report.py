@@ -117,7 +117,7 @@ def test_from_est_floor_pose_graph() -> None:
     building_id = "1210"
     floor_id = "floor_02"
     gt_floor_pg = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
-    
+
     plot_save_dir = str(tempfile.TemporaryDirectory())
     est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pg)
     report = FloorReconstructionReport.from_est_floor_pose_graph(
@@ -127,7 +127,7 @@ def test_from_est_floor_pose_graph() -> None:
     assert np.isclose(report.avg_abs_rot_err, 1.37, atol=1e-2)
     assert np.isclose(report.avg_abs_trans_err, 0.19, atol=2e-2)
     # 13/19 localized above.
-    assert np.isclose(report.percent_panos_localized, (13/19) * 100, atol=1e-2)
+    assert np.isclose(report.percent_panos_localized, (13 / 19) * 100, atol=1e-2)
 
 
 def test_compute_translation_errors_against_threshold() -> None:
