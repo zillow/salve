@@ -5,16 +5,14 @@ from gtsam import Rot3
 
 
 def rot2x2_to_Rot3(R: np.ndarray) -> Rot3:
-    """
-    2x2 rotation matrix to Rot3 object
-    """
+    """Converts 2x2 rotation matrix to Rot3 object."""
     R_Rot3 = np.eye(3)
     R_Rot3[:2, :2] = R
     return Rot3(R_Rot3)
 
 
 def rotmat2d(theta_deg: float) -> np.ndarray:
-    """Generate 2x2 rotation matrix, given a rotation angle in degrees."""
+    """Generates a 2x2 rotation matrix, given a rotation angle in degrees."""
     theta_rad = np.deg2rad(theta_deg)
 
     s = np.sin(theta_rad)
@@ -33,6 +31,7 @@ def rotmat2d(theta_deg: float) -> np.ndarray:
 
 def rotmat2theta_deg(R: np.ndarray) -> float:
     """Recover the rotation angle `theta` (in degrees) from the 2d rotation matrix.
+
     Note: the first column of the rotation matrix R provides sine and cosine of theta,
         since R is encoded as [c,-s]
                               [s, c]
@@ -47,15 +46,14 @@ def wrap_angle_deg(angle1: float, angle2: float) -> float:
     """Find the minimum angular difference between two input angles.
 
     We must wrap around at 0 degrees and 360 degrees.
-
     https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
 
     Args:
-        angle1: angle 1 (in degrees)
-        angle2: angle 2 (in degrees)
+        angle1: angle 1 (in degrees).
+        angle2: angle 2 (in degrees).
 
     Returns:
-        minimum angular difference (in degrees)
+        Minimum angular difference (in degrees).
     """
     # mod n will wrap x to [0,n)
     diff = (angle2 - angle1 + 180) % 360 - 180
@@ -66,7 +64,7 @@ def wrap_angle_deg(angle1: float, angle2: float) -> float:
 
 
 def angle_is_equal(angle1: float, angle2: float, atol: float) -> bool:
-    """Calculate shortest distance betwen two angles, provided in degrees.
+    """Calculates shortest distance betwen two angles.
 
     See: https://stackoverflow.com/questions/28036652/finding-the-shortest-distance-between-two-angles/28037434
 

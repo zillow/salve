@@ -76,7 +76,7 @@ def rasterize_room_layout_pair(
     i1_room_vertices = floor_pose_graph.nodes[i1].room_vertices_local_2d
     i2_room_vertices = floor_pose_graph.nodes[i2].room_vertices_local_2d
 
-    # repeat first vertex as last vertex, so OpenCV polygon rendering will close the boundary.
+    # Repeat first vertex as last vertex, so OpenCV polygon rendering will close the boundary.
     i1_room_vertices = np.vstack([i1_room_vertices, i1_room_vertices[0].reshape(-1, 2)])
     i2_room_vertices = np.vstack([i2_room_vertices, i2_room_vertices[0].reshape(-1, 2)])
 
@@ -239,8 +239,8 @@ def draw_polyline_cv2(
         line_segments_arr: Array of shape (K, 2) representing the coordinates of each line segment
         image: Array of shape (M, N, 3), representing a 3-channel BGR image
         color: Tuple of shape (3,) with a BGR format color
-        im_h: Image height in pixels
-        im_w: Image width in pixels
+        im_h: Image height in pixels.
+        im_w: Image width in pixels.
         thickness:
     """
     for i in range(line_segments_arr.shape[0] - 1):
@@ -315,12 +315,12 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
     interp_bev_img = np.zeros((img_h, img_w, 3), dtype=np.uint8)
 
-    # now, apply interpolation to it
+    # Now, apply interpolation to texture map.
     interp_bev_img = interpolation_utils.interp_dense_grid_from_sparse(
         interp_bev_img, img_xy, rgb, grid_h=img_h, grid_w=img_w, is_semantics=is_semantics
     )
 
-    # apply filter to it, to remove hallicuniated parts in all black regions
+    # Apply filter to interpolated texture map, to remove hallucinated parts in all-black regions.
     bev_img = interpolation_utils.remove_hallucinated_content(sparse_bev_img, interp_bev_img)
     bev_img = np.flipud(bev_img)
 
@@ -351,7 +351,7 @@ def grayscale_to_color(gray_img: np.ndarray) -> np.ndarray:
 
 
 def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: bool) -> np.ndarray:
-    """Obtain Numpy array representing colored point cloud from panorama image and depth map.
+    """Obtain colored point cloud by backprojecting panorama image RGB values using a depth map.
 
     Args:
         args: 
@@ -360,13 +360,20 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
         is_semantics: whether to interpret image as semantic label map.
 
     Returns:
-        xyzrgb, with rgb in [0,1] as floats
+        xyzrgb: numpy array of shape (N,6), with rgb in [0,1] as floats.
     """
+    if "crop_ratio" not in args:
+        raise ValueError("Crop ratio for panorama top and bottom must be provided as `args.crop_ratio`.")
+    
+    if "crop_z_range" not in args:
+        raise ValueError("Z-coordinate range for cropping must be provided as `args.crop_z_range`.")
+
     depth = imageio.imread(depth_fpath)[..., None].astype(np.float32) * args.scale
 
     # Reading rgb-d
     rgb = imageio.imread(rgb_fpath)
 
+    # Resize panorama from (2048,1024) to (1024, 512).
     width = 1024
     height = 512
     rgb = cv2.resize(rgb, (width, height), interpolation=cv2.INTER_NEAREST if is_semantics else cv2.INTER_LINEAR)
@@ -411,75 +418,11 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
     return xyzrgb
 
 
-def vis_depth_and_render(args, is_semantics: bool):
-    """ """
-    xyzrgb = get_xyzrgb_from_depth(args, depth_fpath=args.depth, rgb_fpath=args.img, is_semantics=is_semantics)
-
-    # Visualize
-    visualize = True
-    if visualize:
-
-        invalid = np.isnan(xyzrgb[:, 0])
-        xyzrgb = xyzrgb[~invalid]
-
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(xyzrgb[:, :3])
-        pcd.colors = o3d.utility.Vector3dVector(xyzrgb[:, 3:])
-
-        o3d.visualization.draw_geometries(
-            geometry_list=[
-                pcd,
-                o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.3, origin=[0, 0, 0]),
-            ],
-            window_name=Path(args.img).stem,
-        )
-
-    bev_params = BEVParams()
-    bev_img = render_bev_image(bev_params, xyzrgb, is_semantics)
-    return bev_img
-
-
-def vis_depth(args):
-    """ """
-    # Reading rgb-d
-    rgb = imageio.imread(args.img)
-    depth = imageio.imread(args.depth)[..., None].astype(np.float32) * args.scale
-
-    width = 1024
-    height = 512
-    rgb = cv2.resize(rgb, (width, height), interpolation=cv2.INTER_LINEAR)
-
-    # Project to 3d
-    H, W = rgb.shape[:2]
-    xyz = depth * hohonet_pano_utils.get_uni_sphere_xyz(H, W)
-    xyzrgb = np.concatenate([xyz, rgb / 255.0], 2)
-
-    # Crop the image and flatten
-    if args.crop_ratio > 0:
-        assert args.crop_ratio < 1
-        crop = int(H * args.crop_ratio)
-        # remove the bottom rows of pano, and remove the top rows of pano
-        xyzrgb = xyzrgb[crop:-crop]
-
-    xyzrgb = xyzrgb.reshape(-1, 6)
-
-    # Crop in 3d
-    xyzrgb = xyzrgb[xyzrgb[:, 2] <= args.crop_z_above]
-
-    # Visualize
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(xyzrgb[:, :3])
-    pcd.colors = o3d.utility.Vector3dVector(xyzrgb[:, 3:])
-
-    o3d.visualization.draw_geometries(
-        [pcd, o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.3, origin=[0, 0, 0])]
-    )
-
 
 def render_bev_pair(
     args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
-    """Render ... TODO
+    """Render a pair of texture maps.
 
     Args:
         args:
@@ -562,24 +505,3 @@ def get_bev_pair_xyzrgb(
 
     return xyzrgb1, xyzrgb2
 
-
-if __name__ == "__main__":
-
-    # import argparse
-    # parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    # parser.add_argument('--img', required=True,
-    #                     help='Image texture in equirectangular format')
-    # parser.add_argument('--depth', required=True,
-    #                     help='Depth map')
-    # parser.add_argument('--scale', default=0.001, type=float,
-    #                     help='Rescale the depth map')
-    # parser.add_argument('--crop_ratio', default=80/512, type=float,
-    #                     help='Crop ratio for upper and lower part of the image')
-    # parser.add_argument('--crop_z_above', default=1.2, type=float,
-    #                     help='Filter 3D point with z coordinate above')
-    # args = parser.parse_args()
-
-    # test_find_duplicates_1()
-    # test_find_duplicates_2()
-    # test_find_duplicates_3()
-    pass

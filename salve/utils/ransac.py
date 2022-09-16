@@ -54,7 +54,7 @@ def ransac_align_poses_sim3_ignore_missing(
         aTi_list_ref_subset = copy.deepcopy(aTi_list_ref)
         bTi_list_est_subset = copy.deepcopy(bTi_list_est)
 
-        # randomly delete 33% of the poses
+        # Randomly delete `delete_frac`*100 percent of the poses.
         delete_idxs = np.random.choice(a=valid_idxs, size=num_to_delete, replace=False)
         for del_idx in delete_idxs:
             bTi_list_est_subset[del_idx] = None
@@ -63,7 +63,7 @@ def ransac_align_poses_sim3_ignore_missing(
             aTi_list_ref_subset, bTi_list_est_subset
         )
 
-        # evaluate inliers.
+        # Evaluate inliers.
         rot_error, trans_error, _, _ = compute_pose_errors_3d(aTi_list_ref, aligned_bTi_list_est)
         if verbose:
             print("Deleted ", delete_idxs, f" -> trans_error {trans_error:.1f}, rot_error {rot_error:.1f}")

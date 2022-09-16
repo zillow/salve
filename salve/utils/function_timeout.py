@@ -8,7 +8,7 @@ import signal
 
 class timeout:
     def __init__(self, seconds: int = 1, error_message: str = "Timeout") -> None:
-        """ """
+        """Context that limits the execution time of a process."""
         self.seconds = seconds
         self.error_message = error_message
 

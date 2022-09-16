@@ -1,6 +1,4 @@
-"""
-Early-fusion ResNet architecture.
-"""
+"""Early-fusion ResNet architecture used for SALVe verifier."""
 
 from typing import Optional
 
@@ -49,7 +47,10 @@ class EarlyFusionCEResnet(nn.Module):
         x5: Optional[Tensor],
         x6: Optional[Tensor],
     ) -> torch.Tensor:
-        """Concatenate inputs only channel dimension."""
+        """Executes feedforward pass through ResNet.
+
+        Early fusion of modalities is accomplished by concatenating inputs along the channel dimension.
+        """
         if (
             self.modalities == ["layout"]
             or self.modalities == ["ceiling_rgb_texture"]

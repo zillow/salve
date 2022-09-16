@@ -27,8 +27,12 @@ class AlignmentHypothesis(NamedTuple):
 
 
 def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]) -> List[AlignmentHypothesis]:
-    """
-    Only useful for GT objects, that might have exact equality? (confirm how GT can actually have exact values)
+    """Prune duplicates from an input list of Sim(2) objects.
+
+    Only useful for GT objects, that might have exact equality? (confirm how GT can actually have exact values).
+
+    Returns:
+        List of unique Sim(2) objects.
     """
     pruned_possible_alignment_info = []
 

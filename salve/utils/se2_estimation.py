@@ -9,7 +9,8 @@ from salve.common.sim2 import Sim2
 
 
 def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], np.ndarray]:
-    r"""
+    r"""Align two points clouds by fitting a SE(2) transformation between corresponding point pairs.
+
     See https://github.com/borglab/gtsam/blob/develop/gtsam/geometry/Pose2.cpp#L311-L330
     for a derivation.
 
@@ -19,7 +20,7 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim
 
     Returns:
         aSb: estimated SE(2) transformation.
-        pts_a_: array of shape (N,2) representing source points, now aligned to reference.
+        pts_a_: array of shape (N,2) representing source points, now aligned to reference frame.
     """
     n = pts_a.shape[0]
     assert n == pts_b.shape[0]

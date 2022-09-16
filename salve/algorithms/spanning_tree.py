@@ -152,12 +152,17 @@ def ransac_spanning_trees(
     num_hypotheses: int = 10,
     min_num_edges_for_hypothesis: int = 20,
 ) -> List[Optional[Sim2]]:
-    """
-    Generate random spanning trees
-    https://arxiv.org/pdf/1611.07451.pdf
+    """Generate global poses by sampling random spanning trees from relative pose measurements.
+    
+    Note: this may be accelerated by techniques such as https://arxiv.org/pdf/1611.07451.pdf.
 
     Args:
-        high_conf_measurements
+        high_conf_measurements: relative pose measurements, already pruned by confidence.
+        num_hypotheses: number of hypotheses to sample in RANSAC.
+        min_num_edges_for_hypothesis: minimum number of edges in each RANSAC hypothesis.
+    
+    Returns:
+        Most probable global poses.
     """
     K = len(high_conf_measurements)
 
@@ -165,22 +170,22 @@ def ransac_spanning_trees(
     avg_trans_error_best = float("inf")
     best_wSi_list = None
 
+    # Leave out 5% to allow exclusion of possible outliers.
     SAMPLING_FRAC = 0.95  # 0.8
 
     if min_num_edges_for_hypothesis is None:
-        min_num_edges_for_hypothesis = int(
-            math.ceil(SAMPLING_FRAC * K)
-        )  # or 2 * number of unique nodes, or 80% of total, etc.
+        # Alternatively, could use 2 * number of unique nodes, or 80% of total, etc.
+        min_num_edges_for_hypothesis = int(math.ceil(SAMPLING_FRAC * K))
 
     max_unique_hypotheses = int(scipy.special.binom(K, min_num_edges_for_hypothesis))  # {n choose k}
     num_hypotheses = min(max_unique_hypotheses, num_hypotheses)
 
-    # generate random hypotheses
+    # Generate random hypotheses.
     hypotheses = [
         np.random.choice(a=K, size=min_num_edges_for_hypothesis, replace=False) for _ in range(num_hypotheses)
     ]
 
-    # for each hypothesis
+    # For each hypothesis, count inliers.
     for h_counter, h_idxs in enumerate(hypotheses):
 
         hypothesis_measurements = [m for k, m in enumerate(high_conf_measurements) if k in h_idxs]
@@ -191,12 +196,11 @@ def ransac_spanning_trees(
             i2Si1_dict[(m.i1, m.i2)] = m.i2Si1
 
         # create the i2Si1_dict
-        # generate a spanning tree greedily
+        # Generate a spanning tree greedily.
         wSi_list = greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
 
         if wSi_list is None:
             import pdb
-
             pdb.set_trace()
 
         avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(
@@ -205,11 +209,11 @@ def ransac_spanning_trees(
 
         print(
             f"Hypothesis {h_counter} had Rot errors {avg_rot_error:.1f}(mean) {med_rot_error:.1f} (med),"
-            " Trans errors {avg_trans_error:.2f}(mean) {med_trans_error:.2f} (med)"
+            f" Trans errors {avg_trans_error:.2f}(mean) {med_trans_error:.2f} (med)"
         )
 
-        # TODO: or could use MEDIAN instead
-        # if most inliers so far, set as best hypothesis
+        # If hypothesis has most inliers of any hypothesis so far, set as best hypothesis.
+        # We use average error, although `median` could be used instead.
         if avg_rot_error <= avg_rot_error_best and avg_trans_error <= avg_trans_error_best:
             avg_rot_error_best = avg_rot_error
             avg_trans_error_best = avg_trans_error
@@ -233,8 +237,8 @@ def compute_hypothesis_errors(
     """Measure the quality of global poses (from a single random spanning tree) vs. input measurements.
 
     Args:
-        high_conf_measurements
-        wSi_list
+        high_conf_measurements: relative pose measurements, already pruned by confidence.
+        wSi_list: list of Sim(2) poses in global frame.
 
     Returns:
         avg_rot_error: average rotation error (in degrees) per edge/measurement.

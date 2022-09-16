@@ -11,7 +11,7 @@ from salve.algorithms.cycle_consistency import TwoViewEstimationReport
 from salve.common.edge_classification import EdgeClassification
 from salve.common.posegraph2d import PoseGraph2d
 
-# colors that can be used for coloring nodes or edges
+# Colors that can be used for coloring nodes or edges.
 PLUM1 = [173, 127, 168]
 SKYBLUE = [135, 206, 250]
 GREEN = [0, 140, 25]
@@ -89,7 +89,7 @@ def draw_multigraph(
     G = nx.MultiGraph()
 
     for m in measurements:
-        # find all of the predictions where pred class is 1
+        # Find all of the predictions where pred class is 1.
         if m.y_hat != 1:
             continue
 
