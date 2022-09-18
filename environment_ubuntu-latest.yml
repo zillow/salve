@@ -1,4 +1,4 @@
-name: salve-v8
+name: salve-v10
 channels:
   # for priority order, we prefer pytorch as the highest priority as it supplies
   # latest stable packages for numerous deep learning based methods. conda-forge
