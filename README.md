@@ -293,3 +293,11 @@ Q: For Open3d dependencies, I see `OSError: /lib/x86_64-linux-gnu/libm.so.6: ver
 A: You are on Ubuntu <=16.04, but you should be on Ubuntu >=18.04 (see [here](https://github.com/isl-org/Open3D/issues/4349)).
 
 
+Q: How can I see some examples of ZInD's annotated floor plans?
+A: `python scripts/viz_zind_annotated_floorplans`
+
+Q: Why are Sim(2) objects used all over the place?
+
+
+
+

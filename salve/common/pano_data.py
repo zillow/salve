@@ -208,16 +208,14 @@ class PanoData:
 
 
 class FloorData(NamedTuple):
-    """Container for panorama information on a single floor of a building."""
+    """Represents information for all panoramas on a single floor of a building."""
 
     floor_id: str
     panos: List[PanoData]
 
     @classmethod
     def from_json(cls, floor_data: Any, floor_id: str) -> "FloorData":
-        """
-        From JSON ("floor_data")
-        """
+        """Generate a FloorData instance from JSON data."""
         pano_objs = []
 
         # TODO: add special processing for buildings 0363, 1348, which have non-unique pano IDs (integers repeated)
@@ -225,8 +223,6 @@ class FloorData(NamedTuple):
         for complete_room_data in floor_data.values():
             for partial_room_data in complete_room_data.values():
                 for pano_data in partial_room_data.values():
-                    # if pano_data["is_primary"]:
-
                     pano_obj = PanoData.from_json(pano_data)
                     pano_objs.append(pano_obj)
 
