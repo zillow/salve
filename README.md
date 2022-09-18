@@ -77,13 +77,13 @@ For example, `SAVE_DIR` could be `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`, 
 Make sure you are within the conda environment (`salve-v1`).
 
 **Download HorizonNet predictions.**
-Download and unzip the Madori-V1 HorizonNet predictions from [Google Drive here](https://drive.google.com/file/d/1VBTBYIaFSHDtP31_FnM6vII3_p1On3tE/view?usp=sharing).
+Download and unzip the custom `ZillowHorizonNet` predictions from [Google Drive here](https://drive.google.com/file/d/16JuxBgg368RL7dSpPjF9kKocLbo2ekAt/view?usp=sharing).
 
-Download the (prod pano GUID) -> (ZInD pano filename) mapping information from [Google Drive here](https://drive.google.com/file/d/1ALPLDWPA8K7taNuxReOt0RiaJ1AlIEY1/view?usp=sharing).
+
 
 ```bash
-unzip {PATH_TO_HORIZONNET PREDS ZIP FILE}/zind2_john.zip
-RMX_MADORI_V1_PREDICTIONS_DIRPATH = {}
+unzip {PATH_TO_HORIZONNET PREDS ZIP FILE}/ZInD_HorizonNet_predictions.tar.gz
+ZILLOW_HORIZON_NET_ZIND_PREDICTIONS_DIRPATH = {}
 ```
 
 ### Generate alignment hypotheses
