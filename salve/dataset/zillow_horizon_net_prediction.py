@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List
 
-import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
 import rdp
 
 from salve.common.pano_data import PanoData, WDO
 from salve.common.posegraph2d import PoseGraph2d
+import salve.utils.io as io_utils
 import salve.utils.zind_pano_utils as zind_pano_utils
 
 

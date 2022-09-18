@@ -13,10 +13,10 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Tuple
 
 import gtsam
-import gtsfm.utils.io as io_utils
 import numpy as np
 from gtsam import Pose3, Rot3, Similarity3
 
+import salve.utils.io as io_utils
 import salve.utils.subprocess_utils as subprocess_utils
 from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.baselines.sfm_reconstruction import SfmReconstruction

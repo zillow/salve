@@ -1,4 +1,4 @@
-""" """
+"""Script to query completion progress of texture-map rendering during execution."""
 
 import glob
 from pathlib import Path
@@ -7,14 +7,8 @@ from pathlib import Path
 EPS = 1e-10
 
 
-def main():
+def main(hypotheses_save_root: str, bev_save_root: str) -> None:
     """ """
-
-    hypotheses_save_root = (
-        "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    )
-    bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
-
     building_ids = [Path(d).name for d in glob.glob(f"{bev_save_root}/gt_alignment_approx/*")]
 
     for building_id in building_ids:
@@ -37,4 +31,8 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    hypotheses_save_root = (
+        "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+    )
+    bev_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"
+    main(hypotheses_save_root=hypotheses_save_root, bev_save_root=bev_save_root)

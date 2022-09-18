@@ -13,8 +13,9 @@ import json
 import os
 from typing import Union
 
-import gtsfm.utils.io as io_utils
 import numpy as np
+
+import salve.utils.io as io_utils
 
 
 _PathLike = Union[str, "os.PathLike[str]"]
