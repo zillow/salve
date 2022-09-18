@@ -289,3 +289,11 @@ Additional Notes:
 (in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
 
 No shared texture between (0,75) -- yet doors align it (garage to kitchen)
+
+
+## FAQ
+
+Q: For Open3d dependencies, I see `OSError: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.27' not found` upon import?
+A: You are on Ubuntu <=16.04, but you should be on Ubuntu >=18.04 (see [here](https://github.com/isl-org/Open3D/issues/4349)).
+
+
