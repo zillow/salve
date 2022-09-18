@@ -1,7 +1,4 @@
-"""Script to generate all pairwise W/D/O alignment hypotheses, for all of ZInD.
-
-No shared texture between (0,75) -- yet doors align it (garage to kitchen)
-"""
+"""Script to generate all pairwise W/D/O alignment hypotheses, for all of ZInD."""
 
 import glob
 import os
@@ -12,13 +9,13 @@ from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import click
-import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import LineString
 
 import salve.common.alignment_hypothesis as alignment_hypothesis_utils
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+import salve.utils.io as io_utils
 import salve.utils.logger_utils as logger_utils
 import salve.utils.rotation_utils as rotation_utils
 import salve.utils.wdo_alignment as wdo_alignment_utils

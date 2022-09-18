@@ -288,3 +288,4 @@ Additional Notes:
 - Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
 (in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
 
+No shared texture between (0,75) -- yet doors align it (garage to kitchen)
