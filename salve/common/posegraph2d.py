@@ -69,7 +69,7 @@ class PoseGraph2d(NamedTuple):
         """Obtain the actual height of a RICOH Theta camera, from the saved ZinD dataset information.
 
         Args:
-            pano_id:
+            pano_id: panorama ID.
             TODO: this is same for every pano on a floor, argument is unnecessary (can be removed)
                but programmatically verify this first.
 
@@ -127,7 +127,7 @@ class PoseGraph2d(NamedTuple):
                 openings=None,
             )
 
-        # just use the average scale over ZinD, when it is unknown.
+        # Just use the average scale over ZinD, when it is unknown.
         return cls(
             building_id=building_id,
             floor_id=floor_id,
@@ -238,10 +238,10 @@ class PoseGraph2d(NamedTuple):
             inferred_aligned_pg: estimated global poses with inferred room layouts.
         """
         nodes = {}
-        # estimated pano data w/ pose info
+        # Estimated pano data w/ pose information.
         for i, epd in aligned_est_floor_pose_graph.nodes.items():
 
-            # inferred panorama data with W/D/O detections + predicted layout.
+            # Inferred panorama data with W/D/O detections + predicted layout.
             ipd = inferred_floor_pose_graph.nodes[i]
 
             nodes[i] = PanoData(
@@ -266,7 +266,7 @@ class PoseGraph2d(NamedTuple):
 
     def as_json(self, json_fpath: str) -> None:
         """ """
-        pass
+        raise NotImplementedError("PoseGraph2d JSON serialization is not currently supported.")
 
     def measure_aligned_abs_pose_error(self, gt_floor_pg: PoseGraph2d) -> Tuple[float, float, np.ndarray, np.ndarray]:
         """Measure pose errors between two pose graphs that have already been aligned.
@@ -296,7 +296,7 @@ class PoseGraph2d(NamedTuple):
         Applicable for pose graphs that have NOT been aligned yet.
 
         Args:
-            gt_floor_pg:
+            gt_floor_pg: ground truth floor pose graph.
 
         Returns:
             mean_rot_err: average rotation error per camera, measured in degrees.
@@ -305,7 +305,7 @@ class PoseGraph2d(NamedTuple):
             trans_errors: array of (K,) translation errors.
         """
 
-        # get the new aligned estimated pose graph
+        # Get the new aligned estimated pose graph.
         aligned_est_pose_graph, aligned_bTi_list_est = self.align_by_Sim3_to_ref_pose_graph(ref_pose_graph=gt_floor_pg)
 
         aTi_list_gt = gt_floor_pg.as_3d_pose_graph()  # reference
@@ -329,7 +329,7 @@ class PoseGraph2d(NamedTuple):
 
         # salve.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=bTi_list_est)
 
-        # align the pose graphs
+        # Align the pose graphs.
         aligned_bTi_list_est, aSb = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_ref, bTi_list_est)
 
         # salve.visualization.utils.plot_3d_poses(aTi_list_gt=aTi_list_ref, bTi_list_est=aligned_bTi_list_est)
@@ -349,9 +349,8 @@ class PoseGraph2d(NamedTuple):
 
         a_Sim2_b = convert_Sim3_to_Sim2(a_Sim3_b)
 
-        # for each pano, just update it's pose only
+        # For each pano, just update its pose only.
         for i in self.nodes.keys():
-
             pano_data_i = aligned_est_pose_graph.nodes[i]
 
             b_Sim2_i = aligned_est_pose_graph.nodes[i].global_Sim2_local
@@ -370,7 +369,7 @@ class PoseGraph2d(NamedTuple):
             for j in range(len(pano_data_i.doors)):
                 pano_data_i.doors[j] = pano_data_i.doors[j].apply_Sim2(a_Sim2_b, gt_scale=gt_scale)
 
-            # replace this PanoData with the new aligned version.
+            # Replace this PanoData with the new aligned version.
             aligned_est_pose_graph.nodes[i] = pano_data_i
 
         return aligned_est_pose_graph
@@ -630,19 +629,27 @@ def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
     return a_Sim2_b
 
 
-def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_fpath: str) -> Dict[str, PoseGraph2d]:
-    """Retrieve ground truth 2d pose graphs for all floors for a specific ZInD building.
+def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> PoseGraph2d:
+    """Obtain ground truth 2d pose graph for specified floor of a ZInD building of interest.
 
-    TODO: consider simplifying arguments to this function by merging with `get_gt_pose_graph`.
+    We use the "merger" (pre-redraw) ZInD annotations, instead of "redraw".
+    See https://github.com/zillow/zind#what-are-the-important-issues-associated-with-the-dataset-that-we-need-to-be-aware-of
+    for more information.
 
     Args:
         building_id: unique ID of ZInD building.
-        pano_dir: path to `{ZInD}/{building_id}/panos` directory.
-        json_annot_fpath: path to `{ZInD}/{building_id}/zind_data.json"
+        floor_id: unique floor ID within a ZInD building.
+        raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API).
 
     Returns:
-        floor_pg_dict: mapping from floor_id to pose graph.
+        Ground truth pose graph for specified floor.
+
+    Raises:
+        ValueError: for an invalid/nonexistent `floor_id` argument.
     """
+    pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
+    json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
+
     # Note: `floor_map_json` has 3 keys: 'scale_meters_per_coordinate', 'merger', 'redraw'.
     floor_map_json = io_utils.read_json_file(json_annot_fpath)
     scale_meters_per_coordinate_dict = floor_map_json["scale_meters_per_coordinate"]
@@ -651,52 +658,32 @@ def get_single_building_pose_graphs(building_id: str, pano_dir: str, json_annot_
         print(f"Building {building_id} missing `merger` data, skipping...")
         return
 
-    floor_pg_dict = {}
-
     merger_data = floor_map_json["merger"]
-    for floor_id, floor_data in merger_data.items():
+    if floor_id not in merger_data.keys():
+        raise ValueError(f"Invalid floor {floor_id} specified for ZInD Building {building_id}.")
 
-        scale_meters_per_coordinate = scale_meters_per_coordinate_dict[floor_id]
-        if scale_meters_per_coordinate is None:
-            # Impute value!
-            # There are floor plans with no scale (specifically, 'floor_XX' : None),
-            # and this is typically caused by issues in calibration.
-            # See https://github.com/zillow/zind/blob/main/data_organization.md#glossary-of-terms
-            # to fill in this missing data by using the average across the other floors,
-            valid_scales = [v for v in scale_meters_per_coordinate_dict.values() if v is not None]
-            avg_valid_scale = np.mean(valid_scales) if len(valid_scales) > 0 else None
-            if avg_valid_scale is not None:
-                scale_meters_per_coordinate = avg_valid_scale
-            else:
-                # and if all floors in a tour have none use the average across the dataset
-                # (that should be a relatively stable number)
-                scale_meters_per_coordinate = ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE
+    floor_data = merger_data[floor_id]
+    scale_meters_per_coordinate = scale_meters_per_coordinate_dict[floor_id]
+    if scale_meters_per_coordinate is None:
+        # Impute value!
+        # There are floor plans with no scale (specifically, 'floor_XX' : None),
+        # and this is typically caused by issues in calibration.
+        # See https://github.com/zillow/zind/blob/main/data_organization.md#glossary-of-terms
+        # to fill in this missing data by using the average across the other floors,
+        valid_scales = [v for v in scale_meters_per_coordinate_dict.values() if v is not None]
+        avg_valid_scale = np.mean(valid_scales) if len(valid_scales) > 0 else None
+        if avg_valid_scale is not None:
+            scale_meters_per_coordinate = avg_valid_scale
+        else:
+            # and if all floors in a tour have none use the average across the dataset
+            # (that should be a relatively stable number)
+            scale_meters_per_coordinate = ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE
 
-        fd = FloorData.from_json(floor_data, floor_id)
-        pg = PoseGraph2d.from_floor_data(
-            building_id=building_id, fd=fd, scale_meters_per_coordinate=scale_meters_per_coordinate
-        )
-
-        floor_pg_dict[floor_id] = pg
-
-    return floor_pg_dict
-
-
-def get_gt_pose_graph(building_id: int, floor_id: str, raw_dataset_dir: str) -> PoseGraph2d:
-    """Obtain ground truth pose graph...
-
-    Args:
-        building_id: unique ID of ZInD building.
-        floor_id: unique floor ID within a ZInD building.
-        raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API).
-
-    Returns:
-        Pose graph for a single floor...
-    """
-    pano_dir = f"{raw_dataset_dir}/{building_id}/panos"
-    json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
-    floor_pg_dict = get_single_building_pose_graphs(building_id, pano_dir, json_annot_fpath)
-    return floor_pg_dict[floor_id]
+    fd = FloorData.from_json(floor_data, floor_id)
+    pg = PoseGraph2d.from_floor_data(
+        building_id=building_id, fd=fd, scale_meters_per_coordinate=scale_meters_per_coordinate
+    )
+    return pg
 
 
 def compute_available_floors_for_building(building_id: str, raw_dataset_dir: str) -> List[str]:

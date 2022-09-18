@@ -16,6 +16,15 @@ Code is organized under the `salve` directory as follows:
     - `stitching`: room layout stitching
     - `utils`: utilities for rasterization, rendering graphs, Sim(3) alignment, precision/recall computation, and more.
 
+## Installation
+To install the `salve` library, clone the repository and run:
+```
+git clone https://github.com/johnwlambert/salve.git
+cd salve/
+pip install -e .
+```
+
+Set `SALVE_REPO_DIRPATH` to wherever you have cloned the `salve` repo.
 
 # Dependencies
 
@@ -43,12 +52,6 @@ pip install -e .
 - We use the [`GTSFM`](https://github.com/borglab/gtsfm) library for some geometry-related functionality, including pose graph alignment.
 
 Note: Hydra, rdp, GTSAM and GTSFM are all included in the Conda environment.
-
-## Installation
-To install the `salve` library, run:
-```
-pip install -e .
-```
 
 ## Verify Installation
 
@@ -98,13 +101,6 @@ python scripts/export_alignment_hypotheses.py \
      2>&1 | tee alignment_hypotheses_generation_output.log
 ```
 Using 20-30 processes is recommended, and even with 30 processes, the generation may take 1-2 hours to complete.
-
-Next, clone the repository:
-```bash
-git clone https://github.com/johnwlambert/salve.git
-```
-
-Set `SALVE_REPO_DIRPATH` to wherever you have cloned the `salve` repo.
 
 ### Generate depth maps with HoHoNet
 To run HoHoNet inference, clone the HoHoNet repo:
@@ -295,5 +291,13 @@ No shared texture between (0,75) -- yet doors align it (garage to kitchen)
 
 Q: For Open3d dependencies, I see `OSError: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.27' not found` upon import?
 A: You are on Ubuntu <=16.04, but you should be on Ubuntu >=18.04 (see [here](https://github.com/isl-org/Open3D/issues/4349)).
+
+
+Q: How can I see some examples of ZInD's annotated floor plans?
+A: `python scripts/viz_zind_annotated_floorplans`
+
+Q: Why are Sim(2) objects used all over the place?
+
+
 
 
