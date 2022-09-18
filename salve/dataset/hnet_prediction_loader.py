@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import cv2
-import gtsfm.utils.io as io_utils
 import imageio
 import matplotlib.pyplot as plt
 
 import salve.common.floor_reconstruction_report as floor_reconstruction_report
+import salve.utils.io as io_utils
 import salve.common.posegraph2d as posegraph2d
 from salve.common.posegraph2d import PoseGraph2d
 from salve.dataset.zillow_horizon_net_prediction import PanoStructurePredictionZillowHorizonNet

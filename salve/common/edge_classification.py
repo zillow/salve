@@ -6,8 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import gtsfm.utils.io as io_utils
-
+import salve.utils.io as io_utils
 from salve.common.sim2 import Sim2
 
 

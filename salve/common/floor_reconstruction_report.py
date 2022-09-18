@@ -4,12 +4,12 @@ import os
 from dataclasses import dataclass
 from typing import List, Optional
 
-import gtsfm.utils.io as io_utils
 import matplotlib.pyplot as plt
 import numpy as np
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.bev_rendering_utils as bev_rendering_utils
+import salve.utils.io as io_utils
 import salve.utils.iou_utils as iou_utils
 import salve.utils.matplotlib_utils as matplotlib_utils
 from salve.common.bevparams import BEVParams

@@ -7,10 +7,10 @@ import glob
 from pathlib import Path
 from typing import List, Tuple
 
-import gtsfm.utils.io as io_utils
 import numpy as np
 from gtsam import Rot3, Pose3
 
+import salve.utils.io as io_utils
 from salve.baselines.sfm_reconstruction import SfmReconstruction
 
 
