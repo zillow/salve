@@ -39,9 +39,10 @@ class CoordinateFrame(str, Enum):
     WORLD_NORMALIZED corresponds to TODO
     WORLD_METRIC corresponds to TODO
     """
-    LOCAL: str = 'local'
-    WORLD_NORMALIZED: str = 'worldnormalized'
-    WORLD_METRIC: str = 'worldmetric'
+
+    LOCAL: str = "local"
+    WORLD_NORMALIZED: str = "worldnormalized"
+    WORLD_METRIC: str = "worldmetric"
 
 
 @dataclass(frozen=False)
@@ -71,7 +72,7 @@ class PanoData:
     windows: Optional[List[WDO]] = None
     openings: Optional[List[WDO]] = None
     vanishing_angle_deg: Optional[float] = None
-    
+
     @property
     def room_vertices_global_2d(self):
         """Returns room layout boundary vertices in a global coordinate frame."""
@@ -91,11 +92,12 @@ class PanoData:
 
         pano_id = int(Path(image_path).stem.split("_")[-1])
 
+        # Convert annotated panorama pose to a right-handed coordinate frame in the x-y plane.
         global_Sim2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
         room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
         room_vertices_local_2d[:, 0] *= -1
 
-        # W/D/O objects.
+        # Parse W/D/O annotations.
         geometry_type = "layout_raw"  # , "layout_complete", "layout_visible"]
         for wdo_type in ["windows", "doors", "openings"]:
             wdos = []
@@ -105,7 +107,7 @@ class PanoData:
             if len(wdo_data) == 0:
                 continue
 
-            # as (x1,y1), (x2,y2), (bottom_z, top_z)
+            # W/D/O annotations are stored as repeated tuple triplets, e.g. (x1,y1), (x2,y2), (bottom_z, top_z).
             # Transform the local W/D/O vertices to the global frame of reference
             assert len(wdo_data) % 3 == 0  # should be a multiple of 3
 
@@ -121,7 +123,17 @@ class PanoData:
             elif wdo_type == "openings":
                 openings = wdos
 
-        return cls(pano_id, global_Sim2_local, room_vertices_local_2d, image_path, label, doors, windows, openings)
+        return cls(
+            id=pano_id,
+            global_Sim2_local=global_Sim2_local,
+            room_vertices_local_2d=room_vertices_local_2d,
+            image_path=image_path,
+            label=label,
+            doors=doors,
+            windows=windows,
+            openings=openings,
+            vanishing_angle_deg=None,
+        )
 
     def plot_room_layout(
         self,
@@ -176,7 +188,7 @@ class PanoData:
             point_ahead = self.global_Sim2_local.transform_from(point_ahead) * scale_meters_per_coordinate
 
         plt.plot([pano_position[0, 0], point_ahead[0, 0]], [pano_position[0, 1], point_ahead[0, 1]], color=color)
-        
+
         # Render the panorama ID near the panorama's location.
         # Add a small amount of jitter (from truncated standard normal) so that panorama marker and text don't overlap.
         pano_id = self.id
@@ -184,9 +196,7 @@ class PanoData:
         TEXT_LEFT_OFFSET = 0.15
         noise = np.clip(np.random.randn(2), a_min=-0.05, a_max=0.05)
         text_loc = pano_position[0] + noise
-        plt.text(
-            (text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize="xx-small"
-        )
+        plt.text((text_loc[0] - TEXT_LEFT_OFFSET), text_loc[1], pano_text, color=color, fontsize="xx-small")
 
         # For each W/D/O, render the start and end vertices.
         for wdo_idx, wdo in enumerate(self.doors + self.windows + self.openings):
@@ -260,7 +270,7 @@ def _draw_polygon_vertices(room_vertices: np.ndarray, color) -> None:
     """Draw polygon vertices using Matplotlib (assumes no vertex is repeated)."""
     plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color)
     plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=0.5)
-    
+
     # Draw edge to close each polygon (connect first and last vertex).
     last_vert = room_vertices[-1]
     first_vert = room_vertices[0]
