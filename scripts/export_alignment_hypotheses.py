@@ -159,7 +159,7 @@ def export_single_building_wdo_alignment_hypotheses(
         for i1 in pano_ids:
             for i2 in pano_ids:
 
-                # compute only upper diagonal, since symmetric
+                # Compute only upper diagonal, since symmetric.
                 if i1 >= i2:
                     continue
 
@@ -172,7 +172,7 @@ def export_single_building_wdo_alignment_hypotheses(
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
-                # we use the GT WDOs to infer this GT label.
+                # we use the GT W/D/Os to infer this GT label.
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
 
                 try:

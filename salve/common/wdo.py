@@ -97,7 +97,7 @@ class WDO:
 
     @classmethod
     def from_object_array(cls, wdo_data: Any, global_Sim2_local: Sim2, type: str) -> "WDO":
-        """
+        """Create W/D/O object from .... TODO
 
         Args:
             wdo_data: array of shape (3,2)
@@ -107,6 +107,8 @@ class WDO:
         pt1 = wdo_data[0].tolist()
         pt2 = wdo_data[1].tolist()
         bottom_z, top_z = wdo_data[2]
+        # Multiply x-coordinate of ZInD W/D/O vertices by -1 to convert to right-handed World cartesian system.
+        # Accounts for reflection over y-axis.
         pt1[0] *= -1
         pt2[0] *= -1
         return cls(global_Sim2_local=global_Sim2_local, pt1=pt1, pt2=pt2, bottom_z=bottom_z, top_z=top_z, type=type)

@@ -1,4 +1,4 @@
-"""Sanity check GT pose graphs for all floors of all buildings of ZInD."""
+"""Sanity check that GT pose graphs can be loaded for all floors of all buildings of ZInD."""
 
 from pathlib import Path
 
