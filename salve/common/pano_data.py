@@ -1,14 +1,4 @@
-"""
-Transformation (R,t) followed by a reflection over the x-axis is equivalent to 
-Transformation by (R^T,-t) followed by no reflection.
-
-Sim(2)
-
-s(Rp + t)  -> Sim(2)
-sRp + t -> ICP (Zillow)
-
-sRp + st
-"""
+"""Data structures for panorama-specific information, and utilities to convert ZInD pose annotations."""
 
 from dataclasses import dataclass
 from enum import Enum
@@ -95,6 +85,8 @@ class PanoData:
         # Convert annotated panorama pose to a right-handed coordinate frame in the x-y plane.
         global_Sim2_local = generate_Sim2_from_floorplan_transform(pano_data["floor_plan_transformation"])
         room_vertices_local_2d = np.asarray(pano_data["layout_raw"]["vertices"])
+        # Multiply x-coordinate of ZInD room vertices by -1 to convert to right-handed World cartesian system.
+        # Accounts for reflection over y-axis.
         room_vertices_local_2d[:, 0] *= -1
 
         # Parse W/D/O annotations.
@@ -174,7 +166,8 @@ class PanoData:
         color = COLORMAP[self.id % num_colormap_colors]
         _draw_polygon_vertices(room_vertices, color)
 
-        # Plot the location of each panorama, with an arrow pointing in the +y direction (down the middle of the pano).
+        # Plot the location of each panorama, with an arrow pointing in the +y direction.
+        # The +y direction corresponds to the center column of the pano.
         pano_position = np.zeros((1, 2))
         if coord_frame in ["worldnormalized", "worldmetric"]:
             pano_position_local = pano_position
@@ -242,14 +235,24 @@ class FloorData(NamedTuple):
 def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Sim2:
     """Generate a Similarity(2) object from a dictionary storing transformation parameters.
 
+    Transformation (R,t) followed by a reflection over the y-axis is equivalent to 
+    Transformation by (R^T,-t) followed by no reflection.
+
+    Sim(2)
+
     Note: ZinD stores (sRp + t), instead of s(Rp + t), so we have to divide by s to create Sim2.
+
+    s(Rp + t)  -> Sim(2)
+    sRp + t -> ICP (Zillow)
+
+    sRp + st
 
     Args:
         transform_data: dictionary of the form
             {'translation': [0.015, -0.0022], 'rotation': -352.53, 'scale': 0.40}
 
     Returns:
-        TODO...
+        Global pose of panorama, as Similarity(2) object.
     """
     scale = transform_data["scale"]
     t = np.array(transform_data["translation"]) / scale
