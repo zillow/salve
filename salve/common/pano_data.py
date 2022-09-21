@@ -73,7 +73,6 @@ class PanoData:
         """Generate PanoData object from JSON input.
 
         We use the `raw` layout, instead of `complete` or `visible` layout.
-
         """
         # print('Camera height: ', pano_data['camera_height'])
         assert pano_data["camera_height"] == 1.0
