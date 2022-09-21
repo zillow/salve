@@ -70,7 +70,10 @@ class PanoData:
 
     @classmethod
     def from_json(cls, pano_data: Any) -> "PanoData":
-        """Generate PanoData object from JSON input."""
+        """Generate PanoData object from JSON input.
+
+        We use the `raw` layout, instead of `complete` or `visible` layout.
+        """
         # print('Camera height: ', pano_data['camera_height'])
         assert pano_data["camera_height"] == 1.0
 
@@ -90,7 +93,7 @@ class PanoData:
         room_vertices_local_2d[:, 0] *= -1
 
         # Parse W/D/O annotations.
-        geometry_type = "layout_raw"  # , "layout_complete", "layout_visible"]
+        geometry_type = "layout_raw"
         for wdo_type in ["windows", "doors", "openings"]:
             wdos = []
             wdo_data = np.asarray(pano_data[geometry_type][wdo_type], dtype=object)
@@ -240,12 +243,11 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Si
 
     Sim(2)
 
-    Note: ZinD stores (sRp + t), instead of s(Rp + t), so we have to divide by s to create Sim2.
+    Note: ZInD stores (sRp + t), instead of s(Rp + t), so we have to divide by s to create Sim2.
 
-    s(Rp + t)  -> Sim(2)
-    sRp + t -> ICP (Zillow)
-
-    sRp + st
+    s(Rp + t) = sRp + st -> Sim(2) convention.
+      vs.
+    sRp + t -> (ICP / ZInD convention)
 
     Args:
         transform_data: dictionary of the form
