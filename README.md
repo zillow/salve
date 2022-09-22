@@ -296,10 +296,30 @@ A: You are on Ubuntu <=16.04, but you should be on Ubuntu >=18.04 (see [here](ht
 Q: How can I see some examples of ZInD's annotated floor plans?
 A: `python scripts/viz_zind_annotated_floorplans`
 
-Q: What are the coordinate frames used in ZInD and throughout the SALVe codebase?
-A: See [COORDINATE_FRAMES.md](COORDINATE_FRAMES.md) for more information.
+Q: Why are Sim(2) objects used all over the place?
 
-Q: Why are Sim(2) objects used throughout the codebase?
+straightenings , same line segments
+line segments, buckets, xy, z are the main buckets
+yaw angle w.r.t. the upright z-axis, 
+
+left edge of the image to the first vanishing point
+vanishing angle
+
+
+(add a figure / illustration).
+
+
+How many extra furnished homes were used for training Madori.
+For legal reasons, we cannot release this dataset.
+We have pretrained it, we are providing the results.
+Yuguang will ask Ethan about this. 
+
+ZillowHorizonNet -> UncertaintyHorizonNet
+
+ModifiedHorizonNet
+MHNet
+Output is different.
+
 
 
 

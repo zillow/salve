@@ -1,11 +1,11 @@
-"""Unit tests for `PanoStructurePredictionZillowHorizonNet` class."""
+"""Unit tests for `MHNetPanoStructurePrediction` class."""
 
 from pathlib import Path
 
 import numpy as np
 
 import salve.dataset.mhnet_prediction as hnet_pred_utils
-from salve.dataset.mhnet_prediction import MHNetDWO, PanoStructurePredictionZillowHorizonNet
+from salve.dataset.mhnet_prediction import MHNetDWO, MHNetPanoStructurePrediction
 
 _PREDICTIONS_SAMPLE_ROOT = Path(__file__).resolve().parent.parent / "test_data" / "ZInD_HorizonNet_predictions"
 _ZIND_SAMPLE_ROOT = Path(__file__).resolve().parent.parent / "test_data" / "ZInD"
@@ -69,7 +69,7 @@ def test_pano_structure_prediction_rmx_madori_v1_from_json_fpath() -> None:
 
     json_fpath = predictions_data_root / "horizon_net" / building_id / f"{image_fname_stem}.json"
     image_fpath = raw_dataset_dir / building_id / "panos" / f"{image_fname_stem}.jpg"
-    result = PanoStructurePredictionZillowHorizonNet.from_json_fpath(json_fpath=json_fpath, image_fpath=image_fpath)
+    result = MHNetPanoStructurePrediction.from_json_fpath(json_fpath=json_fpath, image_fpath=image_fpath)
 
     # Verify image metadata associated with prediction.
     assert result.image_width == 1024

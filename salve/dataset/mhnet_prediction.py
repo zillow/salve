@@ -57,8 +57,8 @@ class MHNetDWO:
 
 
 @dataclass
-class PanoStructurePredictionZillowHorizonNet:
-    """Attributes predicted for a single panorama by HorizonNet.
+class MHNetPanoStructurePrediction:
+    """Structure predicted for a single panorama by modified HorizonNet (MHNet).
 
     Attributes:
         image_height: image height (in pixels).
@@ -87,7 +87,7 @@ class PanoStructurePredictionZillowHorizonNet:
     image_fpath: Path
 
     @classmethod
-    def from_json_fpath(cls, json_fpath: Path, image_fpath: Path) -> PanoStructurePredictionZillowHorizonNet:
+    def from_json_fpath(cls, json_fpath: Path, image_fpath: Path) -> MHNetPanoStructurePrediction:
         """Generate an object from dictionary containing data loaded from JSON.
 
         Args:
