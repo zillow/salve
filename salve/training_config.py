@@ -34,7 +34,7 @@ class TrainingConfig:
         data_root: 
         layout_data_root: 
         model_save_dirpath: 
-        gpu_ids: 
+        gpu_ids: GPU device IDs to use for training.
     """
 
     lr_annealing_strategy: str
