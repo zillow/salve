@@ -123,3 +123,79 @@ Summary of trained models / Results
     serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
     serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
 
+
+
+
+    Depth maps are stored on the following nodes at the following places:
+    - locally: "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    - DGX: "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
+    - se1-001: "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps",
+
+    Hypotheses are saved on the following nodes at the following places:
+    - se1-001:
+        w/ inferred WDO and inferred layout:
+            "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
+        w/ GT WDO + GT layout:
+            "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+
+    BEV texture maps are saved to the following locations ("bev_save_root"):
+        "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
+        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
+        "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
+        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
+        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v3"
+        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs_filledpoly"
+        "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
+        "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
+        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
+        "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
+        "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
+        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
+        "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"  # BEST
+        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_23_debug"
+
+        from GT WDO and GT layout:
+            "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+
+    Layout images are saved at:
+        # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
+        # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
+        # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
+        # layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout"
+
+
+
+"""
+Nasty depth map estimation failure cases: (from complete_07_10 version)
+    # (building, pano_ids)
+    "000": [10],  # pano 10 outside
+    "004": [10, 24, 28, 56, 58],  # building 004, pano 10 and pano 24, pano 28,56,58 (outdoors)
+    "006": [10],
+    "981": [5, 7, 14, 11, 16, 17, 28],  # 11 is a bit inaccurate
+"""
+
+
+## Explanation of config files:
+
+    ResNet-50, low-res
+        config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml
+
+    ResNet-152
+        config_name = "2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml
+
+    ResNet-152 with just a single modality.
+        config_name = "2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml
+        config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml
+
+    ResNet-152 trained again with equal amount of data as single modality
+        config_name = "2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml
+
+    ResNet-152 with Layout Only
+        config_name = "2021_11_10_resnet152_layoutonly.yaml
+
+    ResNet-152 w/ GT WDO and GT layout.
+        config_name = "2021_11_23_resnet152_ceiling_floor_rgbonly_GT_WDO_no_photometric_augment.yaml
+
+    ResNet-152 w/ GT WDO and GT layout, and more data.
+        2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml
+
