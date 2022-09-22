@@ -73,7 +73,7 @@ def run_openmvg_commands_single_tour(
     print("STDOUT: ", stdout)
     print("STDERR: ", stderr)
 
-    # Compute the reconstruction
+    # Compute the reconstruction.
     cmd = f"{openmvg_sfm_bin}/openMVG_main_IncrementalSfM -i {matches_dirpath}/sfm_data.json"
     cmd += f" -m {matches_dirpath} -o {reconstruction_dirpath}"  # " -a {seed_fname1} -b {seed_fname2}"
     # Since the spherical geometry is different than classic pinhole images, the best is to provide the initial pair
@@ -88,7 +88,7 @@ def run_openmvg_commands_single_tour(
         print("Execution timed out, OpenMVG is stuck")
         return
 
-    # If execution successful, convert result from binary file to JSON
+    # If execution successful, convert result from binary file to JSON.
     input_fpath = f"{reconstruction_dirpath}/sfm_data.bin"
     output_fpath = f"{reconstruction_dirpath}/sfm_data.json"
     # Convert the "VIEWS", "INTRINSICS", "EXTRINSICS" with -V -I -E
@@ -104,7 +104,7 @@ def run_openmvg_all_tours(raw_dataset_dir: str, openmvg_sfm_bin: str, openmvg_de
     Args:
         raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API)
         openmvg_sfm_bin: Path to directory containing all compiled OpenMVG binaries.
-        openmvg_demo_root
+        openmvg_demo_root:
     """
     building_ids = [Path(dirpath).stem for dirpath in glob.glob(f"{raw_dataset_dir}/*")]
     building_ids.sort()

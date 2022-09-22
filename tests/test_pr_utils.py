@@ -1,8 +1,5 @@
 """Unit tests on precision/recall computation utilities."""
 
-from pathlib import Path
-from typing import List
-
 import numpy as np
 
 import salve.utils.pr_utils as pr_utils
@@ -18,14 +15,14 @@ def _make_dummy_edge_classification(prob: float, y_hat: int, y_true: int) -> Edg
         y_true: ground truth category.
     """
     measurement = EdgeClassification(
-        i1=0, # dummy val
-        i2=1, # dummy val
+        i1=0,  # dummy val
+        i2=1,  # dummy val
         prob=prob,
         y_hat=y_hat,
         y_true=y_true,
-        pair_idx=0, # dummy index
-        wdo_pair_uuid="door_0_1", # dummy val
-        configuration="identity" # dummy val
+        pair_idx=0,  # dummy index
+        wdo_pair_uuid="door_0_1",  # dummy val
+        configuration="identity"  # dummy val
     )
     return measurement
 

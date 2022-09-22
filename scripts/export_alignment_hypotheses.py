@@ -122,7 +122,7 @@ def export_single_building_wdo_alignment_hypotheses(
             predictions_data_root=hnet_predictions_data_root,
         )
         if floor_pose_graphs is None:
-            # cannot compute putative alignments if prediction files are missing.
+            # Cannot compute putative alignments if prediction files are missing.
             return
 
     floor_map_json = io_utils.read_json_file(json_annot_fpath)
@@ -199,7 +199,7 @@ def export_single_building_wdo_alignment_hypotheses(
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
 
-                # given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
+                # Given wTi1, wTi2, then i2Ti1 = i2Tw * wTi1 = i2Ti1
                 i2Ti1_gt = pano_dict[i2].global_Sim2_local.inverse().compose(pano_dict[i1].global_Sim2_local)
                 gt_fname = f"{hypotheses_save_root}/{building_id}/{floor_id}/gt_alignment_exact/{i1}_{i2}.json"
                 if visibly_adjacent:
@@ -213,11 +213,11 @@ def export_single_building_wdo_alignment_hypotheses(
 
                 # TODO: estimate how often an inferred opening can provide the correct relative pose.
 
-                # remove redundant transformations
+                # Remove redundant transformations.
                 pruned_possible_alignment_info = alignment_hypothesis_utils.prune_to_unique_sim2_objs(possible_alignment_info)
 
                 labels = []
-                # loop over the alignment hypotheses
+                # Loop over the alignment hypotheses.
                 for k, ah in enumerate(pruned_possible_alignment_info):
 
                     if wdo_alignment_utils.obj_almost_equal(ah.i2Ti1, i2Ti1_gt, ah.wdo_alignment_object):

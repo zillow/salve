@@ -33,6 +33,7 @@ def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]) 
 
     Args:
         args: HoHoNet specific config. Must contain variable `building_depth_save_dir`.
+        image_fpaths: list of image file paths to feed for inference.
     """
     update_config(config, args)
     device = "cuda"  # if config.cuda else 'cpu'
@@ -44,7 +45,7 @@ def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]) 
     net.load_state_dict(torch.load(args.pth, map_location=device))
     net = net.eval().to(device)
 
-    # Run inference
+    # Run inference.
     with torch.no_grad():
         for path in tqdm(image_fpaths):
 
@@ -90,6 +91,7 @@ def infer_depth_over_single_zind_tour(
     building_depth_save_dir = f"{depth_save_root}/{building_id}"
     os.makedirs(building_depth_save_dir, exist_ok=True)
 
+    # Computes the file paths for all panoramas corresponding to specified ZInD building.
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
 
     args = SimpleNamespace(
@@ -115,7 +117,7 @@ def infer_depth_over_all_zind_tours(
        depth_save_root: path to where depth maps are stored (and will be saved to, if not computed yet).
        raw_dataset_dir: number of GPU processes to use for batched inference.
     """
-    # discover possible building ids and floors
+    # Discover possible building ids and floors.
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
     building_ids.sort()
     args = []

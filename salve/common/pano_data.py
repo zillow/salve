@@ -262,7 +262,7 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Si
     t *= np.array([-1.0, 1.0])
     theta_deg = transform_data["rotation"]
 
-    # Note: to account for reflection, we swap the sign here to use R^T
+    # Note: to account for reflection, we swap the sign here to use R^T.
     R = rotation_utils.rotmat2d(-theta_deg)
 
     assert np.allclose(R.T @ R, np.eye(2))

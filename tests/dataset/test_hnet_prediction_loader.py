@@ -1,6 +1,7 @@
 """Unit tests for HorizonNet predictions loading."""
 
 from pathlib import Path
+from typing import Dict
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 from salve.dataset.mhnet_prediction import MHNetPanoStructurePrediction

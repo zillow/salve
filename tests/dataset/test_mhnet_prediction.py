@@ -80,7 +80,7 @@ def test_pano_structure_prediction_rmx_madori_v1_from_json_fpath() -> None:
     assert isinstance(result.corners_in_uv, np.ndarray)
     assert result.corners_in_uv.shape == (20, 2)
     # fmt: off
-    expected_first_corners =  np.array(
+    expected_first_corners = np.array(
         [[0.02813019, 0.35113618],
         [0.02813019, 0.64691073]])
     # fmt: on
