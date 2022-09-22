@@ -10,7 +10,7 @@ import imageio.v2 as imageio
 import numpy as np
 import matplotlib.pyplot as plt
 
-from salve.dataset.rmx_madori_v1 import PanoStructurePredictionRmxMadoriV1
+from salve.dataset.mhnet_prediction import MHNetPanoStructurePrediction
 from salve.dataset.zind_partition import DATASET_SPLITS
 
 
@@ -70,8 +70,14 @@ def main() -> None:
             for model_prediction_fpath in json_preds_fpaths:
                 #pano_id = int(Path(model_prediction_fpath).stem)
                 pano_id = Path(model_prediction_fpath).stem
-                prediction_data = io_utils.read_json_file(model_prediction_fpath)
-                pred_obj = PanoStructurePredictionRmxMadoriV1.from_json(prediction_data["predictions"])
+
+                img_fpath =f"{raw_dataset_dir}/{building_id}/panos/{pano_id}.jpg"
+                assert Path(img_fpath).exists()
+
+                pred_obj = MHNetPanoStructurePrediction.from_json_fpath(
+                    json_fpath=Path(model_prediction_fpath),
+                    image_fpath=Path(img_fpath)
+                )
                 
                 if pred_obj is None:
                     missing_preds_list.append((building_id, pano_id))
@@ -80,9 +86,6 @@ def main() -> None:
                 if pred_obj.floor_boundary.shape != (1024,):
                     print(f"Invalid pred for {building_id} ->, {model_prediction_fpath}")
                     missing_preds_list.append((building_id, pano_id))
-
-                img_fpath =f"{raw_dataset_dir}/{building_id}/panos/{pano_id}.jpg"
-                assert Path(img_fpath).exists()
 
                 render_on_pano = np.random.rand() < 0.001
                 if render_on_pano:
