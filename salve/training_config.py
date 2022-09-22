@@ -7,7 +7,35 @@ from dataclasses import dataclass
 
 @dataclass(frozen=False)
 class TrainingConfig:
-    """Model training parameters."""
+    """Model training hyperparameters.
+
+    Attributes:
+        lr_annealing_strategy: learning rate annealing strategy.
+        base_lr: base learning rate.
+        weight_decay: weight decay.
+        num_ce_classes: number of classes for cross entropy loss.
+        print_every: 
+        poly_lr_power: polynomial learning rate power.
+        optimizer_algo: optimizer algorithm (adam vs. sgd).
+        num_layers: number of ResNet layers.
+        pretrained: whether to initialize ResNet from ImageNet pretrained weights.
+        dataparallel: bool
+        resize_h: image height (in pixels) to resize input image to, before cropping.
+        resize_w: image width (in pixels) to resize input image to, before cropping.
+        train_h: image crop height for training.
+        train_w: image crop width for training.
+        apply_photometric_augmentation: whether to apply photometric augmentations
+            during training time.
+        modalities:
+        cfg_stem:
+        num_epochs: number of epochs to train for.
+        workers: how many subprocesses to use for data loading.
+        batch_size: batch size (how many samples per batch to load).
+        data_root: 
+        layout_data_root: 
+        model_save_dirpath: 
+        gpu_ids: 
+    """
 
     lr_annealing_strategy: str
     base_lr: float
