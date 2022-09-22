@@ -11,7 +11,6 @@ import shutil
 import time
 from collections import defaultdict
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Dict, List
 
 import gtsfm.utils.io as io_utils
@@ -39,7 +38,7 @@ def check_mkdir(dirpath: str) -> None:
 
 
 def main(args) -> None:
-    """ """
+    """Execute training loop for `num_epochs` epochs."""
     np.random.seed(0)
     random.seed(0)
     cudnn.benchmark = True
@@ -87,7 +86,7 @@ def main(args) -> None:
             prev_best = max(results_dict[crit_acc_stat][:-1])
             is_best = curr_stat > prev_best
 
-        # if the best model, save to disk
+        # If current model parameters represent the best model thus far, save to disk.
         if epoch == 0 or is_best:
 
             results_dir = f"{args.model_save_dirpath}/{exp_start_time}"
@@ -147,8 +146,8 @@ def visualize_unnormalized_examples(
         plt.imshow(x2[k].numpy().transpose(1, 2, 0).astype(np.uint8))
 
         if x3 is not None:
-            unnormalize_img(x3[k].cpu(), mean, std)
-            unnormalize_img(x4[k].cpu(), mean, std)
+            train_utils.unnormalize_img(x3[k].cpu(), mean, std)
+            train_utils.unnormalize_img(x4[k].cpu(), mean, std)
 
             plt.subplot(2, 2, 3)
             plt.imshow(x3[k].numpy().transpose(1, 2, 0).astype(np.uint8))
@@ -169,7 +168,7 @@ def visualize_unnormalized_examples(
 def run_epoch(
     args, epoch: int, model, data_loader: torch.utils.data.DataLoader, optimizer: torch.optim.Optimizer, split: str
 ) -> Dict[str, float]:
-    """Run all data belonging to a particular split through the network."""
+    """Run all samples belonging to a particular data split through the network (single epoch)."""
     batch_time = AverageMeter()
     loss_meter = AverageMeter()
     sam = SegmentationAverageMeter()
@@ -186,7 +185,7 @@ def run_epoch(
         if iter % args.print_every == 0:
             logging.info(f"\tOn iter {iter}")
 
-        # assume cross entropy loss only currently
+        # Assume cross entropy loss only currently.
         if (
             args.modalities == ["layout"]
             or args.modalities == ["ceiling_rgb_texture"]
@@ -246,7 +245,8 @@ def run_epoch(
 
                 if iter % args.print_every == 0:
                     logging.info(
-                        f"\tLR:{current_lr:.5f}, base_lr: {args.base_lr:.3f}, current_iter:{current_iter}, max_iter:{max_iter}, power:{args.poly_lr_power}"
+                        f"\tLR:{current_lr:.5f}, base_lr: {args.base_lr:.3f}, "
+                        f"current_iter:{current_iter}, max_iter:{max_iter}, power:{args.poly_lr_power}"
                     )
 
                 for param_group in optimizer.param_groups:
@@ -255,7 +255,7 @@ def run_epoch(
             loss_meter.update(loss.item(), n)
 
             if iter > 0:
-                # ignore the first iter, while GPU warms up
+                # When computing timing running stats, ignore the first iter, while GPU warms up.
                 batch_time.update(time.time() - end)
             end = time.time()
 
@@ -263,7 +263,8 @@ def run_epoch(
                 _, accs, _, avg_mAcc, _ = sam.get_metrics()
                 logging.info(f"\t{args.num_ce_classes}-Cls Accuracies" + str([float(f"{acc:.2f}") for acc in accs]))
                 logging.info(
-                    f"\t{split} result at iter [{iter+1}/{len(data_loader)}] {args.num_ce_classes}-CE mAcc {avg_mAcc:.4f}"
+                    f"\t{split} result at iter [{iter+1}/{len(data_loader)}] "
+                    f"{args.num_ce_classes}-CE mAcc {avg_mAcc:.4f}"
                 )
                 train_utils.print_time_remaining(batch_time=batch_time, current_iter=current_iter, max_iter=max_iter)
 
@@ -277,42 +278,19 @@ def run_epoch(
 
 
 if __name__ == "__main__":
-    """Explanation of config files:
-
-    ResNet-50, low-res
-        config_name = "2021_10_22_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml
-
-    ResNet-152
-        config_name = "2021_10_26_resnet50_ceiling_floor_rgbonly_no_photometric_augment.yaml
-
-    ResNet-152 with just a single modality.
-        config_name = "2021_11_04_resnet152_ceilingonly_rgbonly_no_photometric_augment.yaml
-        config_name = "2021_11_04_resnet152_flooronly_rgbonly_no_photometric_augment.yaml
-
-    ResNet-152 trained again with equal amount of data as single modality
-        config_name = "2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml
-
-    ResNet-152 with Layout Only
-        config_name = "2021_11_10_resnet152_layoutonly.yaml
-
-    ResNet-152 w/ GT WDO and GT layout.
-        config_name = "2021_11_23_resnet152_ceiling_floor_rgbonly_GT_WDO_no_photometric_augment.yaml
-
-    ResNet-152 w/ GT WDO and GT layout, and more data.
-        2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml
-    """
+    """ """
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
     parser.add_argument(
         "--config_name",
         type=str,
         required=True,
-        help="File name of config file under afp/configs/* (not file path!). Should end in .yaml",
+        help="File name of config file under `salve/configs/*` (not file path!). Should end in .yaml",
     )
     opts = parser.parse_args()
 
-    with hydra.initialize_config_module(config_module="afp.configs"):
-        # config is relative to the afp module
+    with hydra.initialize_config_module(config_module="salve.configs"):
+        # config is relative to the `salve` module
         cfg = hydra.compose(config_name=opts.config_name)
         args = instantiate(cfg.TrainingConfig)
 
