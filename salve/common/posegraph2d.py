@@ -34,7 +34,7 @@ except Exception as e:
 REDTEXT = "\033[91m"
 ENDCOLOR = "\033[0m"
 
-# averaged over 1575 buildings and 2453 valid scales.
+# Averaged over 1575 buildings and 2453 valid scales.
 ZIND_AVERAGE_SCALE_METERS_PER_COORDINATE = 3.5083
 
 
@@ -46,8 +46,8 @@ class PoseGraph2d(NamedTuple):
     Attributes:
         building_id: unique ID for ZInD building.
         floor_id: unique ID for floor of a specific ZInD building.
-        nodes: Mapping from panorama ID to PanoData, for each panorama. PanoData contains the pano's pose and optionally
-            W/D/Os, layout, and room category.
+        nodes: Mapping from panorama ID to PanoData, for each panorama. PanoData contains the pano's pose and
+            optionally W/D/Os, layout, and room category.
         scale_meters_per_coordinate: scaling factor from "world normalized" to "world metric" coordinate system.
     """
 
