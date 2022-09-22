@@ -4,18 +4,15 @@ Visualizations are saved for each floor.
 """
 
 import argparse
-import copy
 import glob
 import os
 from collections import defaultdict
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Point3, Point3Pairs, Pose2, Rot2, Similarity3
 
 import salve.algorithms.cycle_consistency as cycle_utils
 import salve.algorithms.pose2_slam as pose2_slam
@@ -155,7 +152,8 @@ def get_conf_thresholded_edges(
 
         per_edge_wdo_dict[(i1, i2)] = EdgeWDOPair.from_wdo_pair_uuid(i1=i1, i2=i2, wdo_pair_uuid=m.wdo_pair_uuid)
 
-        # TODO: choose the most confident score. How often is the most confident one, the right one, among all of the choices?
+        # TODO: choose the most confident score. How often is the most confident one,
+        # the right one, among all of the choices?
         # use model confidence
         i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(
             m, hypotheses_save_root, building_id, floor_id
@@ -649,7 +647,7 @@ def run_incremental_reconstruction(
     print(f"\tconfidence>={confidence_threshold}")
     print(f"\tmethod={method}")
     print(f"\tfrom serializations {Path(serialized_preds_json_dir).name}")
-    print(f"\tUsing object types", allowed_wdo_types)
+    print("\tUsing object types", allowed_wdo_types)
     print(f"\tUsed axis alignment: {use_axis_alignment}")
 
 

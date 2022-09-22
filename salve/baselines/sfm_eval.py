@@ -109,6 +109,7 @@ def measure_algorithm_localization_accuracy(
     algorithm_name: str,
     save_dir: str,
     reconstruction_json_fpath: str,
+    visualize_3d: bool = False
 ) -> FloorReconstructionReport:
     """Evaluate reconstruction from a single floor against GT poses, via Sim(3) alignment.
 
@@ -171,12 +172,16 @@ def measure_algorithm_localization_accuracy(
 
         bTi_list_est = [bTi.compose(algocam_T_zillowcam) if bTi is not None else None for bTi in bTi_list_est]
 
-        # vis_utils.plot_3d_poses(aTi_list_gt, bTi_list_est)
+        if visualize_3d:
+            # Visualize pose graphs before alignment.
+            vis_utils.plot_3d_poses(aTi_list_gt, bTi_list_est)
 
         # Align it to the 2d pose graph using Sim(3).
         aligned_bTi_list_est, _ = ransac.ransac_align_poses_sim3_ignore_missing(aTi_list_gt, bTi_list_est)
 
-        # vis_utils.plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)  # visualize after alignment
+        if visualize_3d:
+            # Visualize pose graphs after alignment.
+            vis_utils.plot_3d_poses(aTi_list_gt, aligned_bTi_list_est)
 
         # Project to 2d.
         est_floor_pose_graph = PoseGraph3d.from_wTi_list(aligned_bTi_list_est, building_id, floor_id)
@@ -189,7 +194,7 @@ def measure_algorithm_localization_accuracy(
         )
 
         viz_save_dir = f"{save_dir}/viz_largest_cc"
-        # viz_save_dir = f"/Users/johnlam/Downloads/jlambert-auto-floorplan/{algorithm_name}_zind_viz_2021_11_09_largest/{building_id}_{floor_id}"
+        # viz_save_dir = f"/Users/johnlam/Downloads/salve/{algorithm_name}_zind_viz_2021_11_09_largest/{building_id}_{floor_id}"
         os.makedirs(viz_save_dir, exist_ok=True)
         plot_save_fpath = f"{viz_save_dir}/{algorithm_name}_reconstruction_{r}.jpg"
 
@@ -237,7 +242,7 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
         json_results_dir: directory where per-floor JSON result summaries are stored.
     """
     num_ccs_per_floor = []
-    # stats below are aggregated over all CCs, independent of which floor or building they came from.
+    # Stats below are aggregated over all CCs, independent of which floor or building they came from.
     cc_idx_arr = []
     num_cameras_in_cc = []
     avg_rot_err_per_cc = []
@@ -252,10 +257,10 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
     num_reconstructed_floors = len(json_fpaths)
 
     for json_fpath in json_fpaths:
-        # Each entry in the list contains info about a single CC
+        # Each entry in the list contains info about a single CC.
         all_cc_data = io_utils.read_json_file(json_fpath)
 
-        # Set to zero, in case the floor has no CCs, to avoid defaulting to previous variable value
+        # Set to zero, in case the floor has no CCs, to avoid defaulting to previous variable value.
         num_cameras = 0
         mean_abs_rot_err = 0
         mean_abs_trans_err = 0
@@ -266,7 +271,6 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
 
         if num_ccs_per_floor == 0:
             import pdb
-
             pdb.set_trace()
 
         # Loop through the connected components. CC's are sorted by cardinality.
@@ -291,12 +295,12 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
             avg_rot_err_per_cc.append(mean_abs_rot_err)
             avg_trans_err_per_cc.append(mean_abs_trans_err)
 
-        # how many cameras get left out of any CC, on this floor?
+        # How many cameras get left out of any CC, on this floor?
         building_id, floor_id = get_buildingid_floorid_from_json_fpath(json_fpath)
         print(f"\tAnalyzing Building {building_id}, {floor_id}")
 
         num_panos = count_panos_on_floor(raw_dataset_dir, building_id, floor_id)
-        # find # of cameras that didn't appear anywhere in the union of all CCs
+        # Find # of cameras that didn't appear anywhere in the union of all CCs
         num_dropped_cameras = num_panos - num_reconst_cameras_on_floor
         num_dropped_cameras_per_floor.append(num_dropped_cameras)
         if num_panos == 0:
@@ -304,7 +308,7 @@ def analyze_algorithm_results(raw_dataset_dir: str, json_results_dir: str) -> No
 
             pdb.set_trace()
 
-        # what % is found in the union?
+        # What % is found in the union?
         percent_reconstructed = num_reconst_cameras_on_floor / num_panos * 100
         percent_reconstructed_cameras_per_floor.append(percent_reconstructed)
 
