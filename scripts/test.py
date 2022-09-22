@@ -1,4 +1,4 @@
-"""Run SALVe model inference."""
+"""Run inference with a pretrained SALVe model."""
 
 import argparse
 import glob
@@ -29,15 +29,20 @@ logger = get_logger()
 
 
 def run_test_epoch(
-    serialization_save_dir: str, ckpt_fpath: str, model: nn.Module, data_loader, split: str, save_viz: bool
+    serialization_save_dir: str,
+    ckpt_fpath: str,
+    model: nn.Module,
+    data_loader: torch.utils.data.DataLoader,
+    split: str,
+    save_viz: bool
 ) -> Dict[str, Any]:
-    """ """
+    """Run all samples from test split through a pretrained network."""
     pr_meter = PrecisionRecallMeter()
     sam = SegmentationAverageMeter()
 
     for i, test_example in enumerate(data_loader):
 
-        # assume cross entropy loss only currently
+        # Assume cross entropy loss only currently.
         if (
             args.modalities == ["layout"]
             or args.modalities == ["ceiling_rgb_texture"]
@@ -53,7 +58,7 @@ def run_test_epoch(
         elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
             x1, x2, x3, x4, x5, x6, is_match, fp0, fp1 = test_example
 
-        # assume cross entropy loss only currently
+        # Assume cross entropy loss only currently.
         n = x1.size(0)
 
         if torch.cuda.is_available():
@@ -116,8 +121,8 @@ def run_test_epoch(
         _, accs, _, avg_mAcc, _ = sam.get_metrics()
         print(f"{split} result: mAcc{avg_mAcc:.4f}", "Cls Accuracies:", [float(f"{acc:.2f}") for acc in accs])
 
-        # check recall and precision
-        # treat correctly aligned as a `positive`
+        # Check recall and precision.
+        # Treat correctly aligned as a `positive`.
         prec, rec, mAcc = pr_meter.get_metrics()
         print(f"Iter {i}/{len(data_loader)} Prec {prec:.2f}, Rec {rec:.2f}, mAcc {mAcc:.2f}")
 
@@ -126,13 +131,15 @@ def run_test_epoch(
 
 
 class PrecisionRecallMeter:
+    """Data structure to compute precision, recall, and mean accuracy from streaming samples."""
+
     def __init__(self) -> None:
-        """ """
+        """Initialize empty arrays for predictions & ground truth categories."""
         self.all_y_true = np.zeros((0, 1))
         self.all_y_hat = np.zeros((0, 1))
 
     def update(self, y_true: np.ndarray, y_hat: np.ndarray) -> None:
-        """ """
+        """Append predictions & ground truth for new batch samples."""
         y_true = y_true.reshape(-1, 1)
         y_hat = y_hat.reshape(-1, 1)
 
@@ -140,7 +147,7 @@ class PrecisionRecallMeter:
         self.all_y_hat = np.vstack([self.all_y_hat, y_hat])
 
     def get_metrics(self) -> Tuple[float, float, float]:
-        """ """
+        """Computes precision, recall, and mean accuracy from all samples seen thus far."""
         prec, rec, mAcc = pr_utils.compute_precision_recall(y_true=self.all_y_true, y_pred=self.all_y_hat)
         return prec, rec, mAcc
 
@@ -266,7 +273,7 @@ def evaluate_model(
 
 
 def plot_metrics(json_fpath: str) -> None:
-    """ """
+    """Plot train/val accuracy vs. epochs, from training job log (JSON file)."""
     json_data = io_utils.read_json_file(json_fpath)
 
     fig = plt.figure(dpi=200, facecolor="white")
@@ -299,7 +306,7 @@ def plot_metrics(json_fpath: str) -> None:
 
 if __name__ == "__main__":
     """
-    TODO: prevent user from passing arbitrary YAML config location (must edit the one under afp/configs/)
+    TODO: prevent user from passing arbitrary YAML config location (must edit the one under salve/configs/)
     """
 
     parser = argparse.ArgumentParser()
