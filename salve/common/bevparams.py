@@ -67,8 +67,10 @@ class BEVParams:
 
     @property
     def bevimg_Sim2_world(self) -> Sim2:
-        """
-        m/px -> px/m, then px/m * #meters = #pixels
+        """Generate Sim(2) transformation s.t. p_bevimg = bevimg_Sim2_world * p_world.
+
+        Resolution given as #m/px, so we invert it to obtain #px/m, the scale factor.
+        Scaling factor from world -> bird's eye view image: #px/m * #meters => #pixels.
         """
         grid_xmin, grid_xmax = self.xlims
         grid_ymin, grid_ymax = self.ylims
