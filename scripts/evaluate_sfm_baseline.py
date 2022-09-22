@@ -167,7 +167,7 @@ def run_evaluate_sfm_baseline(raw_dataset_dir: str, save_dir: str, baseline_name
     """Click entry point for camera localization evaluation of third-party SfM libraries.
 
     # for OpenSFM -- analyze error results dumped to JSON files.
-    json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/opensfm_zind_results"
+    json_results_dir = "/Users/johnlam/Downloads/salve/opensfm_zind_results"
     """
     save_dir += f"_{baseline_name}"
     if not Path(results_dir).exists():
@@ -184,7 +184,7 @@ def run_evaluate_sfm_baseline(raw_dataset_dir: str, save_dir: str, baseline_name
         )
 
     # then analyze the mean statistics
-    # json_results_dir = "/Users/johnlam/Downloads/jlambert-auto-floorplan/openmvg_zind_results"
+    # json_results_dir = "/Users/johnlam/Downloads/salve/openmvg_zind_results"
 
     # sfm_eval.analyze_algorithm_results(
     #     raw_dataset_dir=raw_dataset_dir, json_results_dir=f"{save_dir}/result_summaries"
