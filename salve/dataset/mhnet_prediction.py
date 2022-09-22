@@ -1,4 +1,7 @@
-"""Utilities and data structures for HorizonNet model predictions (using a joint shape + W/D/O model)."""
+"""Utilities and data structures for Modified HorizonNet (MHNet) model predictions.
+
+MHNet is HorizonNet, with modified output heads to predict layout, W/D/O's start/end columns, and uncertainty.
+"""
 from __future__ import annotations
 
 import copy
@@ -32,7 +35,7 @@ LAYOUT_COLOR = YELLOW
 
 
 @dataclass
-class ZillowHorizonNetDWO:
+class MHNetDWO:
     """Stores the start and end horizontal coordinates of a window, door, or opening.
 
     Args:
@@ -44,7 +47,7 @@ class ZillowHorizonNetDWO:
     e: float
 
     @classmethod
-    def from_json(cls, json_data: Any) -> ZillowHorizonNetDWO:
+    def from_json(cls, json_data: Any) -> MHNetDWO:
         """ """
         if len(json_data) != 2:
             raise RuntimeError("Schema error...")
@@ -78,9 +81,9 @@ class PanoStructurePredictionZillowHorizonNet:
 
     floor_boundary: np.ndarray
     floor_boundary_uncertainty: np.ndarray
-    doors: List[ZillowHorizonNetDWO]
-    openings: List[ZillowHorizonNetDWO]
-    windows: List[ZillowHorizonNetDWO]
+    doors: List[MHNetDWO]
+    openings: List[MHNetDWO]
+    windows: List[MHNetDWO]
     image_fpath: Path
 
     @classmethod
@@ -107,9 +110,9 @@ class PanoStructurePredictionZillowHorizonNet:
         json_data = io_utils.read_json_file(json_fpath)
         json_data = json_data["predictions"]
 
-        doors = [ZillowHorizonNetDWO.from_json(d) for d in json_data["wall_features"]["door"]]
-        windows = [ZillowHorizonNetDWO.from_json(w) for w in json_data["wall_features"]["window"]]
-        openings = [ZillowHorizonNetDWO.from_json(o) for o in json_data["wall_features"]["opening"]]
+        doors = [MHNetDWO.from_json(d) for d in json_data["wall_features"]["door"]]
+        windows = [MHNetDWO.from_json(w) for w in json_data["wall_features"]["window"]]
+        openings = [MHNetDWO.from_json(o) for o in json_data["wall_features"]["opening"]]
 
         doors = merge_wdos_straddling_img_border(doors)
         windows = merge_wdos_straddling_img_border(windows)
@@ -320,7 +323,7 @@ class PanoStructurePredictionZillowHorizonNet:
         # plt.close("all")
 
 
-def merge_wdos_straddling_img_border(wdo_instances: List[ZillowHorizonNetDWO]) -> List[ZillowHorizonNetDWO]:
+def merge_wdos_straddling_img_border(wdo_instances: List[MHNetDWO]) -> List[MHNetDWO]:
     """Merge an object that has been split by the panorama seam (merge two pieces into one).
 
     Args:
@@ -364,7 +367,7 @@ def merge_wdos_straddling_img_border(wdo_instances: List[ZillowHorizonNetDWO]) -
     # Merge with first (far-left) if exists, and it straddles far-left edge.
     left_wdo = wdo_instances[left_idx]
     right_wdo = wdo_instances[right_idx]
-    merged_wdo = ZillowHorizonNetDWO(s=right_wdo.s, e=left_wdo.e)
+    merged_wdo = MHNetDWO(s=right_wdo.s, e=left_wdo.e)
     wdo_instances_merged.append(merged_wdo)
 
     return wdo_instances_merged
