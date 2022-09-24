@@ -15,7 +15,7 @@ This can be interpreted as looking at a home's floorplan from a vantage point un
 We'll now show an example for a specific home from ZInD, (Building 0000, Floor 01). We can see that a transformation (R,t) followed by a reflection over the y-axis is equivalent to a transformation by (R^T,-t) followed by no reflection.
 <img width="1699" src="https://user-images.githubusercontent.com/16724970/192112179-3eda2ccb-974f-44ef-ac9b-0537d297f39d.png">
 
-In the top-right, we can see a panorama, and see that the door and window are on the left wall, when facing the garage door. We plot a line segment from each panorama's location along its +y axis in its local coordinate frame (e.g. pointing towards the garage door, as center column of panorama).
+In the top-right, we can see a panorama (Pano 34), and see that the door and window are on the left wall, when facing the garage door. We plot a line segment from each panorama's location along its +y axis in its local coordinate frame (e.g. pointing towards the garage door, as center column of panorama).
 
 Consider the red inset circles on the left and right. We can see that the rotation angle must be negated (equivalent to transposing the rotation matrix) in order for the panorama orientation to stay correct (facing towards a window).
 <img width="1013" src="https://user-images.githubusercontent.com/16724970/192112180-37c63507-1bd2-48fe-a807-86b98b69237d.png">
