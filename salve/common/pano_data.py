@@ -239,9 +239,8 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Si
     """Generate a Similarity(2) object from a dictionary storing transformation parameters.
 
     Transformation (R,t) followed by a reflection over the y-axis is equivalent to 
-    Transformation by (R^T,-t) followed by no reflection.
-
-    Sim(2)
+    Transformation by (R^T,-t) followed by no reflection. See COORDINATE_FRAMES.md
+    for more information.
 
     Note: ZInD stores (sRp + t), instead of s(Rp + t), so we have to divide by s to create Sim2.
 
@@ -258,7 +257,7 @@ def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Si
     """
     scale = transform_data["scale"]
     t = np.array(transform_data["translation"]) / scale
-    # TODO: explain...
+    # Reflect over y axis.
     t *= np.array([-1.0, 1.0])
     theta_deg = transform_data["rotation"]
 
