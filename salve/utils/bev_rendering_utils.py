@@ -5,17 +5,9 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import cv2
+import imageio
 import matplotlib.pyplot as plt
 import numpy as np
-
-try:
-    import open3d as o3d
-except:
-    print("Open3d could not be loaded, so skipping import...")
-
-import imageio
-
-# from vis_zind_annotations import rotmat2d
 
 import salve.common.bevparams as bevparams
 import salve.utils.hohonet_pano_utils as hohonet_pano_utils
@@ -59,7 +51,7 @@ def rasterize_room_layout_pair(
     (Poses from the GT pose graph are not actually used during rasterization).
 
     Args:
-        i2Ti1: relative pose between the two panoramas i1 and i2.
+        i2Ti1: relative pose between the two panoramas i1 and i2, such that p_i2 = i2Ti1 * p_i1.
         floor_pose_graph: ground truth or inferred pose graph, containing layout polygons
             and locations of W/D/O objects.
         building_id: unique ID of ZinD building.
@@ -205,11 +197,12 @@ def rasterize_polyline(
 ) -> np.ndarray:
     """
     Args:
-        polyline_xy
-        bev_img
-        bevimg_Sim2_world
-        color
-        thickness
+        polyline_xy: array of shape (N,2) representing polyline coordinates in world coordinates.
+        bev_img: array of shape (H,W,3) as image representing bird's eye view.
+        bevimg_Sim2_world: transormation that converts world points into bird's eye view image coordinates, e.g.
+            p_bevimg = bevimg_Sim2_world * p_world.
+        color: 
+        thickness: line thickness (in pixels).
 
     Returns:
         bev_img
@@ -241,7 +234,7 @@ def draw_polyline_cv2(
         color: Tuple of shape (3,) with a BGR format color
         im_h: Image height in pixels.
         im_w: Image width in pixels.
-        thickness:
+        thickness: line thickness (in pixels).
     """
     for i in range(line_segments_arr.shape[0] - 1):
         x1 = line_segments_arr[i][0]
@@ -335,7 +328,7 @@ def render_bev_image(bev_params: BEVParams, xyzrgb: np.ndarray, is_semantics: bo
 
 
 def grayscale_to_color(gray_img: np.ndarray) -> np.ndarray:
-    """Duplicate the grayscale channel 3 times.
+    """Convert grayscale image to RGB by duplicating the grayscale channel 3 times.
 
     Args:
         gray_img: Array with shape (M,N)
@@ -391,7 +384,7 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
         if rgb.ndim == 2:
             rgb = grayscale_to_color(rgb)
 
-    # Project to 3d
+    # Project to 3d.
     H, W = rgb.shape[:2]
     xyz = depth * hohonet_pano_utils.get_uni_sphere_xyz(H, W)
 
@@ -422,16 +415,22 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
 def render_bev_pair(
     args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
-    """Render a pair of texture maps.
+    """Render a pair of texture maps in the same coordinate frame.
 
     Args:
         args:
-        building_id
-        floor_id
-        i1: id of panorama 1
-        i2: id of panorama 2
-        i2Ti1
+        building_id: unique ID of ZinD building.
+        floor_id: unique ID of floor of this ZinD building.
+        i1: id of panorama 1.
+        i2: id of panorama 2.
+        i2Ti1: relative pose between the two panoramas i1 and i2, such that p_i2 = i2Ti1 * p_i1.
         is_semantics:
+
+    Returns:
+        img1: array of shape (H,W,3) representing BEV texture map rendering for pano 1,
+           in the coordinate frame of pano 2.
+        img2: array of shape (H,W,3) representing BEV texture map rendering for pano 2.
+           Rendering is centered at pano 2's location.
     """
     xyzrgb1 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i1, rgb_fpath=args.img_i1, is_semantics=is_semantics)
     xyzrgb2 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i2, rgb_fpath=args.img_i2, is_semantics=is_semantics)
@@ -446,6 +445,7 @@ def render_bev_pair(
 
     HOHO_S_ZIND_SCALE_FACTOR = 1.5
 
+    # Move point cloud for i1 into i2's frame.
     xyzrgb1[:, :2] = (xyzrgb1[:, :2] @ i2Ti1.rotation.T) + (i2Ti1.translation * HOHO_S_ZIND_SCALE_FACTOR)
 
     bev_params = BEVParams()
@@ -481,7 +481,21 @@ def render_bev_pair(
 def get_bev_pair_xyzrgb(
     args, building_id: str, floor_id: str, i1: int, i2: int, i2Ti1: Sim2, is_semantics: bool
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
-    """ """
+    """
+
+    Args:
+        args:
+        building_id: unique ID of ZinD building.
+        floor_id: unique ID of floor of this ZinD building.
+        i1: pano 1 ID.
+        i2: pano 2 ID.
+        i2Ti1: relative pose between the two panoramas i1 and i2, such that p_i2 = i2Ti1 * p_i1.
+        is_semantics:
+
+    Returns:
+        xyzrgb1: Numpy array of shape (N,6) representing colored point cloud for pano 1.
+        xyzrgb2: Numpy array of shape (N,6) representing colored point cloud for pano 2.
+    """
 
     xyzrgb1 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i1, rgb_fpath=args.img_i1, is_semantics=is_semantics)
     xyzrgb2 = get_xyzrgb_from_depth(args, depth_fpath=args.depth_i2, rgb_fpath=args.img_i2, is_semantics=is_semantics)
