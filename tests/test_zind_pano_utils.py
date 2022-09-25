@@ -4,7 +4,7 @@ import math
 from pathlib import Path
 
 import cv2
-import imageio
+import imageio.v2 as imageio
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -21,8 +21,8 @@ def test_pano_to_pano_contour_projection() -> None:
     img_h = 512
 
     est_localization_fpath = "/Users/johnlambert/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16___2022_07_05_pgo_floorplans_with_conf_0.93_door_window_opening_axisalignedTrue_serialized/0715__floor_01.json"
-    hnet_pred_dir = "/Users/johnlambert/Downloads/zind_hnet_prod_predictions/zind2_john/zind2_john"
-    raw_dataset_dir = "/Users/johnlambert/Downloads/ZInD"
+    hnet_pred_dir = "/Users/johnlambert/Downloads/salve/tests/test_data/ZInD_HorizonNet_predictions"
+    raw_dataset_dir = "/Users/johnlambert/Downloads/zind_bridgeapi_2021_10_05"
 
     building_id = "0715"
     floor_id = "floor_01"
@@ -67,7 +67,7 @@ def test_pano_to_pano_contour_projection() -> None:
     )
 
     hnet_floor_predictions = hnet_prediction_loader.load_hnet_predictions(
-        query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=hnet_pred_dir
+        building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=hnet_pred_dir
     )
 
     def get_contour(floor_boundary: np.ndarray) -> np.ndarray:
@@ -110,7 +110,7 @@ def test_pano_to_pano_contour_projection() -> None:
     plt.scatter(contour_i0[:, 0], contour_i0[:, 1], 1, color="r", marker=".")
     plt.show()
 
-    # Visualize contour i0 in image i0.
+    # Visualize contour i1 projected onto image i0.
     plt.imshow(image_i1)
     plt.scatter(contour_i1[:, 0], contour_i1[:, 1], 1, color="r", marker=".")
     plt.show()
@@ -261,7 +261,7 @@ def test_sphere_to_pixel() -> None:
 
 if __name__ == "__main__":
     test_pano_to_pano_contour_projection()
-    
+
     ### test_zind_sphere_to_cartesian()
     ### test_zind_cartesian_to_sphere()
     ### test_sphere_to_pixel()

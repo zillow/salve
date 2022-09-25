@@ -1,7 +1,7 @@
-"""Utility to load HorizonNet predictions.
+"""Utility to load ModifiedHorizonNet (MHNet) predictions.
 
-Converts a HorizonNet inference result to PanoData and PoseGraph2d objects. Also supports rendering the inference
-result with oracle pose.
+Converts a ModifiedHorizonNet inference result to PanoData and PoseGraph2d objects. Also supports rendering the
+inference result with oracle pose.
 """
 
 import glob
