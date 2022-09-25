@@ -1,5 +1,7 @@
-"""
-Render aligned texture maps and/or layouts in a bird's eye view, to be used for training a network.
+"""Render aligned texture maps and/or layouts in a bird's eye view, to be used for SALVe.
+
+These texture maps can be used either for training the SALVe verifier network, or for inference
+with a pre-trained model.
 
 The rendering can be parallelized if `num_processes` is set to >1, in which case each process renders
 BEV texture maps for individual homes.
@@ -13,46 +15,19 @@ from types import SimpleNamespace
 from typing import List, Optional
 
 import click
-import cv2
-import gtsfm.utils.io as io_utils
 import imageio
-import numpy as np
 
 import salve.common.posegraph2d as posegraph2d
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.bev_rendering_utils as bev_rendering_utils
 import salve.utils.hohonet_inference as hohonet_inference_utils
-from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
 from salve.dataset.zind_partition import DATASET_SPLITS
-
-"""
-Nasty depth map estimation failure cases: (from complete_07_10 version)
-    # (building, pano_ids)
-    "000": [10],  # pano 10 outside
-    "004": [10, 24, 28, 56, 58],  # building 004, pano 10 and pano 24, pano 28,56,58 (outdoors)
-    "006": [10],
-    "981": [5, 7, 14, 11, 16, 17, 28],  # 11 is a bit inaccurate
-"""
 
 
 def panoid_from_fpath(fpath: str) -> int:
     """Derive panorama's id from its filename."""
     return int(Path(fpath).stem.split("_")[-1])
-
-
-def resize_image(image: np.ndarray, h: int, w: int) -> np.ndarray:
-    """
-    Args:
-        image: array of shape (H,W,3)
-        h: desired height of output image, in pixels.
-        w: desired width of output image, in pixels.
-
-    Returns:
-        image: array pf shape (h,w,3)
-    """
-    image = cv2.resize(image, (w, h), interpolation=cv2.INTER_LINEAR)
-    return image
 
 
 def render_building_floor_pairs(
@@ -111,11 +86,11 @@ def render_building_floor_pairs(
                 # else:
 
                 if surface_type == "floor":
-                    # everything 1 meter and below the camera
+                    # Keep everything 1 meter and below the camera
                     crop_z_range = [-float("inf"), -1.0]
 
                 elif surface_type == "ceiling":
-                    # everything 50 cm and above camera
+                    # Keep everything 50 cm and above the camera.
                     crop_z_range = [0.5, float("inf")]
 
                 i2Ti1 = Sim2.from_json(json_fpath=pair_fpath)
@@ -180,16 +155,13 @@ def render_building_floor_pairs(
                     if bev_img1 is None or bev_img2 is None:
                         continue
 
-                    # bev_img1 = resize_image(bev_img1, h=500, w=500)
-                    # bev_img2 = resize_image(bev_img2, h=500, w=500)
-
                     imageio.imwrite(bev_fpath1, bev_img1)
                     imageio.imwrite(bev_fpath2, bev_img2)
 
                 if "layout" not in render_modalities:
                     continue
 
-                # only rasterize layout for `floor'.
+                # Only rasterize layout for `floor'.
                 # If `ceiling', we'll skip, since will be identical rendering to `floor`.
                 if surface_type != "floor":
                     continue
@@ -409,6 +381,8 @@ def render_pairs(
     default=None,
     help="Directory where BEV rendered layouts (instead of RGB texture maps) should be saved to.",
 )
+#TODO: splits
+#TODO: building_id
 def run_render_dataset_bev(
     raw_dataset_dir: str,
     num_processes: int,
@@ -416,6 +390,8 @@ def run_render_dataset_bev(
     hypotheses_save_root: str,
     bev_save_root: str,
     layout_save_root: Optional[str],
+    #splits
+    #building_id: Optional[str]
 ) -> None:
     """ """
     if layout_save_root is None:
@@ -436,41 +412,5 @@ def run_render_dataset_bev(
 
 if __name__ == "__main__":
     """
-    Depth maps are stored on the following nodes at the following places:
-    - locally: "/Users/johnlam/Downloads/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    - DGX: "/mnt/data/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps"
-    - se1-001: "/home/johnlam/ZinD_Bridge_API_HoHoNet_Depth_Maps",
-
-    Hypotheses are saved on the following nodes at the following places:
-    - se1-001:
-        w/ inferred WDO and inferred layout:
-            "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-        w/ GT WDO + GT layout:
-            "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-
-    BEV texture maps are saved to the following locations ("bev_save_root"):
-        "/Users/johnlam/Downloads/ZinD_BEV_2021_06_24"
-        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_06_25"
-        "/mnt/data/johnlam/ZinD_BEV_RGB_only_2021_06_25"
-        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v2"
-        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_07_14_v3"
-        "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs_filledpoly"
-        "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
-        "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_ZinD"
-        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_16"
-        "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_16"
-        "/mnt/data/johnlam/ZinD_Bridge_API_BEV_2021_10_17"
-        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_20_res500x500"
-        "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres"  # BEST
-        "/Users/johnlam/Downloads/ZinD_Bridge_API_BEV_2021_10_23_debug"
-
-        from GT WDO and GT layout:
-            "/home/johnlam/Renderings_ZinD_bridge_api_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-
-    Layout images are saved at:
-        # layout_save_root = "/Users/johnlam/Downloads/ZinD_BEV_RGB_only_2021_08_03_layoutimgs"
-        # layout_save_root = "/mnt/data/johnlam/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
-        # layout_save_root = "/Users/johnlam/Downloads/ZinD_07_11_BEV_RGB_only_2021_08_04_layoutimgs"
-        # layout_save_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres_layoutimgs_inferredlayout"
     """
     run_render_dataset_bev()
