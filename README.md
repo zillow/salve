@@ -79,8 +79,8 @@ For example, `SAVE_DIR` could be `/mnt/data/johnlam/zind_bridgeapi_2021_10_05`, 
 
 Make sure you are within the conda environment (`salve-v1`).
 
-**Download HorizonNet predictions.**
-Download and unzip the custom `ZillowHorizonNet` predictions from [Google Drive here](https://drive.google.com/file/d/16JuxBgg368RL7dSpPjF9kKocLbo2ekAt/view?usp=sharing).
+**Download ModifiedHorizonNet (MHNet) predictions.**
+Download and unzip the custom `ModifiedHorizonNet` predictions from [Google Drive here](https://drive.google.com/file/d/16JuxBgg368RL7dSpPjF9kKocLbo2ekAt/view?usp=sharing).
 
 
 
@@ -97,7 +97,7 @@ python scripts/export_alignment_hypotheses.py \
     --raw_dataset_dir {PATH TO ZIND} \
     --hypotheses_save_root {DIRECTORY WHERE TO DUMP OUTPUT} \
     --wdo_source horizon_net \
-    --hnet_predictions_data_root {DIRECTORY TO HNET PREDS} \
+    --mhnet_predictions_data_root {DIRECTORY TO MHNET PREDS} \
      2>&1 | tee alignment_hypotheses_generation_output.log
 ```
 Using 20-30 processes is recommended, and even with 30 processes, the generation may take 1-2 hours to complete.
@@ -273,19 +273,6 @@ python {SALVE_REPO_DIRPATH}/scripts/evaluate_sfm_baseline.py \
     --save_dir {WHERE TO SAVE VISUALIZATIONS/RESULT SUMMARIES }
 ```
 
-## Other TODOS
-
-On DGX, you can find `ZInD` stored here:
-`/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
-
-- Keep your training config and inference config in different files.  (Or different sections of the same file.)
-
-Additional Notes:
-- Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
-(in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
-
-No shared texture between (0,75) -- yet doors align it (garage to kitchen)
-
 
 ## FAQ
 
@@ -297,6 +284,13 @@ Q: How can I see some examples of ZInD's annotated floor plans?
 A: `python scripts/viz_zind_annotated_floorplans`
 
 Q: Why are Sim(2) objects used all over the place?
+A:
+
+Q: How are vanishing points used in SALVe?
+A:
+
+Q: How was the Modified HorizonNet (MHNet) trained? How does it differ from HorizonNet?
+A:
 
 straightenings , same line segments
 line segments, buckets, xy, z are the main buckets
@@ -314,11 +308,23 @@ For legal reasons, we cannot release this dataset.
 We have pretrained it, we are providing the results.
 Yuguang will ask Ethan about this. 
 
-ZillowHorizonNet -> UncertaintyHorizonNet
 
 ModifiedHorizonNet
 MHNet
 Output is different.
+
+## Other TODOS
+
+On DGX, you can find `ZInD` stored here:
+`/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
+
+- Keep your training config and inference config in different files.  (Or different sections of the same file.)
+
+Additional Notes:
+- Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
+(in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
+
+No shared texture between (0,75) -- yet doors align it (garage to kitchen)
 
 
 

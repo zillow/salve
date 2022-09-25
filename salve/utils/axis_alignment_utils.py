@@ -17,7 +17,7 @@ from salve.common.pano_data import PanoData
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
 
-# This allows angles in the range [84.3, 95.7] to be considered close to 90 degrees.
+# This allows angles in the range [84.3, 95.7] deg. to be considered "close" to 90 degrees.
 MAX_RIGHT_ANGLE_DEVIATION = 0.1
 MAX_ALLOWED_CORRECTION_DEG = 15.0
 
@@ -270,15 +270,15 @@ def align_pair_measurement_by_vanishing_angle(
 
 
 def compute_vp_correction(i2Si1: Sim2, vp_i1: float, vp_i2: float) -> float:
-    """
+    """Compute vanishing point correction.
 
     Args:
         i2Si1: pose of camera i1 in i2's frame.
-        vp_i1: vanishing angle of i1
-        vp_i2: vanishing angle of i2
+        vp_i1: "vanishing angle" of i1.
+        vp_i2: "vanishing angle" of i2.
 
     Returns:
-        i2r_theta_i2: correction to relative pose
+        i2r_theta_i2: correction to relative pose.
     """
     i2_theta_i1 = rotation_utils.rotmat2theta_deg(i2Si1.rotation)
     i2r_theta_i2 = -((vp_i2 - vp_i1) + i2_theta_i1)
@@ -299,7 +299,8 @@ def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
 
 
 def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
-    """
+    """Compute relative pose 
+    
     pts1 and pts2 need NOT be in a common reference frame.
 
     Args:
@@ -307,7 +308,7 @@ def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
         pts2:
 
     Returns:
-        i2Ti1:
+        i2Ti1: relative pose between the two panoramas i1 and i2, such that p_i2 = i2Ti1 * p_i1.
     """
 
     # lift to 3d plane

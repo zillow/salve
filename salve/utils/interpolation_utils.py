@@ -28,8 +28,8 @@ def interp_dense_grid_from_sparse(
         bev_img: dense grid of shape (grid_h, grid_w, 3) to be populated with interpolated values
         points: (N,2) or (N,3) array of (x,y,z) or (x,y) coordinates
         rgb_values:
-        grid_h:
-        grid_w:
+        grid_h: grid height (in pixels).
+        grid_w: grid width (in pixels).
         is_semantics: whether or not the input RGB values represent a semantic colormap, in which case
             only `nearest` interpolation makes sense.
 
