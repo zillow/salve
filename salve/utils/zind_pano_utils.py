@@ -31,8 +31,7 @@ EPS_RAD = 1e-10
 
 EPS = np.deg2rad(1)
 
-# from
-# https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
+
 def zind_pixel_to_sphere(points_pix: np.ndarray, width: int) -> np.ndarray:
     """Convert pixel coordinates into spherical coordinates from a 360 pano with a given width.
 
@@ -97,8 +96,6 @@ def zind_pixel_to_sphere(points_pix: np.ndarray, width: int) -> np.ndarray:
     return np.column_stack((theta, phi)).reshape(output_shape)
 
 
-# from
-# https://gitlab.zgtools.net/zillow/rmx/libs/egg.panolib/-/blob/main/panolib/sphereutil.py#L96
 def zind_sphere_to_cartesian(points_sph: np.ndarray) -> np.ndarray:
     """Convert spherical coordinates to (room) cartesian coordinate system.
 
@@ -203,7 +200,7 @@ def convert_points_px_to_worldmetric(points_px: np.ndarray, image_width: int, ca
     return points_worldmetric
 
 
-def xy_to_uv(xy: np.ndarray, camera_height_m: float, img_w, img_h) -> np.ndarray:
+def xy_to_uv(xy: np.ndarray, camera_height_m: float, img_w: int, img_h: int) -> np.ndarray:
     """Compute texture coordinates uv from world-metric Cartesian coordinates xy, given camera height.
 
     Args:

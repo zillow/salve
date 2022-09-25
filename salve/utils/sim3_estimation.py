@@ -37,7 +37,7 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Si
     asb = aSb.scale()
     pts_a_ = asb * (pts_b @ aRb.T + atb)
 
-    # Convert Similarity3 to Similarity2
+    # Convert Similarity(3) to Similarity(2).
     aSb = Sim2(R=aRb[:2, :2], t=atb[:2], s=asb)
 
     computed = aSb.rotation.T @ aSb.rotation
@@ -54,10 +54,8 @@ def align_points_sim3(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Si
 
 
 def reorthonormalize_sim2(i2Ti1: Sim2) -> Sim2:
-    """ """
+    """Re-orthonormalize Sim(2) object, so that rotation R falls back onto SO(2) manifold."""
     R = i2Ti1.rotation
-
-    # import pdb; pdb.set_trace()
 
     print("(0,0) entry said: ", np.rad2deg(np.arccos(R[0, 0])))
     print("(1,0) entry said: ", np.rad2deg(np.arcsin(R[1, 0])))

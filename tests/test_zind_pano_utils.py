@@ -115,41 +115,20 @@ def test_pano_to_pano_contour_projection() -> None:
     plt.scatter(contour_i1[:, 0], contour_i1[:, 1], 1, color="r", marker=".")
     plt.show()
     plt.close("all")
-    
-
-def test_convert_points_px_to_worldmetric_roundtrip() -> None:
-    """Ensures that conversion from pixel -> worldmetric -> pixel coordinates is correct in round-trip."""
-    # sample 10k points
-    N = 10
-    img_w = 1024
-    img_h = 512
-    camera_height_m = 1.3
-
-    # Generate 2d projections that correspond to 3d points that are on the ground plane.
-    contour_px = np.random.randint(low=[0,0], high=[img_w, img_h], size=(N,2))
-
-    layout_pts_worldmetric = zind_pano_utils.convert_points_px_to_worldmetric(
-        points_px=contour_px, image_width=img_w, camera_height_m=camera_height_m)
-
-    contour_px_ = zind_pano_utils.convert_points_worldmetric_to_px(
-        points_worldmetric=layout_pts_worldmetric, image_width=img_w, camera_height_m=camera_height_m)
-    import pdb; pdb.set_trace()
-    assert np.allclose(contour_px, contour_px_)
 
 
 def test_convert_points_px_to_sph_roundtrip() -> None:
     """Ensure that composition of two transformations in a roundtrip yields original input.
 
-    Two + two transforms should compose to an identity transformation.
+    Pixel -> Spherical -> Cartesian -> Spherical -> Pixel should compose to an identity transformation.
     """
-
-    # sample 10k points
     N = 10000
     img_w = 1024
     img_h = 512
     camera_height_m = 1.3
 
-    # Generate 2d projections that correspond to 3d points that are on the ground plane.
+    # Sample 10k random image coordinates.
+    # Suppose that these are 2d projections that correspond to 3d points that are on the ground plane.
     contour_px = np.random.randint(low=[0,0], high=[img_w, img_h], size=(N,2))
 
     points_sph = zind_pano_utils.zind_pixel_to_sphere(contour_px, width=img_w)
@@ -162,10 +141,10 @@ def test_convert_points_px_to_sph_roundtrip() -> None:
 
 
 def test_zind_sphere_to_cartesian() -> None:
-    """Ensure that spherical to room-cartesian coordinate conversions are correct.
+    """Ensure that spherical to room-cartesian coordinate conversions are correct."""
     
-    """
-    # provided as (theta, phi) coordinates. Imagine (u,v) provided correspond to a (H,W)=(512,1024) image.
+    # 7 points provided as (theta, phi) coordinates.
+    # Imagine (u,v) provided correspond to a (H,W)=(512,1024) image.
     points_sph = np.array(
         [
             [-np.pi, np.pi/2], # corresponds to (u,v) = (0,0), pointing upwards to top of sphere
@@ -203,6 +182,7 @@ def test_zind_cartesian_to_sphere() -> None:
 
     eps = 1e-5
     # fmt: off
+    # Define 3 points: (0,0,1) and (1,0,0) and (0,0,-1).
     points_cart = np.array(
         [
             [0,  0, 1],
@@ -217,30 +197,30 @@ def test_zind_cartesian_to_sphere() -> None:
     # provided as (theta,phi,rho) coordinates. rho=1 for all.
     expected_points_sph = np.array(
         [
-            [0, 0, 1], # corresponds to (u,v) = (512,256)
-            [np.pi/2, 0, 1], # 1/4 way from right edge of pano, midway up pano (u,v)=(756,0)
+            [0, 0, 1], # (theta=0, phi=0, rho=1) corresponds to (u,v) = (512,256).
+            [np.pi/2, 0, 1], # (theta=pi/2,phi=0,rho=1)->1/4 way from right edge of pano, midway up pano (u,v)=(756,0)
             [-np.pi,0, 1]
         ])
 
     # theta is ambiguous (-pi and pi are the same), so wrap angles.
     points_sph[:, 0] = np.mod(points_sph[:, 0], 2 * np.pi)
     expected_points_sph[:, 0] = np.mod(expected_points_sph[:, 0], 2 * np.pi)
-    import pdb; pdb.set_trace()
     assert np.allclose(points_sph, expected_points_sph)
     
 
 def test_zind_pixel_to_sphere() -> None:
-    """
+    """Ensures conversion of image coordinates (pixel space) to spherical coordinates is correct.
+
     Assume (512,1024) for (H,W) of equirectangular projection of panorama.
     """
     # fmt: off
     # provided as (u,v) in image
     points_pix = np.array(
         [
-            [0,0], # should be (-pi,pi/2)
-            [0,511], # should be (-pi, -pi/2)
-            [1023,511], # should be (pi, -pi/2)
-            [1023,0] # should be (pi, pi/2)
+            [0,0], # should be (-pi,pi/2), top-left corner.
+            [0,511], # should be (-pi, -pi/2), bottom-left corner.
+            [1023,511], # should be (pi, -pi/2), bottom-right corner.
+            [1023,0] # should be (pi, pi/2), top-right corner.
         ])
     
     # provided as (theta,phi) coordinates.
@@ -281,9 +261,9 @@ def test_sphere_to_pixel() -> None:
 
 if __name__ == "__main__":
     test_pano_to_pano_contour_projection()
-    #test_zind_sphere_to_cartesian()
-    #test_zind_cartesian_to_sphere()
-    #test_sphere_to_pixel()
-    #test_convert_points_px_to_worldmetric_roundtrip()
-    #test_convert_points_px_to_sph_roundtrip()
-
+    
+    ### test_zind_sphere_to_cartesian()
+    ### test_zind_cartesian_to_sphere()
+    ### test_sphere_to_pixel()
+    ### test_zind_pixel_to_sphere()
+    ### test_convert_points_px_to_sph_roundtrip()

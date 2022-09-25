@@ -94,7 +94,7 @@ def export_single_building_wdo_alignment_hypotheses(
     json_annot_fpath: str,
     raw_dataset_dir: str,
     use_inferred_wdos_layout: bool,
-    hnet_predictions_data_root: Optional[str] = None,
+    mhnet_predictions_data_root: Optional[str] = None,
 ) -> None:
     """Save candidate alignment Sim(2) transformations to disk as JSON files.
 
@@ -111,7 +111,7 @@ def export_single_building_wdo_alignment_hypotheses(
         json_annot_fpath: path to GT data for this building (contained in "zind_data.json")
         raw_dataset_dir: path to ZInD dataset.
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
-        hnet_predictions_data_root: path to HorizonNet predictions.
+        mhnet_predictions_data_root: path to Modified HorizonNet (MHnet) predictions.
     """
     verbose = False
 
@@ -119,7 +119,7 @@ def export_single_building_wdo_alignment_hypotheses(
         floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
             building_id=building_id,
             raw_dataset_dir=raw_dataset_dir,
-            predictions_data_root=hnet_predictions_data_root,
+            predictions_data_root=mhnet_predictions_data_root,
         )
         if floor_pose_graphs is None:
             # Cannot compute putative alignments if prediction files are missing.
@@ -275,7 +275,7 @@ def export_alignment_hypotheses_to_json(
     raw_dataset_dir: str,
     hypotheses_save_root: str,
     use_inferred_wdos_layout: bool,
-    hnet_predictions_data_root: Optional[str],
+    mhnet_predictions_data_root: Optional[str],
 ) -> None:
     """Use multiprocessing to dump alignment hypotheses for all buildings to JSON.
 
@@ -287,7 +287,7 @@ def export_alignment_hypotheses_to_json(
         raw_dataset_dir: path to ZinD dataset.
         hypotheses_save_root: directory where JSON files with alignment hypotheses will be saved to.
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
-        hnet_predictions_data_root: path to directory containing HorizonNet predictions.
+        mhnet_predictions_data_root: path to directory containing HorizonNet predictions.
     """
     # TODO: allow user to specify the split via CLI.
     building_ids = DATASET_SPLITS["test"]
@@ -307,7 +307,7 @@ def export_alignment_hypotheses_to_json(
                 json_annot_fpath,
                 raw_dataset_dir,
                 use_inferred_wdos_layout,
-                hnet_predictions_data_root,
+                mhnet_predictions_data_root,
             )
         ]
 
@@ -349,7 +349,7 @@ def export_alignment_hypotheses_to_json(
     help="Where to pull W/D/O and layout (either inferred from HorizonNet, or taken from annotated ground truth)",
 )
 @click.option(
-    "--hnet_predictions_data_root",
+    "--mhnet_predictions_data_root",
     type=str,
     default=None,
     required=False,
@@ -360,7 +360,7 @@ def run_export_alignment_hypotheses(
     num_processes: int,
     hypotheses_save_root: str,
     wdo_source: str,
-    hnet_predictions_data_root: Optional[str],
+    mhnet_predictions_data_root: Optional[str],
 ) -> None:
     """Click entry point for alignment hypotheses generation."""
 
@@ -368,14 +368,14 @@ def run_export_alignment_hypotheses(
     use_inferred_wdos_layout = wdo_source == "horizon_net"
 
     if use_inferred_wdos_layout:
-        assert Path(hnet_predictions_data_root).exists()
+        assert Path(mhnet_predictions_data_root).exists()
 
     export_alignment_hypotheses_to_json(
         num_processes,
         raw_dataset_dir,
         hypotheses_save_root,
         use_inferred_wdos_layout,
-        hnet_predictions_data_root,
+        mhnet_predictions_data_root,
     )
 
 

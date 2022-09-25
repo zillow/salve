@@ -17,6 +17,7 @@ def test_prune_to_unique_sim2_objs() -> None:
     wt2 = np.array([1, 2])
     ws2 = 3.0
 
+    # Instances 0, 1, and 3 are identical (duplicates).
     possible_alignment_info = [
         AlignmentHypothesis(
             i2Ti1=Sim2(wR1, wt1, ws1),

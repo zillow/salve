@@ -17,7 +17,7 @@ from salve.common.pano_data import PanoData
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
 
-# This allows angles in the range [84.3, 95.7] to be considered close to 90 degrees.
+# This allows angles in the range [84.3, 95.7] deg. to be considered "close" to 90 degrees.
 MAX_RIGHT_ANGLE_DEVIATION = 0.1
 MAX_ALLOWED_CORRECTION_DEG = 15.0
 
@@ -270,15 +270,15 @@ def align_pair_measurement_by_vanishing_angle(
 
 
 def compute_vp_correction(i2Si1: Sim2, vp_i1: float, vp_i2: float) -> float:
-    """
+    """Compute vanishing point correction.
 
     Args:
         i2Si1: pose of camera i1 in i2's frame.
-        vp_i1: vanishing angle of i1
-        vp_i2: vanishing angle of i2
+        vp_i1: "vanishing angle" of i1.
+        vp_i2: "vanishing angle" of i2.
 
     Returns:
-        i2r_theta_i2: correction to relative pose
+        i2r_theta_i2: correction to relative pose.
     """
     i2_theta_i1 = rotation_utils.rotmat2theta_deg(i2Si1.rotation)
     i2r_theta_i2 = -((vp_i2 - vp_i1) + i2_theta_i1)
@@ -298,8 +298,9 @@ def draw_polygon(poly: np.ndarray, color: str, linewidth: float = 1) -> None:
     plt.scatter(verts[:, 0], verts[:, 1], 10, color=color, marker=".")
 
 
-def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
-    """
+def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> Pose2:
+    """Compute relative pose using Sim(3) alignment.
+
     pts1 and pts2 need NOT be in a common reference frame.
 
     Args:
@@ -307,10 +308,10 @@ def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
         pts2:
 
     Returns:
-        i2Ti1:
+        i2Ti1: relative pose between the two panoramas i1 and i2, such that p_i2 = i2Ti1 * p_i1.
     """
 
-    # lift to 3d plane
+    # Lift 2d point cloud to 3d plane.
     pt_pairs_i2i1 = []
     for pt1, pt2 in zip(pts1, pts2):
         pt1_3d = np.array([pt1[0], pt1[1], 0])
@@ -319,9 +320,9 @@ def compute_i2Ti1(pts1: np.ndarray, pts2: np.ndarray) -> None:
 
     pt_pairs_i2i1 = Point3Pairs(pt_pairs_i2i1)
     i2Si1 = Similarity3.Align(abPointPairs=pt_pairs_i2i1)
-    # TODO: we should use Pose2.Align()
+    # TODO: we should use Pose2.Align() or Similarity2.Align()
 
-    # Project back to 2d.
+    # Project Sim(3) transformation from 3d back to 2d.
     i2Ri1 = i2Si1.rotation().matrix()[:2, :2]
     theta_deg = rotation_utils.rotmat2theta_deg(i2Ri1)
     i2Ti1 = Pose2(Rot2.fromDegrees(theta_deg), i2Si1.translation()[:2])
