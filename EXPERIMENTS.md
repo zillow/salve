@@ -199,3 +199,31 @@ Nasty depth map estimation failure cases: (from complete_07_10 version)
     ResNet-152 w/ GT WDO and GT layout, and more data.
         2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml
 
+
+
+    Alignment hypotheses have been saved to the following locations:
+
+    On se1-001:
+    - from Predicted WDO + Predicted Layout:
+        /home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
+    - from GT WDO + GT Layout:
+        /home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8
+
+    Locally:
+    - from GT WDO + GT Layout:
+        /Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8
+
+    ZInD is stored in the following locations:
+    - DGX: /mnt/data/johnlam/zind_bridgeapi_2021_10_05
+    - se1-001: /home/johnlam/zind_bridgeapi_2021_10_05
+    - locally: /Users/johnlam/Downloads/zind_bridgeapi_2021_10_05
+
+
+
+-Nasty depth map estimation failure cases: (from complete_07_10 version)
+-    # (building, pano_ids)
+-    "000": [10],  # pano 10 outside
+-    "004": [10, 24, 28, 56, 58],  # building 004, pano 10 and pano 24, pano 28,56,58 (outdoors)
+-    "006": [10],
+-    "981": [5, 7, 14, 11, 16, 17, 28],  # 11 is a bit inaccurate
+

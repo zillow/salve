@@ -1,12 +1,11 @@
 """Script to generate all pairwise W/D/O alignment hypotheses, for all of ZInD."""
 
-import glob
 import os
 from collections import defaultdict
 from dataclasses import dataclass
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import click
 import matplotlib.pyplot as plt
@@ -17,14 +16,12 @@ import salve.common.alignment_hypothesis as alignment_hypothesis_utils
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.io as io_utils
 import salve.utils.logger_utils as logger_utils
-import salve.utils.rotation_utils as rotation_utils
 import salve.utils.wdo_alignment as wdo_alignment_utils
 from salve.common.pano_data import FloorData, PanoData
-from salve.common.posegraph2d import REDTEXT, ENDCOLOR
+from salve.common.posegraph2d import ENDCOLOR
 from salve.common.sim2 import Sim2
 from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.utils.wdo_alignment import AlignTransformType
-from salve.common.alignment_hypothesis import AlignmentHypothesis
 
 
 # See https://stackoverflow.com/questions/287871/how-to-print-colored-text-to-the-terminal
@@ -68,7 +65,6 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
     # plt.axis("equal")
     # plt.show()
     return False
-
 
 
 def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
@@ -214,7 +210,9 @@ def export_single_building_wdo_alignment_hypotheses(
                 # TODO: estimate how often an inferred opening can provide the correct relative pose.
 
                 # Remove redundant transformations.
-                pruned_possible_alignment_info = alignment_hypothesis_utils.prune_to_unique_sim2_objs(possible_alignment_info)
+                pruned_possible_alignment_info = alignment_hypothesis_utils.prune_to_unique_sim2_objs(
+                    possible_alignment_info
+                )
 
                 labels = []
                 # Loop over the alignment hypotheses.
@@ -380,22 +378,4 @@ def run_export_alignment_hypotheses(
 
 
 if __name__ == "__main__":
-    """
-    Alignment hypotheses have been saved to the following locations:
-
-    On se1-001:
-    - from Predicted WDO + Predicted Layout:
-        /home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
-    - from GT WDO + GT Layout:
-        /home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8
-
-    Locally:
-    - from GT WDO + GT Layout:
-        /Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8
-
-    ZInD is stored in the following locations:
-    - DGX: /mnt/data/johnlam/zind_bridgeapi_2021_10_05
-    - se1-001: /home/johnlam/zind_bridgeapi_2021_10_05
-    - locally: /Users/johnlam/Downloads/zind_bridgeapi_2021_10_05
-    """
     run_export_alignment_hypotheses()

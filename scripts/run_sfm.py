@@ -8,7 +8,7 @@ import glob
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, DefaultDict, Dict, List, Optional, Tuple
+from typing import DefaultDict, Dict, List, Optional, Tuple
 
 import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
@@ -611,18 +611,6 @@ def run_incremental_reconstruction(
             # from afp.algorithms.cluster_merging import merge_clusters
             # est_pose_graph = merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floor_pose_graph, two_view_reports_dict)
 
-        elif method == "growing_consensus":
-            growing_consensus(
-                building_id,
-                floor_id,
-                i2Si1_dict,
-                i2Ri1_dict,
-                i2Ui1_dict,
-                gt_edges,
-                two_view_reports_dict,
-                gt_floor_pose_graph,
-            )
-
         elif method == "SE2_cycles":
             cycles_SE2_spanning_tree(
                 building_id,
@@ -716,7 +704,6 @@ if __name__ == "__main__":
         choices=[
             "spanning_tree",
             "SE2_cycles",
-            "growing_consensus",
             "filtered_spanning_tree",
             "random_spanning_trees",
             "pose2_slam",
