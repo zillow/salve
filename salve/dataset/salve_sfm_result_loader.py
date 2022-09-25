@@ -57,7 +57,7 @@ def load_estimated_pose_graph(
 
     if boundary_type in [EstimatedBoundaryType.HNET_CORNERS, EstimatedBoundaryType.HNET_DENSE]:
         hnet_floor_predictions = hnet_prediction_loader.load_hnet_predictions(
-            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=predictions_data_root
+            building_id=building_id, raw_dataset_dir=raw_dataset_dir, predictions_data_root=predictions_data_root
         )
         if floor_id not in hnet_floor_predictions:
             raise ValueError(f"Predictions missing for {floor_id} of ZInD building {building_id}.")
@@ -92,7 +92,7 @@ def load_estimated_pose_graph(
             # ignore y values, which are along the vertical axis
             room_vertices_local_2d = layout_pts_worldmetric[:, np.array([0, 2])]
 
-            # TODO: add explanation for this.
+            # TODO: add explanation for this.????
             room_vertices_local_2d[:, 0] *= -1
 
         global_Sim2_local = Sim2(np.array(wSi["R"]), t=np.array(wSi["t"]), s=wSi["s"])
