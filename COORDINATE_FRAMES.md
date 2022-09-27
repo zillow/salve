@@ -22,6 +22,6 @@ Consider the red inset circles on the left and right. We can see that the rotati
 
 ## Notations for coordinate system conventions
 
-We use the notation `wTi = (wRi, wti)` to represent the 3d or 2d pose of the i'th camera in the world frame `w`, such that `p_w = wTi * p_i`.
+We use the notation `wTi = (wRi, wti)` to represent the 2d or 3d pose of the i'th camera in the world frame `w`. `wRi` is a rotation matrix, and `wti` is a translation vector. This transformation transports points `p` between coordinate frames such that `p_w = wTi * p_i`.
 
 We use the notation `wSi = (wRi, wti, s)` to represent a Similarity(2) or Similarity(3) transformation, such that `p_w = wSi * p_i`.
