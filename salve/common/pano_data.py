@@ -25,9 +25,11 @@ COLORMAP = np.random.rand(100, 3)
 class CoordinateFrame(str, Enum):
     """Defines scale of coordinates, their axes, and their frame of reference.
 
+    See COORDINATE_FRAMES.md for more information.
+
     LOCAL corresponds to Cartesian ego-frame of panorama.
-    WORLD_NORMALIZED corresponds to TODO
-    WORLD_METRIC corresponds to TODO
+    WORLD_NORMALIZED corresponds to the world frame, with scale ...
+    WORLD_METRIC corresponds to the world frame, with scale in meters.
     """
 
     LOCAL: str = "local"

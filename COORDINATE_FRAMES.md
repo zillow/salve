@@ -19,3 +19,9 @@ In the top-right, we can see a panorama (Pano 34), and see that the door and win
 
 Consider the red inset circles on the left and right. We can see that the rotation angle must be negated (equivalent to transposing the rotation matrix) in order for the panorama orientation to stay correct (facing towards a window).
 <img width="1013" src="https://user-images.githubusercontent.com/16724970/192112180-37c63507-1bd2-48fe-a807-86b98b69237d.png">
+
+## Notations for coordinate system conventions
+
+We use the notation `wTi = (wRi, wti)` to represent the 3d or 2d pose of the i'th camera in the world frame `w`, such that `p_w = wTi * p_i`.
+
+We use the notation `wSi = (wRi, wti, s)` to represent a Similarity(2) or Similarity(3) transformation, such that `p_w = wSi * p_i`.
