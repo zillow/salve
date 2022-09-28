@@ -7,23 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import MultiPolygon, Point, Polygon
 
-import salve.utils.interpolate as interp_utils
+import salve.utils.polyline_interpolation as polyline_interpolation
 
 
 EPS = 1e-9
-
-
-def get_polyline_length(polyline: np.ndarray) -> float:
-    """Calculate the length of a polyline.
-
-    Args:
-        polyline: Numpy array of shape (N,2)
-
-    Returns:
-        The length of the polyline as a scalar
-    """
-    assert polyline.shape[1] == 2
-    return float(np.linalg.norm(np.diff(polyline, axis=0), axis=1).sum())
 
 
 def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
@@ -59,37 +46,6 @@ def shrink_polygon(polygon: Polygon, shrink_factor: float = 0.10) -> Polygon:
     return polygon_shrunk
 
 
-def interp_evenly_spaced_points(polyline: np.ndarray, interval_m: float) -> np.ndarray:
-    """Nx2 polyline to Mx2 polyline, for waypoint every `interval_m` meters"""
-
-    length_m = get_polyline_length(polyline)
-    n_waypoints = int(np.ceil(length_m / interval_m))
-    px, py = eliminate_duplicates_2d(polyline[:, 0], py=polyline[:, 1])
-    interp_polyline = interp_utils.interp_arc(t=n_waypoints, px=px, py=py)
-
-    return interp_polyline
-
-
-def eliminate_duplicates_2d(px: np.ndarray, py: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Remove consecutive duplicate waypoints. 
-
-    Note: Differs from the argoverse implementation.
-
-    We compare indices to ensure that deleted values are exactly
-    adjacent to each other in the polyline sequence.
-    """
-    assert px.shape[0] == py.shape[0]
-    px_dup_inds = interp_utils.get_duplicate_indices_1d(px)
-    py_dup_inds = interp_utils.get_duplicate_indices_1d(py)
-    # Must be considered `duplicate` for both the x and y dimensions to be a true duplicate.
-    shared_dup_inds = np.intersect1d(px_dup_inds, py_dup_inds)
-
-    px = np.delete(px, [shared_dup_inds])
-    py = np.delete(py, [shared_dup_inds])
-
-    return px, py
-
-
 def count_verts_inside_poly(polygon: Polygon, query_verts: np.ndarray) -> int:
     """Count the number of vertices located inside of a polygon.
 
@@ -99,6 +55,7 @@ def count_verts_inside_poly(polygon: Polygon, query_verts: np.ndarray) -> int:
 
     Returns:
         num_violations: number of query vertices that lie within the polygon's area.
+           These can be considered infeasible penetrations of freespace (violations).
     """
     num_violations = 0
     for vert in query_verts:
@@ -121,13 +78,13 @@ def determine_invalid_wall_overlap(
     """Determine whether two rooms have an invalid configuration form wall overlap/freespace penetration.
 
     First, we densely interpolate points (at 0.1 m discretization) for both room polygon boundaries. Second,
-    we shrink both original polygons by `shrink_factor`, and then count the number of interpolated boundary
-    points that fall into the shrunk polygons (one room cannot be located within another room, as the layout
-    prediction represents freespace up to the wall boundary).
+    we shrink both original polygons by `shrink_factor`, and then count the number of interpolated points
+    along the original, outer boundar that fall into the other room's shrunk polygon. One room cannot be
+    located within another room, as the layout prediction represents freespace up to the wall boundary.
 
-    Note: the amount of intersection of the two polygons is not a useful signal BC ...
-
-    TODO: consider adding allowed_overlap_pct: float = 0.01
+    Note: the amount of intersection of the two polygons is not a useful signal because same-room (correct)
+    alignments and incorrect (should be different rooms, but instead overlaid as one room) alignments
+    both can yield high values.
 
     Args:
         pano1_room_vertices: room vertices of pano 1.
@@ -143,7 +100,7 @@ def determine_invalid_wall_overlap(
     Returns:
         is_valid: boolean indicating whether room pair is a potentially valid configuration.
     """
-    # Must add epsilon to avoid being detected as a duplicate vertex
+    # Must add epsilon to avoid being detected as a duplicate vertex.
     # Note: polygon does not contain loop closure (no vertex is repeated twice). Thus, must add first
     # vertex to end of vertex list.
     pano1_room_vertices = np.vstack([pano1_room_vertices, pano1_room_vertices[0] + EPS])
@@ -153,8 +110,9 @@ def determine_invalid_wall_overlap(
     polygon2 = Polygon(pano2_room_vertices)
 
     # Vertices in two lines below are in normalized coords.
-    pano1_room_vertices_interp = interp_evenly_spaced_points(pano1_room_vertices, interval_m=0.1)
-    pano2_room_vertices_interp = interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)
+    # Iterpolate evenly spaced points along edges.
+    pano1_room_vertices_interp = polyline_interpolation.interp_evenly_spaced_points(pano1_room_vertices, interval_m=0.1)
+    pano2_room_vertices_interp = polyline_interpolation.interp_evenly_spaced_points(pano2_room_vertices, interval_m=0.1)
 
     shrunk_poly1 = shrink_polygon(polygon1, shrink_factor=shrink_factor)
     shrunk_poly1_verts = np.array(list(shrunk_poly1.exterior.coords))
@@ -162,7 +120,6 @@ def determine_invalid_wall_overlap(
     shrunk_poly2 = shrink_polygon(polygon2, shrink_factor=shrink_factor)
     shrunk_poly2_verts = np.array(list(shrunk_poly2.exterior.coords))
 
-    # TODO: interpolate evenly spaced points along edges, if this gives any benefit?
     # Cannot be the case that poly1 vertices fall within a shrinken version of polygon2
     # also, cannot be the case that poly2 vertices fall within a shrunk version of polygon1
     pano1_violations = count_verts_inside_poly(shrunk_poly1, query_verts=pano2_room_vertices_interp)
@@ -172,32 +129,54 @@ def determine_invalid_wall_overlap(
     is_valid = num_violations == 0
 
     if visualize:
-        # Plot the overlap region. Original room vertices are shown as thick lines.
-        plt.close("all")
-
-        # Plot both the original lines (as thick lines) and also the interpolated points scattered on top.
-        plt.scatter(pano1_room_vertices_interp[:, 0], pano1_room_vertices_interp[:, 1], 10, color="m")
-        plt.plot(pano1_room_vertices[:, 0], pano1_room_vertices[:, 1], color="m", linewidth=20, alpha=0.1)
-
-        plt.scatter(pano2_room_vertices_interp[:, 0], pano2_room_vertices_interp[:, 1], 10, color="g")
-        plt.plot(pano2_room_vertices[:, 0], pano2_room_vertices[:, 1], color="g", linewidth=10, alpha=0.1)
-
-        # Render shrunk polygon 1 in red (with thin lines).
-        plt.scatter(shrunk_poly1_verts[:, 0], shrunk_poly1_verts[:, 1], 10, color="r")
-        plt.plot(shrunk_poly1_verts[:, 0], shrunk_poly1_verts[:, 1], color="r", linewidth=1, alpha=0.1)
-
-        # Render shrunk polygon 2 in blue (with thin lines).
-        plt.scatter(shrunk_poly2_verts[:, 0], shrunk_poly2_verts[:, 1], 10, color="b")
-        plt.plot(shrunk_poly2_verts[:, 0], shrunk_poly2_verts[:, 1], color="b", linewidth=1, alpha=0.1)
-
-        plt.title(f"Step 2: Number of violations: {num_violations}")
-        plt.axis("equal")
-        # plt.show()
-
-        classification = "invalid" if num_violations > 0 else "valid"
-
-        os.makedirs(f"debug_plots/{classification}", exist_ok=True)
-        plt.savefig(f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step2_{i}_{j}.jpg")
-        plt.close("all")
-
+        _plot_overlap_visualization(
+            pano1_room_vertices=pano1_room_vertices,
+            pano2_room_vertices=pano2_room_vertices,
+            pano1_room_vertices_interp=pano1_room_vertices_interp,
+            pano2_room_vertices_interp=pano2_room_vertices_interp,
+            shrunk_poly1_verts=shrunk_poly1_verts,
+            shrunk_poly2_verts=shrunk_poly2_verts,
+            num_violations=num_violations,
+        )
     return is_valid
+
+
+def _plot_overlap_visualization(
+    pano1_room_vertices: np.ndarray,
+    pano2_room_vertices: np.ndarray,
+    pano1_room_vertices_interp: np.ndarray,
+    pano2_room_vertices_interp: np.ndarray,
+    shrunk_poly1_verts: np.ndarray,
+    shrunk_poly2_verts: np.ndarray,
+    num_violations: int,
+) -> None:
+    """Visualize overlap regions by plotting original and shrunken layout polygons for two panos.
+
+    Original room vertices are shown as thick lines.
+    """
+    plt.close("all")
+
+    # Plot both the original lines (as thick lines) and also the interpolated points scattered on top.
+    plt.scatter(pano1_room_vertices_interp[:, 0], pano1_room_vertices_interp[:, 1], 10, color="m")
+    plt.plot(pano1_room_vertices[:, 0], pano1_room_vertices[:, 1], color="m", linewidth=20, alpha=0.1)
+
+    plt.scatter(pano2_room_vertices_interp[:, 0], pano2_room_vertices_interp[:, 1], 10, color="g")
+    plt.plot(pano2_room_vertices[:, 0], pano2_room_vertices[:, 1], color="g", linewidth=10, alpha=0.1)
+
+    # Render shrunk polygon 1 in red (with thin lines).
+    plt.scatter(shrunk_poly1_verts[:, 0], shrunk_poly1_verts[:, 1], 10, color="r")
+    plt.plot(shrunk_poly1_verts[:, 0], shrunk_poly1_verts[:, 1], color="r", linewidth=1, alpha=0.1)
+
+    # Render shrunk polygon 2 in blue (with thin lines).
+    plt.scatter(shrunk_poly2_verts[:, 0], shrunk_poly2_verts[:, 1], 10, color="b")
+    plt.plot(shrunk_poly2_verts[:, 0], shrunk_poly2_verts[:, 1], color="b", linewidth=1, alpha=0.1)
+
+    plt.title(f"Step 2: Number of violations: {num_violations}")
+    plt.axis("equal")
+    plt.show()
+
+    classification = "invalid" if num_violations > 0 else "valid"
+
+    os.makedirs(f"debug_plots/{classification}", exist_ok=True)
+    plt.savefig(f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step2_{i}_{j}.jpg")
+    plt.close("all")

@@ -97,10 +97,13 @@ python scripts/export_alignment_hypotheses.py \
     --raw_dataset_dir {PATH TO ZIND} \
     --hypotheses_save_root {DIRECTORY WHERE TO DUMP OUTPUT} \
     --wdo_source horizon_net \
+    --split test \
     --mhnet_predictions_data_root {DIRECTORY TO MHNET PREDS} \
      2>&1 | tee alignment_hypotheses_generation_output.log
 ```
 Using 20-30 processes is recommended, and even with 30 processes, the generation may take 1-2 hours to complete.
+
+Replace `--split test` with `train` or `val` if desired.
 
 ### Generate depth maps with HoHoNet
 To run HoHoNet inference, clone the HoHoNet repo:

@@ -41,11 +41,16 @@ class AlignmentGenerationReport:
 
 
 def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
-    """Check if two rooms share a door, window, or opening.
+    """Check if two pano layouts share a door, window, or opening.
+
+    If a W/D/O is shared, then presumably they are likely to be visibly adjacent.
 
     Args:
-        pano1_obj: Room information for pano 1
-        pano2_obj: Room information for pano 2
+        pano1_obj: Room information for pano 1.
+        pano2_obj: Room information for pano 2.
+
+    Returns:
+        Boolean indicating whether visual adjacency is likely.
     """
     DIST_THRESH = 0.1
 
@@ -68,7 +73,8 @@ def are_visibly_adjacent(pano1_obj: PanoData, pano2_obj: PanoData) -> bool:
 
 
 def save_Sim2(save_fpath: str, i2Ti1: Sim2) -> None:
-    """
+    """Save Similarity(2) object to disk.
+
     Args:
         save_fpath
         i2Ti1: transformation that takes points in frame1, and brings them into frame2
@@ -92,7 +98,7 @@ def export_single_building_wdo_alignment_hypotheses(
     use_inferred_wdos_layout: bool,
     mhnet_predictions_data_root: Optional[str] = None,
 ) -> None:
-    """Save candidate alignment Sim(2) transformations to disk as JSON files.
+    """Generate candidate alignment Sim(2) transformations and save to disk as JSON files.
 
     For every pano, try to align it to another pano.
 
@@ -122,7 +128,6 @@ def export_single_building_wdo_alignment_hypotheses(
             return
 
     floor_map_json = io_utils.read_json_file(json_annot_fpath)
-
     if "merger" not in floor_map_json:
         logger.error(f"Building {building_id} does not have `merger` data, skipping...")
         return
@@ -168,29 +173,29 @@ def export_single_building_wdo_alignment_hypotheses(
                 # _ = plot_room_layout(pano_dict[i1], coord_frame="local")
                 # _ = plot_room_layout(pano_dict[i2], coord_frame="local")
 
-                # we use the GT W/D/Os to infer this GT label.
+                # We use the GT W/D/Os to infer this GT label.
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
 
-                try:
-                    if use_inferred_wdos_layout:
-                        possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
-                            pano_dict_inferred[i1],
-                            pano_dict_inferred[i2],
-                            use_inferred_wdos_layout=use_inferred_wdos_layout,
-                            transform_type=AlignTransformType.SE2,
-                        )
-                    else:
-                        possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
-                            pano_dict[i1],
-                            pano_dict[i2],
-                            use_inferred_wdos_layout=use_inferred_wdos_layout,
-                            transform_type=AlignTransformType.SE2,
-                        )
-                except Exception:
-                    logger.exception(
-                        f"Failure in `align_rooms_by_wd() for building {building_id}, {floor_id}`, skipping... "
+                #try:
+                if use_inferred_wdos_layout:
+                    possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
+                        pano_dict_inferred[i1],
+                        pano_dict_inferred[i2],
+                        use_inferred_wdos_layout=use_inferred_wdos_layout,
+                        transform_type=AlignTransformType.SE2,
                     )
-                    continue
+                else:
+                    possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
+                        pano_dict[i1],
+                        pano_dict[i2],
+                        use_inferred_wdos_layout=use_inferred_wdos_layout,
+                        transform_type=AlignTransformType.SE2,
+                    )
+                #except Exception:
+                #    logger.exception(
+                #        f"Failure in `align_rooms_by_wd() for building {building_id}, {floor_id}`, skipping... "
+                #    )
+                #    continue
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
@@ -273,6 +278,7 @@ def export_alignment_hypotheses_to_json(
     raw_dataset_dir: str,
     hypotheses_save_root: str,
     use_inferred_wdos_layout: bool,
+    dataset_split,
     mhnet_predictions_data_root: Optional[str],
 ) -> None:
     """Use multiprocessing to dump alignment hypotheses for all buildings to JSON.
@@ -285,16 +291,15 @@ def export_alignment_hypotheses_to_json(
         raw_dataset_dir: path to ZinD dataset.
         hypotheses_save_root: directory where JSON files with alignment hypotheses will be saved to.
         use_inferred_wdos_layout: whether to use inferred W/D/O + inferred layout (or instead to use GT).
+        dataset_split: ZInD dataset split to generate alignment hypotheses for.
         mhnet_predictions_data_root: path to directory containing HorizonNet predictions.
     """
-    # TODO: allow user to specify the split via CLI.
-    building_ids = DATASET_SPLITS["test"]
+    building_ids = DATASET_SPLITS[dataset_split]
     building_ids.sort()
 
     args = []
 
     for building_id in building_ids:
-
         json_annot_fpath = f"{raw_dataset_dir}/{building_id}/zind_data.json"
         # render_building(building_id, pano_dir, json_annot_fpath)
 
@@ -335,9 +340,9 @@ def export_alignment_hypotheses_to_json(
     "--hypotheses_save_root",
     type=str,
     required=True,
-    # "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-    # "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
-    # default="/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
+    # "/home/johnlambert/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    # "/Users/johnlambert/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"
+    # default="/home/johnlambert/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65",
     help="Directory where JSON files with alignment hypotheses will be saved to.",
 )
 @click.option(
@@ -345,6 +350,12 @@ def export_alignment_hypotheses_to_json(
     type=click.Choice(["horizon_net", "ground_truth"]),
     required=True,
     help="Where to pull W/D/O and layout (either inferred from HorizonNet, or taken from annotated ground truth)",
+)
+@click.option(
+    "--split",
+    type=click.Choice(["train", "val", "test"]),
+    required=True,
+    help="ZInD dataset split to generate alignment hypotheses for.",
 )
 @click.option(
     "--mhnet_predictions_data_root",
@@ -358,24 +369,25 @@ def run_export_alignment_hypotheses(
     num_processes: int,
     hypotheses_save_root: str,
     wdo_source: str,
+    split: str,
     mhnet_predictions_data_root: Optional[str],
 ) -> None:
     """Click entry point for alignment hypotheses generation."""
 
-    # if the W/D/O source is not HorizonNet, then we'll fall back to using annotated GT W/D/O.
+    # If the W/D/O source is not HorizonNet, then we'll fall back to using annotated GT W/D/O.
     use_inferred_wdos_layout = wdo_source == "horizon_net"
 
     if use_inferred_wdos_layout:
         assert Path(mhnet_predictions_data_root).exists()
 
     export_alignment_hypotheses_to_json(
-        num_processes,
-        raw_dataset_dir,
-        hypotheses_save_root,
-        use_inferred_wdos_layout,
-        mhnet_predictions_data_root,
+        num_processes=num_processes,
+        raw_dataset_dir=raw_dataset_dir,
+        hypotheses_save_root=hypotheses_save_root,
+        use_inferred_wdos_layout=use_inferred_wdos_layout,
+        dataset_split=split,
+        mhnet_predictions_data_root=mhnet_predictions_data_root,
     )
-
 
 if __name__ == "__main__":
     run_export_alignment_hypotheses()

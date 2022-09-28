@@ -85,10 +85,10 @@ def get_all_pano_wd_vertices(pano_obj: PanoData) -> np.ndarray:
     return pts
 
 
-def plot_room_walls(
+def _plot_room_walls(
     pano_obj: PanoData, i2Ti1: Optional[Sim2] = None, color=None, linewidth: float = 2.0, alpha: float = 0.5
 ) -> None:
-    """TODO: Add documentation."""
+    """Plot a pano's layout (representing room boundary), and optionally transform to another frame."""
     room_vertices = pano_obj.room_vertices_local_2d
     if i2Ti1:
         room_vertices = i2Ti1.transform_from(room_vertices)
@@ -97,7 +97,7 @@ def plot_room_walls(
         color = np.random.rand(3)
     plt.scatter(room_vertices[:, 0], room_vertices[:, 1], 10, marker=".", color=color, alpha=alpha)
     plt.plot(room_vertices[:, 0], room_vertices[:, 1], color=color, alpha=alpha, linewidth=linewidth)
-    # draw edge to close each polygon
+    # Draw edge to close each polygon
     last_vert = room_vertices[-1]
     first_vert = room_vertices[0]
     plt.plot(
@@ -176,39 +176,13 @@ def align_rooms_by_wd(
 
                     pano2_wd_pts = pano2_wd_.polygon_vertices_local_3d
 
-                    # TODO(johnwlambert): Remove this commented out code below.
-                    # if visualize:
-                    #     plt.close("all")
-
-                    #     all_wd_verts_1 = get_all_pano_wd_vertices(pano1_obj)
-                    #     all_wd_verts_2 = get_all_pano_wd_vertices(pano2_obj)
-                    #     plt.scatter(-all_wd_verts_1[:,0], all_wd_verts_1[:,1], 10, color='k', marker='+')
-                    #     plt.scatter(-all_wd_verts_2[:,0], all_wd_verts_2[:,1], 10, color='g', marker='+')
-
-                    # plot_room_walls(pano1_obj)
-                    # plot_room_walls(pano2_obj)
-
-                    # plt.plot(
-                    #     -pano1_wd.polygon_vertices_local_3d[:,0],
-                    #     pano1_wd.polygon_vertices_local_3d[:,1],
-                    #     color="r",
-                    #     linewidth=5,
-                    #     alpha=0.2
-                    # )
-                    # plt.plot(
-                    #     -pano2_wd_.polygon_vertices_local_3d[:,0],
-                    #     pano2_wd_.polygon_vertices_local_3d[:,1],
-                    #     color="b",
-                    #     linewidth=5,
-                    #     alpha=0.2
-                    # )
-
-                    # plt.axis("equal")
-                    # plt.title("Step 1: Before alignment")
-                    # #os.makedirs(f"debug_plots/{pano1_id}_{pano2_id}", exist_ok=True)
-                    # #plt.savefig(f"debug_plots/{pano1_id}_{pano2_id}/step1_{i}_{j}.jpg")
-                    # plt.show()
-                    # plt.close("all")
+                    if visualize:
+                        _visualize_wdo_before_alignment(
+                            pano1_obj=pano1_obj,
+                            pano2_obj=pano2_obj,
+                            pano1_wd=pano1_wd,
+                            pano2_wd=pano2_wd,
+                        )
 
                     if transform_type == AlignTransformType.SE2:
                         i2Ti1, aligned_pts1 = se2_estimation.align_points_SE2(pano2_wd_pts[:, :2], pano1_wd_pts[:, :2])
@@ -292,33 +266,131 @@ def align_rooms_by_wd(
                         classification = "invalid"
 
                     if visualize:
-                        plot_room_walls(pano1_obj, i2Ti1, color="tab:pink", linewidth=10)
-                        plot_room_walls(pano2_obj, color="tab:orange", linewidth=1)
-
-                        plt.scatter(aligned_pts1[:, 0], aligned_pts1[:, 1], 10, color="r", marker="+")
-                        plt.plot(aligned_pts1[:, 0], aligned_pts1[:, 1], color="r", linewidth=10, alpha=0.5)
-
-                        plt.scatter(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], 10, color="b", marker="+")
-                        plt.plot(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], color="g", linewidth=5, alpha=0.1)
-
-                        # plt.plot(inter_poly_verts[:,0],inter_poly_verts[:,1], color='m')
-
-                        plt.title(
-                            f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid},"
-                            f" aligned via {alignment_object}, \n  config={configuration}"
+                        _visualize_aligned_wdo(
+                            pano1_obj=pano1_obj,
+                            pano2_obj=pano2_obj,
+                            i2Ti1=i2Ti1,
+                            aligned_pts1=aligned_pts1,
+                            aligned_pts2=aligned_pts2,
+                            pano2_wd_pts=pano2_wd_pts,
+                            pano1_id=pano1_id,
+                            pano2_id=pano2_id,
+                            is_valid=is_valid,
+                            alignment_object=alignment_object,
+                            configuration=configuration,
+                            classification=classification,
+                            i=i,
+                            j=j
                         )
-                        # window_normals_compatible={window_normals_compatible},
-                        plt.axis("equal")
-                        os.makedirs(f"debug_plots/{classification}", exist_ok=True)
-                        plt.savefig(
-                            f"debug_plots/{classification}/"
-                            f"{alignment_object}_{pano1_id}_{pano2_id}___step3_{configuration}_{i}_{j}.jpg"
-                        )
-
-                        # plt.show()
-                        plt.close("all")
 
     return possible_alignment_info, num_invalid_configurations
+
+
+def _visualize_wdo_before_alignment(
+    pano1_obj: PanoData,
+    pano2_obj: PanoData,
+    pano1_wd: WDO,
+    pano2_wd: WDO) -> None:
+    """Save visualization of W/D/O pair and layout before alignment.
+    
+    Args:
+        pano1_obj: data for panorama 1.
+        pano2_obj: data for panorama 2.
+        pano1_wd: data for W/D/O from pano 1.
+        pano2_wd: data for W/D/O from pano 2.
+    """
+    plt.close("all")
+
+    all_wd_verts_1 = get_all_pano_wd_vertices(pano1_obj)
+    all_wd_verts_2 = get_all_pano_wd_vertices(pano2_obj)
+    plt.scatter(-all_wd_verts_1[:,0], all_wd_verts_1[:,1], 10, color='k', marker='+')
+    plt.scatter(-all_wd_verts_2[:,0], all_wd_verts_2[:,1], 10, color='g', marker='+')
+
+    _plot_room_walls(pano1_obj)
+    _plot_room_walls(pano2_obj)
+
+    plt.plot(
+        -pano1_wd.polygon_vertices_local_3d[:,0],
+        pano1_wd.polygon_vertices_local_3d[:,1],
+        color="r",
+        linewidth=5,
+        alpha=0.2
+    )
+    plt.plot(
+        -pano2_wd_.polygon_vertices_local_3d[:,0],
+        pano2_wd_.polygon_vertices_local_3d[:,1],
+        color="b",
+        linewidth=5,
+        alpha=0.2
+    )
+
+    plt.axis("equal")
+    plt.title("Step 1: Before alignment")
+    #os.makedirs(f"debug_plots/{pano1_id}_{pano2_id}", exist_ok=True)
+    #plt.savefig(f"debug_plots/{pano1_id}_{pano2_id}/step1_{i}_{j}.jpg")
+    plt.show()
+    plt.close("all")
+
+
+def _visualize_aligned_wdo(
+    pano1_obj: PanoData,
+    pano2_obj: PanoData,
+    i2Ti1: Sim2,
+    aligned_pts1: np.ndarray,
+    aligned_pts2: np.ndarray,
+    pano2_wd_pts: np.ndarray,
+    pano1_id: int,
+    pano2_id: int,
+    is_valid: bool,
+    alignment_object: str,
+    configuration: str,
+    classification: str,
+    i: int,
+    j: int,
+) -> None:
+    """Save visualization of W/D/O and layout after alignment.
+
+    Args:
+        pano1_obj: data for panorama 1.
+        pano2_obj: data for panorama 2.
+        i2Ti1: Similarity(2) transformation.
+        aligned_pts1: 
+        aligned_pts2: 
+        pano2_wd_pts: 
+        pano1_id: panorama 1 index (for ZInD building).
+        pano2_id: panorama 2 index (for ZInD building).
+        is_valid: whether alignment hypothesis was classified as valid.
+        alignment_object: 
+        configuration: W/D/O surface normal configuration (identity vs. rotated).
+        classification: 
+        i: pano 1 W/D/O index among all of pano 1's W/D/Os.
+        j: pano 2 W/D/O index among all of pano 2's W/D/Os.
+    """
+    _plot_room_walls(pano1_obj, i2Ti1, color="tab:pink", linewidth=10)
+    _plot_room_walls(pano2_obj, color="tab:orange", linewidth=1)
+
+    plt.scatter(aligned_pts1[:, 0], aligned_pts1[:, 1], 10, color="r", marker="+")
+    plt.plot(aligned_pts1[:, 0], aligned_pts1[:, 1], color="r", linewidth=10, alpha=0.5)
+
+    plt.scatter(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], 10, color="b", marker="+")
+    plt.plot(pano2_wd_pts[:, 0], pano2_wd_pts[:, 1], color="g", linewidth=5, alpha=0.1)
+
+    # plt.plot(inter_poly_verts[:,0],inter_poly_verts[:,1], color='m')
+
+    plt.title(
+        f"Step 3: Match: ({pano1_id},{pano2_id}): valid={is_valid},"
+        f" aligned via {alignment_object}, \n  config={configuration}"
+    )
+    # window_normals_compatible={window_normals_compatible},
+    plt.axis("equal")
+    os.makedirs(f"debug_plots/{classification}", exist_ok=True)
+    plt.savefig(
+        f"debug_plots/{classification}/"
+        f"{alignment_object}_{pano1_id}_{pano2_id}___step3_{configuration}_{i}_{j}.jpg"
+    )
+
+    # plt.show()
+    plt.close("all")
 
 
 def determine_invalid_width_ratio(pano1_wd: WDO, pano2_wd: WDO, use_inferred_wdos_layout: bool) -> Tuple[bool, float]:
