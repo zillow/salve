@@ -8,7 +8,7 @@ from gtsam import Point2Pairs, Pose2
 from salve.common.sim2 import Sim2
 
 
-def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], np.ndarray]:
+def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim2], Optional[np.ndarray]]:
     r"""Align two points clouds by fitting a SE(2) transformation between corresponding point pairs.
 
     See https://github.com/borglab/gtsam/blob/develop/gtsam/geometry/Pose2.cpp#L311-L330
@@ -27,7 +27,7 @@ def align_points_SE2(pts_a: np.ndarray, pts_b: np.ndarray) -> Tuple[Optional[Sim
 
     # We need at least 2 pairs.
     if n < 2:
-        return None
+        return None, None
 
     if pts_a.shape[1] != 2 or pts_b.shape[1] != 2:
         raise RuntimeError(f"Input point clouds were of shape {pts_a.shape}, but should have been (N,2)")
