@@ -148,7 +148,7 @@ def _plot_overlap_visualization(
     pano2_room_vertices_interp: np.ndarray,
     shrunk_poly1_verts: np.ndarray,
     shrunk_poly2_verts: np.ndarray,
-    num_violations: int
+    num_violations: int,
 ) -> None:
     """Visualize overlap regions by plotting original and shrunken layout polygons for two panos.
 
@@ -180,4 +180,3 @@ def _plot_overlap_visualization(
     os.makedirs(f"debug_plots/{classification}", exist_ok=True)
     plt.savefig(f"debug_plots/{classification}/{pano1_id}_{pano2_id}___step2_{i}_{j}.jpg")
     plt.close("all")
-
