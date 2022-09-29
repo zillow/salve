@@ -1,4 +1,5 @@
-"""
+"""Utilities for computing uncertainty.
+
 For Orthographic camera. Pixel uncertainty is related to the cosine of the angle between a W/D/O and the
 ray from camera to W/D/O midpoint.
 """
