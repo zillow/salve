@@ -1,8 +1,10 @@
 """Utilities for rendering bird's eye view texture maps."""
 
 import os
+from argparse import Namespace
 from pathlib import Path
-from typing import List, Optional, Tuple
+from types import SimpleNamespace
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import imageio
@@ -29,7 +31,6 @@ WDO_COLOR_DICT_CV2 = {"windows": RED, "doors": GREEN, "openings": BLUE}
 CEILING_CLASS_IDX = 36
 MIRROR_CLASS_IDX = 85
 WALL_CLASS_IDX = 191
-
 
 
 def prune_to_2d_bbox(
@@ -153,7 +154,6 @@ def rasterize_single_layout(
     return bev_img
 
 
-
 def draw_polygon_cv2(points: np.ndarray, image: np.ndarray, color: Tuple[int, int, int]) -> np.ndarray:
     """Draw a polygon onto an image using the given points and fill color.
     These polygons are often non-convex, so we cannot use cv2.fillConvexPoly().
@@ -168,7 +168,7 @@ def draw_polygon_cv2(points: np.ndarray, image: np.ndarray, color: Tuple[int, in
         points: Array of shape (N, 2) representing all points of the polygon
         image: Array of shape (M, N, 3) representing the image to be drawn onto
         color: Tuple of shape (3,) with a BGR format color
-    
+
     Returns:
         image: Array of shape (M, N, 3) with polygon rendered on it
     """
@@ -176,7 +176,6 @@ def draw_polygon_cv2(points: np.ndarray, image: np.ndarray, color: Tuple[int, in
     points = points.astype(np.int32)
     image = cv2.fillPoly(image, points, color)  # , lineType[, shift]]) -> None
     return image
-
 
 
 def rasterize_polygon(
@@ -201,7 +200,7 @@ def rasterize_polyline(
         bev_img: array of shape (H,W,3) as image representing bird's eye view.
         bevimg_Sim2_world: transormation that converts world points into bird's eye view image coordinates, e.g.
             p_bevimg = bevimg_Sim2_world * p_world.
-        color: 
+        color:
         thickness: line thickness (in pixels).
 
     Returns:
@@ -343,11 +342,13 @@ def grayscale_to_color(gray_img: np.ndarray) -> np.ndarray:
     return rgb_img
 
 
-def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: bool) -> np.ndarray:
+def get_xyzrgb_from_depth(
+    args: Union[SimpleNamespace, Namespace], depth_fpath: str, rgb_fpath: str, is_semantics: bool
+) -> np.ndarray:
     """Obtain colored point cloud by backprojecting panorama image RGB values using a depth map.
 
     Args:
-        args: 
+        args: panorama and backprojected point cloud cropping parameters.
         depth_fpath: file path to depth map.
         rgb_fpath: file path to RGB panorama image.
         is_semantics: whether to interpret image as semantic label map.
@@ -355,10 +356,10 @@ def get_xyzrgb_from_depth(args, depth_fpath: str, rgb_fpath: str, is_semantics: 
     Returns:
         xyzrgb: numpy array of shape (N,6), with rgb in [0,1] as floats.
     """
-    if "crop_ratio" not in args:
+    if "crop_ratio" not in args.__dict__:
         raise ValueError("Crop ratio for panorama top and bottom must be provided as `args.crop_ratio`.")
-    
-    if "crop_z_range" not in args:
+
+    if "crop_z_range" not in args.__dict__:
         raise ValueError("Z-coordinate range for cropping must be provided as `args.crop_z_range`.")
 
     depth = imageio.imread(depth_fpath)[..., None].astype(np.float32) * args.scale
@@ -517,4 +518,3 @@ def get_bev_pair_xyzrgb(
     # xyzrgb1[:,:2] = i2Ti1.transform_from(xyzrgb1[:,:2]) #
 
     return xyzrgb1, xyzrgb2
-
