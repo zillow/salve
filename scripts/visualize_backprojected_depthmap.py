@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser.add_argument("--crop_z_range", default=1.2, type=float, help="Filter 3D point with z coordinate above")
     args = parser.parse_args()
 
-    surface_type = "ceiling"  # "floor" # "all"
+    surface_type = "all" # "ceiling"  # "floor"
     if surface_type == "floor":
         # everything 1 meter and below the camera
         args.crop_z_range = [-float("inf"), -1.0]
