@@ -4,7 +4,7 @@ import os
 from argparse import Namespace
 from pathlib import Path
 from types import SimpleNamespace
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import imageio
