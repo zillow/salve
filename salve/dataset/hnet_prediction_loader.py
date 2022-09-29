@@ -23,7 +23,7 @@ from salve.dataset.mhnet_prediction import MHNetPanoStructurePrediction
 
 def load_hnet_predictions(
     building_id: str, raw_dataset_dir: str, predictions_data_root: str
-) -> Optional[Dict[str, Dict[int, MHNetPanoStructurePrediction]]]:
+) -> Dict[str, Dict[int, MHNetPanoStructurePrediction]]:
     """Load raw pixelwise HorizonNet predictions for each pano in a specified ZInD building.
 
     # TODO: remove dependency on getting pano paths from ZInD in this function (put them inside the predictions).
@@ -48,18 +48,29 @@ def load_hnet_predictions(
             building_id=building_id, floor_id=floor_id, raw_dataset_dir=raw_dataset_dir
         )
         for i in floor_gt_pose_graph.pano_ids():
-
             # TODO: get corresponding prediction file based on the filename, not on the integer ID
 
             # If the file doesn't exist, return None for now (TODO: throw an error)
             model_prediction_fpaths = glob.glob(f"{predictions_data_root}/horizon_net/{building_id}/*_{i}.json")
-            if len(model_prediction_fpaths) != 1:
+            if len(model_prediction_fpaths) == 0:
                 print("\tShould only be one prediction for this (building id, pano id) tuple.")
                 print(f"\tPrediction {i} was missing")
                 plt.close("all")
                 continue
 
-            model_prediction_fpath = Path(model_prediction_fpaths[0])
+            elif len(model_prediction_fpaths) > 1:
+                # Note: Building 1348 has two panos with ID `5` each, which are very similar. Choose the one below for `5`.
+                if building_id == "1348" and i == 5:
+                    model_prediction_fpath = Path(
+                        f"{predictions_data_root}/horizon_net/1348/floor_01_partial_room_12_pano_5.json"
+                    )
+                # Note: Building 0363 has two panos with ID `34` each.
+                if building_id == "0363" and i == 34:
+                    model_prediction_fpath = Path(
+                        f"{predictions_data_root}/horizon_net/0363/floor_02_partial_room_05_pano_34.json"
+                    )
+            else:
+                model_prediction_fpath = Path(model_prediction_fpaths[0])
             fname_stem = Path(model_prediction_fpath).stem
             img_fpath = Path(f"{raw_dataset_dir}/{building_id}/panos/{fname_stem}.jpg")
             pred_obj = MHNetPanoStructurePrediction.from_json_fpath(
@@ -69,26 +80,31 @@ def load_hnet_predictions(
 
             render_on_pano = False
             if render_on_pano:
-                plt.figure(figsize=(20, 10))
-                img = imageio.imread(img_fpath)
-                img_resized = cv2.resize(img, (pred_obj.image_width, pred_obj.image_height))
-                plt.imshow(img_resized)
-                pred_obj.render_layout_on_pano()
-                plt.title(f"Pano {i} from Building {building_id}")
-                plt.tight_layout()
-                os.makedirs("HorizonNet_pred_model_visualizations_2022_09_11_bridge/rmx_madori_v1_bev", exist_ok=True)
-                plt.savefig(
-                    f"HorizonNet_pred_model_visualizations_2022_09_11_bridge/rmx_madori_v1_bev/{building_id}_{i}.jpg",
-                    dpi=400,
-                )
-                # plt.show()
-                plt.close("all")
-                plt.figure(figsize=(20, 10))
+                _visualize_overlaid_layout_on_pano(img_fpath, pred_obj, building_id, i)
 
     return floor_hnet_predictions
 
-    raise RuntimeError("Unknown error loading inferred pose graphs")
-    return None
+
+def _visualize_overlaid_layout_on_pano(
+    img_fpath: str,
+    pred_obj: MHNetPanoStructurePrediction,
+    building_id: str,
+    i: int
+) -> None:
+    """Visualize overlaid layout on panorama."""
+    plt.figure(figsize=(20, 10))
+    img = imageio.imread(img_fpath)
+    img_resized = cv2.resize(img, (pred_obj.image_width, pred_obj.image_height))
+    plt.imshow(img_resized)
+    pred_obj.render_layout_on_pano()
+    plt.title(f"Pano {i} from Building {building_id}")
+    plt.tight_layout()
+    save_dir = "HorizonNet_pred_model_visualizations_2022_01_01_bridge/mhnet_overlaid"
+    os.makedirs(save_dir, exist_ok=True)
+    plt.savefig(f"{save_dir}/{building_id}_{i}.jpg", dpi=400)
+    # plt.show()
+    plt.close("all")
+    plt.figure(figsize=(20, 10))
 
 
 def load_vanishing_angles(predictions_data_root: str, building_id: str) -> Dict[int, float]:
@@ -153,7 +169,12 @@ def load_inferred_floor_pose_graphs(
 
             img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/floor*_pano_{i}.jpg")
             if not len(img_fpaths) == 1:
-                raise ValueError("There should be a unique image for this panorama ID.")
+                # Note: Building 1348 has two panos with ID `5` each.
+                known_duplicate1 = (building_id == "1348" and i == 5)
+                # Note: Building 0363 has two panos with ID `34` each.
+                known_duplicate2 = (building_id == "0363" and i == 34)
+                if not (known_duplicate1 or known_duplicate2):
+                    raise ValueError(f"There should be a unique image for panorama ID {i} from Bldg. {building_id}.")
             img_fpath = img_fpaths[0]
 
             IMG_H = 512
