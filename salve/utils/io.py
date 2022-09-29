@@ -16,6 +16,9 @@ def read_json_file(fpath: Union[str, Path]) -> Any:
     Returns:
         Deserialized Python dictionary or list.
     """
+    if not Path(fpath).exists():
+        raise ValueError(f"No file found at {fpath}")
+
     with open(fpath, "r") as f:
         return json.load(f)
 
