@@ -183,7 +183,6 @@ def export_single_building_wdo_alignment_hypotheses(
                     if i2 not in pano_dict_inferred:
                         raise ValueError(f"MHNet predictions for pano {i2} (i2) are missing for Building {building_id}.")
 
-                #try:
                 if use_inferred_wdos_layout:
                     possible_alignment_info, num_invalid_configurations = wdo_alignment_utils.align_rooms_by_wd(
                         pano_dict_inferred[i1],
@@ -198,11 +197,6 @@ def export_single_building_wdo_alignment_hypotheses(
                         use_inferred_wdos_layout=use_inferred_wdos_layout,
                         transform_type=AlignTransformType.SE2,
                     )
-                #except Exception:
-                #    logger.exception(
-                #        f"Failure in `align_rooms_by_wd() for building {building_id}, {floor_id}`, skipping... "
-                #    )
-                #    continue
 
                 floor_n_valid_configurations += len(possible_alignment_info)
                 floor_n_invalid_configurations += num_invalid_configurations
@@ -273,7 +267,7 @@ def export_single_building_wdo_alignment_hypotheses(
     print(f"{OKGREEN} Building {building_id}: " + ENDCOLOR)
     for floor_id, gt_is_valid_arr in floor_gt_is_valid_report_dict.items():
         print(
-            f"{OKGREEN} {floor_id}: {np.mean(gt_is_valid_arr):.2f} over {len(gt_is_valid_arr)} alignment pairs."
+            f"{OKGREEN} {floor_id}: {np.mean(gt_is_valid_arr):.2f} GT is-valid frac. over {len(gt_is_valid_arr)} alignment pairs."
             + ENDCOLOR
         )
     print(HEADER + ENDCOLOR)
