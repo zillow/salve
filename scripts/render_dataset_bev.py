@@ -215,7 +215,7 @@ def render_pairs(
         render_modalities:
         split: ZInD dataset split to generate BEV texture maps or layouts for.
     """
-    building_ids = DATASET_SPLITS[dataset_split]
+    building_ids = DATASET_SPLITS[split]
     building_ids.sort()
 
     args = []
