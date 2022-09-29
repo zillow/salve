@@ -141,7 +141,7 @@ def export_single_building_wdo_alignment_hypotheses(
         logger.info("--------------------------------")
         logger.info("--------------------------------")
         logger.info("--------------------------------")
-        logger.info(f"On building {building_id}, floor {floor_id}...")
+        logger.info(f"On building {building_id}, {floor_id}...")
         logger.info("--------------------------------")
         logger.info("--------------------------------")
         logger.info("--------------------------------")
@@ -165,7 +165,7 @@ def export_single_building_wdo_alignment_hypotheses(
                     continue
 
                 if (building_id == "0006") and (i1 == 7 or i2 == 7):
-                    # annotation error for pano 7, in ZinD.
+                    # Annotation error exists for pano 7, in ZInD, so omit it from training data.
                     continue
 
                 if i1 % 1000 == 0:
@@ -175,6 +175,13 @@ def export_single_building_wdo_alignment_hypotheses(
 
                 # We use the GT W/D/Os to infer this GT label.
                 visibly_adjacent = are_visibly_adjacent(pano_dict[i1], pano_dict[i2])
+
+                if use_inferred_wdos_layout:
+                    if i1 not in pano_dict_inferred:
+                        raise ValueError(f"MHNet predictions for pano {i1} (i1) are missing for Building {building_id}.")
+
+                    if i2 not in pano_dict_inferred:
+                        raise ValueError(f"MHNet predictions for pano {i2} (i2) are missing for Building {building_id}.")
 
                 #try:
                 if use_inferred_wdos_layout:
@@ -209,7 +216,6 @@ def export_single_building_wdo_alignment_hypotheses(
                     # print("Identity? ", np.round(expected, 1))
                     if not np.allclose(expected, np.eye(2), atol=1e-6):
                         import pdb
-
                         pdb.set_trace()
 
                 # TODO: estimate how often an inferred opening can provide the correct relative pose.
