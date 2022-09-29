@@ -124,7 +124,8 @@ From within the `HoHoNet` dir, execute:
 ```bash
 python {SALVE_REPO_DIRPATH}/scripts/batch_hohonet_inference.py \
     --raw_dataset_dir {PATH TO ZIND} \
-    --depth_save_root {PATH TO SAVE DEPTH MAPS}
+    --depth_save_root {PATH TO SAVE DEPTH MAPS} \
+    --num_processes {NUM GPU PROCESSES BASED ON GPU RAM}
 ```
 Each process will likely consume around 4.3 GB of GPU RAM.
 
@@ -133,12 +134,14 @@ Run:
 ```bash
 export PYTHONPATH=./
 python {SALVE_REPO_DIRPATH}/scripts/render_dataset_bev.py \
-    --num_processes {NUM. DESIRED PROCS.} \
+    --num_processes {NUM. DESIRED PROCESSES} \
     --raw_dataset_dir {PATH TO ZIND} \
     --hypotheses_save_root {PATH TO PRE-GENERATED ALIGNMENT HYPOTHESES} \
-    --depth_save_root {PATH TO WHERE DEPTH MAPS WILL BE SAVED TO}\
-    --bev_save_root {PATH WHERE BEV TEXTURE MAPS WILL BE SAVED TO}
+    --depth_save_root {PATH TO WHERE DEPTH MAPS WILL BE OR HAVE BEEN SAVED TO} \
+    --bev_save_root {PATH WHERE BEV TEXTURE MAPS WILL BE SAVED TO} \
+    --split test
 ```
+Replace `--split test` with `train` or `val` if desired.
 
 If you see an error message like:
 ```

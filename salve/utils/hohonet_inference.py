@@ -13,7 +13,7 @@ HOHONET_CKPT_FPATH = "ckpt/mp3d_depth_HOHO_depth_dct_efficienthc_TransEn1_hardne
 
 
 def infer_depth_if_nonexistent(depth_save_root: str, building_id: str, img_fpath: str) -> None:
-    """ """
+    """Infer depth map if it does not already exist at `depth_save_root`."""
     fname_stem = Path(img_fpath).stem
     building_depth_save_dir = f"{depth_save_root}/{building_id}"
     if Path(f"{building_depth_save_dir}/{fname_stem}.depth.png").exists():

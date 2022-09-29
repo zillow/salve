@@ -55,7 +55,7 @@ def render_building_floor_pairs(
         render_modalities: type of BEV rendering to generate (either "rgb_texture" or "layout", or both).
     """
     if "layout" in render_modalities:
-        # load the layouts, either inferred or GT.
+        # Load the layouts, either inferred or GT.
         use_inferred_wdos_layout = True
         if use_inferred_wdos_layout:
             floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
@@ -108,7 +108,7 @@ def render_building_floor_pairs(
                 os.makedirs(building_bev_save_dir, exist_ok=True)
 
                 def bev_fname_from_img_fpath(pair_idx: int, pair_uuid: str, surface_type: str, img_fpath: str) -> None:
-                    """ """
+                    """Generate file name for BEV texture map based on panorama image file path."""
                     fname_stem = Path(img_fpath).stem
                     if is_semantics:
                         img_name = f"pair_{pair_idx}___{pair_uuid}_{surface_type}_semantics_{fname_stem}.jpg"
@@ -137,7 +137,7 @@ def render_building_floor_pairs(
                             "depth_i1": f"{depth_save_root}/{building_id}/{Path(img1_fpath).stem}.depth.png",
                             "depth_i2": f"{depth_save_root}/{building_id}/{Path(img2_fpath).stem}.depth.png",
                             "scale": 0.001,
-                            # throw away top 80 and bottom 80 rows of pixel (too noisy of estimates)
+                            # Throw away top 80 and bottom 80 rows of pixel (too noisy of estimates in these regions).
                             "crop_ratio": 80 / 512,
                             "crop_z_range": crop_z_range,  # 0.3 # -1.0 # -0.5 # 0.3 # 1.2
                         }
@@ -158,10 +158,12 @@ def render_building_floor_pairs(
                     imageio.imwrite(bev_fpath1, bev_img1)
                     imageio.imwrite(bev_fpath2, bev_img2)
 
+
                 if "layout" not in render_modalities:
                     continue
 
-                # Only rasterize layout for `floor'.
+                # Rasterized-layout rendering below (skipped if only generating texture maps).
+                # We only rasterize layout for `floor', not for `ceiling`.
                 # If `ceiling', we'll skip, since will be identical rendering to `floor`.
                 if surface_type != "floor":
                     continue
@@ -169,7 +171,7 @@ def render_building_floor_pairs(
                 building_layout_save_dir = f"{layout_save_root}/{label_type}/{building_id}"
                 os.makedirs(building_layout_save_dir, exist_ok=True)
 
-                # change to layout dir
+                # Change to layout directory.
                 layout_fpath1 = f"{building_layout_save_dir}/{bev_fname1}"
                 layout_fpath2 = f"{building_layout_save_dir}/{bev_fname2}"
 
@@ -177,7 +179,7 @@ def render_building_floor_pairs(
                     print("Both layout images already exist, skipping...")
                     continue
 
-                # skip for ceiling, since would be duplicate.
+                # Skip for ceiling, since would be duplicate.
                 layoutimg1, layoutimg2 = bev_rendering_utils.rasterize_room_layout_pair(
                     i2Ti1=i2Ti1,
                     floor_pose_graph=floor_pose_graph,
@@ -198,6 +200,7 @@ def render_pairs(
     hypotheses_save_root: str,
     layout_save_root: Optional[str],
     render_modalities: List[str],
+    split: str
 ) -> None:
     """Render BEV texture maps for all floors of all ZinD buildings.
 
@@ -207,121 +210,19 @@ def render_pairs(
         bev_save_root: directory where bird's eye view texture maps should be saved.
         raw_dataset_dir: path to ZinD dataset.
         hypotheses_save_root: directory where putative alignment hypotheses are saved.
-        layout_save_root:
+        layout_save_root: Directory where BEV rendered layouts (instead of RGB texture maps) should be saved to.
+            Only applicable when generating aligned BEV layouts intead of aligned texture maps (layout-only baseline).
         render_modalities:
+        split: ZInD dataset split to generate BEV texture maps or layouts for.
     """
-
-    # discover possible building ids and floors
-    building_ids = [Path(fpath).stem for fpath in glob.glob(f"{raw_dataset_dir}/*") if Path(fpath).is_dir()]
-
-    building_ids = [
-        "0969",
-        "0245",
-        "0297",
-        "0299",
-        "0308",
-        "0336",
-        "0353",
-        "0354",
-        "0406",
-        "0420",
-        "0429",
-        "0431",
-        "0453",
-        "0490",
-        "0496",
-        "0528",
-        "0534",
-        "0564",
-        "0575",
-        "0579",
-        "0583",
-        "0588",
-        "0605",
-        "0629",
-        "0668",
-        "0681",
-        "0684",
-        "0691",
-        "0792",
-        "0800",
-        "0809",
-        "0819",
-        "0854",
-        "0870",
-        "0905",
-        "0957",
-        "0963",
-        "0964",
-        "0966",
-        "1001",
-        "1027",
-        "1028",
-        "1041",
-        "1050",
-        "1068",
-        "1069",
-        "1075",
-        "1130",
-        "1160",
-        "1175",
-        "1184",
-        "1185",
-        "1203",
-        "1207",
-        "1210",
-        "1218",
-        "1239",
-        "1248",
-        "1326",
-        "1328",
-        "1330",
-        "1368",
-        "1383",
-        "1388",
-        "1398",
-        "1401",
-        "1404",
-        "1409",
-        "1479",
-        "1490",
-        "1494",
-        "1500",
-        "1538",
-        "1544",
-        "1551",
-        "1566",
-    ]
-
+    building_ids = DATASET_SPLITS[dataset_split]
     building_ids.sort()
 
     args = []
 
     for building_id in building_ids:
-
-        if building_id in [
-            "0809",
-            "0966",
-            "0668",
-            "0684",
-            "0854",
-            "1409",
-            "0964",
-            "0336",
-            "1175",
-            "0297",
-            "1028",
-            "0575",
-            "0819",
-            "0800",
-            "0588",
-            "1326",
-        ]:
-            # Has a degenerate prediction.
-            continue
-
-        # for rendering test data only
-        if building_id not in DATASET_SPLITS["test"]:
+        if building_id == "1348":
+            # This ZInD building has two panoramas with identical ID, which breaks assumptions above.
             continue
 
         floor_ids = posegraph2d.compute_available_floors_for_building(
@@ -361,7 +262,7 @@ def render_pairs(
     "--depth_save_root",
     type=str,
     required=True,
-    help="Path to where depth maps are stored (and will be saved to, if not computed yet).",
+    help="Path to where depth maps are stored (or will be saved to, if not computed yet).",
 )
 @click.option(
     "--hypotheses_save_root",
@@ -376,12 +277,19 @@ def render_pairs(
     help="Directory where BEV texture maps should be written to (directory will be created at this path).",
 )
 @click.option(
+    "--split",
+    type=click.Choice(["train", "val", "test"]),
+    required=True,
+    help="ZInD dataset split to generate BEV texture maps or layouts for.",
+)
+@click.option(
     "--layout_save_root",
     type=str,
     default=None,
-    help="Directory where BEV rendered layouts (instead of RGB texture maps) should be saved to.",
+    help="Directory where BEV rendered layouts (instead of RGB texture maps) should be saved to."
+    "Only applicable when generating aligned, rasterized BEV layouts intead of aligned texture maps"
+    "(corresponding to the layout-only baseline).",
 )
-#TODO: splits
 #TODO: building_id
 def run_render_dataset_bev(
     raw_dataset_dir: str,
@@ -389,11 +297,11 @@ def run_render_dataset_bev(
     depth_save_root: str,
     hypotheses_save_root: str,
     bev_save_root: str,
+    split: str,
     layout_save_root: Optional[str],
-    #splits
     #building_id: Optional[str]
 ) -> None:
-    """ """
+    """Click entry point for BEV texture map or layout rendering."""
     if layout_save_root is None:
         render_modalities = ["rgb_texture"]
     else:
@@ -407,10 +315,10 @@ def run_render_dataset_bev(
         hypotheses_save_root=hypotheses_save_root,
         layout_save_root=layout_save_root,
         render_modalities=render_modalities,
+        split=split,
     )
 
 
 if __name__ == "__main__":
-    """
-    """
+    """ """
     run_render_dataset_bev()
