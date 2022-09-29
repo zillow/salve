@@ -40,7 +40,7 @@ def render_building_floor_pairs(
     layout_save_root: Optional[str],
     render_modalities: List[str],
 ) -> None:
-    """Render BEV texture maps for a single floor of a single ZinD building.
+    """Render BEV texture maps for a single floor of a single ZinD building, in a single process.
 
     Given a set of possible alignment hypotheses for the floor, render all possible BEV floor-ceiling image pairs.
 
