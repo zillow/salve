@@ -1,5 +1,5 @@
-"""Utilities for logging.
-"""
+"""Utilities for logging."""
+
 import logging
 import os
 import sys

@@ -244,7 +244,6 @@ def align_rooms_by_wd(
                         print(
                             f"Valid? {is_valid} -> Width: {alignment_object} {i} {j} {configuration} "
                             f"-> {width_ratio:.2f}"
-                            + ""  # f", Uncertainty: {pano1_uncertainty_factor:.2f}, {pano2_uncertainty_factor:.2f}"
                         )
 
                     # logger.error("Pano1 room verts: %s", str(pano1_room_vertices))
