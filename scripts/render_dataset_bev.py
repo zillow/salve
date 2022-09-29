@@ -200,7 +200,8 @@ def render_pairs(
     hypotheses_save_root: str,
     layout_save_root: Optional[str],
     render_modalities: List[str],
-    split: str
+    split: Optional[str],
+    building_id: Optional[str],
 ) -> None:
     """Render BEV texture maps for all floors of all ZinD buildings.
 
@@ -214,9 +215,18 @@ def render_pairs(
             Only applicable when generating aligned BEV layouts intead of aligned texture maps (layout-only baseline).
         render_modalities:
         split: ZInD dataset split to generate BEV texture maps or layouts for.
+        building_id: Unique ID of ZInD building to generate renderings for (`split` will be ignored in this case).
     """
-    building_ids = DATASET_SPLITS[split]
-    building_ids.sort()
+    if building_id is not None and split is not None:
+        raise ValueError("Either `split` or `building_id` should be provided, but not both.")
+
+    if split is not None:
+        # Generate renderings for all buildings in the split.
+        building_ids = DATASET_SPLITS[split]
+        building_ids.sort()
+    else:
+        # Generate renderings for only one specific building.
+        building_ids = [building_id]
 
     args = []
 
@@ -279,7 +289,7 @@ def render_pairs(
 @click.option(
     "--split",
     type=click.Choice(["train", "val", "test"]),
-    required=True,
+    default=None,
     help="ZInD dataset split to generate BEV texture maps or layouts for.",
 )
 @click.option(
@@ -290,16 +300,22 @@ def render_pairs(
     "Only applicable when generating aligned, rasterized BEV layouts intead of aligned texture maps"
     "(corresponding to the layout-only baseline).",
 )
-#TODO: building_id
+@click.option(
+    "--building_id",
+    type=str,
+    required=False,
+    default=None,
+    help="Unique ID of ZInD building to generate renderings for (`--split` will be ignored in this case).",
+)
 def run_render_dataset_bev(
     raw_dataset_dir: str,
     num_processes: int,
     depth_save_root: str,
     hypotheses_save_root: str,
     bev_save_root: str,
-    split: str,
+    split: Optional[str],
     layout_save_root: Optional[str],
-    #building_id: Optional[str]
+    building_id: Optional[str]
 ) -> None:
     """Click entry point for BEV texture map or layout rendering."""
     if layout_save_root is None:
@@ -316,6 +332,7 @@ def run_render_dataset_bev(
         layout_save_root=layout_save_root,
         render_modalities=render_modalities,
         split=split,
+        building_id=building_id,
     )
 
 
