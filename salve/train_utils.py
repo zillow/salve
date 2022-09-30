@@ -1,22 +1,19 @@
-"""
-Shared utilities for model training/testing.
-"""
+"""Shared utilities for model training/testing."""
 
 import logging
 from pathlib import Path
 from typing import Callable, Tuple
 
 import torch
-from mseg_semantic.utils.avg_meter import AverageMeter
-from mseg_semantic.utils.normalization_utils import get_imagenet_mean_std
 from torch import nn, Tensor
 
+import salve.utils.normalization_utils as normalization_utils
 import salve.utils.transform as transform
 from salve.dataset.zind_data import ZindData
 from salve.models.early_fusion import EarlyFusionCEResnet
-from salve.utils.logger_utils import get_logger
 from salve.training_config import TrainingConfig
-
+from salve.utils.avg_meter import AverageMeter
+from salve.utils.logger_utils import get_logger
 
 
 # logger = get_logger()
@@ -109,7 +106,7 @@ def get_train_transform(args: TrainingConfig) -> Callable:
         RandomVerticalFlip = transform.RandomVerticalFlipSextuplet
         Compose = transform.ComposeSextuplet
 
-    mean, std = get_imagenet_mean_std()
+    mean, std = normalization_utils.get_imagenet_mean_std()
 
     # TODO: check if cropping helps. currently prevent using the exact same 224x224 square every time
     # We use random crops to prevent memorization.
@@ -155,7 +152,7 @@ def get_val_test_transform(args: TrainingConfig) -> Callable:
         Normalize = transform.NormalizeSextuplet
         Compose = transform.ComposeSextuplet
 
-    mean, std = get_imagenet_mean_std()
+    mean, std = normalization_utils.get_imagenet_mean_std()
 
     # Uses deterministic center crops instead of random crops.
     transform_list = [
