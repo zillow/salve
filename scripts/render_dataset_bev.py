@@ -115,7 +115,7 @@ def render_building_floor_pairs(
 
     else:
         for single_call_args in args:
-            render_building_floor_pairs(*single_call_args)
+            generate_texture_maps_for_pair(*single_call_args)
 
 
 def generate_texture_maps_for_pair(
@@ -204,7 +204,6 @@ def generate_texture_maps_for_pair(
         bev_img1, bev_img2 = bev_rendering_utils.render_bev_pair(
             args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False
         )
-
         if bev_img1 is None or bev_img2 is None:
             return
 
