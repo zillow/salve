@@ -1,6 +1,6 @@
 """Stores hyperparameters for training a model (for a single experiment)."""
 
-from typing import List
+from typing import Optional, Tuple
 
 from dataclasses import dataclass
 
@@ -52,7 +52,7 @@ class TrainingConfig:
     train_h: int
     train_w: int
     apply_photometric_augmentation: bool
-    modalities = ["layout"]
+    modalities: Tuple[str]
 
     cfg_stem: str
     num_epochs: int
@@ -62,6 +62,6 @@ class TrainingConfig:
     data_root: str
     layout_data_root: str
     model_save_dirpath: str
-    gpu_ids: str = None
+    gpu_ids: Optional[str] = None
 
     # TODO: make a rendering config with resolution, spatial extent stored in it.
