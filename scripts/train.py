@@ -131,6 +131,8 @@ def visualize_unnormalized_examples(
     import matplotlib.pyplot as plt
     import salve.utils.normalization_utils as normalization_utils
 
+    n = x1.shape[0]
+
     for k in range(n):
         plt.figure(figsize=(10, 5))
         mean, std = normalization_utils.get_imagenet_mean_std()
@@ -219,7 +221,7 @@ def run_epoch(
             gt_is_match = is_match
 
         is_match_probs, loss = train_utils.cross_entropy_forward(
-            model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match
+            model, split, x1, x2, x3, x4, x5, x6, gt_is_match
         )
 
         sam.update_metrics_cpu(

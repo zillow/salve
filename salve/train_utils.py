@@ -22,7 +22,6 @@ from salve.utils.logger_utils import get_logger
 
 def cross_entropy_forward(
     model: nn.Module,
-    args,
     split: str,
     x1: Tensor,
     x2: Tensor,
