@@ -31,7 +31,7 @@ class TrainingConfig:
         num_epochs: number of epochs to train for.
         workers: how many subprocesses to use for data loading.
         batch_size: batch size (how many samples per batch to load).
-        data_root: 
+        data_root: path to rendered RGB texture maps.
         layout_data_root: 
         model_save_dirpath: 
         gpu_ids: GPU device IDs to use for training.

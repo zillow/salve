@@ -13,11 +13,6 @@ from salve.dataset.zind_data import ZindData
 from salve.models.early_fusion import EarlyFusionCEResnet
 from salve.training_config import TrainingConfig
 from salve.utils.avg_meter import AverageMeter
-from salve.utils.logger_utils import get_logger
-
-
-# logger = get_logger()
-# logger = logging.getLogger(__name__)
 
 
 def cross_entropy_forward(
