@@ -37,14 +37,6 @@ or on Mac
 conda env create -f environment_macos-latest.yml
 ```
 
-**Libraries for evaluation** We use `AvgMeter` classes from `mseg-semantic`. Install as follows:
-
-```bash
-git clone https://github.com/mseg-dataset/mseg-semantic.git
-cd mseg-semantic
-pip install -e .
-```
-
 **Notes about libraries used**
 - We use Facebook's `hydra` library for configuration files.
 - We use the [`rdp`](https://github.com/fhirschmann/rdp) library for polygon simplification.
