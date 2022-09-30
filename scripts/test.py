@@ -26,7 +26,7 @@ from salve.utils.logger_utils import get_logger
 
 
 logger = get_logger()
-SALVE_CONFIGS_ROOT = Path(__file__).resolve().parent / "salve" / "configs"
+SALVE_CONFIGS_ROOT = Path(__file__).resolve().parent.parent / "salve" / "configs"
 
 
 def run_test_epoch(
@@ -307,9 +307,9 @@ def plot_metrics(json_fpath: str) -> None:
 @click.command(help="Script to run inference with pretrained SALVe model.")
 @click.option(
     "--gpu_ids",
-    type=List[int],
+    type=str,
     required=True,
-    help="List of GPU device IDs to use for training.",
+    help="String representing comma-separated list of GPU device IDs to use for training.",
 )
 @click.option(
     "--model_results_dir",
@@ -333,7 +333,7 @@ def plot_metrics(json_fpath: str) -> None:
     "--use_dataparallel",
     type=bool,
     default=True,
-    help=".",
+    help="Whether to use Pytorch's DataParallel for distributed inference.",
 )
 def run_evaluate_model(
     gpu_ids: List[int], model_results_dir: str, config_name: str, serialization_save_dir: str, use_dataparallel: bool
@@ -356,7 +356,7 @@ def run_evaluate_model(
     # plot_metrics(json_fpath=train_results_fpath)
 
     if not Path(f"{SALVE_CONFIGS_ROOT}/{config_name}").exists():
-        raise FileNotFoundError("")
+        raise FileNotFoundError(f"No config found at `{SALVE_CONFIGS_ROOT}/{config_name}`.")
 
     with hydra.initialize_config_module(config_module="salve.configs"):
         # config is relative to the `salve` module
