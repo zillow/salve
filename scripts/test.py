@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-import gtsfm.utils.io as io_utils
 import hydra
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -15,13 +14,14 @@ import seaborn as sns
 import torch
 import torch.backends.cudnn as cudnn
 from hydra.utils import instantiate
-import mseg_semantic.utils.normalization_utils as normalization_utils
-from mseg_semantic.utils.avg_meter import SegmentationAverageMeter
 from torch import nn
 
+import salve.utils.io as io_utils
+import salve.utils.normalization_utils as normalization_utils
 import salve.utils.pr_utils as pr_utils
 import salve.train_utils as train_utils
 from salve.training_config import TrainingConfig
+from salve.utils.avg_meter import SegmentationAverageMeter
 from salve.utils.logger_utils import get_logger
 
 
@@ -322,7 +322,7 @@ if __name__ == "__main__":
         "--config_name",
         type=str,
         required=True,
-        help="File name of config file under afp/configs/* (not file path!). Should end in .yaml",
+        help="File name of config file under `salve/configs/*` (not file path!). Should end in .yaml",
     )
 
     parser.add_argument(
@@ -344,8 +344,8 @@ if __name__ == "__main__":
 
     # plot_metrics(json_fpath=train_results_fpath)
 
-    with hydra.initialize_config_module(config_module="afp.configs"):
-        # config is relative to the afp module
+    with hydra.initialize_config_module(config_module="salve.configs"):
+        # config is relative to the `salve` module
         cfg = hydra.compose(config_name=opts.config_name)
         args = instantiate(cfg.TrainingConfig)
 

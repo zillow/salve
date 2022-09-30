@@ -4,6 +4,12 @@ export outf=2022_09_29_inference
 mkdir -p ${outf}
 
 TEST_BUILDING_IDS=(
+	0990
+	0021
+	0809
+	0966
+	1551
+	1079
 	0963
 	1169
 	0203
@@ -158,21 +164,13 @@ TEST_BUILDING_IDS=(
 	1368)
 
 
-	# 0990
-	# 0021
-	# 0809
-	# 0966
-	# 1551
-	# 1079)
-
-
 for building_id in ${TEST_BUILDING_IDS[@]}; do
 
 	echo " "
 	echo "Evaluate on: ${building_id}"
 
 	#sbatch --dependency=singleton --job-name=mseg_eval_A -c 5 -p short -x jarvis,vicki,cortana,gideon,ephemeral-3 --gres=gpu:1 \
-	sbatch -c 5 --job-name=salve_inference_overcap_A --gres=gpu:1 -p short \
+	sbatch --constraint=a40 -c 25 --job-name=salve_inference_overcap_A --gres=gpu:1 -p short \
 		-o ${outf}/${building_id}.log salve_inference_1gpu.sh ${building_id}
 	    #--exclude crushinator,clank,rosie,siri,droid,olivaw,glados,xaea-12,nestor,heistotron,cyborg,dave,robby,megabot,sonny,spd-13,randotron,sophon,chomps,alexa,chappie,bmo,fiona,cortana,irona,ephemeral-3,vincent \
 	    
