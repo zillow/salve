@@ -75,9 +75,7 @@ def run_test_epoch(
         else:
             gt_is_match = is_match
 
-        is_match_probs, loss = train_utils.cross_entropy_forward(
-            model, split, x1, x2, x3, x4, x5, x6, gt_is_match
-        )
+        is_match_probs, loss = train_utils.cross_entropy_forward(model, split, x1, x2, x3, x4, x5, x6, gt_is_match)
 
         y_hat = torch.argmax(is_match_probs, dim=1)
 
@@ -335,22 +333,16 @@ def plot_metrics(json_fpath: str) -> None:
     default=True,
     help="Whether to use Pytorch's DataParallel for distributed inference (True) or single GPU (False).",
 )
-@click.option(
-    "--num_workers",
-    type=int,
-    default=10,
-    help="Number of Pytorch dataloader workers."
-)
-@click.option(
-    "--test_batch_size",
-    type=int,
-    default=64, # 128
-    help="Batch size to use during inference."
-)
+@click.option("--num_workers", type=int, default=10, help="Number of Pytorch dataloader workers.")
+@click.option("--test_batch_size", type=int, default=64, help="Batch size to use during inference.")  # 128
 def run_evaluate_model(
-    gpu_ids: List[int], model_results_dir: str, config_name: str, serialization_save_dir: str, use_dataparallel: bool,
+    gpu_ids: List[int],
+    model_results_dir: str,
+    config_name: str,
+    serialization_save_dir: str,
+    use_dataparallel: bool,
     num_workers: int,
-    test_batch_size: int
+    test_batch_size: int,
 ) -> None:
     """Click entry point for SALVe pretrained model inference."""
 
