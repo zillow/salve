@@ -108,7 +108,7 @@ def main(args) -> None:
 
         results_json_fpath = f"{results_dir}/results-{exp_start_time}-{cfg_stem}.json"
         io_utils.save_json_file(json_fpath=results_json_fpath, data=results_dict)
-        shutil.copyfile(f"afp/configs/{args.cfg_stem}.yaml", f"{results_dir}/{args.cfg_stem}.yaml")
+        shutil.copyfile(f"salve/configs/{args.cfg_stem}.yaml", f"{results_dir}/{args.cfg_stem}.yaml")
 
         logging.info("Results on crit stat: " + str([f"{v:.3f}" for v in results_dict[crit_acc_stat]]))
 
