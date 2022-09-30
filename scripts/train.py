@@ -13,17 +13,17 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
 
-import gtsfm.utils.io as io_utils
 import hydra
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from hydra.utils import instantiate
-from mseg_semantic.utils.avg_meter import AverageMeter, SegmentationAverageMeter
 
 import salve.utils.datetime_utils as datetime_utils
+import salve.utils.io as io_utils
 import salve.utils.logger_utils as logger_utils
 import salve.train_utils as train_utils
+from salve.utils.avg_meter import AverageMeter, SegmentationAverageMeter
 
 # logger = logger_utils.get_logger()
 
@@ -294,7 +294,7 @@ if __name__ == "__main__":
         cfg = hydra.compose(config_name=opts.config_name)
         args = instantiate(cfg.TrainingConfig)
 
-    # always take from the command line
+    # Always take GPU ids from the command line, not the config.
     args.gpu_ids = opts.gpu_ids
     if not args.cfg_stem:
         args.cfg_stem = Path(opts.config_name).stem
