@@ -128,9 +128,8 @@ def visualize_unnormalized_examples(
     """
 
     # TODO(johnwlambert): verify the type of fp0 and fp1
-
     import matplotlib.pyplot as plt
-    import mseg_semantic.utils.normalization_utils as normalization_utils
+    import salve.utils.normalization_utils as normalization_utils
 
     for k in range(n):
         plt.figure(figsize=(10, 5))
