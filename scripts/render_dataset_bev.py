@@ -32,92 +32,6 @@ def panoid_from_fpath(fpath: str) -> int:
     return int(Path(fpath).stem.split("_")[-1])
 
 
-def render_building_floor_pairs(
-    depth_save_root: str,
-    bev_save_root: str,
-    hypotheses_save_root: str,
-    raw_dataset_dir: str,
-    building_id: str,
-    floor_id: str,
-    layout_save_root: Optional[str],
-    render_modalities: List[str],
-    multiprocess_building_panos: bool,
-    num_processes: int,
-) -> None:
-    """Render BEV texture maps for a single floor of a single ZinD building.
-
-    Given a set of possible alignment hypotheses for the floor, render all possible BEV floor-ceiling image pairs.
-
-    Args:
-        depth_save_root: directory where depth maps should be saved (or are already cached here).
-        bev_save_root: directory where bird's eye view texture maps should be saved.
-        hypotheses_save_root: directory where putative alignment hypotheses are saved.
-        raw_dataset_dir: path to ZInD dataset.
-        building_id: unique ID of ZInD building.
-        floor_id: unique ID of floor.
-        layout_save_root: if rendering rasterized layout, all images will be saved under this directory.
-        render_modalities: type of BEV rendering to generate (either "rgb_texture" or "layout", or both).
-        multiprocess_building_panos: Whether to apply multiprocessing within a single building (i.e. multiprocess
-            the pano pairs for a single building when True), or instead across buildings (one process per building
-            when False).
-        num_processes: number of processes to use for rendering pairs from this building.
-    """
-    if "layout" in render_modalities:
-        # Load the layouts, either inferred or GT.
-        use_inferred_wdos_layout = True
-        if use_inferred_wdos_layout:
-            floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-                building_id=building_id, raw_dataset_dir=raw_dataset_dir
-            )
-            if floor_pose_graphs is None:
-                return
-            floor_pose_graph = floor_pose_graphs[floor_id]
-        else:
-            floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
-    else:
-        floor_pose_graph = None
-
-    img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
-    img_fpaths_dict = {panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
-
-    floor_labels_dirpath = f"{hypotheses_save_root}/{building_id}/{floor_id}"
-
-    args = []
-
-    for label_type in ["gt_alignment_approx", "incorrect_alignment"]:  # "gt_alignment_exact"
-        pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
-        pairs.sort()
-        print(f"On Building {building_id}, {floor_id}, {label_type}")
-
-        for pair_idx, pair_fpath in enumerate(pairs):
-            for surface_type in ["floor", "ceiling"]:
-
-                args += [
-                    (
-                        img_fpaths_dict,
-                        surface_type,
-                        pair_fpath,
-                        pair_idx,
-                        label_type,
-                        bev_save_root,
-                        building_id,
-                        floor_id,
-                        depth_save_root,
-                        render_modalities,
-                        layout_save_root,
-                        floor_pose_graph,
-                    )
-                ]
-
-    if multiprocess_building_panos and num_processes > 1:
-        with Pool(num_processes) as p:
-            p.starmap(generate_texture_maps_for_pair, args)
-
-    else:
-        for single_call_args in args:
-            generate_texture_maps_for_pair(*single_call_args)
-
-
 def generate_texture_maps_for_pair(
     img_fpaths_dict: Dict[int, str],
     surface_type: str,
@@ -241,6 +155,92 @@ def generate_texture_maps_for_pair(
     )
     imageio.imwrite(layout_fpath1, layoutimg1)
     imageio.imwrite(layout_fpath2, layoutimg2)
+
+
+def render_building_floor_pairs(
+    depth_save_root: str,
+    bev_save_root: str,
+    hypotheses_save_root: str,
+    raw_dataset_dir: str,
+    building_id: str,
+    floor_id: str,
+    layout_save_root: Optional[str],
+    render_modalities: List[str],
+    multiprocess_building_panos: bool,
+    num_processes: int,
+) -> None:
+    """Render BEV texture maps for a single floor of a single ZinD building.
+
+    Given a set of possible alignment hypotheses for the floor, render all possible BEV floor-ceiling image pairs.
+
+    Args:
+        depth_save_root: directory where depth maps should be saved (or are already cached here).
+        bev_save_root: directory where bird's eye view texture maps should be saved.
+        hypotheses_save_root: directory where putative alignment hypotheses are saved.
+        raw_dataset_dir: path to ZInD dataset.
+        building_id: unique ID of ZInD building.
+        floor_id: unique ID of floor.
+        layout_save_root: if rendering rasterized layout, all images will be saved under this directory.
+        render_modalities: type of BEV rendering to generate (either "rgb_texture" or "layout", or both).
+        multiprocess_building_panos: Whether to apply multiprocessing within a single building (i.e. multiprocess
+            the pano pairs for a single building when True), or instead across buildings (one process per building
+            when False).
+        num_processes: number of processes to use for rendering pairs from this building.
+    """
+    if "layout" in render_modalities:
+        # Load the layouts, either inferred or GT.
+        use_inferred_wdos_layout = True
+        if use_inferred_wdos_layout:
+            floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
+                building_id=building_id, raw_dataset_dir=raw_dataset_dir
+            )
+            if floor_pose_graphs is None:
+                return
+            floor_pose_graph = floor_pose_graphs[floor_id]
+        else:
+            floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
+    else:
+        floor_pose_graph = None
+
+    img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
+    img_fpaths_dict = {panoid_from_fpath(fpath): fpath for fpath in img_fpaths}
+
+    floor_labels_dirpath = f"{hypotheses_save_root}/{building_id}/{floor_id}"
+
+    args = []
+
+    for label_type in ["gt_alignment_approx", "incorrect_alignment"]:  # "gt_alignment_exact"
+        pairs = glob.glob(f"{floor_labels_dirpath}/{label_type}/*.json")
+        pairs.sort()
+        print(f"On Building {building_id}, {floor_id}, {label_type}")
+
+        for pair_idx, pair_fpath in enumerate(pairs):
+            for surface_type in ["floor", "ceiling"]:
+
+                args += [
+                    (
+                        img_fpaths_dict,
+                        surface_type,
+                        pair_fpath,
+                        pair_idx,
+                        label_type,
+                        bev_save_root,
+                        building_id,
+                        floor_id,
+                        depth_save_root,
+                        render_modalities,
+                        layout_save_root,
+                        floor_pose_graph,
+                    )
+                ]
+
+    if multiprocess_building_panos and num_processes > 1:
+        with Pool(num_processes) as p:
+            p.starmap(generate_texture_maps_for_pair, args)
+
+    else:
+        for single_call_args in args:
+            generate_texture_maps_for_pair(*single_call_args)
 
 
 def render_pairs(
