@@ -24,7 +24,8 @@ TrainingConfig:
     workers: 25
     batch_size: 256
 
-    data_root: /srv/scratch/jlambert30/salve/ZinD_Bridge_API_BEV_2021_10_20_lowres
+    #data_root: /srv/scratch/jlambert30/salve/ZinD_Bridge_API_BEV_2021_10_20_lowres
+    data_root: /srv/scratch/jlambert30/salve/2022_09_29_zind_texture_map_renderings_test
     layout_data_root: 
     #model_save_dirpath": "/Users/johnlam/Downloads/ZinD_trained_models_2021_06_25",
     model_save_dirpath: /data/johnlam/ZinD_trained_models_2021_11_09
