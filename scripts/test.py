@@ -26,7 +26,7 @@ from salve.utils.logger_utils import get_logger
 
 
 logger = get_logger()
-SALVE_CONFIGS_ROOT = Path(__file__).resolve().parent / "salve" / "configs"
+SALVE_CONFIGS_ROOT = Path(__file__).resolve().parent.parent / "salve" / "configs"
 
 
 def run_test_epoch(
@@ -75,9 +75,7 @@ def run_test_epoch(
         else:
             gt_is_match = is_match
 
-        is_match_probs, loss = train_utils.cross_entropy_forward(
-            model, split, x1, x2, x3, x4, x5, x6, gt_is_match
-        )
+        is_match_probs, loss = train_utils.cross_entropy_forward(model, split, x1, x2, x3, x4, x5, x6, gt_is_match)
 
         y_hat = torch.argmax(is_match_probs, dim=1)
 
@@ -307,9 +305,9 @@ def plot_metrics(json_fpath: str) -> None:
 @click.command(help="Script to run inference with pretrained SALVe model.")
 @click.option(
     "--gpu_ids",
-    type=List[int],
+    type=str,
     required=True,
-    help="List of GPU device IDs to use for training.",
+    help="String representing comma-separated list of GPU device IDs to use for training.",
 )
 @click.option(
     "--model_results_dir",
@@ -333,10 +331,18 @@ def plot_metrics(json_fpath: str) -> None:
     "--use_dataparallel",
     type=bool,
     default=True,
-    help=".",
+    help="Whether to use Pytorch's DataParallel for distributed inference (True) or single GPU (False).",
 )
+@click.option("--num_workers", type=int, default=10, help="Number of Pytorch dataloader workers.")
+@click.option("--test_batch_size", type=int, default=64, help="Batch size to use during inference.")  # 128
 def run_evaluate_model(
-    gpu_ids: List[int], model_results_dir: str, config_name: str, serialization_save_dir: str, use_dataparallel: bool
+    gpu_ids: List[int],
+    model_results_dir: str,
+    config_name: str,
+    serialization_save_dir: str,
+    use_dataparallel: bool,
+    num_workers: int,
+    test_batch_size: int,
 ) -> None:
     """Click entry point for SALVe pretrained model inference."""
 
@@ -356,18 +362,17 @@ def run_evaluate_model(
     # plot_metrics(json_fpath=train_results_fpath)
 
     if not Path(f"{SALVE_CONFIGS_ROOT}/{config_name}").exists():
-        raise FileNotFoundError("")
+        raise FileNotFoundError(f"No config found at `{SALVE_CONFIGS_ROOT}/{config_name}`.")
 
     with hydra.initialize_config_module(config_module="salve.configs"):
         # config is relative to the `salve` module
         cfg = hydra.compose(config_name=config_name)
         args = instantiate(cfg.TrainingConfig)
 
-    # # use single-GPU for inference?
+    # Apply command-line overrides to config.
     args.dataparallel = use_dataparallel
-
-    args.batch_size = 64  # 128
-    args.workers = 10
+    args.batch_size = test_batch_size
+    args.workers = num_workers
 
     split = "test"
     save_viz = False
