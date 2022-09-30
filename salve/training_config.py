@@ -1,6 +1,6 @@
 """Stores hyperparameters for training a model (for a single experiment)."""
 
-from typing import List
+from typing import Optional, Tuple
 
 from dataclasses import dataclass
 
@@ -31,7 +31,7 @@ class TrainingConfig:
         num_epochs: number of epochs to train for.
         workers: how many subprocesses to use for data loading.
         batch_size: batch size (how many samples per batch to load).
-        data_root: 
+        data_root: path to rendered RGB texture maps.
         layout_data_root: 
         model_save_dirpath: 
         gpu_ids: GPU device IDs to use for training.
@@ -52,7 +52,7 @@ class TrainingConfig:
     train_h: int
     train_w: int
     apply_photometric_augmentation: bool
-    modalities = ["layout"]
+    modalities: Tuple[str]
 
     cfg_stem: str
     num_epochs: int
@@ -62,6 +62,6 @@ class TrainingConfig:
     data_root: str
     layout_data_root: str
     model_save_dirpath: str
-    gpu_ids: str = None
+    gpu_ids: Optional[str] = None
 
     # TODO: make a rendering config with resolution, spatial extent stored in it.

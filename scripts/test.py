@@ -1,11 +1,11 @@
 """Run inference with a pretrained SALVe model."""
 
-import argparse
 import glob
 import os
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
+import click
 import hydra
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -26,15 +26,17 @@ from salve.utils.logger_utils import get_logger
 
 
 logger = get_logger()
+SALVE_CONFIGS_ROOT = Path(__file__).resolve().parent / "salve" / "configs"
 
 
 def run_test_epoch(
+    args: TrainingConfig,
     serialization_save_dir: str,
     ckpt_fpath: str,
     model: nn.Module,
     data_loader: torch.utils.data.DataLoader,
     split: str,
-    save_viz: bool
+    save_viz: bool,
 ) -> Dict[str, Any]:
     """Run all samples from test split through a pretrained network."""
     pr_meter = PrecisionRecallMeter()
@@ -74,7 +76,7 @@ def run_test_epoch(
             gt_is_match = is_match
 
         is_match_probs, loss = train_utils.cross_entropy_forward(
-            model, args, split, x1, x2, x3, x4, x5, x6, gt_is_match
+            model, split, x1, x2, x3, x4, x5, x6, gt_is_match
         )
 
         y_hat = torch.argmax(is_match_probs, dim=1)
@@ -94,7 +96,6 @@ def run_test_epoch(
                 ckpt_fpath=ckpt_fpath,
                 batch_idx=i,
                 split=split,
-                args=args,
                 x1=x1,
                 x2=x2,
                 x3=x3,
@@ -188,7 +189,6 @@ def visualize_examples(
     ckpt_fpath: str,
     batch_idx: int,
     split: str,
-    args,
     x1: torch.Tensor,
     x2: torch.Tensor,
     x3: torch.Tensor,
@@ -259,7 +259,7 @@ def check_mkdir(dirpath: str) -> None:
 def evaluate_model(
     serialization_save_dir: str, ckpt_fpath: str, args: TrainingConfig, split: str, save_viz: bool
 ) -> None:
-    """ """
+    """Evaluate pretrained model on a dataset split of ZInD."""
     cudnn.benchmark = True
 
     data_loader = train_utils.get_dataloader(args, split=split)
@@ -269,7 +269,7 @@ def evaluate_model(
     model.eval()
 
     with torch.no_grad():
-        metrics_dict = run_test_epoch(serialization_save_dir, ckpt_fpath, model, data_loader, split, save_viz)
+        metrics_dict = run_test_epoch(args, serialization_save_dir, ckpt_fpath, model, data_loader, split, save_viz)
 
 
 def plot_metrics(json_fpath: str) -> None:
@@ -304,63 +304,84 @@ def plot_metrics(json_fpath: str) -> None:
     plt.show()
 
 
-if __name__ == "__main__":
-    """
-    TODO: prevent user from passing arbitrary YAML config location (must edit the one under salve/configs/)
-    """
+@click.command(help="Script to run inference with pretrained SALVe model.")
+@click.option(
+    "--gpu_ids",
+    type=List[int],
+    required=True,
+    help="List of GPU device IDs to use for training.",
+)
+@click.option(
+    "--model_results_dir",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to directory where trained model and training logs are saved.",
+)
+@click.option(
+    "--config_name",
+    type=str,
+    required=True,
+    help="File name of config file under `salve/configs/*` (not file path!). Should end in .yaml",
+)
+@click.option(
+    "--serialization_save_dir",
+    type=str,
+    required=True,
+    help="Directory where serialized predictions should be saved to.",
+)
+@click.option(
+    "--use_dataparallel",
+    type=bool,
+    default=True,
+    help=".",
+)
+def run_evaluate_model(
+    gpu_ids: List[int], model_results_dir: str, config_name: str, serialization_save_dir: str, use_dataparallel: bool
+) -> None:
+    """Click entry point for SALVe pretrained model inference."""
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--gpu_ids", type=str, required=True, help="GPU device IDs to use for training.")
-
-    parser.add_argument(
-        "--model_results_dir",
-        type=str,
-        required=True,
-        help="Path to directory where trained model and training logs are saved.",
-    )
-    parser.add_argument(
-        "--config_name",
-        type=str,
-        required=True,
-        help="File name of config file under `salve/configs/*` (not file path!). Should end in .yaml",
-    )
-
-    parser.add_argument(
-        "--serialization_save_dir",
-        type=str,
-        required=True,
-        help="Directory where serialized predictions should be saved to.",
-    )
-
-    opts = parser.parse_args()
-
-    print("Using GPUs ", opts.gpu_ids)
-    os.environ["CUDA_VISIBLE_DEVICES"] = opts.gpu_ids
+    print("Using GPUs ", gpu_ids)
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
-    ckpt_fpath = glob.glob(f"{opts.model_results_dir}/*.pth")[0]
-    train_results_fpath = glob.glob(f"{opts.model_results_dir}/*.json")[0]
+
+    ckpt_fpaths = glob.glob(f"{model_results_dir}/*.pth")
+    if len(ckpt_fpaths) != 1:
+        raise FileNotFoundError("Model results dir was invalid (no checkpoint found).")
+
+    ckpt_fpath = ckpt_fpaths[0]
+    train_results_fpath = glob.glob(f"{model_results_dir}/*.json")[0]
 
     # plot_metrics(json_fpath=train_results_fpath)
 
+    if not Path(f"{SALVE_CONFIGS_ROOT}/{config_name}").exists():
+        raise FileNotFoundError("")
+
     with hydra.initialize_config_module(config_module="salve.configs"):
         # config is relative to the `salve` module
-        cfg = hydra.compose(config_name=opts.config_name)
+        cfg = hydra.compose(config_name=config_name)
         args = instantiate(cfg.TrainingConfig)
 
     # # use single-GPU for inference?
-    # args.dataparallel = False
+    args.dataparallel = use_dataparallel
 
     args.batch_size = 64  # 128
     args.workers = 10
 
     split = "test"
     save_viz = False
-    evaluate_model(opts.serialization_save_dir, ckpt_fpath, args, split, save_viz)
+    evaluate_model(
+        serialization_save_dir=serialization_save_dir, ckpt_fpath=ckpt_fpath, args=args, split=split, save_viz=save_viz
+    )
 
     train_results_json = io_utils.read_json_file(train_results_fpath)
     val_mAccs = train_results_json["val_mAcc"]
     print("Val accs: ", val_mAccs)
     print("Num epochs trained", len(val_mAccs))
     print("Max val mAcc", max(val_mAccs))
+
+
+if __name__ == "__main__":
+
+    run_evaluate_model()

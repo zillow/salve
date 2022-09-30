@@ -73,7 +73,7 @@ def get_tuples_from_fpath_list(
     # extract the valid values -- must be a 4-tuple
     for pair_idx, pair_fpaths in pairidx_to_fpath_dict.items():
 
-        if args.modalities == ["layout"]:
+        if set(args.modalities) == set(["layout"]):
             expected_n_files = 2
         else:
             expected_n_files = 4
@@ -85,7 +85,7 @@ def get_tuples_from_fpath_list(
         use_floor_texture = set(["floor_rgb_texture"]).issubset(set(args.modalities))
 
         pair_fpaths.sort()
-        if args.modalities == ["layout"]:
+        if set(args.modalities) == set(["layout"]):
 
             fp1l, fp2l = pair_fpaths
 
@@ -131,13 +131,13 @@ def get_tuples_from_fpath_list(
                 if not (Path(fp1l).exists() and Path(fp2l).exists()):
                     continue
 
-        if args.modalities == ["layout"]:
+        if set(args.modalities) == set(["layout"]):
             tuples += [(fp1l, fp2l, label_idx)]
 
-        elif args.modalities == ["ceiling_rgb_texture"]:
+        elif set(args.modalities) == set(["ceiling_rgb_texture"]):
             tuples += [(fp1c, fp2c, label_idx)]
 
-        elif args.modalities == ["floor_rgb_texture"]:
+        elif set(args.modalities) == set(["floor_rgb_texture"]):
             tuples += [(fp1f, fp2f, label_idx)]
 
         elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
@@ -236,7 +236,7 @@ class ZindData(Dataset):
         """Initialize dataloader."""
 
         self.transform = transform
-        if args.modalities == ["layout"]:
+        if set(args.modalities) == set(["layout"]):
             data_root = args.layout_data_root
         else:
             # some RGB
@@ -258,7 +258,7 @@ class ZindData(Dataset):
 
         Note: is_match = 1 means True.
         """
-        if self.modalities == ["layout"]:
+        if set(self.modalities) == set(["layout"]):
 
             x1l_fpath, x2l_fpath, is_match = self.data_list[index]
             x1l = imageio.imread(x1l_fpath)
@@ -267,14 +267,14 @@ class ZindData(Dataset):
             x1l, x2l = self.transform(x1l, x2l)
             return x1l, x2l, is_match, x1l_fpath, x2l_fpath
 
-        elif self.modalities == ["ceiling_rgb_texture"]:
+        elif set(self.modalities) == set(["ceiling_rgb_texture"]):
             x1c_fpath, x2c_fpath, is_match = self.data_list[index]
             x1c = imageio.imread(x1c_fpath)
             x2c = imageio.imread(x2c_fpath)
             x1c, x2c = self.transform(x1c, x2c)
             return x1c, x2c, is_match, x1c_fpath, x2c_fpath
 
-        elif self.modalities == ["floor_rgb_texture"]:
+        elif set(self.modalities) == set(["floor_rgb_texture"]):
             x1f_fpath, x2f_fpath, is_match = self.data_list[index]
             x1f = imageio.imread(x1f_fpath)
             x2f = imageio.imread(x2f_fpath)

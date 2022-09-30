@@ -149,10 +149,10 @@ Next, we'll send the pairs of BEV texture maps to the model for scoring. You sho
 python scripts/test.py \
     --gpu_ids {COMMA SEPARATED GPU ID LIST} \
     --model_results_dir {PATH TO FOLDER CONTAINING TRAINED MODEL} \
-    --config_fpath {PATH TO YAML MODEL CONFIG} \
+    --config_name {FILE NAME OF YAML MODEL CONFIG} \
     --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
-Please note that the YAML config must be the path to a config in `salve/configs/*`.
+Please note that the YAML config must be the name of a config under `salve/configs/*`.
 
 For example, if your model checkpoint was stored in a directory accessible at:
 ```

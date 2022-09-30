@@ -309,6 +309,9 @@ class CropBase(object):
         Args:
             size: Desired output size of the crop. Either (h,w) tuple representing (crop height, crop width), or may
                be an a single integer, in which case a square crop (size, size) is made.
+            padding:
+            crop_type:
+            ignore_label:
         """
         if isinstance(size, int):
             self.crop_h = size
@@ -611,16 +614,6 @@ class RandomVerticalFlipSextuplet(object):
             image6 = cv2.flip(image6, 0)
 
         return image1, image2, image3, image4, image5, image6
-
-
-# class RandomGaussianBlur(object):
-#     def __init__(self, radius=5):
-#         self.radius = radius
-
-#     def __call__(self, image, label):
-#         if random.random() < 0.5:
-#             image = cv2.GaussianBlur(image, (self.radius, self.radius), 0)
-#         return image, label
 
 
 class PhotometricShiftQuadruplet(object):
