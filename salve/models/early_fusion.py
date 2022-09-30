@@ -21,9 +21,9 @@ class EarlyFusionCEResnet(nn.Module):
         self.inplanes = 64
 
         if (
-            self.modalities == ["layout"]
-            or self.modalities == ["ceiling_rgb_texture"]
-            or self.modalities == ["floor_rgb_texture"]
+            set(self.modalities) == set(["layout"])
+            or set(self.modalities) == set(["ceiling_rgb_texture"])
+            or set(self.modalities) == set(["floor_rgb_texture"])
         ):
             num_inchannels = 3 * 2  # two RGB images
         elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
@@ -52,9 +52,9 @@ class EarlyFusionCEResnet(nn.Module):
         Early fusion of modalities is accomplished by concatenating inputs along the channel dimension.
         """
         if (
-            self.modalities == ["layout"]
-            or self.modalities == ["ceiling_rgb_texture"]
-            or self.modalities == ["floor_rgb_texture"]
+            set(self.modalities) == set(["layout"])
+            or set(self.modalities) == set(["ceiling_rgb_texture"])
+            or set(self.modalities) == set(["floor_rgb_texture"])
         ):
             x = torch.cat([x1, x2], dim=1)
         elif set(self.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
