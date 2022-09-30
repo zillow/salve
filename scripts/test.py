@@ -339,7 +339,12 @@ if __name__ == "__main__":
 
     # model_results_dir should have only these 3 files within it
     # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
-    ckpt_fpath = glob.glob(f"{opts.model_results_dir}/*.pth")[0]
+
+    ckpt_fpaths = glob.glob(f"{opts.model_results_dir}/*.pth")
+    if len(ckpt_fpaths) != 1:
+        raise ValueError("Model results dir was invalid (no checkpoint found).")
+
+    ckpt_fpath = ckpt_fpaths[0]
     train_results_fpath = glob.glob(f"{opts.model_results_dir}/*.json")[0]
 
     # plot_metrics(json_fpath=train_results_fpath)
