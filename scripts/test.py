@@ -333,10 +333,24 @@ def plot_metrics(json_fpath: str) -> None:
     "--use_dataparallel",
     type=bool,
     default=True,
-    help="Whether to use Pytorch's DataParallel for distributed inference.",
+    help="Whether to use Pytorch's DataParallel for distributed inference (True) or single GPU (False).",
+)
+@click.option(
+    "--num_workers",
+    type=int,
+    default=10,
+    help="Number of Pytorch dataloader workers."
+)
+@click.option(
+    "--test_batch_size",
+    type=int,
+    default=64, # 128
+    help="Batch size to use during inference."
 )
 def run_evaluate_model(
-    gpu_ids: List[int], model_results_dir: str, config_name: str, serialization_save_dir: str, use_dataparallel: bool
+    gpu_ids: List[int], model_results_dir: str, config_name: str, serialization_save_dir: str, use_dataparallel: bool,
+    num_workers: int,
+    test_batch_size: int
 ) -> None:
     """Click entry point for SALVe pretrained model inference."""
 
@@ -363,11 +377,10 @@ def run_evaluate_model(
         cfg = hydra.compose(config_name=config_name)
         args = instantiate(cfg.TrainingConfig)
 
-    # # use single-GPU for inference?
+    # Apply command-line overrides to config.
     args.dataparallel = use_dataparallel
-
-    args.batch_size = 64  # 128
-    args.workers = 10
+    args.batch_size = test_batch_size
+    args.workers = num_workers
 
     split = "test"
     save_viz = False
