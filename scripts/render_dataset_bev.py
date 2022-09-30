@@ -92,20 +92,22 @@ def render_building_floor_pairs(
         for pair_idx, pair_fpath in enumerate(pairs):
             for surface_type in ["floor", "ceiling"]:
 
-                args += [(
-                    img_fpaths_dict,
-                    surface_type,
-                    pair_fpath,
-                    pair_idx,
-                    label_type,
-                    bev_save_root,
-                    building_id,
-                    floor_id,
-                    depth_save_root,
-                    render_modalities,
-                    layout_save_root,
-                    floor_pose_graph,
-                )]
+                args += [
+                    (
+                        img_fpaths_dict,
+                        surface_type,
+                        pair_fpath,
+                        pair_idx,
+                        label_type,
+                        bev_save_root,
+                        building_id,
+                        floor_id,
+                        depth_save_root,
+                        render_modalities,
+                        layout_save_root,
+                        floor_pose_graph,
+                    )
+                ]
 
     if multiprocess_building_panos and num_processes > 1:
         with Pool(num_processes) as p:
@@ -128,7 +130,7 @@ def generate_texture_maps_for_pair(
     depth_save_root: str,
     render_modalities: List[str],
     layout_save_root: str,
-    floor_pose_graph: Optional[PoseGraph2d]
+    floor_pose_graph: Optional[PoseGraph2d],
 ) -> None:
     """Generate and save a pair of texture maps for a single pair of panoramas."""
     is_semantics = False
@@ -209,7 +211,6 @@ def generate_texture_maps_for_pair(
         imageio.imwrite(bev_fpath1, bev_img1)
         imageio.imwrite(bev_fpath2, bev_img2)
 
-
     if "layout" not in render_modalities:
         return
 
@@ -253,7 +254,7 @@ def render_pairs(
     render_modalities: List[str],
     split: Optional[str],
     building_id: Optional[str],
-    multiprocess_building_panos: bool
+    multiprocess_building_panos: bool,
 ) -> None:
     """Render BEV texture maps for all floors of all ZInD buildings.
 
@@ -305,7 +306,7 @@ def render_pairs(
                     layout_save_root,
                     render_modalities,
                     multiprocess_building_panos,
-                    num_processes if multiprocess_building_panos else 1
+                    num_processes if multiprocess_building_panos else 1,
                 )
             ]
 
@@ -369,7 +370,7 @@ def render_pairs(
     type=bool,
     default=True,
     help="Whether to apply multiprocessing within a single building (i.e. multiprocess the pano pairs"
-        " for a single building when True), or instead across buildings (one process per building when False)."
+    " for a single building when True), or instead across buildings (one process per building when False).",
 )
 def run_render_dataset_bev(
     raw_dataset_dir: str,
@@ -380,7 +381,7 @@ def run_render_dataset_bev(
     split: Optional[str],
     layout_save_root: Optional[str],
     building_id: Optional[str],
-    multiprocess_building_panos: bool
+    multiprocess_building_panos: bool,
 ) -> None:
     """Click entry point for BEV texture map or layout rendering."""
     if layout_save_root is None:
