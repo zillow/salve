@@ -396,8 +396,6 @@ def plot_confidence_histograms(measurements: List[EdgeClassification]) -> None:
     plt.show()
 
 
-
-
 def run_incremental_reconstruction(
     hypotheses_save_root: str,
     serialized_preds_json_dir: str,
@@ -426,6 +424,7 @@ def run_incremental_reconstruction(
         confidence_threshold: Minimum required SALVe network confidence to accept a prediction.
         use_axis_alignment: whether to refine relative rotations by vanishing angle.
         allowed_wdo_types: types of W/D/O objects to use for localization (only these edge types will be inserted into the graph).
+        predictions_data_root: Path to directory containing ModifiedHorizonNet (MHNet) predictions.
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
@@ -522,7 +521,8 @@ def run_incremental_reconstruction(
 
         cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
         print(
-            f"Before any filtering, the largest CC contains {len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
+            "Before any filtering, the largest CC contains "
+            f"{len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
         )
         if method == "spanning_tree":
 
@@ -697,7 +697,8 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
     "--hypotheses_save_root",
     type=click.Path(exists=True),
     required=True,
-    help="Directory where JSON files with alignment hypotheses have been saved to (from executing `export_alignment_hypotheses.py`)",
+    help="Directory where JSON files with alignment hypotheses have been saved to (from executing"
+    " `export_alignment_hypotheses.py`)",
 )
 @click.option(
     "--method",
