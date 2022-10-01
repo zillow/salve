@@ -117,7 +117,7 @@ def load_vanishing_angles(predictions_data_root: str, building_id: str) -> Dict[
 def load_inferred_floor_pose_graphs(
     building_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> Optional[Dict[str, PoseGraph2d]]:
-    """Load W/D/O's predicted for each pano of each floor by HorizonNet.
+    """Load W/D/O's & layout predicted for each pano of each floor by ModifiedHorizonNet (MHNet).
 
     TODO: rename this function, since no pose graph is loaded here.
     TODO: remove dependency on getting pano paths from ZInD in this function (put them inside the predictions).
@@ -190,6 +190,37 @@ def load_inferred_floor_pose_graphs(
             floor_pose_graphs[floor_id].nodes[i] = pano_data
 
     return floor_pose_graphs
+
+
+def load_inferred_floor_pose_graph(
+    building_id: str, floor_id: str, raw_dataset_dir: str, predictions_data_root: str
+) -> PoseGraph2d:
+    """
+
+    Args:
+        building_id: string representing ZInD building ID to fetch the inferred floor pose graphs for.
+            Should be a zfilled-4 digit string, e.g. "0001"
+        floor_id: 
+        raw_dataset_dir: path to ZInD dataset.
+        predictions_data_root: path to ModifiedHorizonNet (MHNet) predictions.
+
+    Returns:
+        floor_pose_graph: predicted pose graph (without poses, but just W/D/O predictions and layout prediction).
+    """
+    floor_pose_graphs = load_inferred_floor_pose_graphs(
+        building_id=building_id,
+        raw_dataset_dir=raw_dataset_dir,
+        predictions_data_root=predictions_data_root,
+    )
+    if floor_pose_graphs is None:
+        raise ValueError(
+            f"ModifiedHorizonNet (MHNet) predictions missing for all floors of ZInD Building {building_id}."
+        )
+    if floor_id not in floor_pose_graphs:
+        raise ValueError(
+            f"ModifiedHorizonNet (MHNet) predictions missing for {floor_id} of ZInD Building {building_id}."
+        )
+    return floor_pose_graphs[floor_id]
 
 
 def get_floor_id_from_img_fpath(img_fpath: str) -> str:
