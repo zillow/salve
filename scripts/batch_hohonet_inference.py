@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from typing import List
 
 import click
-import imageio
+import imageio.v2 as imageio
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -51,7 +51,8 @@ def infer_depth_over_image_list(args: SimpleNamespace, image_fpaths: List[str]) 
 
             fname_stem = Path(path).stem
             if Path(f"{args.out}/{fname_stem}.depth.png").exists():
-                return
+                print(f"{fname_stem} already exists, skipping")
+                continue
 
             rgb = imageio.imread(path)
             x = torch.from_numpy(rgb).permute(2, 0, 1)[None].float() / 255.0
@@ -93,7 +94,7 @@ def infer_depth_over_single_zind_tour(
 
     # Computes the file paths for all panoramas corresponding to specified ZInD building.
     img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
-
+    print(f"Found {len(img_fpaths)} panorama images for Building {building_id}")
     args = SimpleNamespace(
         **{
             "cfg": HOHONET_CONFIG_FPATH,
