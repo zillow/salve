@@ -3,13 +3,13 @@
 Visualizations are saved for each floor.
 """
 
-import argparse
 import glob
 import os
 from collections import defaultdict
 from pathlib import Path
 from typing import DefaultDict, Dict, List, Optional, Tuple
 
+import click
 import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,6 +21,7 @@ import salve.algorithms.spanning_tree as spanning_tree
 import salve.common.edge_classification as edge_classification
 import salve.common.floor_reconstruction_report as floor_reconstruction_report
 import salve.common.posegraph2d as posegraph2d
+import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.axis_alignment_utils as axis_alignment_utils
 import salve.utils.graph_utils as graph_utils
 import salve.utils.graph_rendering_utils as graph_rendering_utils
@@ -395,6 +396,8 @@ def plot_confidence_histograms(measurements: List[EdgeClassification]) -> None:
     plt.show()
 
 
+
+
 def run_incremental_reconstruction(
     hypotheses_save_root: str,
     serialized_preds_json_dir: str,
@@ -403,6 +406,7 @@ def run_incremental_reconstruction(
     confidence_threshold: float,
     use_axis_alignment: bool,
     allowed_wdo_types: List[str],
+    predictions_data_root: str,
 ) -> None:
     """Run the global optimization stage on confidence-thresholded relative pose hypotheses, in the largest CC.
 
@@ -437,13 +441,19 @@ def run_incremental_reconstruction(
 
     averaged_wdo_type_counter = defaultdict(list)
 
-    # probability distribution function & cumulative dist. fn of #panos in first N CCs, for each building floor.
+    # Probability distribution function & cumulative dist. fn of #panos in first N CCs, for each building floor.
     pdfs = []
     cdfs = []
 
-    # loop over each building and floor
-    # for each building/floor tuple
+    # Loop over each building/floor tuple.
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
+
+        inferred_floor_pose_graph = hnet_prediction_loader.load_inferred_floor_pose_graph(
+            building_id=building_id,
+            floor_id=floor_id,
+            raw_dataset_dir=raw_dataset_dir,
+            predictions_data_root=predictions_data_root
+        )
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
@@ -467,8 +477,9 @@ def run_incremental_reconstruction(
         if render_multigraph:
             graph_rendering_utils.draw_multigraph(
                 measurements=measurements,
-                input_floor_pose_graph=gt_floor_pose_graph,
-                raw_dataset_dir=raw_dataset_dir,
+                gt_floor_pose_graph=gt_floor_pose_graph,
+                inferred_floor_pose_graph=None,
+                use_gt_positions=True,
                 confidence_threshold=confidence_threshold,
                 save_dir=plot_save_dir
             )
@@ -518,9 +529,8 @@ def run_incremental_reconstruction(
             if use_axis_alignment:
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
                     i2Si1_dict=i2Si1_dict,
-                    gt_floor_pose_graph=gt_floor_pose_graph,
+                    inferred_floor_pose_graph=inferred_floor_pose_graph,
                     per_edge_wdo_dict=per_edge_wdo_dict,
-                    raw_dataset_dir=raw_dataset_dir
                 )
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
@@ -537,9 +547,8 @@ def run_incremental_reconstruction(
                 # Align here to compute initialization with aligned pairs.
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
                     i2Si1_dict=i2Si1_dict,
-                    gt_floor_pose_graph=gt_floor_pose_graph,
+                    inferred_floor_pose_graph=inferred_floor_pose_graph,
                     per_edge_wdo_dict=per_edge_wdo_dict,
-                    raw_dataset_dir=raw_dataset_dir
                 )
 
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
@@ -554,7 +563,7 @@ def run_incremental_reconstruction(
                 optimize_poses_only="pgo" == method,
                 use_axis_alignment=use_axis_alignment,
                 per_edge_wdo_dict=per_edge_wdo_dict,
-                raw_dataset_dir=raw_dataset_dir
+                inferred_floor_pose_graph=inferred_floor_pose_graph,
             )
             reconstruction_reports.append(report)
 
@@ -671,12 +680,108 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
     graph_utils.plot_pdf_cdf(avg_pdf, avg_cdf)
 
 
+@click.command(help="Script to run SfM using SALVe verifier predictions.")
+@click.option(
+    "--serialized_preds_json_dir",
+    type=click.Path(exists=True),
+    required=True,
+    help="Directory where serialized predictions were saved to (from executing `test.py`).",
+)
+@click.option(
+    "--raw_dataset_dir",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
+)
+@click.option(
+    "--hypotheses_save_root",
+    type=click.Path(exists=True),
+    required=True,
+    help="Directory where JSON files with alignment hypotheses have been saved to (from executing `export_alignment_hypotheses.py`)",
+)
+@click.option(
+    "--method",
+    type=click.Choice([
+            "spanning_tree",
+            "SE2_cycles",
+            "filtered_spanning_tree",
+            "random_spanning_trees",
+            "pose2_slam",
+            "pgo",
+
+        ]),
+    required=True,
+    help="Global aggregation method.",
+)
+@click.option(
+    "--mhnet_predictions_data_root",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to directory containing ModifiedHorizonNet (MHNet) predictions.",
+)
+@click.option(
+    "--confidence_threshold",
+    type=float,
+    default=0.93,
+    help="Minimum required SALVe network confidence to accept a prediction.",
+)
+@click.option(
+    "--use_axis_alignment",
+    type=bool,
+    default=True,
+    help="Whether to use estimated vanishing points to postprocess relatiive pose hypotheses.",
+)
+def launch_run_incremental_reconstruction(
+    serialized_preds_json_dir: str,
+    raw_dataset_dir: str,
+    hypotheses_save_root: str,
+    method: str,
+    mhnet_predictions_data_root: str,
+    confidence_threshold: float,
+    use_axis_alignment: bool, 
+) -> None:
+    """Click entry point for SfM using SALVe predictions."""
+
+    allowed_wdo_types = ["door", "window", "opening"]  #    ["window"] #  ["opening"] # ["door"] #
+
+    print("Run SfM with settings:")
+    print(f"\thypotheses_save_root={hypotheses_save_root}")
+    print(f"\tserialized_preds_json_dir={serialized_preds_json_dir}")
+    print(f"\traw_dataset_dir={raw_dataset_dir}")
+    print(f"\tmethod={method}")
+    print(f"\tconfidence_threshold={confidence_threshold}")
+    print(f"\tuse_axis_alignment={use_axis_alignment}")
+    print(f"\tallowed_wdo_types={allowed_wdo_types}")
+    print(f"\tpredictions_data_root={mhnet_predictions_data_root}")
+
+    run_incremental_reconstruction(
+        hypotheses_save_root=hypotheses_save_root,
+        serialized_preds_json_dir=serialized_preds_json_dir,
+        raw_dataset_dir=raw_dataset_dir,
+        method=method,
+        confidence_threshold=confidence_threshold,
+        use_axis_alignment=use_axis_alignment,
+        allowed_wdo_types=allowed_wdo_types,
+        predictions_data_root=mhnet_predictions_data_root
+    )
+
+    # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
+
+
 if __name__ == "__main__":
     """Example CLI usage:
 
-    python scripts/run_sfm.py --raw_dataset_dir ../zind_bridgeapi_2021_10_05/ --method pgo --serialized_preds_json_dir ../2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23 --hypotheses_save_root ../ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
+    python scripts/run_sfm.py \
+        --raw_dataset_dir ../zind_bridgeapi_2021_10_05/
+        --method pgo
+        --serialized_preds_json_dir ../2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23
+        --hypotheses_save_root ../ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
 
-    python scripts/run_sfm.py --raw_dataset_dir ../zind_bridgeapi_2021_10_05/ --method pgo --serialized_preds_json_dir ../2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16 --hypotheses_save_root ../ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
+    python scripts/run_sfm.py \
+        --raw_dataset_dir ../zind_bridgeapi_2021_10_05/
+        --method pgo
+        --serialized_preds_json_dir ../2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16
+        --hypotheses_save_root ../ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65
 
     Predictions will be saved in a new directory named:
        {SALVE_REPO_ROOT}/{serialized_preds_json_dir.name}_{FLAGS}_serialized
@@ -684,59 +789,5 @@ if __name__ == "__main__":
     Visualizations will be saved in a new directory named:
        {SALVE_REPO_ROOT/{serialized_preds_json_dir.name}_{FLAGS}
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--raw_dataset_dir",
-        type=str,
-        default="/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05",
-        help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        type=float,
-        default=0.93,
-        help="Minimum required SALVe network confidence to accept a prediction.",
-    )
-    parser.add_argument(
-        "--method",
-        type=str,
-        required=True,
-        choices=[
-            "spanning_tree",
-            "SE2_cycles",
-            "filtered_spanning_tree",
-            "random_spanning_trees",
-            "pose2_slam",
-            "pgo",
-        ],
-        help="Global aggregation method.",
-    )
-    parser.add_argument(
-        "--serialized_preds_json_dir",
-        type=str,
-        required=True,
-        help="Directory where serialized predictions were saved to (from executing `test.py`).",
-    )
-    parser.add_argument(
-        "--hypotheses_save_root",
-        type=str,
-        required=True,
-        help="Path to where alignment hypotheses are saved on disk, from executing `export_alignment_hypotheses.py`.",
-    )
-    use_axis_alignment = True
-    allowed_wdo_types = ["door", "window", "opening"]  #    ["window"] #  ["opening"] # ["door"] #
+    launch_run_incremental_reconstruction()
 
-    args = parser.parse_args()
-    print("Run SfM with settings:", args)
-
-    run_incremental_reconstruction(
-        hypotheses_save_root=args.hypotheses_save_root,
-        serialized_preds_json_dir=args.serialized_preds_json_dir,
-        raw_dataset_dir=args.raw_dataset_dir,
-        method=args.method,
-        confidence_threshold=args.confidence_threshold,
-        use_axis_alignment=use_axis_alignment,
-        allowed_wdo_types=allowed_wdo_types,
-    )
-
-    # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
