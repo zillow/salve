@@ -187,7 +187,7 @@ def execute_planar_slam(
     plot_save_dir: str,
     use_axis_alignment: bool,
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair],
-    raw_dataset_dir: str,
+    inferred_floor_pose_graph: PoseGraph2d,
     optimize_poses_only: bool = False,
     verbose: bool = True,
 ) -> None:
@@ -203,7 +203,7 @@ def execute_planar_slam(
         plot_save_dir:
         use_axis_alignment: whether to refine relative rotations by vanishing angle.
         per_edge_wdo_dict
-        raw_dataset_dir,
+        inferred_floor_pose_graph:
         optimize_poses_only: whether to only optimize poses, or instead to optimize poses + landmarks jointly.
         verbose:
 
@@ -211,10 +211,7 @@ def execute_planar_slam(
         report: reconstruction report.
     """
     if (not optimize_poses_only) or use_axis_alignment:
-        floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-            query_building_id=building_id, raw_dataset_dir=raw_dataset_dir
-        )
-        pano_dict_inferred = floor_pose_graphs[floor_id].nodes
+        pano_dict_inferred = inferred_floor_pose_graph.nodes
 
     wTi_list_init = [
         Pose2(Rot2.fromDegrees(wSi.theta_deg), wSi.translation) if wSi is not None else None for wSi in wSi_list

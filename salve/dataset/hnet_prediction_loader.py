@@ -195,12 +195,12 @@ def load_inferred_floor_pose_graphs(
 def load_inferred_floor_pose_graph(
     building_id: str, floor_id: str, raw_dataset_dir: str, predictions_data_root: str
 ) -> PoseGraph2d:
-    """
+    """Load W/D/O's & layout predicted by ModifiedHorizonNet (MHNet) for each pano **for a single floor**.
 
     Args:
         building_id: string representing ZInD building ID to fetch the inferred floor pose graphs for.
             Should be a zfilled-4 digit string, e.g. "0001"
-        floor_id: 
+        floor_id: unique floor ID of ZInD building above.
         raw_dataset_dir: path to ZInD dataset.
         predictions_data_root: path to ModifiedHorizonNet (MHNet) predictions.
 
