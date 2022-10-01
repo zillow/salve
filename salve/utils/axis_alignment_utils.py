@@ -128,9 +128,8 @@ def get_dominant_direction_from_point_cloud(point_cloud: np.ndarray) -> np.ndarr
 
 def align_pairs_by_vanishing_angle(
     i2Si1_dict: Dict[Tuple[int, int], Sim2],
-    gt_floor_pose_graph: PoseGraph2d,
+    inferred_floor_pose_graph: PoseGraph2d,
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair],
-    raw_dataset_dir: str,
     visualize: bool = False,
 ) -> Dict[Tuple[int, int], Sim2]:
     """Align a collection of image pairs by vanishing angle, up to a maximum allowed refinement threshold.
@@ -141,19 +140,14 @@ def align_pairs_by_vanishing_angle(
 
     Args:
         i2Si1_dict: relative pose measurements.
-        gt_floor_pose_graph: ground truth pose graph for specified ZInD floor.
+        inferred_floor_pose_graph: inferred pose graph for specified ZInD floor.
         per_edge_wdo_dict:
-        raw_dataset_dir:
         visualize: whether to visualize intermediate results.
 
     Returns:
         i2Si1_dict: refined relative pose measurements.
     """
-    # TODO: determine whether we actually need the raw dataset dir, just to load inferred pose graphs.
-    floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-        query_building_id=gt_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
-    )
-    pano_dict_inferred = floor_pose_graphs[gt_floor_pose_graph.floor_id].nodes
+    pano_dict_inferred = inferred_floor_pose_graph.nodes
 
     for (i1, i2), i2Si1 in i2Si1_dict.items():
         edge_wdo_pair = per_edge_wdo_dict[(i1, i2)]

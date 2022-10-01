@@ -1,7 +1,7 @@
 """Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph."""
 
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -67,8 +67,9 @@ def draw_graph_topology(
 
 def draw_multigraph(
     measurements: List[EdgeClassification],
-    input_floor_pose_graph: PoseGraph2d,
-    raw_dataset_dir: str,
+    gt_floor_pose_graph: PoseGraph2d,
+    inferred_floor_pose_graph: Optional[PoseGraph2d],
+    use_gt_positions: bool,
     confidence_threshold: float = 0.5,
     save_dir: str = "./"
 ) -> None:
@@ -79,9 +80,10 @@ def draw_multigraph(
 
     Args:
         measurements: possible relative pose hypotheses, before confidence thresholding is applied.
-        input_floor_pose_graph: poses where graph nodes will be plotted.
+        gt_floor_pose_graph: poses where graph nodes will be plotted.
+        inferred_floor_pose_graph
+        use_gt_positions: whether to plot panos at GT poses.
         confidence_threshold: minimum required predicted confidence by model to plot an edge.
-        raw_dataset_dir: path to where ZInD has been downloaded on disk, from Bridge API.
         save_dir: experiment directory, which will be parent directory for visualizations subdir.
     """
     edges = []
@@ -125,28 +127,23 @@ def draw_multigraph(
         colors.append(attrib_dict["color"])
         weight.append(attrib_dict["weight"])
 
-    floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(
-        query_building_id=input_floor_pose_graph.building_id, raw_dataset_dir=raw_dataset_dir
-    )
-    if floor_pose_graphs is None:
-        raise ValueError(
-            f"HorizonNet predictions missing for all floors "
-            f"of ZInD Building {input_floor_pose_graph.building_id}."
-        )
-    if input_floor_pose_graph.floor_id not in floor_pose_graphs:
-        raise ValueError(
-            f"HorizonNet predictions missing for {input_floor_pose_graph.floor_id} "
-            f"of ZInD Building {input_floor_pose_graph.building_id}."
-        )
-    true_gt_floor_pose_graph = floor_pose_graphs[input_floor_pose_graph.floor_id]
-
     nodes = list(G.nodes)
     node_positions = {}
     for v in nodes:
-        if v in input_floor_pose_graph.nodes:
-            pos = input_floor_pose_graph.nodes[v].global_Sim2_local.translation
-        else:
-            pos = true_gt_floor_pose_graph.nodes[v].global_Sim2_local.translation
+        if use_gt_positions and v in gt_floor_pose_graph.nodes:
+            # Use ground truth pano pose.
+            pos = gt_floor_pose_graph.nodes[v].global_Sim2_local.translation
+
+        elif use_gt_positions and v not in gt_floor_pose_graph.nodes:
+            raise ValueErorr(f"No ground truth pose exists for pano {v}.")
+
+        elif not use_gt_positions and v in inferred_floor_pose_graph.nodes:
+            # Use estimated pano pose.
+            pos = inferred_floor_pose_graph[v].global_Sim2_local.translation
+        
+        elif not use_gt_positions and v not in inferred_floor_pose_graph.nodes:
+            # Fall back to GT position if pano pose was not estimated by SfM.
+            pos = gt_floor_pose_graph.nodes[v].global_Sim2_local.translation
 
         node_positions[v] = pos
 
@@ -160,8 +157,8 @@ def draw_multigraph(
         node_color=node_color_map,
         node_size=node_sizes,
     )
-    building_id = input_floor_pose_graph.building_id
-    floor_id = input_floor_pose_graph.floor_id
+    building_id = gt_floor_pose_graph.building_id
+    floor_id = gt_floor_pose_graph.floor_id
 
     plt.axis("equal")
     # plt.show()

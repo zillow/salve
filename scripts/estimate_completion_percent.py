@@ -11,7 +11,7 @@ EPS = 1e-10
 def query_completion_progress(hypotheses_save_root: str, bev_save_root: str) -> None:
     """ """
     building_ids = [Path(d).name for d in glob.glob(f"{bev_save_root}/gt_alignment_approx/*")]
-
+    building_ids.sort()
     for building_id in building_ids:
 
         # Count number of expected positives and number of currently rendered positives (match pairs).
