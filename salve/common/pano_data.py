@@ -138,7 +138,7 @@ class PanoData:
         show_plot: bool = True,
         scale_meters_per_coordinate: Optional[float] = None,
     ) -> None:
-        """Plot the room shape (either in a global or local frame) for the room where a panorama was captured.
+        """Plot the room shape in BEV (either in a global or local frame) for the room where a panorama was captured.
 
         In addition to room layout, we plot the panorama's location, ID, orientation, and W/D/O vertices.
 

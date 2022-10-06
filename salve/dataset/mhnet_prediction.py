@@ -283,45 +283,6 @@ class MHNetPanoStructurePrediction:
         )
         return pano_data
 
-    def render_bev(pano_data: PanoData) -> None:
-        """
-        Render the estimated layout for a single panorama.
-        """
-        import pdb
-
-        pdb.set_trace()
-
-        # plt.close("All")
-        #         plt.scatter(, 10, color="m", marker=".")
-        # plt.axis("equal")
-        # gt_pose_graph.nodes[pano_id].plot_room_layout(coord_frame="local", show_plot=False)
-
-        # for wdo_instances_single_type, color in zip(
-        #     [self.windows, self.doors, self.openings], [WINDOW_COLOR, DOOR_COLOR, OPENING_COLOR]
-        # ):
-        #     for wdo in wdo_instances_single_type:
-
-        #         plt.plot(, color=color, linewidth=6)
-
-        # n = ray_dirs.shape[0]
-        # rgb = np.zeros((n, 3)).astype(np.uint8)
-        # rgb[:, 0] = 255
-        # import visualization.open3d_vis_utils as open3d_vis_utils
-        # # pcd = open3d_vis_utils.create_colored_spheres_open3d(
-        # #     point_cloud=ray_dirs, rgb=rgb, sphere_radius=0.1
-        # # )
-        # pcd = open3d_vis_utils.create_colored_point_cloud_open3d(point_cloud=ray_dirs, rgb=rgb)
-        # import open3d
-        # open3d.visualization.draw_geometries([pcd])
-
-        # plt.subplot(1, 2, 2)
-        # gt_pose_graph.nodes[pano_id].plot_room_layout(coord_frame="local", show_plot=False)
-
-        plt.axis("equal")
-
-        # plt.show()
-        # plt.close("all")
-
 
 def merge_wdos_straddling_img_border(wdo_instances: List[MHNetDWO]) -> List[MHNetDWO]:
     """Merge an object that has been split by the panorama seam (merge two pieces into one).
