@@ -1,0 +1,6 @@
+@inproceedings{lambert22eccv_salve,
+ title={SALVe: Semantic Alignment Verification for Floorplan Reconstruction from Sparse Panoramas},
+ author={John Lambert and Yuguang Li and Ivaylo Boyadzhiev and Lambert Wixson and Manjunath Narayana and Will Hutchcroft and James Hays and Frank Dellaert and Sing Bing Kang},
+ year={2022},
+ booktitle={ECCV},
+}
