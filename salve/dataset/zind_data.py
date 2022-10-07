@@ -161,12 +161,13 @@ def get_tuples_from_fpath_list(
 
 
 def get_available_building_ids(dataset_root: str) -> List[str]:
-    """
+    """Retrieve names of subdirectories, casted to integer.
+
     Args:
-        dataset_root: TODO
+        dataset_root: path to directory to search under.
 
     Returns:
-        building_ids: TODO
+        building_ids: list of integers, representing ZInD building subfolder names.
     """
     building_ids = [Path(fpath).stem for fpath in glob.glob(f"{dataset_root}/*") if Path(fpath).is_dir()]
     building_ids = sorted(building_ids, key=lambda x: int(x))

@@ -138,7 +138,7 @@ class PanoData:
         show_plot: bool = True,
         scale_meters_per_coordinate: Optional[float] = None,
     ) -> None:
-        """Plot the room shape (either in a global or local frame) for the room where a panorama was captured.
+        """Plot the room shape in BEV (either in a global or local frame) for the room where a panorama was captured.
 
         In addition to room layout, we plot the panorama's location, ID, orientation, and W/D/O vertices.
 
@@ -148,7 +148,7 @@ class PanoData:
             scale_meters_per_coordinate: scaling factor... TODO
         """
         # TODO: replace strings with their `SalveCoordinateFrame` Enum equivalent.
-        if coord_frame not in ["worldmetric", "worldnormalized" "local"]:
+        if coord_frame not in ["worldmetric", "worldnormalized", "local"]:
             raise ValueError(f"Unknown coordinate frame provided: {coord_frame}.")
 
         if coord_frame in ["worldmetric", "worldnormalized"]:
@@ -158,7 +158,10 @@ class PanoData:
 
         if coord_frame == "worldmetric":
             if scale_meters_per_coordinate is None:
-                print("Failure: need scale as arg to convert to meters. Skipping rendering...")
+                print(
+                    "Incompatible metric system given provided scale."
+                    "Scale is a required to convert coordinates to meters. Skipping rendering..."
+                )
                 return
             else:
                 room_vertices *= scale_meters_per_coordinate
@@ -240,7 +243,7 @@ class FloorData(NamedTuple):
 def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Sim2:
     """Generate a Similarity(2) object from a dictionary storing transformation parameters.
 
-    Transformation (R,t) followed by a reflection over the y-axis is equivalent to 
+    Transformation (R,t) followed by a reflection over the y-axis is equivalent to
     Transformation by (R^T,-t) followed by no reflection. See COORDINATE_FRAMES.md
     for more information.
 

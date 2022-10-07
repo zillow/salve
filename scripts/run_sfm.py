@@ -128,7 +128,7 @@ def get_conf_thresholded_edges(
     for m in high_conf_measurements:
         alignment_object, _, _ = m.wdo_pair_uuid.split("_")
         wdo_type_counter[alignment_object] += 1 / len(high_conf_measurements)
-    print("WDO Type Distribution: ", wdo_type_counter)
+    print("WDO Type Distribution: ", {k: np.round(v, 2) for k,v in wdo_type_counter.items()})
 
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair] = {}
 
@@ -261,7 +261,7 @@ def measure_avg_relative_pose_errors(
 
     print(
         REDTEXT
-        + f"Max relative rot error: {max(rot_errs):.1f}, Max relative trans error: {max(trans_errs):.1f} (normalized)"
+        + f"Max relative rot error: {max(rot_errs):.1f} deg., Max relative trans error: {max(trans_errs):.1f} (normalized)"
         + ENDCOLOR
     )
 
@@ -437,7 +437,7 @@ def run_incremental_reconstruction(
     )
 
     reconstruction_reports = []
-
+    # Store the counts of W/D/O types used by SALVe across all homes.
     averaged_wdo_type_counter = defaultdict(list)
 
     # Probability distribution function & cumulative dist. fn of #panos in first N CCs, for each building floor.
@@ -457,16 +457,16 @@ def run_incremental_reconstruction(
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
 
-        # (building_id == "0564" and floor_id == "floor_01") or \
-        is_demo = (
-            (building_id == "0519" and floor_id == "floor_01")
-            or (building_id == "1214" and floor_id == "floor_01")
-            # or (building_id == "0308" and floor_id == "floor_02")
-            or (building_id == "0438" and floor_id == "floor_01")
-            or (building_id == "0715" and floor_id == "floor_01")
-        )
-        if not is_demo:
-            continue
+        # # (building_id == "0564" and floor_id == "floor_01") or \
+        # is_demo = (
+        #     (building_id == "0519" and floor_id == "floor_01")
+        #     or (building_id == "1214" and floor_id == "floor_01")
+        #     # or (building_id == "0308" and floor_id == "floor_02")
+        #     or (building_id == "0438" and floor_id == "floor_01")
+        #     or (building_id == "0715" and floor_id == "floor_01")
+        # )
+        # if not is_demo:
+        #     continue
 
         visualize_confidence_histograms = False
         if visualize_confidence_histograms:
@@ -502,12 +502,12 @@ def run_incremental_reconstruction(
         pdfs.append(pdf)
         cdfs.append(cdf)
 
-        # update statistics about average edge type from W/D/O-based edges, and log a summary.
+        # Update statistics about average edge type from W/D/O-based edges, and log a summary.
         for wdo_type, percent in wdo_type_counter.items():
             averaged_wdo_type_counter[wdo_type].append(percent)
         print("On average, over all tours, WDO types used were:")
         for wdo_type, percents in averaged_wdo_type_counter.items():
-            print(REDTEXT + f"For {wdo_type}, {np.mean(percents)*100:.1f}%" + ENDCOLOR)
+            print(REDTEXT + f"\tFor {wdo_type}, {np.mean(percents)*100:.1f}%" + ENDCOLOR)
 
         if len(high_conf_measurements) == 0:
             print_str = f"Skip global optimization for Building {building_id}, {floor_id}"
@@ -522,7 +522,7 @@ def run_incremental_reconstruction(
         cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
         print(
             "Before any filtering, the largest CC contains "
-            f"{len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos ."
+            f"{len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos."
         )
         if method == "spanning_tree":
 
