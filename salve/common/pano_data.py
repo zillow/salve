@@ -158,8 +158,10 @@ class PanoData:
 
         if coord_frame == "worldmetric":
             if scale_meters_per_coordinate is None:
-                print("Incompatible metric system given provided scale."
-                    "Scale is a required to convert coordinates to meters. Skipping rendering...")
+                print(
+                    "Incompatible metric system given provided scale."
+                    "Scale is a required to convert coordinates to meters. Skipping rendering..."
+                )
                 return
             else:
                 room_vertices *= scale_meters_per_coordinate
@@ -241,7 +243,7 @@ class FloorData(NamedTuple):
 def generate_Sim2_from_floorplan_transform(transform_data: Dict[str, Any]) -> Sim2:
     """Generate a Similarity(2) object from a dictionary storing transformation parameters.
 
-    Transformation (R,t) followed by a reflection over the y-axis is equivalent to 
+    Transformation (R,t) followed by a reflection over the y-axis is equivalent to
     Transformation by (R^T,-t) followed by no reflection. See COORDINATE_FRAMES.md
     for more information.
 
