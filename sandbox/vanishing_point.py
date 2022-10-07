@@ -1,5 +1,8 @@
-"""
+"""Utilities for computing vanishing points using the LSD line detector.
+
 https://github.com/sunset1995/HorizonNet/blob/e6d7e03c4438169a5afc117c47e5314c9b914a4c/misc/pano_lsd_align.py
+
+Requires `pip install ocrd-fork-pylsd`
 """
 
 """
@@ -9,15 +12,17 @@ All functions, naming rule and data flow follow official for easier
 converting and comparing.
 Code is not optimized for python or numpy yet.
 
-Author: Cheng Sun
+
+Adapted from Author: Cheng Sun
 Email : chengsun@gapp.nthu.edu.tw
 """
+from typing import Any, Dict, List, Tuple
 
 import sys
 import numpy as np
 from scipy.ndimage import map_coordinates
 import cv2
-from pylsd import lsd
+from pylsd.lsd import lsd
 
 
 def computeUVN(n, in_, planeID):
@@ -59,7 +64,16 @@ def computeUVN_vec(n, in_, planeID):
     return out
 
 
-def xyz2uvN(xyz, planeID=1):
+def xyz2uvN(xyz: np.ndarray, planeID: int = 1):
+    """
+
+    Args:
+        xyz: array of shape (2,3)
+        planeID: integer valued plane ID
+
+    Returns:
+        uv: array of shape (2,2)
+    """
     ID1 = (int(planeID) - 1 + 0) % 3
     ID2 = (int(planeID) - 1 + 1) % 3
     ID3 = (int(planeID) - 1 + 2) % 3
@@ -77,7 +91,15 @@ def xyz2uvN(xyz, planeID=1):
     return uv
 
 
-def uv2xyzN(uv, planeID=1):
+def uv2xyzN(uv: np.ndarray, planeID=1) -> np.ndarray:
+    """
+    Args:
+        uv: array of shape (2,2)
+        planeID
+
+    Returns:
+        xyz: array of shape (2,3)
+    """
     ID1 = (int(planeID) - 1 + 0) % 3
     ID2 = (int(planeID) - 1 + 1) % 3
     ID3 = (int(planeID) - 1 + 2) % 3
@@ -88,11 +110,16 @@ def uv2xyzN(uv, planeID=1):
     return xyz
 
 
-def uv2xyzN_vec(uv, planeID):
+def uv2xyzN_vec(uv: np.ndarray, planeID: np.ndarray):
     """
     vectorization version of uv2xyzN
-    @uv       N x 2
-    @planeID  N
+
+    Args:
+        uv: array of shape (N,2)
+        planeID:  array of shape (N,), e.g. N = 1554
+
+    Returns:
+        xyz: array of shape (N,3)
     """
     assert (planeID.astype(int) != planeID).sum() == 0
     planeID = planeID.astype(int)
@@ -107,7 +134,17 @@ def uv2xyzN_vec(uv, planeID):
     return xyz
 
 
-def warpImageFast(im, XXdense, YYdense):
+def warpImageFast(im: np.ndarray, XXdense: np.ndarray, YYdense: np.ndarray) -> np.ndarray:
+    """Warp image...
+
+    Args
+        im: array of shape (H,W,3)
+        XXdense: array of shape (K,K)
+        YYdense: array of shape (K,K)
+
+    Returns:
+        im_warp: array of shape (K,K,3)
+    """
     minX = max(1.0, np.floor(XXdense.min()) - 1)
     minY = max(1.0, np.floor(YYdense.min()) - 1)
 
@@ -129,11 +166,20 @@ def warpImageFast(im, XXdense, YYdense):
     return im_warp
 
 
-def rotatePanorama(img, vp=None, R=None):
-    """
+def rotatePanorama(img: np.ndarray, vp: Optional[np.ndarray] = None, R=None):
+    """Convert panorama uv coordinates to 3d, perform rotation, then convert back to uv, resample image.
+
     Rotate panorama
         if R is given, vp (vanishing point) will be overlooked
         otherwise R is computed from vp
+
+    Args:
+        img: array of shape (H,W,3), representing equirectangular projection.
+        vp: array of shape (3,3)
+        R:
+
+    Returns:
+        rotImg:
     """
     sphereH, sphereW, C = img.shape
 
@@ -179,7 +225,18 @@ def rotatePanorama(img, vp=None, R=None):
 
 
 def imgLookAt(im, CENTERx, CENTERy, new_imgH, fov):
-    """ """
+    """
+
+    Args:
+        img:
+        CENTERx:
+        CENTERy:
+        new_imgH:
+        fov:
+
+    Returns:
+        warped_im
+    """
     sphereH = im.shape[0]
     sphereW = im.shape[1]
     warped_im = np.zeros((new_imgH, new_imgH, 3))
@@ -257,19 +314,24 @@ def separatePano(panoImg, fov, x, y, imgSize=320):
     return sepScene
 
 
-def lsdWrap(img):
+def lsdWrap(img: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Opencv implementation of
     Rafael Grompone von Gioi, Jérémie Jakubowicz, Jean-Michel Morel, and Gregory Randall,
     LSD: a Line Segment Detector, Image Processing On Line, vol. 2012.
     [Rafael12] http://www.ipol.im/pub/art/2012/gjmr-lsd/?utm_source=doi
-    @img
-        input image
+    
+    Args:
+        img: input image, e.g. of shape (H,W,3), e.g. H = W = 320
+
+    Returns:
+        edgeMap: array of shape (H,W)
+        edgeList: array of shape (N, 7)
     """
     if len(img.shape) == 3:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-    lines = lsd(img, quant=0.7)
+    lines = lsd(img) #, quant=0.7)
     if lines is None:
         return np.zeros_like(img), np.array([])
     edgeMap = np.zeros_like(img)
@@ -283,6 +345,14 @@ def lsdWrap(img):
 
 
 def edgeFromImg2Pano(edge):
+    """
+
+    Args:
+        edge
+
+    Returns:
+        panoList
+    """
     edgeList = edge["edgeLst"]
     if len(edgeList) == 0:
         return np.array([])
@@ -348,6 +418,8 @@ def _intersection(range1, range2):
 
 
 def _insideRange(pt, range):
+    """
+    """
     if range[1] > range[0]:
         b = pt >= range[0] and pt <= range[1]
     else:
@@ -512,8 +584,13 @@ def icosahedron2sphere(level):
 
 def curveFitting(inputXYZ, weight):
     """
-    @inputXYZ: N x 3
-    @weight  : N x 1
+
+    Args:
+        inputXYZ: array of shape (N,3), e.g. N = 98
+        weight: array of shape (N,1) representing ...
+
+    Returns:
+        outputNM: array of shape (3,) representing ...
     """
     l = np.linalg.norm(inputXYZ, axis=1, keepdims=True)
     inputXYZ = inputXYZ / l
@@ -534,6 +611,20 @@ def curveFitting(inputXYZ, weight):
 
 
 def sphereHoughVote(segNormal, segLength, segScores, binRadius, orthTolerance, candiSet, force_unempty=True):
+    """
+
+    Args:
+        segNormal
+        segLength
+        segScores
+        binRadius
+        orthTolerance
+        candiSet
+        force_unempty
+
+    Returns:
+
+    """
     # initial guess
     numLinesg = len(segNormal)
 
@@ -631,9 +722,14 @@ def sphereHoughVote(segNormal, segLength, segScores, binRadius, orthTolerance, c
     return refiXYZ, lastStepCost, lastStepAngle
 
 
-def findMainDirectionEMA(lines):
-    """compute vp from set of lines"""
+def findMainDirectionEMA(lines: np.ndarray):
+    """compute vp from set of lines.
 
+    Args:
+        lines: array of shape (N,8), e.g. N = 777
+
+    Returns:
+    """
     # initial guess
     segNormal = lines[:, :3]
     segLength = lines[:, [6]]
@@ -654,7 +750,7 @@ def findMainDirectionEMA(lines):
         print("[WARN] findMainDirectionEMA: initial failed", file=sys.stderr)
         return None, score, angle
 
-    # iterative refine
+    # Run iterative refinement.
     iter_max = 3
     candiSet, tri = icosahedron2sphere(5)
     numCandi = len(candiSet)
@@ -830,21 +926,30 @@ def paintParameterLine(parameterLine, width, height):
     return panoEdgeC
 
 
-def panoEdgeDetection(img, viewSize=320, qError=0.7, refineIter=3):
+def panoEdgeDetection(
+    img: np.ndarray,
+    viewSize: int = 320,
+    qError: float = 0.7,
+    refineIter: int = 3
+) -> Tuple[np.ndarray, np.ndarray, List[Dict[str, Any]], List[Dict[str, Any]], np.ndarray, float, np.ndarray ]:
     """
     line detection on panorama
     
     Args:
-        img: image waiting for detection, double type, range 0~1
-        viewSize: image size of croped views
+        img: image waiting for detection, double type, range 0~1, array of shape (H,W,3)
+        viewSize: image size of cropped views
         qError: set smaller if more line segment wanted
+        refineIter
     
     Returns:
-        oLines: detected line segments
-        vp: vanishing point
-        views: separate views of panorama
-        edges: original detection of line segments in separate views
+        oLines: detected line segments, array of shape (500,8)
+        vp: vanishing point, array of shape (6,3)
+        views: separate views of panorama, as list of dictionaries with keys {'img', 'vx', 'vy', 'fov', 'sz'}
+        edges: original detection of line segments in separate views, list of dictionaries
+            with keys {'img', 'edgeLst', 'vx', 'vy', 'fov', 'panoLst'}
         panoEdge: image for visualize line segments
+        score: scalar score
+        angle: array of shape (3,)
     """
     cutSize = viewSize
     fov = np.pi / 3
