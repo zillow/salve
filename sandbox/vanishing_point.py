@@ -16,13 +16,22 @@ Code is not optimized for python or numpy yet.
 Adapted from Author: Cheng Sun
 Email : chengsun@gapp.nthu.edu.tw
 """
-from typing import Any, Dict, List, Tuple
 
+import os
+import argparse
 import sys
-import numpy as np
-from scipy.ndimage import map_coordinates
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
 import cv2
+import numpy as np
+import PIL
+from scipy.ndimage import map_coordinates
+from PIL import Image
 from pylsd.lsd import lsd
+
+import salve.utils.io as io_utils
 
 
 def computeUVN(n, in_, planeID):
@@ -825,7 +834,19 @@ def multi_linspace(start, stop, num):
     return steps.reshape(-1, 1) * y + start.reshape(-1, 1)
 
 
-def assignVanishingType(lines, vp, tol, area=10):
+def assignVanishingType(lines: np.ndarray, vp: np.ndarray, tol: float, area=10):
+    """TODO...
+
+    Args:
+        lines: array of shape (N,8), e.g. N = 235
+        vp: array of shape (3,3)
+        tol: scalar tolerance
+        area: 
+
+    Returns:
+        tp: array of shape (N,)
+        typeCost: array of shape (N,3).
+    """
     numLine = len(lines)
     numVP = len(vp)
     typeCost = np.zeros((numLine, numVP))
@@ -854,18 +875,17 @@ def assignVanishingType(lines, vp, tol, area=10):
     return tp, typeCost
 
 
-def refitLineSegmentB(lines, vp, vpweight=0.1):
-    """
-    Refit direction of line segments
+def refitLineSegmentB(lines: np.ndarray, vp: np.ndarray, vpweight: float = 0.1) -> np.ndarray:
+    """Refit direction of line segments.
     
     Args:
-        lines: original line segments
-        vp: vannishing point
+        lines: original line segments, array of shape (N,8)
+        vp: vanishing point, array of shape (3,)
         vpweight: if set to 0, lines will not change; if set to inf, lines will
                   be forced to pass vp
 
     Returns:
-        lines_ali
+        lines_ali: array of shape (N,8).
     """
     numSample = 100
     numLine = len(lines)
@@ -1006,24 +1026,13 @@ def panoEdgeDetection(
     return olines, vp, views, edges, panoEdge, score, angle
 
 
-if __name__ == "__main__":
 
-    # disable OpenCV3's non thread safe OpenCL option
-    cv2.ocl.setUseOpenCL(False)
+def compute_vanishing_point(args) -> None:
+    """
 
-    import os
-    import argparse
-    import PIL
-    from PIL import Image
-    import time
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--i", required=True)
-    parser.add_argument("--o_prefix", required=True)
-    parser.add_argument("--qError", default=0.7, type=float)
-    parser.add_argument("--refineIter", default=3, type=int)
-    args = parser.parse_args()
-
+    Args
+        args: has keys "i", "o_prefix"
+    """
     # Read image
     img_ori = np.array(Image.open(args.i).resize((1024, 512)))
 
@@ -1035,18 +1044,48 @@ if __name__ == "__main__":
     print("Elapsed time: %.2f" % (time.time() - s_time))
     panoEdge = panoEdge > 0
 
-    print("Vanishing point:")
-    for v in vp[2::-1]:
-        print("%.6f %.6f %.6f" % tuple(v))
+    R = vp[2::-1]
+    vec = R[1]
+    vanishing_angle_deg = np.rad2deg(np.arctan2(vec[0], vec[1]))
+    print("Vanishing angle: ", vanishing_angle_deg)
 
-    # Visualization
-    edg = rotatePanorama(panoEdge.astype(np.float64), vp[2::-1])
-    img = rotatePanorama(img_ori / 255.0, vp[2::-1])
-    one = img.copy() * 0.5
-    one[(edg > 0.5).sum(-1) > 0] = 0
-    one[edg[..., 0] > 0.5, 0] = 1
-    one[edg[..., 1] > 0.5, 1] = 1
-    one[edg[..., 2] > 0.5, 2] = 1
-    Image.fromarray((edg * 255).astype(np.uint8)).save("%s_edg.png" % args.o_prefix)
-    Image.fromarray((img * 255).astype(np.uint8)).save("%s_img.png" % args.o_prefix)
-    Image.fromarray((one * 255).astype(np.uint8)).save("%s_one.png" % args.o_prefix)
+    building_id = Path(args.i).parent.parent.stem
+    fname_stem = Path(args.i).stem
+    json_save_fpath = f"{args.o_prefix}/{building_id}/{fname_stem}.json"
+    Path(json_save_fpath).parent.mkdir(parents=True, exist_ok=True)
+    io_utils.save_json_file(json_save_fpath, {"vanishing_angle_deg": vanishing_angle_deg})
+    
+
+    # print("Vanishing point:")
+    # import pdb; pdb.set_trace()
+    # for v in vp[2::-1]:
+    #     print("%.6f %.6f %.6f" % tuple(v))
+
+    show_lines_on_aligned_pano = True
+    if show_lines_on_aligned_pano:
+        # Visualization
+        edg = rotatePanorama(panoEdge.astype(np.float64), vp[2::-1])
+        img = rotatePanorama(img_ori / 255.0, vp[2::-1])
+        one = img.copy() * 0.5
+        one[(edg > 0.5).sum(-1) > 0] = 0
+        one[edg[..., 0] > 0.5, 0] = 1
+        one[edg[..., 1] > 0.5, 1] = 1
+        one[edg[..., 2] > 0.5, 2] = 1
+        Image.fromarray((edg * 255).astype(np.uint8)).save("%s_edg.png" % args.o_prefix)
+        Image.fromarray((img * 255).astype(np.uint8)).save("%s_img.png" % args.o_prefix)
+        Image.fromarray((one * 255).astype(np.uint8)).save("%s_one.png" % args.o_prefix)
+
+
+if __name__ == "__main__":
+
+    # disable OpenCV3's non thread safe OpenCL option
+    cv2.ocl.setUseOpenCL(False)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--i", required=True)
+    parser.add_argument("--o_prefix", required=True)
+    parser.add_argument("--qError", default=0.7, type=float)
+    parser.add_argument("--refineIter", default=3, type=int)
+    args = parser.parse_args()
+
+    compute_vanishing_point(args)

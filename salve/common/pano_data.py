@@ -148,7 +148,7 @@ class PanoData:
             scale_meters_per_coordinate: scaling factor... TODO
         """
         # TODO: replace strings with their `SalveCoordinateFrame` Enum equivalent.
-        if coord_frame not in ["worldmetric", "worldnormalized" "local"]:
+        if coord_frame not in ["worldmetric", "worldnormalized", "local"]:
             raise ValueError(f"Unknown coordinate frame provided: {coord_frame}.")
 
         if coord_frame in ["worldmetric", "worldnormalized"]:
@@ -158,7 +158,8 @@ class PanoData:
 
         if coord_frame == "worldmetric":
             if scale_meters_per_coordinate is None:
-                print("Failure: need scale as arg to convert to meters. Skipping rendering...")
+                print("Incompatible metric system given provided scale."
+                    "Scale is a required to convert coordinates to meters. Skipping rendering...")
                 return
             else:
                 room_vertices *= scale_meters_per_coordinate
