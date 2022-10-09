@@ -9,7 +9,7 @@ EPS = 1e-10
 
 
 def query_completion_progress(hypotheses_save_root: str, bev_save_root: str) -> None:
-    """ """
+    """Logs to stdout the current rendering completion percent for each ZInD building."""
     building_ids = [Path(d).name for d in glob.glob(f"{bev_save_root}/gt_alignment_approx/*")]
     building_ids.sort()
     for building_id in building_ids:

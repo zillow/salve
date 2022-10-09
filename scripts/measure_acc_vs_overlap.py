@@ -1,12 +1,10 @@
-"""
-Measure how the amount of visual overlap affects the trained verifier model's accuracy.
-"""
+"""Measure how the amount of visual overlap affects the trained verifier model's accuracy."""
 
 import glob
 import os
 from pathlib import Path
 
-import gtsfm.utils.io as io_utils
+import click
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,10 +12,10 @@ import seaborn as sns
 
 import salve.common.edge_classification as edge_classification
 import salve.common.posegraph2d as posegraph2d
+import salve.utils.io as io_utils
 import salve.utils.iou_utils as iou_utils
 import salve.utils.rotation_utils as rotation_utils
 from salve.common.edge_classification import EdgeClassification
-from salve.common.sim2 import Sim2
 
 
 def measure_acc_vs_visual_overlap(
@@ -28,9 +26,10 @@ def measure_acc_vs_visual_overlap(
     Note: Count separately for negative and positive examples.
 
     Args:
-        serialized_preds_json_dir:
-        hypotheses_save_root: str,
-        raw_dataset_dir:
+        serialized_preds_json_dir: Directory where serialized predictions were saved to (from executing `test.py`).
+        hypotheses_save_root: Directory where JSON files with alignment hypotheses have been saved to (from executing
+            `export_alignment_hypotheses.py`).
+        raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API).
         gt_class: ground truth category to consider. 1 for positives, and 0 for negatives.
 
     Returns:
@@ -55,10 +54,6 @@ def measure_acc_vs_visual_overlap(
     for json_idx, json_fpath in enumerate(json_fpaths):
         print(f"On {json_idx}/{len(json_fpaths)}")
 
-        # for quick debug mode
-        # if json_idx > 30:
-        #     continue
-
         json_data = io_utils.read_json_file(json_fpath)
         y_hat_list = json_data["y_hat"]
         y_true_list = json_data["y_true"]
@@ -79,6 +74,7 @@ def measure_acc_vs_visual_overlap(
                 fp0 = fp0.replace("/data/johnlam", "/home/johnlam")
                 fp1 = fp1.replace("/data/johnlam", "/home/johnlam")
 
+            # Compute IoU in the BEV between two BEV texture map renderings.
             f1 = imageio.imread(fp0)
             f2 = imageio.imread(fp1)
             floor_iou = iou_utils.texture_map_iou(f1, f2)
@@ -104,7 +100,8 @@ def measure_acc_vs_visual_overlap(
             is_identity = "identity" in Path(fp0).stem
             configuration = "identity" if is_identity else "rotated"
 
-            # Rip out the WDO indices (`wdo_pair_uuid`), given `pair_3905___door_3_0_identity_floor_rgb_floor_01_partial_room_02_pano_38.jpg`
+            # Rip out the WDO indices (`wdo_pair_uuid`),
+            # given a filename of the form `pair_3905___door_3_0_identity_floor_rgb_floor_01_partial_room_02_pano_38.jpg`
             k = Path(fp0).stem.split("___")[1].find(f"_{configuration}")
             assert k != -1
             wdo_pair_uuid = Path(fp0).stem.split("___")[1][:k]
@@ -132,7 +129,7 @@ def measure_acc_vs_visual_overlap(
             wTi2_gt = gt_floor_pg.nodes[i2].global_Sim2_local
             i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
 
-            # # technically it is i2Si1, but scale will always be 1 with inferred WDO.
+            # Technically it is i2Si1, but scale will always be 1 with inferred WDO.
             i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(
                 m, hypotheses_save_root, building_id, floor_id
             )
@@ -140,7 +137,8 @@ def measure_acc_vs_visual_overlap(
             theta_deg_est = i2Ti1.theta_deg
             theta_deg_gt = i2Ti1_gt.theta_deg
 
-            # need to wrap around at 360
+            # Compute rotation and translation error for this example.
+            # Need to wrap angle around at 360 degrees.
             rot_err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
             trans_err = np.linalg.norm(i2Ti1_gt.translation - i2Ti1.translation)
             tuples += [(floor_iou, y_hat, y_true, rot_err, trans_err)]
@@ -151,7 +149,7 @@ def measure_acc_vs_visual_overlap(
     rot_err_bins = np.zeros(10)
     trans_err_bins = np.zeros(10)
 
-    # running computation of the mean.
+    # Running computation of the mean.
     for (iou, y_pred, y_true, rot_err, trans_err) in tuples:
 
         bin_idx = np.digitize(iou, bins=bin_edges)
@@ -324,15 +322,39 @@ def test_measure_acc_vs_visual_overlap() -> None:
     assert np.allclose(avg_trans_err_bins, expected_avg_trans_err_bins, equal_nan=True)
 
 
-if __name__ == "__main__":
-
-    serialized_preds_json_dir = (
-        "/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
-    )
-    # serialized_preds_json_dir = "/home/johnlam/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
-    # serialized_preds_json_dir = "/home/johnlam/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
-    raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
-    hypotheses_save_root = (
-        "/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"
-    )
+@click.command(help="Script to run SfM using SALVe verifier predictions.")
+@click.option(
+    "--serialized_preds_json_dir",
+    type=click.Path(exists=True),
+    required=True,
+    # default = "/home/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"
+    # default = "/home/johnlam/2021_10_22___ResNet50_186tours_serialized_edge_classifications_test2021_11_02"
+    # default = "/home/johnlam/2021_10_26__ResNet50_373tours_serialized_edge_classifications_test2021_11_02"
+    help="Directory where serialized predictions were saved to (from executing `test.py`).",
+)
+@click.option(
+    "--hypotheses_save_root",
+    type=click.Path(exists=True),
+    required=True,
+    # default = ""/home/johnlam/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65""
+    help="Directory where JSON files with alignment hypotheses have been saved to (from executing"
+    " `export_alignment_hypotheses.py`)",
+)
+@click.option(
+    "--raw_dataset_dir",
+    type=click.Path(exists=True),
+    # default = "/Users/johnlambert/Downloads/zind_bridgeapi_2021_10_05"
+    required=True,
+    help="Path to where ZInD dataset is stored on disk (after download from Bridge API).",
+)
+def run_measure_acc_vs_visual_overlap(
+    serialized_preds_json_dir: str,
+    hypotheses_save_root: str,
+    raw_dataset_dir: str,
+) -> None:
+    """Click entry point for ..."""
     measure_acc_vs_visual_overlap(serialized_preds_json_dir, hypotheses_save_root, raw_dataset_dir)
+
+
+if __name__ == "__main__":
+    run_measure_acc_vs_visual_overlap()
