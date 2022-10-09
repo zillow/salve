@@ -1,5 +1,4 @@
-
-"""Match with kornia."""
+"""Compute feature matches with LOFTR, using kornia."""
 
 from pathlib import Path
 

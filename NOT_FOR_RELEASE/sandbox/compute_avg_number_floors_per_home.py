@@ -11,7 +11,7 @@ import numpy as np
 from salve.dataset.zind_partition import DATASET_SPLITS
 
 
-def count_floor_stats_per_home():
+def count_floor_stats_per_home(raw_dataset_dir: str) -> None:
     """
     Train: 2168 floors, 1.72 floors per building. #Panos per floor: 24.92
     Val: 278 floors, 1.77 floors per building. #Panos per floor: 23.97
@@ -20,9 +20,6 @@ def count_floor_stats_per_home():
     #split = "train"
     #split = "val"
     split = "test"
-
-    #raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
-    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
 
     floor_counter = defaultdict(int)
 
@@ -78,5 +75,9 @@ def count_avg_number_wdo_per_pano() -> None:
 
 
 if __name__ == "__main__":
-    # count_floor_stats_per_home()
+
+    #raw_dataset_dir = "/home/johnlam/zind_bridgeapi_2021_10_05"
+    raw_dataset_dir = "/Users/johnlam/Downloads/zind_bridgeapi_2021_10_05"
+
+    # count_floor_stats_per_home(raw_dataset_dir)
     count_avg_number_wdo_per_pano()

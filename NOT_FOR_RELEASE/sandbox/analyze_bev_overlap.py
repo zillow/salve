@@ -15,7 +15,7 @@ import salve.dataset.zind_data as zind_data
 import salve.utils.iou_utils as iou_utils
 
 
-def main() -> None:
+def main(data_root: str) -> None:
     """Analyze data generated with  alignments.
     
     Save 20-bin and 10-bin histograms showing distribution of visual overlap.
@@ -23,9 +23,6 @@ def main() -> None:
 
     plt.style.use("ggplot")
     sns.set_style({"font.family": "Times New Roman"})
-
-    #data_root = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25" # Sim(3) alignments
-    data_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres" # SE(2) alignments
 
     split_building_ids = zind_data.get_available_building_ids(dataset_root=f"{data_root}/gt_alignment_approx")
 
@@ -137,4 +134,8 @@ def show_quadruplet(
 
 
 if __name__ == "__main__":
-    main()
+
+    #data_root = "/Users/johnlam/Downloads/DGX-rendering-2021_06_25/ZinD_BEV_RGB_only_2021_06_25" # Sim(3) alignments
+    data_root = "/home/johnlam/ZinD_Bridge_API_BEV_2021_10_20_lowres" # SE(2) alignments
+
+    main(data_root)

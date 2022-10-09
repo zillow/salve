@@ -75,4 +75,5 @@ def legend_without_duplicate_labels(ax: matplotlib.axes.Axes) -> None:
     """
     handles, labels = ax.get_legend_handles_labels()
     unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
-    ax.legend(*zip(*unique))
+    handles, labels = zip(*unique)
+    ax.legend(handles=handles, labels=labels, loc="lower center", bbox_to_anchor=(0.6, 1.2))
