@@ -10,9 +10,9 @@ def visualize_side_by_side(openmvg_dir: str, opensfm_dir: str, salve_dir: str) -
     """Visualize SALVe results side-by-side with OpenSfM and OpenMVG results.
 
     Args:
-        openmvg_dir: path to rendered floorplans, built using OpenMVG camera localization.
-        opensfm_dir: path to rendered floorplans, built using OpenSfM camera localization.
-        salve_dir: path to rendered floorplans, built using SALVe camera localization.
+        openmvg_dir: path to rendered floorplans, generated using OpenMVG camera localization.
+        opensfm_dir: path to rendered floorplans, generated using OpenSfM camera localization.
+        salve_dir: path to rendered floorplans, generated using SALVe camera localization.
 	"""
     for openmvg_fpath in glob.glob(f"{openmvg_dir}/*.jpg"):
 
