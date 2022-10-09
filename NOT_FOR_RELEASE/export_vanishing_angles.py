@@ -2,6 +2,7 @@
 
 import glob
 from pathlib import Path
+from multiprocessing import Pool
 from types import SimpleNamespace
 
 import matplotlib.pyplot as plt
@@ -17,7 +18,7 @@ from salve.dataset.zind_partition import DATASET_SPLITS
 import vanishing_point as vanishing_point
 
 
-def main() -> None:
+def compare_vanishing_angle_csv_data() -> None:
     """ """
     fpath1 = "/Users/johnlambert/Downloads/2022_10_06_vanishing_angles/vanishing_angles_0801.csv"
     fpath2 = "/Users/johnlambert/Downloads/2022_10_06_vanishing_angles/vanishing_angles.csv"
@@ -44,33 +45,37 @@ def vis_rotated_pano() -> None:
 
     raw_dataset_dir = "/Users/johnlambert/Downloads/zind_bridgeapi_2021_10_05"
 
-    building_id = "0308"
-    floor_id = "floor_02"
-    pano_id = 60
+    building_ids = ["0564"]
+    floor_id = "floor_01"
+
+    # building_id = "0308"
+    # floor_id = "floor_02"
+    # pano_id = 60
     # Vanishing angle: -34.3
     # Angle should be 90 deg. after the correction.
 
     #pano_id = 18
 
+    #building_ids = [Path(fpath).stem for fpath in glob.glob("/Users/johnlambert/Downloads/zind_horizon_net_predictions_2022_08_12/vanishing_angle/*")]
+    for building_id in building_ids:
 
+        vanishing_angle_dir = "/Users/johnlambert/Downloads/2022_10_06_lsd_vanishing_angles"
 
-    vanishing_angle_dir = "/Users/johnlambert/Downloads/2022_10_06_lsd_vanishing_angles"
+        pano_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
+        for pano_fpath in pano_fpaths:
+            fname_stem = Path(pano_fpath).stem
+            pano_id = int(fname_stem.split("_")[-1])
+            floor_id = fname_stem.split("_partial")[0]
 
-    pano_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
-    for pano_fpath in pano_fpaths:
-        fname_stem = Path(pano_fpath).stem
-        pano_id = int(fname_stem.split("_")[-1])
-        floor_id = fname_stem.split("_partial")[0]
+            # json_fpath = f"{vanishing_angle_dir}/{building_id}/{fname_stem}.json"
+            # vanishing_angle_deg = io_utils.read_json_file(json_fpath)["vanishing_angle_deg"]
 
-        json_fpath = f"{vanishing_angle_dir}/{building_id}/{fname_stem}.json"
-        vanishing_angle_deg = io_utils.read_json_file(json_fpath)["vanishing_angle_deg"]
+            fpath = f"/Users/johnlambert/Downloads/zind_horizon_net_predictions_2022_08_12/vanishing_angle/{building_id}.json"
+            data = io_utils.read_json_file(fpath)
+            vanishing_angle_deg = data[str(pano_id)]
+            print("Vanishing angle: ", vanishing_angle_deg)
 
-        # fpath = f"/Users/johnlambert/Downloads/zind_horizon_net_predictions_2022_08_12/vanishing_angle/{building_id}.json"
-        # data = io_utils.read_json_file(fpath)
-        # vanishing_angle_deg = data[str(pano_id)]
-        print("Vanishing angle: ", vanishing_angle_deg)
-
-        plot_aligned_pano(raw_dataset_dir, building_id, floor_id, pano_id, vanishing_angle_deg)
+            plot_aligned_pano(raw_dataset_dir, building_id, floor_id, pano_id, vanishing_angle_deg)
 
 
 
@@ -99,6 +104,8 @@ def plot_aligned_pano(raw_dataset_dir: str, building_id: str, floor_id: str, pan
     unaligned_Sim2_aligned = aligned_Sim2_unaligned.inverse()
     pano_data.global_Sim2_local = pano_data.global_Sim2_local.compose(unaligned_Sim2_aligned)
 
+    print("\tAligned angle: ", pano_data.global_Sim2_local.theta_deg)
+
     point_ahead = np.array([0, 1]).reshape(1, 2)
     if coord_frame in ["worldnormalized", "worldmetric"]:
         point_ahead = pano_data.global_Sim2_local.transform_from(point_ahead) * scale_meters_per_coordinate
@@ -116,17 +123,30 @@ def compute_vanishing_angles_all_buildings():
     raw_dataset_dir = "/Users/johnlambert/Downloads/zind_bridgeapi_2021_10_05"
     save_dir = "/Users/johnlambert/Downloads/2022_10_06_lsd_vanishing_angles"
 
-    building_ids = ["0308"]
+    #building_ids = ["0564"] # ["0308"]
+    building_ids = DATASET_SPLITS["test"]
+
+    args_list = []
 
     for building_id in building_ids:
         pano_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/*.jpg")
         for pano_fpath in pano_fpaths:
-            args = SimpleNamespace(**{"i": pano_fpath, "o_prefix": save_dir,
-                "qError": 0.7,
-                "refineIter": 3,
+            args = (
+                pano_fpath, # image_fpath
+                save_dir, # output_prefix
+                0.7, # q_error
+                3 # n_refine_iters
+            )
+            args_list.append(args)
+            # vanishing_point.compute_vanishing_point(args)
 
-                })
-            vanishing_point.compute_vanishing_point(args)
+    num_processes = 10
+    #import pdb; pdb.set_trace()
+
+    with Pool(num_processes) as p:
+        p.starmap(vanishing_point.compute_vanishing_point, args_list)
+
+
 
 
 
@@ -179,10 +199,8 @@ def find_missing_vanishing_angles() -> None:
 
 
 if __name__ == "__main__":
-    #main()
+    #compare_vanishing_angle_csv_data()
     #vis_rotated_pano()
-
-    #compute_vanishing_angles_all_buildings()
-
-    find_missing_vanishing_angles()
+    compute_vanishing_angles_all_buildings()
+    #find_missing_vanishing_angles()
 
