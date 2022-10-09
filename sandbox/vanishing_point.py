@@ -35,8 +35,15 @@ import salve.utils.io as io_utils
 
 
 def computeUVN(n, in_, planeID):
-    """
-    compute v given u and normal.
+    """Compute v given u and normal.
+
+    Args:
+        n:
+        in_:
+        planeID:
+
+    Returns:
+        out:
     """
     if planeID == 2:
         n = np.array([n[1], n[2], n[0]])
@@ -304,7 +311,18 @@ def imgLookAt(im, CENTERx, CENTERy, new_imgH, fov):
 
 
 def separatePano(panoImg, fov, x, y, imgSize=320):
-    """Cut a panorama image into several separate views."""
+    """Cut a panorama image into several separate views.
+
+    Args:
+        panoImg
+        fov
+        x
+        y
+        imgSize
+
+    Returns:
+        sepScene
+    """
     assert x.shape == y.shape
     if not isinstance(fov, np.ndarray):
         fov = fov * np.ones_like(x)
@@ -404,6 +422,15 @@ def edgeFromImg2Pano(edge):
 
 
 def _intersection(range1, range2):
+    """
+
+    Args:
+        range1:
+        range2:
+
+    Returns:
+        b:
+    """
     if range1[1] < range1[0]:
         range11 = [range1[0], 1]
         range12 = [0, range1[1]]
@@ -441,10 +468,13 @@ def _insideRange(pt, range):
 def combineEdgesN(edges):
     """
     Combine some small line segments, should be very conservative
-    OUTPUT
+
+    Args:
+        edges:
+
+    Returns:
         lines: combined line segments
-        ori_lines: original line segments
-        line format [nx ny nz projectPlaneID umin umax LSfov score]
+        ori_lines: original line segments. line format [nx ny nz projectPlaneID umin umax LSfov score]
     """
     arcList = []
     for edge in edges:
@@ -529,8 +559,16 @@ def combineEdgesN(edges):
     return lines, ori_lines
 
 
-def icosahedron2sphere(level):
-    """Use a icosahedron to sample uniformly on a sphere."""
+def icosahedron2sphere(level: int):
+    """Use a icosahedron to sample uniformly on a sphere.
+
+    Args:
+        level
+
+    Returns:
+        coor
+        tri
+    """
     a = 2 / (1 + np.sqrt(5))
 
     # fmt: off
@@ -619,20 +657,22 @@ def curveFitting(inputXYZ, weight):
     return outputNM
 
 
-def sphereHoughVote(segNormal, segLength, segScores, binRadius, orthTolerance, candiSet, force_unempty=True):
-    """
+def sphereHoughVote(segNormal, segLength, segScores, binRadius, orthTolerance, candiSet, force_unempty: bool = True):
+    """Use Hough transform to determine votes on sphere.
 
     Args:
-        segNormal
-        segLength
-        segScores
-        binRadius
-        orthTolerance
-        candiSet
-        force_unempty
+        segNormal:
+        segLength:
+        segScores:
+        binRadius:
+        orthTolerance:
+        candiSet:
+        force_unempty:
 
     Returns:
-
+        refiXYZ:
+        lastStepCost:
+        lastStepAngle:
     """
     # initial guess
     numLinesg = len(segNormal)
@@ -881,8 +921,7 @@ def refitLineSegmentB(lines: np.ndarray, vp: np.ndarray, vpweight: float = 0.1) 
     Args:
         lines: original line segments, array of shape (N,8)
         vp: vanishing point, array of shape (3,)
-        vpweight: if set to 0, lines will not change; if set to inf, lines will
-                  be forced to pass vp
+        vpweight: if set to 0, lines will not change; if set to inf, lines will be forced to pass vp.
 
     Returns:
         lines_ali: array of shape (N,8).
@@ -959,7 +998,7 @@ def panoEdgeDetection(
         img: image waiting for detection, double type, range 0~1, array of shape (H,W,3)
         viewSize: image size of cropped views
         qError: set smaller if more line segment wanted
-        refineIter
+        refineIter:
     
     Returns:
         oLines: detected line segments, array of shape (500,8)
@@ -1027,19 +1066,27 @@ def panoEdgeDetection(
 
 
 
-def compute_vanishing_point(args) -> None:
-    """
+def compute_vanishing_point(
+        image_fpath: str,
+        output_prefix: str,
+        q_error: float,
+        n_refine_iters: int
+) -> None:
+    """Compute vanishing points for an image, and save result to disk.
 
     Args
-        args: has keys "i", "o_prefix"
+        image_fpath:
+        output_prefix:
+        q_error: 
+        n_refine_iters:
     """
     # Read image
-    img_ori = np.array(Image.open(args.i).resize((1024, 512)))
+    img_ori = np.array(Image.open(image_fpath).resize((1024, 512)))
 
     # Vanishing point estimation & Line segments detection
     s_time = time.time()
     olines, vp, views, edges, panoEdge, score, angle = panoEdgeDetection(
-        img_ori, qError=args.qError, refineIter=args.refineIter
+        img_ori, qError=q_error, refineIter=n_refine_iters
     )
     print("Elapsed time: %.2f" % (time.time() - s_time))
     panoEdge = panoEdge > 0
@@ -1049,9 +1096,9 @@ def compute_vanishing_point(args) -> None:
     vanishing_angle_deg = np.rad2deg(np.arctan2(vec[0], vec[1]))
     print("Vanishing angle: ", vanishing_angle_deg)
 
-    building_id = Path(args.i).parent.parent.stem
-    fname_stem = Path(args.i).stem
-    json_save_fpath = f"{args.o_prefix}/{building_id}/{fname_stem}.json"
+    building_id = Path(image_fpath).parent.parent.stem
+    fname_stem = Path(image_fpath).stem
+    json_save_fpath = f"{output_prefix}/{building_id}/{fname_stem}.json"
     Path(json_save_fpath).parent.mkdir(parents=True, exist_ok=True)
     io_utils.save_json_file(json_save_fpath, {"vanishing_angle_deg": vanishing_angle_deg})
     
@@ -1061,7 +1108,7 @@ def compute_vanishing_point(args) -> None:
     # for v in vp[2::-1]:
     #     print("%.6f %.6f %.6f" % tuple(v))
 
-    show_lines_on_aligned_pano = True
+    show_lines_on_aligned_pano = False
     if show_lines_on_aligned_pano:
         # Visualization
         edg = rotatePanorama(panoEdge.astype(np.float64), vp[2::-1])
@@ -1071,9 +1118,9 @@ def compute_vanishing_point(args) -> None:
         one[edg[..., 0] > 0.5, 0] = 1
         one[edg[..., 1] > 0.5, 1] = 1
         one[edg[..., 2] > 0.5, 2] = 1
-        Image.fromarray((edg * 255).astype(np.uint8)).save("%s_edg.png" % args.o_prefix)
-        Image.fromarray((img * 255).astype(np.uint8)).save("%s_img.png" % args.o_prefix)
-        Image.fromarray((one * 255).astype(np.uint8)).save("%s_one.png" % args.o_prefix)
+        Image.fromarray((edg * 255).astype(np.uint8)).save("%s_edg.png" % output_prefix)
+        Image.fromarray((img * 255).astype(np.uint8)).save("%s_img.png" % output_prefix)
+        Image.fromarray((one * 255).astype(np.uint8)).save("%s_one.png" % output_prefix)
 
 
 if __name__ == "__main__":
@@ -1088,4 +1135,9 @@ if __name__ == "__main__":
     parser.add_argument("--refineIter", default=3, type=int)
     args = parser.parse_args()
 
-    compute_vanishing_point(args)
+    compute_vanishing_point(
+        image_fpath=args.i, 
+        output_prefix=args.o_prefix,
+        q_error=args.qError,
+        n_refine_iters=args.refineIter
+    )
