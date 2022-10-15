@@ -5,13 +5,11 @@ there was no signal.
 """
 
 import numpy as np
+import scipy.interpolate  # not quite the same as `matplotlib.mlab.griddata`
 import torch
 import torch.nn.functional as F
 
-import scipy.interpolate  # not quite the same as `matplotlib.mlab.griddata`
-
 from salve.utils.mesh_grid import get_mesh_grid_as_point_cloud
-
 
 # We use a 11x11 kernel at 501x501 resolution. a 41x41 kernel is recommended at 2001x2001 resolution.
 DEFAULT_KERNEL_SZ = 11

@@ -13,7 +13,7 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import open3d
-from gtsam import Rot3, Pose3
+from gtsam import Pose3, Rot3
 
 import salve.utils.bev_rendering_utils as bev_rendering_utils
 

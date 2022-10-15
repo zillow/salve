@@ -18,8 +18,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gtsam import Pose3, Rot3
 
-import salve.baselines.opensfm as opensfm_utils
 import salve.baselines.openmvg as openmvg_utils
+import salve.baselines.opensfm as opensfm_utils
 import salve.common.posegraph2d as posegraph2d
 import salve.utils.io as io_utils
 import salve.utils.ransac as ransac

@@ -9,13 +9,12 @@ import numpy as np
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.bev_rendering_utils as bev_rendering_utils
+import salve.utils.graph_utils as graph_utils
 import salve.utils.io as io_utils
 import salve.utils.iou_utils as iou_utils
 import salve.utils.matplotlib_utils as matplotlib_utils
 from salve.common.bevparams import BEVParams
 from salve.common.posegraph2d import PoseGraph2d
-
-import salve.utils.graph_utils as graph_utils
 
 EPS = 1e-10
 

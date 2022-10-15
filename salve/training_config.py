@@ -1,8 +1,7 @@
 """Stores hyperparameters for training a model (for a single experiment)."""
 
-from typing import Optional, Tuple
-
 from dataclasses import dataclass
+from typing import Optional, Tuple
 
 
 @dataclass(frozen=False)

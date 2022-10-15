@@ -12,7 +12,6 @@ import salve.utils.rotation_utils as rotation_utils
 from salve.common.sim2 import Sim2
 from salve.common.wdo import WDO
 
-
 RED = [1, 0, 0]
 GREEN = [0, 1, 0]
 BLUE = [0, 0, 1]

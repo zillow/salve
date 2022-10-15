@@ -23,7 +23,6 @@ import salve.utils.rotation_utils as rotation_utils
 from salve.common.pano_data import FloorData, PanoData
 from salve.common.sim2 import Sim2
 
-
 try:
     import salve.visualization.utils
 except Exception as e:
