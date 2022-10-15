@@ -1,10 +1,9 @@
 """File I/O utilities."""
 
+import json
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Union
-
-import json
 
 
 def read_json_file(fpath: Union[str, Path]) -> Any:
