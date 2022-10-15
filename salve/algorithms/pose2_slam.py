@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple
 import gtsam
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Rot2, Point2, Pose2, PriorFactorPose2, Values
+from gtsam import Point2, Pose2, PriorFactorPose2, Rot2, Values
 from gtsam.symbol_shorthand import L, X
 
 import salve.algorithms.data_association as data_association
@@ -14,12 +14,11 @@ import salve.common.edge_classification as edge_classification
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.axis_alignment_utils as axis_alignment_utils
 import salve.utils.graph_rendering_utils as graph_rendering_utils  # flake8: noqa
-from salve.common.posegraph2d import PoseGraph2d
 from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
+from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
-
 
 # Create noise models.
 PRIOR_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.3, 0.3, 0.1]))  # np.array([1e-6, 1e-6, 1e-8])

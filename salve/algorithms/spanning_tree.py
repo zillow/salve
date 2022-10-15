@@ -14,7 +14,7 @@ import numpy as np
 import scipy
 
 import salve.utils.rotation_utils as rotation_utils
-from salve.common.posegraph2d import REDTEXT, ENDCOLOR
+from salve.common.posegraph2d import ENDCOLOR, REDTEXT
 from salve.common.sim2 import Sim2
 
 logger = logging.getLogger(__name__)
