@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Callable, Tuple
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
 import salve.utils.normalization_utils as normalization_utils
 import salve.utils.transform as transform
