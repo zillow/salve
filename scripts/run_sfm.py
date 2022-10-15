@@ -25,9 +25,10 @@ import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.axis_alignment_utils as axis_alignment_utils
 import salve.utils.graph_utils as graph_utils
 import salve.utils.graph_rendering_utils as graph_rendering_utils
-import salve.utils.rotation_utils as rotation_utils
 import salve.utils.pr_utils as pr_utils
+import salve.utils.rotation_utils as rotation_utils
 from salve.algorithms.cycle_consistency import TwoViewEstimationReport
+from salve.algorithms.spanning_tree import RelativePoseMeasurement
 from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
@@ -36,13 +37,13 @@ from salve.common.sim2 import Sim2
 
 
 def compute_floor_wdo_type_distribution(high_conf_measurements: List[EdgeClassification]) -> DefaultDict[str, float]:
-    """TODO
+    """Analyze the distribution of alignment objects used for SALVe-verified edges.
 
     Args:
         high_conf_measurements: all measurements of sufficient confidence for one floor, even if forming a multigraph.
 
     Returns:
-        wdo_type_counter: dictionary containing counts of W/D/O types.
+        wdo_type_counter: dictionary containing counts of W/D/O types (windows, doors, openings).
     """
     wdo_type_counter = defaultdict(float)
     for m in high_conf_measurements:
@@ -97,20 +98,17 @@ def get_conf_thresholded_edges(
     i2ti1_dict = {}
     two_view_reports_dict = {}
 
-    # compute_precision_recall(measurements)
-
     num_gt_positives = 0
     num_gt_negatives = 0
 
     gt_edges = []
     for m in measurements:
-
         if m.y_true == 1:
             num_gt_positives += 1
         else:
             num_gt_negatives += 1
 
-        # Find all of the predictions where pred class is 1
+        # Find all of the predictions where predicted class is 1.
         if m.y_hat != 1:
             continue
 
@@ -181,7 +179,7 @@ def get_conf_thresholded_edges(
 
     EPS = 1e-10
     class_imbalance_ratio = num_gt_negatives / (num_gt_positives + EPS)
-    print(f"\tClass imbalance ratio {class_imbalance_ratio:.2f}")
+    print(f"\tPos. vs. Neg. class imbalance ratio {class_imbalance_ratio:.2f}")
 
     return (
         i2Si1_dict,
@@ -195,7 +193,7 @@ def get_conf_thresholded_edges(
 
 def measure_avg_relative_pose_errors(
     measurements: List[EdgeClassification],
-    gt_floor_pg: "PoseGraph2d",
+    gt_floor_pg: PoseGraph2d,
     hypotheses_save_root: str,
     building_id: str,
     floor_id: str,
@@ -210,10 +208,12 @@ def measure_avg_relative_pose_errors(
     relative pose error on each edge (w.r.t. GT poses).
 
     Args:
+        measurements:
+        gt_floor_pg: ground truth pose graph for a ZInD building floor.
         hypotheses_save_root: Path to where alignment hypotheses are saved on disk.
         building_id: unique ID for ZinD building.
         floor_id: unique ID for floor of a ZinD building.
-        verbose:
+        verbose: whether to log to STDOUT computed error on every pano-pano edge.
 
     Returns:
         mean_rot_err: average rotation error on each relative pose prediction.
@@ -222,7 +222,6 @@ def measure_avg_relative_pose_errors(
     rot_errs = []
     trans_errs = []
     for m in measurements:
-
         i1 = m.i1
         i2 = m.i2
 
@@ -238,7 +237,7 @@ def measure_avg_relative_pose_errors(
         theta_deg_est = i2Ti1.theta_deg
         theta_deg_gt = i2Ti1_gt.theta_deg
 
-        # Need to wrap around at 360
+        # Need to wrap around at 360 degrees.
         rot_err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
         rot_errs.append(rot_err)
 
@@ -506,11 +505,11 @@ def run_incremental_reconstruction(
         if len(high_conf_measurements) > 0:
             # Compute errors over all edges (repeated per pano).
             measure_avg_relative_pose_errors(
-                high_conf_measurements,
-                gt_floor_pose_graph,
-                hypotheses_save_root,
-                building_id,
-                floor_id,
+                measurements=high_conf_measurements,
+                gt_floor_pg=gt_floor_pose_graph,
+                hypotheses_save_root=hypotheses_save_root,
+                building_id=building_id,
+                floor_id=floor_id,
             )
 
         pdf, cdf = graph_utils.analyze_cc_distribution(
@@ -570,7 +569,7 @@ def run_incremental_reconstruction(
 
         elif method == "random_spanning_trees":
             # Generate 100 spanning trees.
-            from salve.algorithms.spanning_tree import RelativePoseMeasurement
+            
 
             high_conf_measurements_rel = []
             for m in high_conf_measurements:

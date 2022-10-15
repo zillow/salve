@@ -2,6 +2,7 @@
 
 import numpy as np
 
+
 def convert_points_worldmetric_to_px(points_worldmetric: np.ndarray, image_width: int, camera_height_m: float) -> np.ndarray:
     """TODO
 
@@ -39,7 +40,6 @@ def zind_worldmetric_to_room_cartesian(worldmetric_coordinates: np.ndarray, came
     room_cartesian_coords /= camera_height_m
     # TODO: fix bug
     import pdb; pdb.set_trace()
-
     # NOTE: the step below loses the sign, making this transformation unrecoverable.
     room_cartesian_coords *= room_cartesian_coords[:, 1].reshape(-1,1)
 
