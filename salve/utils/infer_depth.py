@@ -6,14 +6,14 @@ Style is modified, but functionality unchanged.
 
 import argparse
 import glob
+import importlib
 import os
 import sys
-import importlib
 
-from tqdm import tqdm
-from imageio import imread, imwrite
 import numpy as np
 import torch
+from imageio import imread, imwrite
+from tqdm import tqdm
 
 try:
     from lib.config import config, update_config

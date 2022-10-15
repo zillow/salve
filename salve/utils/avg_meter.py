@@ -4,10 +4,11 @@ Adapted from `mseg-semantic` (MIT License):
 https://github.com/mseg-dataset/mseg-semantic/blob/master/mseg_semantic/utils/avg_meter.py
 """
 
+from typing import List
+
 import numpy as np
 import torch
 import torch.distributed as dist
-from typing import List
 
 import salve.utils.iou_utils as iou_utils
 

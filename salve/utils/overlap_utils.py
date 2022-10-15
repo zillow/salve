@@ -9,7 +9,6 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 
 import salve.utils.polyline_interpolation as polyline_interpolation
 
-
 EPS = 1e-9
 
 

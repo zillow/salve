@@ -7,12 +7,11 @@ from pathlib import Path
 from typing import Callable, List, Tuple, Union
 
 import imageio
-from torch.utils.data import Dataset
 from torch import Tensor
+from torch.utils.data import Dataset
 
 from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.training_config import TrainingConfig
-
 
 TRAIN_SPLIT_FRACTION = 0.85
 

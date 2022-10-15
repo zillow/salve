@@ -1,4 +1,4 @@
-"""Window, door, or opening..."""
+"""Data structure that parameterizes a window, door, or opening in 3D."""
 
 import copy
 from dataclasses import dataclass
@@ -13,7 +13,7 @@ from salve.common.sim2 import Sim2
 class WDO:
     """Data structure that defines either a single door, single window, or single opening.
 
-    Note: wefine windows/doors/openings by their left and right boundaries.
+    Note: we define windows/doors/openings by their left and right boundaries.
 
     Attributes:
         global_Sim2_local: pose of W/D/O in ...TODO, as Similarity(2) transformation.
@@ -153,6 +153,6 @@ class WDO:
 
         b_Sim2_j = self.global_Sim2_local
         a_Sim2_j = a_Sim2_b.compose(b_Sim2_j)
-        # equivalent of `transformFrom()` on Pose2 object.
+        # Equivalent of `transformFrom()` on Pose2 object.
         aligned_self.global_Sim2_local = Sim2(R=a_Sim2_j.rotation, t=a_Sim2_j.translation * a_Sim2_j.scale, s=gt_scale)
         return aligned_self

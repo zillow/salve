@@ -16,7 +16,6 @@ from typing import Dict, List, NamedTuple, Tuple
 
 import gtsam
 import numpy as np
-
 from gtsfm.common.keypoints import Keypoints
 
 logger = logging.getLogger(__name__)

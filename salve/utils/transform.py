@@ -6,15 +6,15 @@ However, some very minor scale perturbations could potentially help prevent over
 """
 
 import collections
-import random
 import math
+import numbers
+import random
 from typing import Callable, List, Optional, Tuple, Union
 
 import cv2
-import numbers
 import numpy as np
-import torchvision
 import torch
+import torchvision
 from torch import Tensor
 
 # helper types

@@ -37,9 +37,8 @@ import salve.utils.rotation_utils as rotation_utils
 import salve.utils.se2_estimation as se2_estimation
 import salve.utils.sim3_estimation as sim3_estimation
 from salve.common.alignment_hypothesis import AlignmentHypothesis
-from salve.common.pano_data import PanoData, WDO
+from salve.common.pano_data import WDO, PanoData
 from salve.common.sim2 import Sim2
-
 
 # Width ratio, defined as (smaller width) / (larger width), must be greater than 0.65 / 1.0 for inferred data.
 MIN_ALLOWED_INFERRED_WDO_WIDTH_RATIO = 0.65

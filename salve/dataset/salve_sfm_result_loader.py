@@ -9,8 +9,8 @@ import numpy as np
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.io as io_utils
 import salve.utils.zind_pano_utils as zind_pano_utils
-from salve.common.posegraph2d import PoseGraph2d
 from salve.common.pano_data import PanoData
+from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
 
 IMAGE_HEIGHT_PX = 512

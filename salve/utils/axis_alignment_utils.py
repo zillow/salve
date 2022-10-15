@@ -8,7 +8,7 @@ from typing import Dict, Optional, Tuple
 import gtsfm.utils.ellipsoid as ellipsoid_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Rot2, Point3, Point3Pairs, Pose2, Similarity3
+from gtsam import Point3, Point3Pairs, Pose2, Rot2, Similarity3
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.rotation_utils as rotation_utils

@@ -5,9 +5,9 @@ from typing import Dict, List, Set, Tuple
 import networkx as nx
 import numpy as np
 
+from salve.algorithms.spanning_tree import greedily_construct_st_Sim2
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.posegraph2d import PoseGraph2d
-from salve.algorithms.spanning_tree import greedily_construct_st_Sim2
 
 
 def get_connected_components(edges: List[Tuple[int, int]]) -> List[Set[int]]:

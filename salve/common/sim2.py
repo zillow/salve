@@ -17,7 +17,6 @@ import numpy as np
 
 import salve.utils.io as io_utils
 
-
 _PathLike = Union[str, "os.PathLike[str]"]
 
 
