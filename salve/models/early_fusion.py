@@ -3,9 +3,9 @@
 from typing import Optional
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
-from salve.models.resnet_factory import get_vanilla_resnet_model, get_resnet_feature_dim
+import salve.models.resnet_factory as resnet_factory
 
 
 class EarlyFusionCEResnet(nn.Module):
@@ -17,7 +17,7 @@ class EarlyFusionCEResnet(nn.Module):
 
         self.modalities = args.modalities
 
-        self.resnet = get_vanilla_resnet_model(num_layers, pretrained)
+        self.resnet = resnet_factory.get_vanilla_resnet_model(num_layers, pretrained)
         self.inplanes = 64
 
         if (
@@ -35,7 +35,7 @@ class EarlyFusionCEResnet(nn.Module):
 
         # resnet with more channels in first layer
         self.conv1 = nn.Conv2d(num_inchannels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
-        feature_dim = get_resnet_feature_dim(num_layers)
+        feature_dim = resnet_factory.get_resnet_feature_dim(num_layers)
         self.fc = nn.Linear(feature_dim, num_classes)
 
     def forward(
