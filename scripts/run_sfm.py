@@ -35,6 +35,23 @@ from salve.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
 from salve.common.sim2 import Sim2
 
 
+def compute_floor_wdo_type_distribution(high_conf_measurements: List[EdgeClassification]) -> DefaultDict[str, float]:
+    """TODO
+
+    Args:
+        high_conf_measurements: all measurements of sufficient confidence for one floor, even if forming a multigraph.
+
+    Returns:
+        wdo_type_counter: dictionary containing counts of W/D/O types.
+    """
+    wdo_type_counter = defaultdict(float)
+    for m in high_conf_measurements:
+        alignment_object, _, _ = m.wdo_pair_uuid.split("_")
+        wdo_type_counter[alignment_object] += 1 / len(high_conf_measurements)
+    print("WDO Type Distribution: ", {k: np.round(v, 2) for k,v in wdo_type_counter.items()})
+    return wdo_type_counter
+
+
 def get_conf_thresholded_edges(
     measurements: List[EdgeClassification],
     hypotheses_save_root: str,
@@ -47,15 +64,13 @@ def get_conf_thresholded_edges(
     Dict[Tuple[int, int], np.ndarray],
     Dict[Tuple[int, int], np.ndarray],
     Dict[Tuple[int, int], TwoViewEstimationReport],
-    List[Tuple[int, int]],
     Dict[Tuple[int, int], EdgeWDOPair],
     List[EdgeClassification],
-    DefaultDict[str, float],
 ]:
-    """Among all model predictions for a particular floor of a home, select only the positive predictions
-    with sufficiently high confidence.
+    """Threshold floor edge predictions by confidence, and in the case of >1 preds per edge, choose most confident.
 
-    Note: We select the most confident prediction for each edge.
+    Among all model predictions for a particular floor of a home, select only the positive predictions
+    with sufficiently high confidence.
 
     Args:
         measurements: list containing the model's prediction for each edge.
@@ -71,12 +86,9 @@ def get_conf_thresholded_edges(
         i2Ri1_dict: 2d relative rotation for each edge
         i2ti1_dict: 2d relative translation for each edge.
         two_view_reports_dict:
-        gt_edges: list of tuples (i1,i2) representing all edges in true adjacency graph.
         per_edge_wdo_dict: mapping from edge (i1,i2) to EdgeWDOPair information.
-        high_conf_measurements: all measurements of sufficient confidence, even if forming a multigraph.
-        wdo_type_counter: dictionary containing counts of W/D/O types.
+        high_conf_measurements: all measurements of sufficient confidence for one floor, even if forming a multigraph.
     """
-    # for each edge, choose the most confident prediction over all WDO pair alignments
     most_confident_edge_dict = defaultdict(list)
     high_conf_measurements = []
 
@@ -98,11 +110,7 @@ def get_conf_thresholded_edges(
         else:
             num_gt_negatives += 1
 
-        # TODO: remove this debugging condition
-        # if m.y_true != 1:
-        #     continue
-
-        # find all of the predictions where pred class is 1
+        # Find all of the predictions where pred class is 1
         if m.y_hat != 1:
             continue
 
@@ -124,28 +132,13 @@ def get_conf_thresholded_edges(
         most_confident_edge_dict[(m.i1, m.i2)] += [m]
         high_conf_measurements.append(m)
 
-    wdo_type_counter = defaultdict(float)
-    for m in high_conf_measurements:
-        alignment_object, _, _ = m.wdo_pair_uuid.split("_")
-        wdo_type_counter[alignment_object] += 1 / len(high_conf_measurements)
-    print("WDO Type Distribution: ", {k: np.round(v, 2) for k,v in wdo_type_counter.items()})
-
     per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair] = {}
 
-    if len(high_conf_measurements) > 0:
-        # Compute errors over all edges (repeated per pano)
-        measure_avg_relative_pose_errors(
-            high_conf_measurements,
-            gt_floor_pose_graph,
-            hypotheses_save_root,
-            building_id,
-            floor_id,
-        )
-
-    # keep track of how often the most confident prediction per edge was the correct one.
+    # Keep track of how often the most confident prediction per edge was the correct one.
     most_confident_was_correct = []
     for (i1, i2), measurements in most_confident_edge_dict.items():
 
+        # For each edge, choose the most confident prediction over all W/D/O pair alignments.
         most_confident_idx = np.argmax([m.prob for m in measurements])
         m = measurements[most_confident_idx]
         if len(measurements) > 1:
@@ -195,10 +188,8 @@ def get_conf_thresholded_edges(
         i2Ri1_dict,
         i2ti1_dict,
         two_view_reports_dict,
-        gt_edges,
         per_edge_wdo_dict,
         high_conf_measurements,
-        wdo_type_counter,
     )
 
 
@@ -239,7 +230,7 @@ def measure_avg_relative_pose_errors(
         wTi2_gt = gt_floor_pg.nodes[i2].global_Sim2_local
         i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
 
-        # technically it is i2Si1, but scale will always be 1 with inferred WDO.
+        # Technically it is i2Si1, but scale will always be 1 with inferred W/D/O.
         i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(
             m, hypotheses_save_root, building_id, floor_id
         )
@@ -247,7 +238,7 @@ def measure_avg_relative_pose_errors(
         theta_deg_est = i2Ti1.theta_deg
         theta_deg_gt = i2Ti1_gt.theta_deg
 
-        # need to wrap around at 360
+        # Need to wrap around at 360
         rot_err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
         rot_errs.append(rot_err)
 
@@ -447,6 +438,17 @@ def run_incremental_reconstruction(
     # Loop over each building/floor tuple.
     for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
 
+        is_demo  = building_id == "0792" and floor_id == "floor_01"
+        # is_demo =  (building_id == "0564" and floor_id == "floor_01")
+        # #is_demo = building_id == "0308" and floor_id == "floor_02"
+        # #     (building_id == "0519" and floor_id == "floor_01")
+        # #     or (building_id == "1214" and floor_id == "floor_01")
+        #     # or 
+        # #     or (building_id == "0438" and floor_id == "floor_01")
+        # #     or (building_id == "0715" and floor_id == "floor_01")
+        if not is_demo:
+            continue
+
         inferred_floor_pose_graph = hnet_prediction_loader.load_inferred_floor_pose_graph(
             building_id=building_id,
             floor_id=floor_id,
@@ -456,17 +458,6 @@ def run_incremental_reconstruction(
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
         print(f"On building {building_id}, {floor_id}")
-
-        # # (building_id == "0564" and floor_id == "floor_01") or \
-        # is_demo = (
-        #     (building_id == "0519" and floor_id == "floor_01")
-        #     or (building_id == "1214" and floor_id == "floor_01")
-        #     # or (building_id == "0308" and floor_id == "floor_02")
-        #     or (building_id == "0438" and floor_id == "floor_01")
-        #     or (building_id == "0715" and floor_id == "floor_01")
-        # )
-        # if not is_demo:
-        #     continue
 
         visualize_confidence_histograms = False
         if visualize_confidence_histograms:
@@ -488,20 +479,13 @@ def run_incremental_reconstruction(
             i2Ri1_dict,
             i2Ui1_dict,
             two_view_reports_dict,
-            gt_edges,
             per_edge_wdo_dict,
             high_conf_measurements,
-            wdo_type_counter,
         ) = get_conf_thresholded_edges(
             measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id, gt_floor_pose_graph
         )
 
-        pdf, cdf = graph_utils.analyze_cc_distribution(
-            nodes=list(gt_floor_pose_graph.nodes.keys()), edges=list(i2Si1_dict.keys())
-        )
-        pdfs.append(pdf)
-        cdfs.append(cdf)
-
+        wdo_type_counter = compute_floor_wdo_type_distribution(high_conf_measurements=high_conf_measurements)
         # Update statistics about average edge type from W/D/O-based edges, and log a summary.
         for wdo_type, percent in wdo_type_counter.items():
             averaged_wdo_type_counter[wdo_type].append(percent)
@@ -519,13 +503,28 @@ def run_incremental_reconstruction(
             reconstruction_reports.append(report)
             continue
 
+        if len(high_conf_measurements) > 0:
+            # Compute errors over all edges (repeated per pano).
+            measure_avg_relative_pose_errors(
+                high_conf_measurements,
+                gt_floor_pose_graph,
+                hypotheses_save_root,
+                building_id,
+                floor_id,
+            )
+
+        pdf, cdf = graph_utils.analyze_cc_distribution(
+            nodes=list(gt_floor_pose_graph.nodes.keys()), edges=list(i2Si1_dict.keys())
+        )
+        pdfs.append(pdf)
+        cdfs.append(cdf)
+
         cc_nodes = gtsfm_graph_utils.get_nodes_in_largest_connected_component(i2Si1_dict.keys())
         print(
             "Before any filtering, the largest CC contains "
             f"{len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos."
         )
         if method == "spanning_tree":
-
             if use_axis_alignment:
                 i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
                     i2Si1_dict=i2Si1_dict,
@@ -570,12 +569,8 @@ def run_incremental_reconstruction(
             # TODO: build better unit tests.
 
         elif method == "random_spanning_trees":
-            # V. M. Govindu. Robustness in motion averaging. In ACCV, 2006.
-            # count the number of relative motions (i.e. edges) that fall within this distance from the global motion.
-            # C. Olsson and O. Enqvist. Stable structure from motion for unordered image collections. In SCIA, 2011. LNCS 6688.
-
-            # generate 100 spanning trees.
-            from afp.algorithms.spanning_tree import RelativePoseMeasurement
+            # Generate 100 spanning trees.
+            from salve.algorithms.spanning_tree import RelativePoseMeasurement
 
             high_conf_measurements_rel = []
             for m in high_conf_measurements:
@@ -595,19 +590,19 @@ def run_incremental_reconstruction(
 
         elif method == "filtered_spanning_tree":
             # filtered by cycle consistency.
-            import sandbox.filtered_spanning_tree as filtered_spanning_tree
+            # import sandbox.filtered_spanning_tree as filtered_spanning_tree
 
-            i2Si1_dict_consistent, report = filtered_spanning_tree.build_filtered_spanning_tree(
-                building_id,
-                floor_id,
-                i2Si1_dict,
-                i2Ri1_dict,
-                i2Ui1_dict,
-                gt_edges,
-                two_view_reports_dict,
-                gt_floor_pose_graph,
-                plot_save_dir,
-            )
+            # i2Si1_dict_consistent, report = filtered_spanning_tree.build_filtered_spanning_tree(
+            #     building_id,
+            #     floor_id,
+            #     i2Si1_dict,
+            #     i2Ri1_dict,
+            #     i2Ui1_dict,
+            #     gt_edges,
+            #     two_view_reports_dict,
+            #     gt_floor_pose_graph,
+            #     plot_save_dir,
+            # )
             reconstruction_reports.append(report)
 
             # i2Si1_dict, i2Ri1_dict, i2Ui1_dict, two_view_reports_dict, _, per_edge_wdo_dict, high_conf_measurements, wdo_type_counter = get_conf_thresholded_edges(
@@ -663,11 +658,11 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
     for pdf, cdf in zip(pdfs, cdfs):
         C = pdf.shape[0]
 
-        # pad the rest (long tail) of the PDF with 0s
+        # Pad the rest (long tail) of the PDF with 0s.
         padded_pdf = np.zeros(max_num_ccs)
         padded_pdf[:C] = pdf
 
-        # pad the rest of the CDF with 1s
+        # Pad the rest of the CDF with 1s.
         padded_cdf = np.ones(max_num_ccs)
         padded_cdf[:C] = cdf
 

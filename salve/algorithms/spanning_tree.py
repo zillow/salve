@@ -153,7 +153,11 @@ def ransac_spanning_trees(
     min_num_edges_for_hypothesis: int = 20,
 ) -> List[Optional[Sim2]]:
     """Generate global poses by sampling random spanning trees from relative pose measurements.
-    
+
+    See V. M. Govindu. Robustness in motion averaging. In ACCV, 2006.
+    Count the number of relative motions (i.e. edges) that fall within this distance from the global motion.
+    C. Olsson and O. Enqvist. Stable structure from motion for unordered image collections. In SCIA, 2011. LNCS 6688.
+
     Note: this may be accelerated by techniques such as https://arxiv.org/pdf/1611.07451.pdf.
 
     Args:
@@ -191,17 +195,15 @@ def ransac_spanning_trees(
         hypothesis_measurements = [m for k, m in enumerate(high_conf_measurements) if k in h_idxs]
 
         i2Si1_dict = {}
-        # randomly overwrite by order
+        # Randomly overwrite by order
         for m in hypothesis_measurements:
             i2Si1_dict[(m.i1, m.i2)] = m.i2Si1
 
-        # create the i2Si1_dict
-        # Generate a spanning tree greedily.
+        # Create the i2Si1_dict. Generate a spanning tree greedily.
         wSi_list = greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
 
         if wSi_list is None:
-            import pdb
-            pdb.set_trace()
+            import pdb; pdb.set_trace()
 
         avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(
             high_conf_measurements, wSi_list
