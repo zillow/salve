@@ -8,8 +8,8 @@ import numpy as np
 from gtsam import (
     BetweenFactorPose2,
     LevenbergMarquardtParams,
-    Rot2,
     Pose2,
+    Rot2,
     ShonanAveraging2,
     ShonanAveragingParameters2,
 )
