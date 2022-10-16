@@ -245,8 +245,22 @@ def filter_to_SE2_cycle_consistent_edges(
     SE2_cycle_rot_threshold_deg: float = 0.5,
     SE2_cycle_trans_threshold: float = 0.01,
     visualize: bool = True,
+    verbose: bool = True,
 ) -> Dict[Tuple[int, int], Sim2]:
-    """ """
+    """Filter edges using both rotation and translation error between cycle start and endpoint.
+
+    TODO: change SE2 references to Sim2
+
+    Args:
+        i2Si1_dict: dictionary containing estimated Sim(2) relative pose per pano-pano edge.
+        two_view_reports_dict
+        SE2_cycle_rot_threshold_deg: angular rotation threshold (in degrees).
+        SE2_cycle_trans_threshold: translation threshold (in meters).
+        visualize:
+
+    Returns:
+        i2Si1_dict_consistent: dictionary of filtered Sim(2) relative poses (one per edge).
+    """
     rot_cycle_errors = []
     trans_cycle_errors = []
     num_outliers_per_cycle = []
@@ -258,11 +272,9 @@ def filter_to_SE2_cycle_consistent_edges(
 
     triplets = extract_triplets(i2Si1_dict)
     for (i0, i1, i2) in triplets:
-
         rot_cycle_error, trans_cycle_error = compute_SE2_cycle_error(
             i2Si1_dict, cycle_nodes=(i0, i1, i2), two_view_reports_dict=two_view_reports_dict, verbose=False
         )
-
         if rot_cycle_error < SE2_cycle_rot_threshold_deg and trans_cycle_error < SE2_cycle_trans_threshold:
 
             cycle_consistent_keys.add((i0, i1))
@@ -280,14 +292,23 @@ def filter_to_SE2_cycle_consistent_edges(
                     num_outliers += 1
             num_outliers_per_cycle.append(num_outliers)
 
+            if verbose:
+                print(
+                    f"Rot. cycle error: {rot_cycle_error:.2f}, trans. cycle error: {trans_cycle_error:.2f} -> {num_outliers}"
+                )
+
     if two_view_reports_dict is not None and visualize:
         num_outliers_per_cycle = np.array(num_outliers_per_cycle)
         rot_cycle_errors = np.array(rot_cycle_errors)
-        render_binned_cycle_errors(num_outliers_per_cycle, rot_cycle_errors, max_err_bin_edge=180)
+        render_binned_cycle_errors(
+            num_outliers_per_cycle, rot_cycle_errors, max_error_bin_edge=30, error_type="rotation"
+        )
 
         num_outliers_per_cycle = np.array(num_outliers_per_cycle)
         trans_cycle_errors = np.array(trans_cycle_errors)
-        render_binned_cycle_errors(num_outliers_per_cycle, trans_cycle_errors)
+        render_binned_cycle_errors(
+            num_outliers_per_cycle, trans_cycle_errors, max_error_bin_edge=2.0, error_type="translation"
+        )
 
     i2Si1_dict_consistent = {}
     for (i1, i2) in cycle_consistent_keys:
@@ -306,7 +327,7 @@ def filter_to_rotation_cycle_consistent_edges(
 ) -> Tuple[Dict[Tuple[int, int], np.ndarray], Dict[Tuple[int, int], np.ndarray]]:
     """Remove edges in a graph where concatenated transformations along a 3-cycle does not compose to identity.
 
-    Note: Will return only a subset of these two dictionaries
+    Note: will return only a subset of these two dictionaries.
 
     Concatenating the transformations along a loop in the graph should return the identity function in an
     ideal, noise-free setting.
@@ -333,7 +354,7 @@ def filter_to_rotation_cycle_consistent_edges(
             and had cycle error below the predefined threshold.
         i2Ui1_dict_consistent: subset of i2Ui1_dict, as above.
     """
-    # check the cumulative translation/rotation errors between triplets to throw away cameras
+    # Check the cumulative translation/rotation errors between triplets to throw away cameras.
     cycle_errors = []
     max_rot_errors = []
     max_trans_errors = []
@@ -459,51 +480,107 @@ def filter_to_translation_cycle_consistent_edges(
 
 
 def render_binned_cycle_errors(
-    num_outliers_per_cycle: np.ndarray, cycle_errors: np.ndarray, max_err_bin_edge: float = 2
+    num_outliers_per_cycle: np.ndarray,
+    cycle_errors: np.ndarray,
+    max_error_bin_edge: float,
+    error_type: str,
+    num_bins: int = 10,
 ) -> None:
-    """Consider how many edges of the 3 triplet edges are corrupted.
+    """Render a histogram of cycle errors associated with all edges with a specific number of outliers.
 
-    For translations, show [0,2]
-    For rotations, show [0,180]
+    Consider how many edges of the 3 triplet edges are corrupted.
+    For example, for translations, we might plot histograms in the range [0,2]. For rotations, we might
+    show a histogram of angular error in the range of [0,180].
 
     Args:
-        num_outliers_per_cycle:
-
-    Returns:
-        cycle_errors:
+        num_outliers_per_cycle: array of shape (K,) representing number of outliers for each of K cycles.
+           No more than 3 outliers can be found for the 3 edges of a triplet cycle.
+        cycle_errors: array of shape (K,) representing cycle error for each cycle.
+        max_error_bin_edge: far right edge of histogram in plot.
+        error_type: string indicating type of error computed ("rotation" or "translation").
+        num_bins: number of bins for cycle error histograms.
     """
-    plt.figure(figsize=(16, 5))
-    bins = np.unique(num_outliers_per_cycle)
-    num_bins = len(bins)
-    min_err_bin_edge = 0
-    bin_edges = np.linspace(min_err_bin_edge, max_err_bin_edge, 10)
+    if len(num_outliers_per_cycle) != len(cycle_errors):
+        raise RuntimeError("Each cycle must have a single associated scalar error and a single # of outliers.")
 
-    # for ylim setting for shared y axis
-    max_bin_count = 0
-    for i, bin in enumerate(bins):
-        idxs = num_outliers_per_cycle == bin
-        bin_errors = cycle_errors[idxs]
-        assigned_bins = np.digitize(x=bin_errors, bins=bin_edges)
-        # If values in x are beyond the bounds of bins, 0 or len(bins) is returned as appropriate, so ignore last.
-        max_bin_count = max(max_bin_count, np.bincount(assigned_bins)[:-1].max())
+    plt.figure(figsize=(16, 5))
+    outlier_bins = np.unique(num_outliers_per_cycle)
+    num_outlier_bins = len(outlier_bins)
+    min_error_bin_edge = 0
+    bin_edges = np.linspace(min_error_bin_edge, max_error_bin_edge, num_bins)
+    num_error_bins = len(bin_edges) - 1
+
+    # Two passes through the data are required. The first pass identifies fixed y-axis limits for a shared y-axis.
+    max_bin_count = compute_max_bin_count(
+        num_outliers_per_cycle=num_outliers_per_cycle,
+        cycle_errors=cycle_errors,
+        min_error_bin_edge=min_error_bin_edge,
+        max_error_bin_edge=max_error_bin_edge,
+        bin_edges=bin_edges,
+    )
 
     ylim_offset = 5
-    for i, bin in enumerate(bins):
-
-        plt.subplot(1, num_bins, i + 1)
-        idxs = num_outliers_per_cycle == bin
+    for i, num_outliers in enumerate(outlier_bins):
+        plt.subplot(1, num_outlier_bins, i + 1)
+        idxs = num_outliers_per_cycle == num_outliers
         bin_errors = cycle_errors[idxs]
         plt.hist(bin_errors, bins=bin_edges)
-        plt.title(f"Num outliers = {bin}")
+        plt.title(f"Num. outliers = {num_outliers}")
 
         plt.ylim(0, max_bin_count + ylim_offset)
+        plt.xlabel(f"Cycle {error_type} error")
 
         if i == 0:
-            plt.xlabel("Cycle translation error")
             plt.ylabel("Counts")
 
     plt.show()
     plt.close("all")
+
+
+def compute_max_bin_count(
+    num_outliers_per_cycle: np.ndarray,
+    cycle_errors: np.ndarray,
+    min_error_bin_edge: float,
+    max_error_bin_edge: float,
+    bin_edges: np.ndarray,
+) -> int:
+    """Render a histogram of cycle errors associated with all edges with a specific number of outliers.
+
+    Consider how many edges of the 3 triplet edges are corrupted.
+    For example, for translations, we might plot histograms in the range [0,2]. For rotations, we might
+    show a histogram of angular error in the range of [0,180].
+
+    Args:
+        num_outliers_per_cycle: array of shape (K,) representing number of outliers for each of K cycles.
+           No more than 3 outliers can be found for the 3 edges of a triplet cycle.
+        cycle_errors: array of shape (K,) representing cycle error for each cycle.
+        min_error_bin_edge: 
+        max_error_bin_edge: far right edge of histogram in plot.
+        bin_edges: error histogram bin edges.
+
+    Returns:
+        Maximum number of errors assigned to any outlier bin, used to set fixed y-axis limits.
+    """
+    num_error_bins = len(bin_edges) - 1
+    outlier_bins = np.unique(num_outliers_per_cycle)
+
+    max_bin_count = 0
+    for num_outliers in outlier_bins:
+        is_valid = num_outliers_per_cycle == num_outliers
+        # Extract errors that fall into the bucket for this # of outliers.
+        bin_errors = cycle_errors[is_valid]
+        # Digitize provides accounts incremented by 1, so must decrement.
+        assigned_bins = np.digitize(x=bin_errors, bins=bin_edges) - 1
+
+        bin_counts = np.bincount(assigned_bins, minlength=num_error_bins)
+        if np.argmax(bin_counts) >= num_error_bins:
+            # If values in x are beyond the bounds of bins, assigned bin will be outside range.
+            continue
+
+        # Find the maximum count in any error bin.
+        max_errors_single_bin = bin_counts.max()
+        max_bin_count = max(max_bin_count, max_errors_single_bin)
+    return max_bin_count
 
 
 def compute_translation_cycle_error(
