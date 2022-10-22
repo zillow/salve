@@ -1,10 +1,11 @@
-"""Utility to create a TANGO-image based colormap."""
+"""Utility to create a TANGO or red-green colormaps."""
 
 import numpy as np
+from colour import Color
 
 
-def colormap(rgb: bool = True) -> np.ndarray:
-    """Create an array of visually distinctive RGB values.
+def get_tango_colormap(rgb: bool = True) -> np.ndarray:
+    """Create an array of visually distinctive RGB values, TANGO-image based colormap..
 
     Based of off mseg-api: https://github.com/mseg-dataset/mseg-api/blob/master/mseg/utils/colormap.py
 
@@ -51,3 +52,17 @@ def colormap(rgb: bool = True) -> np.ndarray:
     if not rgb:
         color_list = color_list[:, ::-1]
     return color_list
+
+
+def get_redgreen_colormap(N: int) -> np.ndarray:
+    """Obtain an RGB colormap from red to green, with N unique colors.
+
+    Args:
+        N: number of unique colors to generate.
+
+    Returns:
+        colormap: uint8 array of shape (N,3)
+    """
+    colormap = np.array([[color_obj.rgb] for color_obj in Color("red").range_to(Color("green"), N)]).squeeze()
+    colormap = (colormap * 255).astype(np.uint8)
+    return colormap

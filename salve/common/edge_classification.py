@@ -101,7 +101,7 @@ def get_alignment_hypothesis_for_measurement(
     """Given a classification result (measurement), find corresponding Sim(2) alignment JSON file on disk.
 
     Args:
-        m:  measurement.
+        m: measurement.
         hypotheses_save_root:
         building_id: unique ID for ZinD building.
         floor_id: unique ID for floor of a ZinD building.
@@ -112,13 +112,14 @@ def get_alignment_hypothesis_for_measurement(
     # label_dirname = "gt_alignment_exact"
     # fpaths = glob.glob(f"{hypotheses_save_root}/{building_id}/{floor_id}/{label_dirname}/{m.i1}_{m.i2}.json")
 
-    # look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
+    # Look up the associated Sim(2) file for this prediction, by looping through the pair idxs again
     label_dirname = "gt_alignment_approx" if m.y_true else "incorrect_alignment"
     fpaths = glob.glob(
         f"{hypotheses_save_root}/{building_id}/{floor_id}"
         f"/{label_dirname}/{m.i1}_{m.i2}__{m.wdo_pair_uuid}_{m.configuration}.json"
     )
     if not len(fpaths) == 1:
-        import pdb; pdb.set_trace()
+        raise ValueError("No corresponding serialized alignment hypothesis was found on disk for measurement.")
+    
     i2Si1 = Sim2.from_json(fpaths[0])
     return i2Si1
