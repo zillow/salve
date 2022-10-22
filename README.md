@@ -133,7 +133,7 @@ python {SALVE_REPO_DIRPATH}/scripts/render_dataset_bev.py \
     --bev_save_root {PATH WHERE BEV TEXTURE MAPS WILL BE SAVED TO} \
     --split test
 ```
-Replace `--split test` with `train` or `val` if desired.
+Replace `--split test` with `train` or `val` if desired. If you wish to test out SALVe on only a single building, then instead of using the `--split` CLI arg, use the `--building_id` arg instead, e.g. `--building_id 0001`.
 
 If you see an error message like:
 ```
