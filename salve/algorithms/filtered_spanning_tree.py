@@ -1,4 +1,4 @@
-
+""" """
 
 import copy
 import glob
@@ -8,17 +8,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
-import argoverse.utils.geometry as geometry_utils
 import gtsfm.utils.graph as gtsfm_graph_utils
 import matplotlib.pyplot as plt
 import numpy as np
-from argoverse.utils.sim2 import Sim2
-from gtsam import Rot2, Pose2
-
-from gtsam import Point3, Point3Pairs, Similarity3
+from gtsam import Rot2, Pose2, Point3, Point3Pairs, Similarity3
 
 import salve.algorithms.cycle_consistency as cycle_utils
-import salve.algorithms.mfas as mfas
 import salve.algorithms.pose2_slam as pose2_slam
 import salve.algorithms.rotation_averaging as rotation_averaging
 import salve.algorithms.spanning_tree as spanning_tree
@@ -35,6 +30,7 @@ from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
+from salve.common.sim2 import Sim2
 
 
 def build_filtered_spanning_tree(
@@ -224,11 +220,13 @@ def filter_measurements_to_absolute_rotations(
         theta_deg_inferred = rotation_utils.rotmat2theta_deg(i2Ri1_inferred)
         theta_deg_measured = rotation_utils.rotmat2theta_deg(i2Ri1_measured)
 
-        if verbose:
-            print(f"\tPano pair ({i1},{i2}): Measured {theta_deg_measured:.1f} vs. Inferred {theta_deg_inferred:.1f}")
-
         # need to wrap around at 360
         err = rotation_utils.wrap_angle_deg(theta_deg_inferred, theta_deg_measured)
+
+        if verbose:
+            print(f"\tPano pair ({i1},{i2}): Measured {theta_deg_measured:.1f} vs. Inferred {theta_deg_inferred:.1f}" + f", {err:.2f} --> {two_view_reports_dict[(i1,i2)].gt_class}")
+
+
         if err < max_allowed_deviation:
             i2Ri1_dict_consistent[(i1, i2)] = i2Ri1_measured
 

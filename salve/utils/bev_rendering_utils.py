@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import salve.common.bevparams as bevparams
+import salve.utils.colormap as colormap_utils
 import salve.utils.hohonet_pano_utils as hohonet_pano_utils
 import salve.utils.interpolation_utils as interpolation_utils
 import salve.utils.rotation_utils as rotation_utils
@@ -20,7 +21,7 @@ from salve.common.bevparams import DEFAULT_METERS_PER_PX, BEVParams
 from salve.common.pano_data import WDO
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
-from salve.utils.colormap import colormap
+
 
 RED = [255, 0, 0]
 GREEN = [0, 255, 0]
@@ -376,7 +377,7 @@ def get_xyzrgb_from_depth(
         invalid = np.logical_or(rgb == CEILING_CLASS_IDX, rgb == MIRROR_CLASS_IDX)
         depth[invalid] = np.nan
 
-        rgb_colormap = colormap()
+        rgb_colormap = colormap_utils.get_tango_colormap()
         num_colors = rgb_colormap.shape[0]
         rgb = rgb_colormap[rgb % num_colors]
     else:

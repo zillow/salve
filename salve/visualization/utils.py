@@ -5,22 +5,9 @@ from typing import List, Optional
 import gtsfm.visualization.open3d_vis_utils as open3d_vis_utils
 import numpy as np
 import open3d
-from colour import Color
 from gtsam import Pose3
 
-
-def get_colormap(N: int) -> np.ndarray:
-    """Obtain an RGB colormap from red to green, with N unique colors.
-
-    Args:
-        N: number of unique colors to generate.
-
-    Returns:
-        colormap: uint8 array of shape (N,3)
-    """
-    colormap = np.array([[color_obj.rgb] for color_obj in Color("red").range_to(Color("green"), N)]).squeeze()
-    colormap = (colormap * 255).astype(np.uint8)
-    return colormap
+import salve.utils.colormap as colormap_utils
 
 
 def get_colormapped_spheres(wTi_list: List[Optional[Pose3]]) -> np.ndarray:
@@ -34,7 +21,7 @@ def get_colormapped_spheres(wTi_list: List[Optional[Pose3]]) -> np.ndarray:
         rgb: uint8 array of shape (N,3) representing sphere RGB colors.
     """
     num_valid_poses = sum([1 if wTi is not None else 0 for wTi in wTi_list])
-    colormap = get_colormap(N=num_valid_poses)
+    colormap = colormap_utils.get_redgreen_colormap(N=num_valid_poses)
 
     curr_color_idx = 0
     point_cloud = []

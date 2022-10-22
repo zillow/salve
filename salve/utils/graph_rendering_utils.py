@@ -1,15 +1,19 @@
 """Utilities for drawing graph topology, either for a multi-graph, or for a typical undirected graph."""
 
 import os
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
+import salve.utils.colormap as colormap_utils
 from salve.algorithms.cycle_consistency import TwoViewEstimationReport
 from salve.common.edge_classification import EdgeClassification
 from salve.common.posegraph2d import PoseGraph2d
+
 
 # Colors that can be used for coloring nodes or edges.
 PLUM1 = [173, 127, 168]
@@ -18,13 +22,44 @@ GREEN = [0, 140, 25]
 CYAN = [0, 255, 255]
 
 
+def generate_edge_colors_from_error_magnitudes(
+    edges: List[Tuple[int, int]],
+    two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
+    max_saturated_error: float = 20.0,
+    num_error_bins: int = 20,
+) -> None:
+    """Generate edge colors according to rotation error magnitude (quantize and clip, saturating at threshold).
+
+    Args:
+        edges
+        two_view_reports_dict: dictionary containing R and t errors per pano-pano edge (i1,i2). E edges are given.
+
+    Returns:
+        edge_colors: array of shape (E,3) with values in [0,1]. Green is zero, and red means error saturated to
+            threshold.
+    """
+    bin_edges = np.linspace(0, max_saturated_error, num_error_bins + 1)
+    # Normalize RGB values to [0,1] range.
+    colormap_by_magnitudes = colormap_utils.get_redgreen_colormap(N=num_error_bins) / 255
+    # Reverse it so that green is lowest, and red is highest.
+    colormap_by_magnitudes = colormap_by_magnitudes[::-1]
+    R_errors = [two_view_reports_dict[(i1, i2)].R_error_deg for (i1, i2) in edges]
+    # Quantize edge errors, and convert to zero-indexed.
+    error_bins = np.digitize(R_errors, bins=bin_edges) - 1
+    # Clamp values to [0,num_error_bins-1], because outliers appear in an extra bin outside interval.
+    error_bins_clipped = np.clip(error_bins, a_min=0, a_max=num_error_bins - 1)
+    edge_colors = colormap_by_magnitudes[error_bins_clipped]
+    return edge_colors
+
+
 def draw_graph_topology(
     edges: List[Tuple[int, int]],
     gt_floor_pose_graph: PoseGraph2d,
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
     title: str,
     show_plot: bool = True,
-    save_fpath: str = None,
+    save_fpath: Optional[str] = None,
+    color_scheme: str = "by_error_magnitude",
 ) -> None:
     """Draw the topology of an undirected graph, with vertices placed in their ground truth locations.
 
@@ -33,18 +68,26 @@ def draw_graph_topology(
     Args:
         edges: List of (i1,i2) pairs.
         gt_floor_pose_graph: ground truth 2d pose graph for this floor.
-        two_view_reports_dict:
+        two_view_reports_dict: dictionary containing R and t errors per pano-pano edge (i1,i2). E edges are given.
         title: desired title of figure.
         show_plot: whether to show the plot in the matplotlib GUI.
         save_fpath: file path where plot should be saved to disk (if None, will not be saved to disk).
+        color_scheme: color scheme for edges "by_error_magnitude", "by_tp_fp"
     """
-    plt.figure(figsize=(16, 10))
+    fig, ax = plt.subplots(figsize=(10, 10))
     G = nx.Graph()
     G.add_edges_from(edges)
     nodes = list(G.nodes)
     GREEN = [0, 1, 0]
     RED = [1, 0, 0]
-    edge_colors = [GREEN if two_view_reports_dict[edge].gt_class == 1 else RED for edge in edges]
+
+    if color_scheme == "by_tp_fp":
+        edge_colors = [GREEN if two_view_reports_dict[edge].gt_class == 1 else RED for edge in edges]
+
+    elif color_scheme == "by_error_magnitude":
+        edge_colors = generate_edge_colors_from_error_magnitudes(edges=edges, two_view_reports_dict=two_view_reports_dict)
+
+    plt.title(title)
 
     nx.drawing.nx_pylab.draw_networkx(
         G,
@@ -54,10 +97,15 @@ def draw_graph_topology(
         arrows=True,
         with_labels=True,
     )
-    plt.axis("equal")
-    plt.title(title)
+    # Show x and y axes for scale.
+    ax.set_axis_on()
+    ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
+    ax.set_aspect('equal', adjustable='box')
+
+    #plt.axis("equal")
 
     if save_fpath is not None:
+        Path(save_fpath).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(save_fpath, dpi=500)
 
     if show_plot:
@@ -71,7 +119,7 @@ def draw_multigraph(
     inferred_floor_pose_graph: Optional[PoseGraph2d],
     use_gt_positions: bool,
     confidence_threshold: float = 0.5,
-    save_dir: str = "./"
+    save_dir: str = "./",
 ) -> None:
     """Draw the topology of a pose graph, with colored nodes and colored edges (allowed edges are conf.-thresholded).
 
@@ -84,7 +132,7 @@ def draw_multigraph(
         inferred_floor_pose_graph
         use_gt_positions: whether to plot panos at GT poses.
         confidence_threshold: minimum required predicted confidence by model to plot an edge.
-        save_dir: experiment directory, which will be parent directory for visualizations subdir.
+        save_dir: subdir to experiment directory, where visualization plots should be saved.
     """
     edges = []
 
@@ -140,7 +188,7 @@ def draw_multigraph(
         elif not use_gt_positions and v in inferred_floor_pose_graph.nodes:
             # Use estimated pano pose.
             pos = inferred_floor_pose_graph[v].global_Sim2_local.translation
-        
+
         elif not use_gt_positions and v not in inferred_floor_pose_graph.nodes:
             # Fall back to GT position if pano pose was not estimated by SfM.
             pos = gt_floor_pose_graph.nodes[v].global_Sim2_local.translation
@@ -163,8 +211,7 @@ def draw_multigraph(
     plt.axis("equal")
     # plt.show()
     plt.tight_layout()
-    multigraph_save_dir = os.path.join(save_dir, f"thresholded_multigraphs_conf{confidence_threshold}")
-    os.makedirs(multigraph_save_dir, exist_ok=True)
-    save_fpath = os.path.join(multigraph_save_dir, f"multigraph_{building_id}_{floor_id}.pdf")
+    os.makedirs(save_dir, exist_ok=True)
+    save_fpath = os.path.join(save_dir, f"multigraph_{building_id}_{floor_id}.pdf")
     plt.savefig(save_fpath, dpi=500)
     plt.close("all")
