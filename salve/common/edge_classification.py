@@ -94,7 +94,7 @@ def get_available_floor_ids_building_ids_from_serialized_preds(serialized_preds_
 
 
 def get_edge_classifications_from_serialized_preds(
-    query_building_id: str, 
+    query_building_id: str,
     query_floor_id: str,
     serialized_preds_json_dir: str,
     hypotheses_save_root: str,
@@ -264,7 +264,7 @@ def get_most_likely_relative_pose_per_edge(
 
     Returns:
         i2Si1_dict: Similarity(2) relative pose for each (i1,i2) pano-pano edge.
-        two_view_reports_dict: mapping from (i1,i2) pano pair to relative rotation and translation error w.r.t. GT.
+        two_view_reports_dict: mapping from (i1,i2) pano pair to relative (R,t) errors w.r.t. GT.
         per_edge_wdo_dict: mapping from edge (i1,i2) to EdgeWDOPair information.
         edge_classification_dict: mapping from edge (i1,i2) to EdgeClassification information.
     """
@@ -310,7 +310,7 @@ def create_two_view_reports_dict_from_edge_classification_dict(
         gt_floor_pose_graph: ground truth pose graph for a single ZInD floor.
 
     Returns:
-        two_view_reports_dict: TODO
+        two_view_reports_dict: mapping from (i1,i2) pano pair to relative (R,t) errors w.r.t. GT.
     """
     two_view_reports_dict = {}
     for (i1, i2), m in edge_classification_dict.items():
