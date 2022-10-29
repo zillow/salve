@@ -21,7 +21,6 @@ import imageio
 import salve.common.posegraph2d as posegraph2d
 import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.bev_rendering_utils as bev_rendering_utils
-import salve.utils.hohonet_inference as hohonet_inference_utils
 from salve.common.sim2 import Sim2
 from salve.dataset.zind_partition import DATASET_SPLITS
 from salve.common.posegraph2d import PoseGraph2d
@@ -30,131 +29,6 @@ from salve.common.posegraph2d import PoseGraph2d
 def panoid_from_fpath(fpath: str) -> int:
     """Derive panorama's id from its filename."""
     return int(Path(fpath).stem.split("_")[-1])
-
-
-def generate_texture_maps_for_pair(
-    img_fpaths_dict: Dict[int, str],
-    surface_type: str,
-    pair_fpath: str,
-    pair_idx: int,
-    label_type: str,
-    bev_save_root,
-    building_id: str,
-    floor_id: str,
-    depth_save_root: str,
-    render_modalities: List[str],
-    layout_save_root: str,
-    floor_pose_graph: Optional[PoseGraph2d],
-) -> None:
-    """Generate and save a pair of texture maps for a single pair of panoramas."""
-    is_semantics = False
-    # if is_semantics:
-    #     crop_z_range = [-float('inf'), 2.0]
-    # else:
-
-    if surface_type == "floor":
-        # Keep everything 1 meter and below the camera
-        crop_z_range = [-float("inf"), -1.0]
-
-    elif surface_type == "ceiling":
-        # Keep everything 50 cm and above the camera.
-        crop_z_range = [0.5, float("inf")]
-
-    i2Ti1 = Sim2.from_json(json_fpath=pair_fpath)
-
-    i1, i2 = Path(pair_fpath).stem.split("_")[:2]
-    i1, i2 = int(i1), int(i2)
-
-    img1_fpath = img_fpaths_dict[i1]
-    img2_fpath = img_fpaths_dict[i2]
-
-    # e.g. 'door_0_0_identity'
-    pair_uuid = Path(pair_fpath).stem.split("__")[-1]
-
-    building_bev_save_dir = f"{bev_save_root}/{label_type}/{building_id}"
-    os.makedirs(building_bev_save_dir, exist_ok=True)
-
-    def bev_fname_from_img_fpath(pair_idx: int, pair_uuid: str, surface_type: str, img_fpath: str) -> None:
-        """Generate file name for BEV texture map based on panorama image file path."""
-        fname_stem = Path(img_fpath).stem
-        if is_semantics:
-            img_name = f"pair_{pair_idx}___{pair_uuid}_{surface_type}_semantics_{fname_stem}.jpg"
-        else:
-            img_name = f"pair_{pair_idx}___{pair_uuid}_{surface_type}_rgb_{fname_stem}.jpg"
-        return img_name
-
-    bev_fname1 = bev_fname_from_img_fpath(pair_idx, pair_uuid, surface_type, img1_fpath)
-    bev_fname2 = bev_fname_from_img_fpath(pair_idx, pair_uuid, surface_type, img2_fpath)
-
-    bev_fpath1 = f"{building_bev_save_dir}/{bev_fname1}"
-    bev_fpath2 = f"{building_bev_save_dir}/{bev_fname2}"
-
-    if "rgb_texture" in render_modalities:
-        print(f"On {i1},{i2}")
-        hohonet_inference_utils.infer_depth_if_nonexistent(
-            depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
-        )
-        hohonet_inference_utils.infer_depth_if_nonexistent(
-            depth_save_root=depth_save_root, building_id=building_id, img_fpath=img2_fpath
-        )
-        args = SimpleNamespace(
-            **{
-                "img_i1": semantic_img1_fpath if is_semantics else img1_fpath,
-                "img_i2": semantic_img2_fpath if is_semantics else img2_fpath,
-                "depth_i1": f"{depth_save_root}/{building_id}/{Path(img1_fpath).stem}.depth.png",
-                "depth_i2": f"{depth_save_root}/{building_id}/{Path(img2_fpath).stem}.depth.png",
-                "scale": 0.001,
-                # Throw away top 80 and bottom 80 rows of pixel (too noisy of estimates in these regions).
-                "crop_ratio": 80 / 512,
-                "crop_z_range": crop_z_range,  # 0.3 # -1.0 # -0.5 # 0.3 # 1.2
-            }
-        )
-        # bev_img = bev_rendering_utils.vis_depth_and_render(args, is_semantics=False)
-
-        if Path(bev_fpath1).exists() and Path(bev_fpath2).exists():
-            print("Both BEV images already exist, skipping...")
-            return
-
-        bev_img1, bev_img2 = bev_rendering_utils.render_bev_pair(
-            args, building_id, floor_id, i1, i2, i2Ti1, is_semantics=False
-        )
-        if bev_img1 is None or bev_img2 is None:
-            return
-
-        imageio.imwrite(bev_fpath1, bev_img1)
-        imageio.imwrite(bev_fpath2, bev_img2)
-
-    if "layout" not in render_modalities:
-        return
-
-    # Rasterized-layout rendering below (skipped if only generating texture maps).
-    # We only rasterize layout for `floor', not for `ceiling`.
-    # If `ceiling', we'll skip, since will be identical rendering to `floor`.
-    if surface_type != "floor":
-        return
-
-    building_layout_save_dir = f"{layout_save_root}/{label_type}/{building_id}"
-    os.makedirs(building_layout_save_dir, exist_ok=True)
-
-    # Change to layout directory.
-    layout_fpath1 = f"{building_layout_save_dir}/{bev_fname1}"
-    layout_fpath2 = f"{building_layout_save_dir}/{bev_fname2}"
-
-    if Path(layout_fpath1).exists() and Path(layout_fpath2).exists():
-        print("Both layout images already exist, skipping...")
-        return
-
-    # Skip for ceiling, since would be duplicate.
-    layoutimg1, layoutimg2 = bev_rendering_utils.rasterize_room_layout_pair(
-        i2Ti1=i2Ti1,
-        floor_pose_graph=floor_pose_graph,
-        building_id=building_id,
-        floor_id=floor_id,
-        i1=i1,
-        i2=i2,
-    )
-    imageio.imwrite(layout_fpath1, layoutimg1)
-    imageio.imwrite(layout_fpath2, layoutimg2)
 
 
 def render_building_floor_pairs(
@@ -188,7 +62,7 @@ def render_building_floor_pairs(
         num_processes: number of processes to use for rendering pairs from this building.
     """
     if "layout" in render_modalities:
-        # Load the layouts, either inferred or GT.
+        # Load the layouts that we will render (either inferred or GT layout).
         use_inferred_wdos_layout = True
         if use_inferred_wdos_layout:
             floor_pose_graphs = hnet_prediction_loader.load_inferred_floor_pose_graphs(

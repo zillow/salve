@@ -7,7 +7,6 @@ https://github.com/borglab/gtsfm/blob/master/gtsfm/view_graph_estimator/cycle_co
 import logging
 import os
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import DefaultDict, Dict, List, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
@@ -278,7 +277,8 @@ def filter_to_SE2_cycle_consistent_edges(
 
             if verbose:
                 print(
-                    f"Rot. cycle error: {rot_cycle_error:.2f}, trans. cycle error: {trans_cycle_error:.2f} -> {num_outliers}"
+                    f"Rot. cycle error: {rot_cycle_error:.2f}, " \
+                    f"trans. cycle error: {trans_cycle_error:.2f} -> {num_outliers}"
                 )
 
     if two_view_reports_dict is not None and visualize:
@@ -538,7 +538,7 @@ def compute_max_bin_count(
         num_outliers_per_cycle: array of shape (K,) representing number of outliers for each of K cycles.
            No more than 3 outliers can be found for the 3 edges of a triplet cycle.
         cycle_errors: array of shape (K,) representing cycle error for each cycle.
-        min_error_bin_edge: 
+        min_error_bin_edge:
         max_error_bin_edge: far right edge of histogram in plot.
         bin_edges: error histogram bin edges.
 
