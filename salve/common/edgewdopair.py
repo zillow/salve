@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 
 class EdgeWDOPair(NamedTuple):
-    """Representation of ..."""
+    """Representation of an alignment hypothesis, without associated prediction confidence."""
 
     i1: int
     i2: int
