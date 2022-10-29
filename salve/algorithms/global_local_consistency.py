@@ -9,12 +9,11 @@ import salve.algorithms.rotation_averaging as rotation_averaging
 import salve.utils.rotation_utils as rotation_utils
 from salve.algorithms.cycle_consistency import TwoViewEstimationReport
 from salve.common.sim2 import Sim2
-from salve.common.edge_classification import EdgeClassification
 
 
 def compute_edge_consistency_fraction(
     wSi_list: List[Optional[Sim2]],
-    i2Si1_dict: Dict[Tuple[int,int], Sim2],
+    i2Si1_dict: Dict[Tuple[int, int], Sim2],
     max_allowed_deviation_deg: float,
     two_view_reports_dict: Optional[Dict[Tuple[int, int], TwoViewEstimationReport]] = None,
 ) -> float:
@@ -23,24 +22,24 @@ def compute_edge_consistency_fraction(
     Args:
         wSi_list: estimated global poses.
         i2Si1_dict: relative pose i2Si1 as Sim(2) for each pano pair (i1,i2).
-        max_allowed_deviation_deg: max allowed rotation angular deviation.
+        max_allowed_deviation_deg: maximum allowed rotation angular deviation.
+        two_view_reports_dict: mapping from (i1,i2) pano pair to relative (R,t) errors w.r.t. GT.
 
     Returns:
         Fraction of rotation consistent edges, in the range [0,1].
     """
-    i2Ri1_dict = { (i1,i2): i2Si1.rotation for (i1,i2), i2Si1 in i2Si1_dict.items()}
+    i2Ri1_dict = {(i1, i2): i2Si1.rotation for (i1, i2), i2Si1 in i2Si1_dict.items()}
     wRi_list = [wSi.rotation if wSi is not None else None for wSi in wSi_list]
 
     i2Ri1_dict_consistent = filter_measurements_to_absolute_rotations(
         wRi_list=wRi_list,
-        i2Ri1_dict = i2Ri1_dict,
+        i2Ri1_dict=i2Ri1_dict,
         max_allowed_deviation_deg=max_allowed_deviation_deg,
         verbose=True,
         two_view_reports_dict=two_view_reports_dict,
-        visualize = False,
+        visualize=False,
     )
     return len(i2Ri1_dict_consistent) / len(i2Si1_dict)
-
 
 
 def convert_to_i2Ri1_dict(i2Si1_dict: Dict[Tuple[int, int], Sim2]) -> Dict[Tuple[int, int], np.ndarray]:
@@ -64,13 +63,15 @@ def filter_measurements_by_global_local_consistency(
 
     Args:
         i2Si1_dict: Similarity(2) relative pose for each (i1,i2) pano-pano edge. Contains E1 edges.
-        two_view_reports_dict: mapping from (i1,i2) pano pair to relative rotation and translation error w.r.t. GT.
-        max_allowed_deviation_deg:
+        two_view_reports_dict: mapping from (i1,i2) pano pair to relative (R,t) errors w.r.t. GT.
+        max_allowed_deviation_deg: maximum allowed rotation angular deviation.
 
     Returns:
         i2Si1_dict: Similarity(2) relative pose for each **FILTERED** (i1,i2) pano-pano edge. Contains E2 edges,
             where E2 <= E1.
     """
+    num_original_edges = len(i2Si1_dict)
+
     wRi_list = rotation_averaging.globalaveraging2d(convert_to_i2Ri1_dict(i2Si1_dict))
     # Filter to rotations that are consistent with estimated global rotations.
     i2Ri1_dict_consistent = filter_measurements_to_absolute_rotations(
@@ -81,10 +82,14 @@ def filter_measurements_by_global_local_consistency(
         two_view_reports_dict=two_view_reports_dict,
         visualize=False,
     )
+    num_consistent_edges = len(i2Ri1_dict_consistent)
+
     # Remove the edges that we deem to be outliers.
     outlier_edges = set(i2Si1_dict.keys()) - set(i2Ri1_dict_consistent.keys())
     for outlier_edge in outlier_edges:
         del i2Si1_dict[outlier_edge]
+
+    print(f"Filtered out {num_original_edges - num_consistent_edges}/{num_original_edges} original edges.")
     return i2Si1_dict
 
 
@@ -113,7 +118,7 @@ def filter_measurements_to_absolute_rotations(
         i2Ri1_dict: relative rotation for each (i1,i2) pano pair.
         max_allowed_deviation_deg: maximum allowed angular deviation in degrees.
         verbose: whether to log to STDOUT the deviation of synthetic vs. actual measurement.
-        two_view_reports_dict:
+        two_view_reports_dict: mapping from (i1,i2) pano pair to relative (R,t) errors w.r.t. GT.
         visualize:
 
     Returns:
@@ -148,7 +153,9 @@ def filter_measurements_to_absolute_rotations(
         if verbose:
             print(
                 f"\tPano pair ({i1},{i2}): Measured {theta_deg_measured:.1f} vs. Inferred {theta_deg_inferred:.1f}"
-                + f", {err:.2f} --> {two_view_reports_dict[(i1,i2)].gt_class}"
+                + f", {err:.2f} --> GT Clas:: {two_view_reports_dict[(i1,i2)].gt_class}"
+                + f", GT Rot Error (deg): {two_view_reports_dict[(i1,i2)].R_error_deg:.2f}"
+                + f", GT Trans Error: {two_view_reports_dict[(i1,i2)].U_error_deg:.2f}"  # TODO: change U to `t`.
             )
 
         if err < max_allowed_deviation_deg:
