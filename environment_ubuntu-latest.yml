@@ -31,6 +31,7 @@ dependencies:
   - scikit-learn
   - seaborn
   - shapely
+  - tqdm
   # 3rd party algorithms for different modules
   - cudatoolkit=11.3
   - opencv>=4.5.0 # preferring conda-forge's distribution as it provides the latest distribution
