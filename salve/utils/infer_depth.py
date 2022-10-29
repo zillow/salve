@@ -9,11 +9,14 @@ import glob
 import importlib
 import os
 import sys
+from types import SimpleNamespace
+from typing import Union
 
 import numpy as np
 import torch
 from imageio import imread, imwrite
 from tqdm import tqdm
+
 
 try:
     from lib.config import config, update_config
@@ -22,10 +25,10 @@ except Exception as e:
     print("Exception: ", e)
 
 
-def infer_depth(args):
-    """ """
+def infer_depth(args: Union[SimpleNamespace, argparse.Namespace]) -> None:
+    """Infer monocular depth map and write as PNG to disk."""
     update_config(config, args)
-    device = "cuda" if config.cuda else "cpu"
+    device = "cuda" if config.cuda and torch.cuda.is_available() else "cpu"
 
     # Parse input paths
     rgb_lst = glob.glob(args.inp)
