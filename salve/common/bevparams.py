@@ -30,6 +30,7 @@ class BEVParams:
 
     For example, 1000 pixels * (0.005 m / px) = 5 meters in each direction.
     """
+
     def __init__(
         self,
         img_h: int = DEFAULT_BEV_IMG_H_PX,
@@ -84,7 +85,7 @@ def get_line_width_by_resolution(resolution: float) -> int:
 
     Args:
         resolution:
-    
+
     Returns:
         line_width: line width (thickness) in pixels to use for rendering polylines with OpenCV. Must be an integer.
     """

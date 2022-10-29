@@ -6,17 +6,13 @@ from typing import Dict, List, Optional, Tuple
 import gtsam
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Point2, Pose2, PriorFactorPose2, Rot2, Values
+from gtsam import Point2, Pose2, PriorFactorPose2, Rot2
 from gtsam.symbol_shorthand import L, X
 
 import salve.algorithms.data_association as data_association
-import salve.common.edge_classification as edge_classification
-import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.axis_alignment_utils as axis_alignment_utils
-import salve.utils.graph_rendering_utils as graph_rendering_utils  # flake8: noqa
 from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
-from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
 
@@ -265,7 +261,7 @@ def execute_planar_slam(
                     BearingRangeMeasurement(pano_id=m.i, l_idx=j, bearing_deg=bearing_deg, range=range)
                 ]
 
-                pt_w = wTi_list_init[m.i].transformFrom(m.uv)
+                # pt_w = wTi_list_init[m.i].transformFrom(m.uv)
                 # plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker="+")
                 # plt.text(pt_w[0], pt_w[1], f"j={j},i={m.i}", color=color)
 
@@ -295,9 +291,9 @@ def draw_coordinate_frame(wTi: Pose2, text: str) -> None:
 
     Args:
         wTi: camera pose in global frame.
-        text:
+        text: text to place on plot at camera position.
     """
-    # Camera center.
+    # Plot the text at the camera center.
     cc = wTi.translation()
     plt.text(cc[0], cc[1], text)
 
