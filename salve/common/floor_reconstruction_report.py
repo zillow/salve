@@ -54,7 +54,7 @@ class FloorReconstructionReport:
         gt_floor_pose_graph: PoseGraph2d,
         plot_save_dir: str,
         plot_save_fpath: Optional[str] = None,
-        raw_dataset_dir: Optional[str] = None
+        raw_dataset_dir: Optional[str] = None,
     ) -> "FloorReconstructionReport":
         """Create a report from an estimated pose graph for a single floor.
 

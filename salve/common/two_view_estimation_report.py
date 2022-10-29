@@ -4,6 +4,7 @@
 from typing import Optional
 from dataclasses import dataclass
 
+
 @dataclass(frozen=False)
 class TwoViewEstimationReport:
     """Data structure that represents rotation and translational of an edge, with respect to ground truth.

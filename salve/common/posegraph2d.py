@@ -86,7 +86,9 @@ class PoseGraph2d(NamedTuple):
         """
         if pano_id not in self.nodes:
             print(f"Pano id {pano_id} not found among {self.nodes.keys()}")
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
 
         # from zillow_floor_map["scale_meters_per_coordinate"][floor_id]
         worldmetric_s_worldnormalized = self.scale_meters_per_coordinate
@@ -296,9 +298,7 @@ class PoseGraph2d(NamedTuple):
         )
         return mean_rot_err, mean_trans_err, rot_errors, trans_errors
 
-    def measure_unaligned_abs_pose_error(
-        self, gt_floor_pg: PoseGraph2d
-    ) -> Tuple[float, float, np.ndarray, np.ndarray]:
+    def measure_unaligned_abs_pose_error(self, gt_floor_pg: PoseGraph2d) -> Tuple[float, float, np.ndarray, np.ndarray]:
         """Measure the absolute pose errors (in both rotations and translations) for each localized pano.
 
         Applicable for pose graphs that have NOT been aligned yet.
@@ -382,7 +382,6 @@ class PoseGraph2d(NamedTuple):
 
         return aligned_est_pose_graph
 
-
     def measure_avg_abs_rotation_err(self, gt_floor_pg: PoseGraph2d) -> float:
         """After aligning two (potentially rotation-only) pose graphs by Karcher, evaluate rotation angle differences.
 
@@ -415,7 +414,7 @@ class PoseGraph2d(NamedTuple):
         aRi_list_ = gtsfm_geometry_comparisons.align_rotations(aRi_list=aRi_list, bRi_list=bRi_list)
 
         def _convert_Rot3_to_Sim2(R: Rot3) -> Sim2:
-            return Sim2(R=R.matrix()[:2,:2], t=np.zeros(2), s=1.0)
+            return Sim2(R=R.matrix()[:2, :2], t=np.zeros(2), s=1.0)
 
         errs = []
         for pano_id, (aRi, aRi_) in enumerate(zip(aRi_list, aRi_list_)):
@@ -513,6 +512,7 @@ def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
     MAX_ALLOWED_RY_DEV = 0.1
     if np.absolute(rx) > MAX_ALLOWED_RX_DEV or np.absolute(ry) > MAX_ALLOWED_RY_DEV:
         import pdb
+
         pdb.set_trace()
 
     assert np.isclose(rz, theta_deg, atol=0.1)
@@ -521,6 +521,7 @@ def convert_Sim3_to_Sim2(a_Sim3_b: Similarity3) -> Sim2:
     MAX_ALLOWED_TZ_DEG = 0.1
     if np.absolute(atb[2]) > MAX_ALLOWED_TZ_DEG:
         import pdb
+
         pdb.set_trace()
 
     a_Sim2_b = Sim2(R=a_Rot2_b, t=atb[:2], s=a_Sim3_b.scale())
@@ -608,4 +609,3 @@ def compute_available_floors_for_building(building_id: str, raw_dataset_dir: str
     merger_data = floor_map_json["merger"]
     available_floor_ids = list(merger_data.keys())
     return available_floor_ids
-
