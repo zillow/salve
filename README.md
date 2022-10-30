@@ -1,7 +1,7 @@
 
-**SALVe: Semantic Alignment Verification for Floorplan Reconstruction from Sparse Panoramas** (ECCV 2022, Official Repo) [PDF]() <br>
+**SALVe: Semantic Alignment Verification for Floorplan Reconstruction from Sparse Panoramas** (ECCV 2022, Official Repo) [PDF](https://www.ecva.net/papers/eccv_2022/papers_ECCV/papers/136910632.pdf) [Supp. Mat](https://www.ecva.net/papers/eccv_2022/papers_ECCV/papers/136910632-supp.pdf) <br>
 [John Lambert](https://johnwlambert.github.io/), Yuguang Li, Ivaylo Boyadzhiev, Lambert Wixson, Manjunath Narayana, Will Hutchcroft, [James Hays](https://faculty.cc.gatech.edu/~hays/), [Frank Dellaert](https://dellaert.github.io/), [Sing Bing Kang](http://www.singbingkang.com/). <br>
-Presented at ECCV 2022.
+Presented at ECCV 2022. Link to [SALVe video](https://www.youtube.com/watch?v=WBOVn0LC7dI&feature=emb_imp_woyt) (5 min).
 
 # Repository Structure
 
