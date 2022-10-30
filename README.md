@@ -182,10 +182,18 @@ python scripts/run_sfm.py \
 Above, we use pose-graph optimization (`pgo`) as the global aggregation method for relative poses.
 
 ## Pretrained Models
+We release 7 pretrained models:
 
-- Custom HorizonNet W/D/O & Layout w/ photometric info:
-- Rasterized layout only:
-- GT WDO:
+| W/D/O + Layout Source | Input Modalities     | #Tours used for training | Arch. | Model filename (md5sum) | 
+| :-------------------: | :------------------: | :----------------------: | :---: | :--------------------: |
+| MHNet                 | Ceiling + Floor RGB  | 435   | ResNet-152 | 1200ffbe47d836557d88fef052952337.pth | 
+| MHNet                 | Ceiling + Floor RGB  | 587   | ResNet-152 | 9fcbb628bd5efffbdcc4ce55a9eb380d.pth |
+| MHNet                 | Ceiling RGB only     | 587   | ResNet-152 | 5c64123c134b829dd99beb3684582f61.pth | 
+| MHNet                 | Floor RGB only       | 587   | ResNet-152 | a063532031f83aec97289466943bf52d.pth |
+| MHNet                 | Rasterized Layout (Floor)| 877  | ResNet-152 | 6ac3f3e5fe6fa3d4bfae7c124d7787b3.pth |
+| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 350    | ResNet-152 | 301f920ec795b9966aebc2367544d234.pth | 
+| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 817    | ResNet-152 | b1198bad27aecb8a19f884abc920a731.pth |
+
 
 ## Training a model
 
