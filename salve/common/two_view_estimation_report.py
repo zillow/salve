@@ -1,4 +1,4 @@
-"""Data structure that represents rotation and translational of an edge, with respect to ground truth."""
+"""Data structure that represents rotation and translational error of an edge, with respect to ground truth."""
 
 
 from typing import Optional
@@ -7,12 +7,12 @@ from dataclasses import dataclass
 
 @dataclass(frozen=False)
 class TwoViewEstimationReport:
-    """Data structure that represents rotation and translational of an edge, with respect to ground truth.
+    """Data structure that represents rotation and translational error of an edge, with respect to ground truth.
 
     Args:
         gt_class: ground truth category, 0 represents negative (W/D/O mismatch), and 1 represents
             positive (a W/D/O match).
-        R_error_deg: error in rotation, measured ...
+        R_error_deg: error in rotation w.r.t. ground truth (error is measured in degrees).
         U_error_deg: error in translation (Unit2), measured in ...
         confidence: scalar-valued confidence in [0,1] range.
     """
