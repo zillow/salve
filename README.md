@@ -187,13 +187,13 @@ We release 7 pretrained models:
 
 | W/D/O + Layout Source | Input Modalities     | #Tours used for training | Arch. | Model filename (md5sum) | 
 | :-------------------: | :------------------: | :----------------------: | :---: | :--------------------: |
-| MHNet                 | Ceiling + Floor RGB  | 435   | ResNet-152 | 1200ffbe47d836557d88fef052952337.pth | 
-| MHNet                 | Ceiling + Floor RGB  | 587   | ResNet-152 | 9fcbb628bd5efffbdcc4ce55a9eb380d.pth |
-| MHNet                 | Ceiling RGB only     | 587   | ResNet-152 | 5c64123c134b829dd99beb3684582f61.pth | 
-| MHNet                 | Floor RGB only       | 587   | ResNet-152 | a063532031f83aec97289466943bf52d.pth |
-| MHNet                 | Rasterized Layout (Floor)| 877  | ResNet-152 | 6ac3f3e5fe6fa3d4bfae7c124d7787b3.pth |
-| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 350    | ResNet-152 | 301f920ec795b9966aebc2367544d234.pth | 
-| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 817    | ResNet-152 | b1198bad27aecb8a19f884abc920a731.pth |
+| MHNet                 | Ceiling + Floor RGB  | 435   | ResNet-152 | [1200ffbe47d836557d88fef052952337.pth](https://drive.google.com/file/d/1MHlG2dJ9Vr0VwxlV7OH0ZabsZP8YQ2s0/view?usp=sharing) | 
+| MHNet                 | Ceiling + Floor RGB  | 587   | ResNet-152 | [9fcbb628bd5efffbdcc4ce55a9eb380d.pth](https://drive.google.com/file/d/1BxPiwUCPuV8pgnVwpUzlWTkA_mCgMfx5/view?usp=sharing) |
+| MHNet                 | Ceiling RGB only     | 587   | ResNet-152 | [5c64123c134b829dd99beb3684582f61.pth](https://drive.google.com/file/d/1Qx1PwHFRHn62AtJg7uFFbBvv4gP2WjVM/view?usp=sharing) | 
+| MHNet                 | Floor RGB only       | 587   | ResNet-152 | [a063532031f83aec97289466943bf52d.pth](https://drive.google.com/file/d/1WBidn9z6InHUgQbJ0MsY9OAZhcyCTSaL/view?usp=sharing) |
+| MHNet                 | Rasterized Layout (Floor)| 877  | ResNet-152 | [6ac3f3e5fe6fa3d4bfae7c124d7787b3.pth](https://drive.google.com/file/d/1HwUO-ILcnUXfXhq1rlTGcmrbOMB9Owna/view?usp=sharing) |
+| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 350    | ResNet-152 | [301f920ec795b9966aebc2367544d234.pth](https://drive.google.com/file/d/1BdrdYAXYFHn4EGxNYCish68GaDo3fvx3/view?usp=sharing) | 
+| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 817    | ResNet-152 | [b1198bad27aecb8a19f884abc920a731.pth](https://drive.google.com/file/d/1OuRI2wUi9wXZNux-mIYyxuqxp7J6Pn20/view?usp=sharing) |
 
 
 ## Training a model
