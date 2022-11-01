@@ -108,16 +108,20 @@ def get_edge_classifications_from_serialized_preds(
     allowed_wdo_types: List[str] = ["door", "window", "opening"],
     confidence_threshold: Optional[float] = None,
 ) -> Dict[Tuple[str, str], List[EdgeClassification]]:
-    """Convert serialized predictions into EdgeClassification objects.
+    """Converts serialized predictions into EdgeClassification objects.
 
     Given a directory of JSON files containing model predictions into predictions per ZinD building and per floor.
 
     Args:
-        serialized_preds_json_dir: path to directory where model predictions (per edge) have been serialized as JSON.
+        query_building_id: ZInD building ID to retrieve serialized predictions for.
+        query_floor_id: unique ID of floor, from ZInD building ID specified above, to retrieve serialized predictions for.
+        serialized_preds_json_dir: Path to directory where model predictions (per edge) have been serialized as JSON.
             The serializations are stored per batch, and thus are mixed across ZInD buildings and floors.
         hypotheses_save_root:  Directory where JSON files with alignment hypotheses have been saved to (from executing
             `export_alignment_hypotheses.py`).
-        allowed_wdo_types: allowed types of semantic objects (W/D/O) to use for reconstruction. Others will be ignored.
+        allowed_wdo_types: Allowed types of semantic objects (W/D/O) to use for reconstruction. Others will be ignored.
+        confidence_threshold: Minimum required SALVe network confidence to accept a prediction. By thresholding
+            at this stage, function execution is accelerated, as fewer glob() calls are needed for fewer hypotheses.
 
     Returns:
         floor_edgeclassifications_dict: a mapping from (building_id, floor_id) to corresponding EdgeClassification
@@ -215,7 +219,7 @@ def get_conf_thresholded_edge_measurements(
     with sufficiently high confidence.
 
     Args:
-        measurements: unthresholded
+        measurements: unthresholded edge predictions.
         confidence_threshold: minimum confidence to treat a model's prediction as a positive.
 
     Returns:
@@ -310,7 +314,7 @@ def get_most_likely_relative_pose_per_edge(
 def create_two_view_reports_dict_from_edge_classification_dict(
     edge_classification_dict: Dict[Tuple[int, int], EdgeClassification], gt_floor_pose_graph: PoseGraph2d
 ) -> Dict[Tuple[int, int], TwoViewEstimationReport]:
-    """TODO
+    """Computes (R,t) errors w.r.t. ground truth for each edge, and stores them in a data structure.
 
     Args:
         edge_classification_dict: mapping from (i1,i2) pano pair to classification prediction.
