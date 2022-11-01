@@ -205,7 +205,7 @@ def ransac_spanning_trees(
 
     Returns:
         Most probable global poses.
-        Best hypothesis.
+        Best hypothesis (subset of input measurements).
     """
     if len(measurements) == 0:
         raise ValueError("At least one edge prediction/measurement must be provided.")
@@ -267,9 +267,7 @@ def ransac_spanning_trees(
         wSi_list = greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
 
         if wSi_list is None:
-            import pdb
-
-            pdb.set_trace()
+            import pdb; pdb.set_trace()
 
         avg_rot_error, med_rot_error, avg_trans_error, med_trans_error = compute_hypothesis_errors(
             measurements=measurements, wSi_list=wSi_list
@@ -343,7 +341,7 @@ def compute_hypothesis_errors(
     """Measure the quality of global poses (from a single random spanning tree) vs. input measurements.
 
     Args:
-        high_conf_measurements: relative pose measurements, likely already pruned by confidence.
+        measurements: relative pose measurements, likely already pruned by confidence.
         wSi_list: list of Sim(2) poses in global frame.
 
     Returns:
