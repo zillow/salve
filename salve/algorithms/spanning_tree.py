@@ -179,10 +179,10 @@ def compute_objective_function_improvement(
 def ransac_spanning_trees(
     measurements: List[EdgeClassification],
     num_hypotheses: int = 10,
-    # min_num_edges_for_hypothesis: int = 10,
     gt_floor_pose_graph: Optional[PoseGraph2d] = None,
-    visualize: bool = True,
-    sampling_fraction: float = 0.5  # 0.95
+    visualize: bool = False,
+    sampling_fraction: float = 0.5,  # 0.95
+    min_num_edges_for_hypothesis: Optional[int] = None,
 ) -> List[Optional[Sim2]]:
     """Generate global poses by sampling random spanning trees from relative pose measurements.
 
@@ -197,11 +197,11 @@ def ransac_spanning_trees(
     Args:
         measurements: relative pose measurements, likely already pruned by confidence.
         num_hypotheses: number of hypotheses to sample in RANSAC.
-        min_num_edges_for_hypothesis: minimum number of edges in each RANSAC hypothesis.
         gt_floor_pose_graph: ground truth floor pose graph.
         visualize:
         sampling_fraction: percent of poses to sample for hypothesis. We Leave out X% of measurements to allow
             exclusion of possible outliers.
+        min_num_edges_for_hypothesis: minimum number of edges in each RANSAC hypothesis.
 
     Returns:
         Most probable global poses.
@@ -217,7 +217,6 @@ def ransac_spanning_trees(
     num_poses_estimated_best = 0  # -float("inf") # lower is better
     best_wSi_list = None
 
-    min_num_edges_for_hypothesis = None
     if min_num_edges_for_hypothesis is None:
         # Alternatively, could use 2 * number of unique nodes, or 80% of total, etc.
         min_num_edges_for_hypothesis = int(math.ceil(sampling_fraction * K))
