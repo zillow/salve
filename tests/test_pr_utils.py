@@ -22,7 +22,10 @@ def _make_dummy_edge_classification(prob: float, y_hat: int, y_true: int) -> Edg
         y_true=y_true,
         pair_idx=0,  # dummy index
         wdo_pair_uuid="door_0_1",  # dummy val
-        configuration="identity"  # dummy val
+        configuration="identity",  # dummy val,
+        building_id = "0000", # dummy ID
+        floor_id = "floor_00", # dummy ID
+        i2Si1 = None
     )
     return measurement
 
