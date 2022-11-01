@@ -56,7 +56,7 @@ class EdgeClassification:
                 executing `export_alignment_hypotheses.py`)",
         Returns:
             rot_error_deg: rotation error (in degrees).
-            trans_error: TODO
+            trans_error: translation error.
         """
         wTi1_gt = gt_floor_pose_graph.nodes[self.i1].global_Sim2_local
         wTi2_gt = gt_floor_pose_graph.nodes[self.i2].global_Sim2_local
@@ -74,8 +74,15 @@ class EdgeClassification:
 
 
 def get_available_floor_ids_building_ids_from_serialized_preds(serialized_preds_json_dir: str) -> List[Tuple[str, str]]:
-    """ """
+    """Identify unique (building id, floor id) pairs for which serialized SALVe predictions are available on disk.
 
+    Args:
+        serialized_preds_json_dir: path to directory where model predictions (per edge) have been serialized as JSON.
+            The serializations are stored per batch, and thus are mixed across ZInD buildings and floors.
+
+    Returns:
+        List of unique (building id, floor id) pairs.
+    """
     building_id_floor_id_pairs = set()
 
     json_fpaths = glob.glob(f"{serialized_preds_json_dir}/batch*.json")
