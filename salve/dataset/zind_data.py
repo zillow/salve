@@ -28,6 +28,28 @@ PathSixTuple = Tuple[str, str, str, str, str, str, int]
 TensorSixTupleWithPaths = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, int, str, str]
 
 
+def get_pano_fpath_from_pano_index(i: int, raw_dataset_dir: str, building_id: str) -> str:
+    """Retrieves panorama file path that corresponds to specified panorama index.
+
+    Args:
+        i: panorama index (usually unique per building).
+        raw_dataset_dir: Path to where ZInD dataset is stored on disk (after download from Bridge API).
+        building_id: unique ID of ZInD building.
+
+    Returns:
+        File path to corresponding panorama.
+    """
+    img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/floor*_pano_{i}.jpg")
+    if not len(img_fpaths) == 1:
+        # Note: Building 1348 has two panos with ID `5` each.
+        known_duplicate1 = (building_id == "1348" and i == 5)
+        # Note: Building 0363 has two panos with ID `34` each.
+        known_duplicate2 = (building_id == "0363" and i == 34)
+        if not (known_duplicate1 or known_duplicate2):
+            raise ValueError(f"There should be a unique image for panorama ID {i} from Bldg. {building_id}.")
+    return img_fpaths[0]
+
+
 def pair_idx_from_fpath(fpath: str) -> int:
     """ """
     fname_stem = Path(fpath).stem

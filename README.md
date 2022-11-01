@@ -1,7 +1,8 @@
 
-**SALVe: Semantic Alignment Verification for Floorplan Reconstruction from Sparse Panoramas** (ECCV 2022, Official Repo) [PDF]() <br>
+**SALVe: Semantic Alignment Verification for Floorplan Reconstruction from Sparse Panoramas** (ECCV 2022, Official Repo) <br>
+[[PDF]](https://www.ecva.net/papers/eccv_2022/papers_ECCV/papers/136910632.pdf) [[Supp. Mat]](https://www.ecva.net/papers/eccv_2022/papers_ECCV/papers/136910632-supp.pdf) <br>
 [John Lambert](https://johnwlambert.github.io/), Yuguang Li, Ivaylo Boyadzhiev, Lambert Wixson, Manjunath Narayana, Will Hutchcroft, [James Hays](https://faculty.cc.gatech.edu/~hays/), [Frank Dellaert](https://dellaert.github.io/), [Sing Bing Kang](http://www.singbingkang.com/). <br>
-Presented at ECCV 2022.
+Presented at ECCV 2022. Link to [SALVe video](https://www.youtube.com/watch?v=WBOVn0LC7dI&feature=emb_imp_woyt) (5 min).
 
 # Repository Structure
 
@@ -133,7 +134,7 @@ python {SALVE_REPO_DIRPATH}/scripts/render_dataset_bev.py \
     --bev_save_root {PATH WHERE BEV TEXTURE MAPS WILL BE SAVED TO} \
     --split test
 ```
-Replace `--split test` with `train` or `val` if desired.
+Replace `--split test` with `train` or `val` if desired. If you wish to test out SALVe on only a single building, then instead of using the `--split` CLI arg, use the `--building_id` arg instead, e.g. `--building_id 0001`.
 
 If you see an error message like:
 ```
@@ -182,10 +183,18 @@ python scripts/run_sfm.py \
 Above, we use pose-graph optimization (`pgo`) as the global aggregation method for relative poses.
 
 ## Pretrained Models
+We release 7 pretrained models:
 
-- Custom HorizonNet W/D/O & Layout w/ photometric info:
-- Rasterized layout only:
-- GT WDO:
+| W/D/O + Layout Source | Input Modalities     | #Tours used for training | Arch. | Model filename (md5sum) | 
+| :-------------------: | :------------------: | :----------------------: | :---: | :--------------------: |
+| MHNet                 | Ceiling + Floor RGB  | 435   | ResNet-152 | [1200ffbe47d836557d88fef052952337.pth](https://drive.google.com/file/d/1MHlG2dJ9Vr0VwxlV7OH0ZabsZP8YQ2s0/view?usp=sharing) | 
+| MHNet                 | Ceiling + Floor RGB  | 587   | ResNet-152 | [9fcbb628bd5efffbdcc4ce55a9eb380d.pth](https://drive.google.com/file/d/1BxPiwUCPuV8pgnVwpUzlWTkA_mCgMfx5/view?usp=sharing) |
+| MHNet                 | Ceiling RGB only     | 587   | ResNet-152 | [5c64123c134b829dd99beb3684582f61.pth](https://drive.google.com/file/d/1Qx1PwHFRHn62AtJg7uFFbBvv4gP2WjVM/view?usp=sharing) | 
+| MHNet                 | Floor RGB only       | 587   | ResNet-152 | [a063532031f83aec97289466943bf52d.pth](https://drive.google.com/file/d/1WBidn9z6InHUgQbJ0MsY9OAZhcyCTSaL/view?usp=sharing) |
+| MHNet                 | Rasterized Layout (Floor)| 877  | ResNet-152 | [6ac3f3e5fe6fa3d4bfae7c124d7787b3.pth](https://drive.google.com/file/d/1HwUO-ILcnUXfXhq1rlTGcmrbOMB9Owna/view?usp=sharing) |
+| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 350    | ResNet-152 | [301f920ec795b9966aebc2367544d234.pth](https://drive.google.com/file/d/1BdrdYAXYFHn4EGxNYCish68GaDo3fvx3/view?usp=sharing) | 
+| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 817    | ResNet-152 | [b1198bad27aecb8a19f884abc920a731.pth](https://drive.google.com/file/d/1OuRI2wUi9wXZNux-mIYyxuqxp7J6Pn20/view?usp=sharing) |
+
 
 ## Training a model
 

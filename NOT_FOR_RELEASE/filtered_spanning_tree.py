@@ -32,6 +32,8 @@ from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
 from salve.common.sim2 import Sim2
 
+import salve.algorithms.global_local_consistency as global_local_consistency
+
 
 def build_filtered_spanning_tree(
     building_id: str,
@@ -92,7 +94,7 @@ def build_filtered_spanning_tree(
     # TODO: measure the error in rotations
 
     # filter to rotations that are consistent with global
-    i2Ri1_dict = filter_measurements_to_absolute_rotations(
+    i2Ri1_dict = global_local_consistency.filter_measurements_to_absolute_rotations(
         wRi_list, i2Ri1_dict, max_allowed_deviation=5, two_view_reports_dict=two_view_reports_dict
     )
     graph_rendering_utils.draw_graph_topology(
@@ -164,100 +166,3 @@ def build_filtered_spanning_tree(
 
     report = FloorReconstructionReport.from_wSi_list(wSi_list, gt_floor_pose_graph, plot_save_dir=plot_save_dir)
     return i2Si1_dict_consistent, report
-
-
-
-
-def filter_measurements_to_absolute_rotations(
-    wRi_list: List[Optional[np.ndarray]],
-    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
-    max_allowed_deviation: float = 5.0,
-    verbose: bool = False,
-    two_view_reports_dict=None,
-    visualize: bool = False,
-) -> Dict[Tuple[int, int], np.ndarray]:
-    """
-    Simulate the relative pose measurement, given the global rotations:
-    wTi0 = (wRi0, wti0). wTi1 = (wRi1, wti1) -> wRi0, wRi1 -> i1Rw * wRi0 -> i1Ri0_ vs. i1Ri0
-
-    Reference: See FilterViewPairsFromOrientation()
-    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_orientation.h
-    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/filter_view_pairs_from_orientation.cc
-
-    Theia also uses a 5 degree threshold:
-    https://github.com/sweeneychris/TheiaSfM/blob/master/src/theia/sfm/reconstruction_estimator_options.h#L122
-
-    Args:
-        wRi_list:
-        i2Ri1_dict:
-        max_allowed_deviation:
-        verbose:
-        two_view_reports_dict:
-        visualize:
-
-    Returns:
-        i2Ri1_dict_consistent:
-    """
-    deviations = []
-    is_gt_edge = []
-
-    edges = i2Ri1_dict.keys()
-
-    i2Ri1_dict_consistent = {}
-
-    for (i1, i2) in edges:
-
-        if wRi_list[i1] is None or wRi_list[i2] is None:
-            continue
-
-        # find estimate, given absolute values
-        wTi1 = wRi_list[i1]
-        wTi2 = wRi_list[i2]
-        i2Ri1_inferred = wTi2.T @ wTi1
-
-        i2Ri1_measured = i2Ri1_dict[(i1, i2)]
-
-        theta_deg_inferred = rotation_utils.rotmat2theta_deg(i2Ri1_inferred)
-        theta_deg_measured = rotation_utils.rotmat2theta_deg(i2Ri1_measured)
-
-        # need to wrap around at 360
-        err = rotation_utils.wrap_angle_deg(theta_deg_inferred, theta_deg_measured)
-
-        if verbose:
-            print(f"\tPano pair ({i1},{i2}): Measured {theta_deg_measured:.1f} vs. Inferred {theta_deg_inferred:.1f}" + f", {err:.2f} --> {two_view_reports_dict[(i1,i2)].gt_class}")
-
-
-        if err < max_allowed_deviation:
-            i2Ri1_dict_consistent[(i1, i2)] = i2Ri1_measured
-
-        if two_view_reports_dict is not None:
-            is_gt_edge.append(two_view_reports_dict[(i1, i2)].gt_class)
-            deviations.append(err)
-
-    if two_view_reports_dict is not None and visualize:
-        deviations = np.array(deviations)
-        is_gt_edge = np.array(is_gt_edge)
-        misclassified_errs = deviations[is_gt_edge == 0]
-        plt.figure(figsize=(16, 5))
-        plt.subplot(1, 2, 1)
-        plt.hist(misclassified_errs, bins=30)
-        plt.ylabel("Counts")
-        plt.xlabel("Deviation from measurement (degrees)")
-        plt.title("False Positive Edge")
-        plt.ylim(0, deviations.size)
-        plt.xlim(0, 180)
-
-        correct_classified_errs = deviations[is_gt_edge == 1]
-        plt.subplot(1, 2, 2)
-        plt.hist(correct_classified_errs, bins=30)
-        plt.title("GT edge")
-        plt.ylim(0, deviations.size)
-        plt.xlim(0, 180)
-
-        plt.suptitle("Filtering rot avg result to be consistent with measurements")
-        plt.show()
-
-    print(
-        f"\tFound that {len(i2Ri1_dict_consistent)} of {len(i2Ri1_dict)} rotations were consistent w/ global rotations"
-    )
-    return i2Ri1_dict_consistent

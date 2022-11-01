@@ -7,7 +7,6 @@ https://github.com/borglab/gtsfm/blob/master/gtsfm/view_graph_estimator/cycle_co
 import logging
 import os
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import DefaultDict, Dict, List, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
@@ -15,29 +14,13 @@ import numpy as np
 
 import salve.utils.pr_utils as pr_utils
 from salve.common.sim2 import Sim2
+from salve.common.two_view_estimation_report import TwoViewEstimationReport
 from salve.utils.rotation_utils import rotmat2theta_deg
 
 logger = logging.getLogger(__name__)
 
 
 ROT_CYCLE_ERROR_THRESHOLD = 0.5  # 1.0 # 5.0 # 2.5 # 1.0 # 0.3
-
-
-@dataclass(frozen=False)
-class TwoViewEstimationReport:
-    """TODO(john): improve documentation here.
-
-    Args:
-        gt_class: ground truth category, 0 represents negative (WDO mismatch), and 1 represents positive (a WDO match)
-        R_error_deg: error in rotation, measured ...
-        U_error_deg: error in translation (Unit2), measured in ...
-        confidence: scalar-valued confidence in [0,1] range
-    """
-
-    gt_class: int
-    R_error_deg: Optional[float] = None
-    U_error_deg: Optional[float] = None
-    confidence: Optional[float] = None
 
 
 def extract_triplets(i2Ri1_dict: Dict[Tuple[int, int], np.ndarray]) -> List[Tuple[int, int, int]]:
@@ -294,7 +277,8 @@ def filter_to_SE2_cycle_consistent_edges(
 
             if verbose:
                 print(
-                    f"Rot. cycle error: {rot_cycle_error:.2f}, trans. cycle error: {trans_cycle_error:.2f} -> {num_outliers}"
+                    f"Rot. cycle error: {rot_cycle_error:.2f}, " \
+                    f"trans. cycle error: {trans_cycle_error:.2f} -> {num_outliers}"
                 )
 
     if two_view_reports_dict is not None and visualize:
@@ -554,7 +538,7 @@ def compute_max_bin_count(
         num_outliers_per_cycle: array of shape (K,) representing number of outliers for each of K cycles.
            No more than 3 outliers can be found for the 3 edges of a triplet cycle.
         cycle_errors: array of shape (K,) representing cycle error for each cycle.
-        min_error_bin_edge: 
+        min_error_bin_edge:
         max_error_bin_edge: far right edge of histogram in plot.
         bin_edges: error histogram bin edges.
 

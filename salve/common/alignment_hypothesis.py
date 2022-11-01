@@ -54,4 +54,3 @@ def prune_to_unique_sim2_objs(possible_alignment_info: List[AlignmentHypothesis]
     if verbose:
         logger.info(f"Pruned from {num_orig_objs} to {num_pruned_objs}")
     return pruned_possible_alignment_info
-

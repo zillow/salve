@@ -17,6 +17,7 @@ class PoseGraph3d:
         floor_id: unique ID of floor of aforementioned ZInD building.
         pose_dict: mapping from panoram ID to Pose(3) object.
     """
+
     building_id: str
     floor_id: str
     pose_dict: Dict[int, Pose3]

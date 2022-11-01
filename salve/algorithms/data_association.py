@@ -18,7 +18,6 @@ from salve.common.sfm_track import SfmTrack2d
 # from gtsfm.common.sfm_track import SfmTrack2d
 
 
-
 def get_kpt_idx(wdo_idx: int, wdo_object_type: str, pano_data: PanoData) -> int:
     """Get unique W/D/O index (for a single panorama) for a start vertex of one of its W/D/O's.
 
@@ -117,7 +116,7 @@ def get_ith_wdo_room_endpoints_from_pano(
     pano_data: PanoData, i: int, alignment_object: str, use_rotated: bool
 ) -> Tuple[float, float]:
     """TODO
-    
+
     Args:
         pano_data:
         i:

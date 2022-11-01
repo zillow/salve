@@ -35,6 +35,7 @@ Summary of trained models / Results
 - `serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test2021_11_02"`
 - `serialized_preds_json_dir = "/data/johnlam/2021_10_26__ResNet152__435tours_serialized_edge_classifications_test109buildings_2021_11_16"`
 - `hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"`
+- 1200ffbe47d836557d88fef052952337
 
 
 # ResNet-152, ceiling only, RGB only, 587 tours, (predicted-WDO), low-res
@@ -46,6 +47,8 @@ Summary of trained models / Results
 - `serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test2021_11_12"`
 - `/data/johnlam/2021_11_04__ResNet152ceilingonly__587tours_serialized_edge_classifications_test109buildings_2021_11_16`
 - `hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"`
+- 5c64123c134b829dd99beb3684582f61
+
 
 # ResNet-152, floor only, RGB only, 587 tours, (predicted-WDO), low-res
 - `model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_06/2021_11_08_07_40_48"`
@@ -55,6 +58,7 @@ Summary of trained models / Results
 - `serialization_save_dir = "/data/johnlam/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test109buildings_2021_11_16"`
 - `serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_11_08__ResNet152flooronly__587tours_serialized_edge_classifications_test2021_11_09"`
 - `hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"`
+- a063532031f83aec97289466943bf52d
 
 # ResNet-152, layout-only, XYZ tours (predicted WDO), low-res (FAILED AT 10 epochs)
 - `model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_10/2021_11_11_19_45_07"`
@@ -70,13 +74,14 @@ Summary of trained models / Results
 - `serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test2021_11_15"`
 - `serialized_preds_json_dir = "/data/johnlam/2021_11_10__ResNet152layoutonlyV2__877tours_serialized_edge_classifications_test109buildings_2021_11_16"`
 - `hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"`
-
+- 6ac3f3e5fe6fa3d4bfae7c124d7787b3
 
 # ResNet-152, floor and ceiling, RGB only, 587 tours, (predicted WDO), low-res, with equal data now as floor-only or ceiling only
 - `model_results_dir = "/data/johnlam/ZinD_trained_models_2021_11_09/2021_11_19_21_42_11"`
 - `config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_09/2021_11_19_21_42_11/2021_11_09_resnet152_ceiling_floor_rgbonly_no_photometric_augment.yaml"`
 - `serialization_save_dir = "/data/johnlam/2021_11_09__ResNet152floorceiling__587tours_serialized_edge_classifications_test109buildings_2021_11_23"`
 - `hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_madori_rmx_v1_2021_10_20_SE2_width_thresh0.65"`
+- 9fcbb628bd5efffbdcc4ce55a9eb380d
 
 
 ## ResNet-152, GT WDO and GT layout (350 training tours)
@@ -85,13 +90,14 @@ Summary of trained models / Results
 - `serialization_save_dir = "/data/johnlam/2021_11_23_ResNet152floorceiling_GT_WDO_350tours_serialized_edge_classifications_2021_11_24"`
 - `hypotheses_save_root = "/Users/johnlam/Downloads/ZinD_bridge_api_alignment_hypotheses_GT_WDO_2021_11_20_SE2_width_thresh0.8"`
 - `serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_11_23_ResNet152floorceiling_GT_WDO_350tours_serialized_edge_classifications_2021_11_24"`
-    
+- 301f920ec795b9966aebc2367544d234
+
 ## ResNet-152, GT WDO and GT layout (817 tours)
 - `model_results_dir = johnlam@se1-rmx-gpu-002:/data/johnlam/ZinD_trained_models_2021_11_29/2021_11_29_21_08_01`
 - `config_fpath = "/data/johnlam/ZinD_trained_models_2021_11_29/2021_11_29_21_08_01/2021_11_29_resnet152_ceiling_floor_rgbonly_GT_WDO_expandeddata_no_photometric_augment.yaml"`
 - `serialization_save_dir = /data/johnlam/2021_11_29_ResNet152floorceiling_GT_WDO_817tours_serialized_edge_classifications_2021_12_02"`
 - locally `serialized_preds_json_dir = "/Users/johnlam/Downloads/2021_11_29_ResNet152floorceiling_GT_WDO_817tours_serialized_edge_classifications_2021_12_02"`
-
+- b1198bad27aecb8a19f884abc920a731
 
 
 

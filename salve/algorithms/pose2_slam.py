@@ -6,17 +6,13 @@ from typing import Dict, List, Optional, Tuple
 import gtsam
 import matplotlib.pyplot as plt
 import numpy as np
-from gtsam import Point2, Pose2, PriorFactorPose2, Rot2, Values
+from gtsam import Point2, Pose2, PriorFactorPose2, Rot2
 from gtsam.symbol_shorthand import L, X
 
 import salve.algorithms.data_association as data_association
-import salve.common.edge_classification as edge_classification
-import salve.dataset.hnet_prediction_loader as hnet_prediction_loader
 import salve.utils.axis_alignment_utils as axis_alignment_utils
-import salve.utils.graph_rendering_utils as graph_rendering_utils  # flake8: noqa
 from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
-from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d
 from salve.common.sim2 import Sim2
 
@@ -189,7 +185,7 @@ def execute_planar_slam(
     inferred_floor_pose_graph: PoseGraph2d,
     optimize_poses_only: bool = False,
     verbose: bool = True,
-) -> None:
+) -> List[Optional[Sim2]]:
     """Gathers odometry and landmark measurements, and then executes planar Pose(2) SLAM.
 
     Args:
@@ -198,7 +194,7 @@ def execute_planar_slam(
         hypotheses_save_root:
         building_id: unique ID of a ZInD building.
         floor_id: unique ID of floor of a ZInD building.
-        wSi_list:
+        wSi_list: initialization of pose graph estimate (e.g. from a spanning tree).
         plot_save_dir:
         use_axis_alignment: whether to refine relative rotations by vanishing angle.
         per_edge_wdo_dict
@@ -207,7 +203,7 @@ def execute_planar_slam(
         verbose:
 
     Returns:
-        report: reconstruction report.
+        wSi_list: Estimated global poses.
     """
     if (not optimize_poses_only) or use_axis_alignment:
         pano_dict_inferred = inferred_floor_pose_graph.nodes
@@ -219,16 +215,13 @@ def execute_planar_slam(
     # # as (x,y,theta). We don't use a dict, as we may have multiple measurements for each pair of poses.
     i2Ti1_measurements = []
     for m in measurements:
-        i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(
-            m, hypotheses_save_root, building_id, floor_id
-        )
-
+        i2Si1 = m.i2Si1
         if use_axis_alignment:
             edge_wdo_pair = per_edge_wdo_dict[(m.i1, m.i2)]
             i2rSi1 = axis_alignment_utils.align_pair_measurement_by_vanishing_angle(
                 i1=m.i1,
                 i2=m.i2,
-                i2Si1=i2Si1,
+                i2Si1=m.i2Si1,
                 edge_wdo_pair=edge_wdo_pair,
                 pano_dict_inferred=pano_dict_inferred,
                 visualize=False,
@@ -268,7 +261,7 @@ def execute_planar_slam(
                     BearingRangeMeasurement(pano_id=m.i, l_idx=j, bearing_deg=bearing_deg, range=range)
                 ]
 
-                pt_w = wTi_list_init[m.i].transformFrom(m.uv)
+                # pt_w = wTi_list_init[m.i].transformFrom(m.uv)
                 # plt.scatter(pt_w[0], pt_w[1], 10, color=color, marker="+")
                 # plt.text(pt_w[0], pt_w[1], f"j={j},i={m.i}", color=color)
 
@@ -290,15 +283,7 @@ def execute_planar_slam(
             continue
         wSi_list[i] = Sim2(R=wTi.rotation().matrix(), t=wTi.translation(), s=1.0)
 
-    est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pg)
-    report = FloorReconstructionReport.from_est_floor_pose_graph(
-        est_floor_pose_graph, gt_floor_pose_graph=gt_floor_pg, plot_save_dir=plot_save_dir
-    )
-    # graph_rendering_utils.draw_multigraph(
-    #     measurements, est_floor_pose_graph, raw_dataset_dir=raw_dataset_dir, confidence_threshold=0.93
-    # )
-
-    return report
+    return wSi_list
 
 
 def draw_coordinate_frame(wTi: Pose2, text: str) -> None:
@@ -306,9 +291,9 @@ def draw_coordinate_frame(wTi: Pose2, text: str) -> None:
 
     Args:
         wTi: camera pose in global frame.
-        text:
+        text: text to place on plot at camera position.
     """
-    # Camera center.
+    # Plot the text at the camera center.
     cc = wTi.translation()
     plt.text(cc[0], cc[1], text)
 
