@@ -596,7 +596,6 @@ def generate_texture_maps_for_pair(
 
     if "rgb_texture" in render_modalities:
         print(f"On {i1},{i2}")
-        import pdb; pdb.set_trace()
         hohonet_inference_utils.infer_depth_if_nonexistent(
             depth_save_root=depth_save_root, building_id=building_id, img_fpath=img1_fpath
         )
