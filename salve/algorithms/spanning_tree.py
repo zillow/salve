@@ -252,7 +252,7 @@ def ransac_spanning_trees(
 
         i2Si1_dict = {}
         edge_classification_dict = {}
-        # Randomly overwrite by order
+        # Randomly overwrite by order.
         for m in hypothesis_measurements:
             i2Si1_dict[(m.i1, m.i2)] = m.i2Si1
             edge_classification_dict[(m.i1, m.i2)] = m
@@ -338,6 +338,9 @@ def compute_hypothesis_errors(
     measurements: List[EdgeClassification], wSi_list: List[Optional[Sim2]]
 ) -> Tuple[float, float, float, float]:
     """Measure the quality of global poses (from a single random spanning tree) vs. input measurements.
+
+    Deviations between synthetic relative pose measurements (from estimated global poses) and actual
+    relative pose measurements suggest lower-confidence edges.
 
     Args:
         measurements: relative pose measurements, likely already pruned by confidence.

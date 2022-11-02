@@ -238,7 +238,7 @@ def run_incremental_reconstruction(
     allowed_wdo_types: List[str],
     predictions_data_root: str,
     filter_edges_by_global_local_consistency: bool,
-    filter_edges_by_random_spanning_trees: bool
+    filter_edges_by_random_spanning_trees: bool,
 ) -> None:
     """Run the global optimization stage on confidence-thresholded relative pose hypotheses, in the largest CC.
 
@@ -259,8 +259,8 @@ def run_incremental_reconstruction(
         use_axis_alignment: whether to refine relative rotations by vanishing angle.
         allowed_wdo_types: types of W/D/O objects to use for localization (only these edge types will be inserted into the graph).
         predictions_data_root: Path to directory containing ModifiedHorizonNet (MHNet) predictions.
-        filter_edges_by_global_local_consistency: 
-        filter_edges_by_random_spanning_trees: 
+        filter_edges_by_global_local_consistency:
+        filter_edges_by_random_spanning_trees:
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
@@ -269,7 +269,9 @@ def run_incremental_reconstruction(
     plot_save_dir += f"_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
     os.makedirs(plot_save_dir, exist_ok=True)
 
-    building_id_floor_id_pairs = edge_classification.get_available_floor_ids_building_ids_from_serialized_preds(serialized_preds_json_dir)
+    building_id_floor_id_pairs = edge_classification.get_available_floor_ids_building_ids_from_serialized_preds(
+        serialized_preds_json_dir
+    )
 
     reconstruction_reports = []
     # Store the counts of W/D/O types used by SALVe across all homes.
@@ -299,13 +301,13 @@ def run_incremental_reconstruction(
             confidence_threshold=confidence_threshold,
         )
         measurements = floor_edgeclassifications_dict[(building_id, floor_id)]
-  
+
         if len(measurements) == 0:
             print_str = f"Skip global optimization for Building {building_id}, {floor_id}"
             print_str += f" -> no measurements from {len(measurements)} measurements."
             print(print_str)
             report = FloorReconstructionReport(
-            avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0, floorplan_iou=0.0
+                avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0, floorplan_iou=0.0
             )
             reconstruction_reports.append(report)
             continue
@@ -353,7 +355,6 @@ def run_incremental_reconstruction(
             wSi_list, high_conf_inlier_measurements = spanning_tree.ransac_spanning_trees(
                 high_conf_measurements,
                 num_hypotheses=100,
-                # min_num_edges_for_hypothesis=None,
                 gt_floor_pose_graph=gt_floor_pose_graph,
             )
         else:
@@ -625,12 +626,14 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
 @click.option(
     "--filter_edges_by_global_local_consistency",
     type=bool,
-    default=False
+    default=False,
 )
 @click.option(
     "--filter_edges_by_random_spanning_trees",
     type=bool,
-    default=False
+    default=False,
+    help="Whether to improve precision (but suffer lower recall) by sampling a fraction of edges with higher"
+    "global-local consistency. RANSAC is utilized (random spanning tree hypotheses).",
 )
 def launch_run_incremental_reconstruction(
     serialized_preds_json_dir: str,
@@ -641,7 +644,7 @@ def launch_run_incremental_reconstruction(
     confidence_threshold: float,
     use_axis_alignment: bool,
     filter_edges_by_global_local_consistency: bool,
-    filter_edges_by_random_spanning_trees: bool
+    filter_edges_by_random_spanning_trees: bool,
 ) -> None:
     """Click entry point for SfM using SALVe predictions."""
 
@@ -667,7 +670,7 @@ def launch_run_incremental_reconstruction(
         allowed_wdo_types=allowed_wdo_types,
         predictions_data_root=mhnet_predictions_data_root,
         filter_edges_by_global_local_consistency=filter_edges_by_global_local_consistency,
-        filter_edges_by_random_spanning_trees=filter_edges_by_random_spanning_trees
+        filter_edges_by_random_spanning_trees=filter_edges_by_random_spanning_trees,
     )
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
