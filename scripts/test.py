@@ -1,6 +1,5 @@
 """Run inference with a pretrained SALVe model."""
 
-import glob
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -10,7 +9,6 @@ import hydra
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 import torch
 import torch.backends.cudnn as cudnn
 from hydra.utils import instantiate
@@ -27,106 +25,6 @@ from salve.utils.logger_utils import get_logger
 
 logger = get_logger()
 SALVE_CONFIGS_ROOT = Path(__file__).resolve().parent.parent / "salve" / "configs"
-
-
-def run_test_epoch(
-    args: TrainingConfig,
-    serialization_save_dir: str,
-    ckpt_fpath: str,
-    model: nn.Module,
-    data_loader: torch.utils.data.DataLoader,
-    split: str,
-    save_viz: bool,
-) -> Dict[str, Any]:
-    """Run all samples from test split through a pretrained network."""
-    pr_meter = PrecisionRecallMeter()
-    sam = SegmentationAverageMeter()
-
-    for i, test_example in enumerate(data_loader):
-
-        # Assume cross entropy loss only currently.
-        if (
-            args.modalities == ["layout"]
-            or args.modalities == ["ceiling_rgb_texture"]
-            or args.modalities == ["floor_rgb_texture"]
-        ):
-            x1, x2, is_match, fp0, fp1 = test_example
-            x3, x4, x5, x6 = None, None, None, None
-
-        elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
-            x1, x2, x3, x4, is_match, fp0, fp1 = test_example
-            x5, x6 = None, None
-
-        elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
-            x1, x2, x3, x4, x5, x6, is_match, fp0, fp1 = test_example
-
-        # Assume cross entropy loss only currently.
-        n = x1.size(0)
-
-        if torch.cuda.is_available():
-            x1 = x1.cuda(non_blocking=True)
-            x2 = x2.cuda(non_blocking=True)
-            x3 = x3.cuda(non_blocking=True) if x3 is not None else None
-            x4 = x4.cuda(non_blocking=True) if x4 is not None else None
-            x5 = x5.cuda(non_blocking=True) if x5 is not None else None
-            x6 = x6.cuda(non_blocking=True) if x6 is not None else None
-
-            gt_is_match = is_match.cuda(non_blocking=True)
-        else:
-            gt_is_match = is_match
-
-        is_match_probs, loss = train_utils.cross_entropy_forward(model, split, x1, x2, x3, x4, x5, x6, gt_is_match)
-
-        y_hat = torch.argmax(is_match_probs, dim=1)
-
-        sam.update_metrics_cpu(
-            pred=torch.argmax(is_match_probs, dim=1).cpu().numpy(),
-            target=gt_is_match.squeeze().cpu().numpy(),
-            num_classes=args.num_ce_classes,
-        )
-
-        pr_meter.update(
-            y_true=gt_is_match.squeeze().cpu().numpy(), y_hat=torch.argmax(is_match_probs, dim=1).cpu().numpy()
-        )
-
-        if save_viz:
-            visualize_examples(
-                ckpt_fpath=ckpt_fpath,
-                batch_idx=i,
-                split=split,
-                x1=x1,
-                x2=x2,
-                x3=x3,
-                x4=x4,
-                y_hat=y_hat,
-                y_true=gt_is_match,
-                probs=is_match_probs,
-                fp0=fp0,
-                fp1=fp1,
-            )
-
-        serialize_predictions = True
-        if serialize_predictions:
-            save_edge_classifications_to_disk(
-                serialization_save_dir,
-                batch_idx=i,
-                y_hat=y_hat,
-                y_true=gt_is_match,
-                probs=is_match_probs,
-                fp0=fp0,
-                fp1=fp1,
-            )
-
-        _, accs, _, avg_mAcc, _ = sam.get_metrics()
-        print(f"{split} result: mAcc{avg_mAcc:.4f}", "Cls Accuracies:", [float(f"{acc:.2f}") for acc in accs])
-
-        # Check recall and precision.
-        # Treat correctly aligned as a `positive`.
-        prec, rec, mAcc = pr_meter.get_metrics()
-        print(f"Iter {i}/{len(data_loader)} Prec {prec:.2f}, Rec {rec:.2f}, mAcc {mAcc:.2f}")
-
-    metrics_dict = {}
-    return metrics_dict
 
 
 class PrecisionRecallMeter:
@@ -254,6 +152,131 @@ def check_mkdir(dirpath: str) -> None:
     os.makedirs(dirpath, exist_ok=True)
 
 
+@torch.no_grad()
+def run_test_epoch(
+    args: TrainingConfig,
+    serialization_save_dir: str,
+    ckpt_fpath: str,
+    model: nn.Module,
+    data_loader: torch.utils.data.DataLoader,
+    split: str,
+    save_viz: bool,
+    serialize_predictions: bool = True,
+) -> Dict[str, Any]:
+    """Run all samples from test split through a pretrained network.
+
+    Args:
+        args: model/dataset/inference hyperparameters.
+        serialization_save_dir: Directory where serialized predictions should be saved to.
+        ckpt_fpath: Path to where trained pytorch model checkpoint file is saved.
+        model: Pytorch SALVe model instance.
+        data_loader: Data loader.
+        split: ZInD data split to evalaute on.
+        save_viz: Whether to salve visualizations of false positives to disk.
+        serialize_predictions: Whether to save serialized predictions per alignment hypothesis.
+
+    Returns:
+        Dictionary of (key, value) pairs representing (metric name, metric value) summaries.
+    """
+    pr_meter = PrecisionRecallMeter()
+    sam = SegmentationAverageMeter()
+
+    for i, test_example in enumerate(data_loader):
+
+        # Assume cross entropy loss only currently.
+        if (
+            args.modalities == ["layout"]
+            or args.modalities == ["ceiling_rgb_texture"]
+            or args.modalities == ["floor_rgb_texture"]
+        ):
+            x1, x2, is_match, fp0, fp1 = test_example
+            x3, x4, x5, x6 = None, None, None, None
+
+        elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture"]):
+            x1, x2, x3, x4, is_match, fp0, fp1 = test_example
+            x5, x6 = None, None
+
+        elif set(args.modalities) == set(["ceiling_rgb_texture", "floor_rgb_texture", "layout"]):
+            x1, x2, x3, x4, x5, x6, is_match, fp0, fp1 = test_example
+
+        # Assume cross entropy loss only currently.
+        n = x1.size(0)
+
+        if torch.cuda.is_available():
+            x1 = x1.cuda(non_blocking=True)
+            x2 = x2.cuda(non_blocking=True)
+            x3 = x3.cuda(non_blocking=True) if x3 is not None else None
+            x4 = x4.cuda(non_blocking=True) if x4 is not None else None
+            x5 = x5.cuda(non_blocking=True) if x5 is not None else None
+            x6 = x6.cuda(non_blocking=True) if x6 is not None else None
+
+            gt_is_match = is_match.cuda(non_blocking=True)
+        else:
+            gt_is_match = is_match
+
+        is_match_probs, loss = train_utils.cross_entropy_forward(model, split, x1, x2, x3, x4, x5, x6, gt_is_match)
+
+        y_hat = torch.argmax(is_match_probs, dim=1)
+
+        sam.update_metrics_cpu(
+            pred=torch.argmax(is_match_probs, dim=1).cpu().numpy(),
+            target=gt_is_match.squeeze().cpu().numpy(),
+            num_classes=args.num_ce_classes,
+        )
+
+        pr_meter.update(
+            y_true=gt_is_match.squeeze().cpu().numpy(), y_hat=torch.argmax(is_match_probs, dim=1).cpu().numpy()
+        )
+
+        if save_viz:
+            visualize_examples(
+                ckpt_fpath=ckpt_fpath,
+                batch_idx=i,
+                split=split,
+                x1=x1,
+                x2=x2,
+                x3=x3,
+                x4=x4,
+                y_hat=y_hat,
+                y_true=gt_is_match,
+                probs=is_match_probs,
+                fp0=fp0,
+                fp1=fp1,
+            )
+
+        if serialize_predictions:
+            save_edge_classifications_to_disk(
+                serialization_save_dir,
+                batch_idx=i,
+                y_hat=y_hat,
+                y_true=gt_is_match,
+                probs=is_match_probs,
+                fp0=fp0,
+                fp1=fp1,
+            )
+
+        _, accs, _, avg_mAcc, _ = sam.get_metrics()
+        print(f"{split} result: mAcc{avg_mAcc:.4f}", "Cls Accuracies:", [float(f"{acc:.2f}") for acc in accs])
+
+        # Check recall and precision.
+        # Treat correctly aligned as a `positive`.
+        prec, rec, mAcc = pr_meter.get_metrics()
+        print(f"Iter {i}/{len(data_loader)} Prec {prec:.2f}, Rec {rec:.2f}, mAcc {mAcc:.2f}")
+
+    _, accs, _, avg_mAcc, _ = sam.get_metrics()
+    prec, rec, mAcc = pr_meter.get_metrics()
+    metrics_dict = {
+        "split": split,
+        "checkpoint_file_path": ckpt_fpath,
+        "average_accuracy": avg_mAcc,
+        "class_accuracies": accs,
+        "precision": prec,
+        "recall": rec,
+        "mean_accuracy": mAcc,
+    }
+    return metrics_dict
+
+
 def evaluate_model(
     serialization_save_dir: str, ckpt_fpath: str, args: TrainingConfig, split: str, save_viz: bool
 ) -> None:
@@ -265,41 +288,19 @@ def evaluate_model(
     model = train_utils.load_model_checkpoint(ckpt_fpath, model, args)
 
     model.eval()
+    metrics_dict = run_test_epoch(
+        args=args,
+        serialization_save_dir=serialization_save_dir,
+        ckpt_fpath=ckpt_fpath,
+        model=model,
+        data_loader=data_loader,
+        split=split,
+        save_viz=save_viz,
+    )
 
-    with torch.no_grad():
-        metrics_dict = run_test_epoch(args, serialization_save_dir, ckpt_fpath, model, data_loader, split, save_viz)
-
-
-def plot_metrics(json_fpath: str) -> None:
-    """Plot train/val accuracy vs. epochs, from training job log (JSON file)."""
-    json_data = io_utils.read_json_file(json_fpath)
-
-    fig = plt.figure(dpi=200, facecolor="white")
-    plt.style.use("ggplot")
-    sns.set_style({"font_famiily": "Times New Roman"})
-
-    num_rows = 1
-    metrics = ["avg_loss", "mAcc"]
-    num_cols = 2
-
-    color_dict = {"train": "r", "val": "g"}
-
-    for i, metric_name in enumerate(metrics):
-
-        subplot_id = int(f"{num_rows}{num_cols}{i+1}")
-        fig.add_subplot(subplot_id)
-
-        for split in ["train", "val"]:
-            color = color_dict[split]
-
-            metric_vals = json_data[f"{split}_{metric_name}"]
-            plt.plot(range(len(metric_vals)), metric_vals, color, label=split)
-
-        plt.ylabel(metric_name)
-        plt.xlabel("epoch")
-
-    plt.legend(loc="lower right")
-    plt.show()
+    results_summary_fpath = f"{Path(ckpt_fpath).stem}.json"
+    print(f"Saving {split} split accuracy summary to {results_summary_fpath}")
+    io_utils.save_json_file(json_fpath=results_summary_fpath, data=metrics_dict)
 
 
 @click.command(help="Script to run inference with pretrained SALVe model.")
@@ -310,10 +311,10 @@ def plot_metrics(json_fpath: str) -> None:
     help="String representing comma-separated list of GPU device IDs to use for training.",
 )
 @click.option(
-    "--model_results_dir",
+    "--model_ckpt_fpath",
     type=click.Path(exists=True),
     required=True,
-    help="Path to directory where trained model and training logs are saved.",
+    help="Path to where trained pytorch model checkpoint file is saved.",
 )
 @click.option(
     "--config_name",
@@ -335,37 +336,41 @@ def plot_metrics(json_fpath: str) -> None:
 )
 @click.option("--num_workers", type=int, default=10, help="Number of Pytorch dataloader workers.")
 @click.option("--test_batch_size", type=int, default=64, help="Batch size to use during inference.")  # 128
+@click.option(
+    "--split",
+    type=click.Choice(
+        [
+            "train",
+            "val",
+            "test",
+        ]
+    ),
+    default="test",
+    help="ZInD data split to evalaute on.",
+)
 def run_evaluate_model(
     gpu_ids: List[int],
-    model_results_dir: str,
+    model_ckpt_fpath: str,
     config_name: str,
     serialization_save_dir: str,
     use_dataparallel: bool,
     num_workers: int,
     test_batch_size: int,
+    split: str,
 ) -> None:
     """Click entry point for SALVe pretrained model inference."""
 
     print("Using GPUs ", gpu_ids)
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
 
-    # model_results_dir should have only these 3 files within it
-    # config_fpath = glob.glob(f"{model_results_dir}/*.yaml")[0]
-
-    ckpt_fpaths = glob.glob(f"{model_results_dir}/*.pth")
-    if len(ckpt_fpaths) != 1:
-        raise FileNotFoundError("Model results dir was invalid (no checkpoint found).")
-
-    ckpt_fpath = ckpt_fpaths[0]
-    train_results_fpath = glob.glob(f"{model_results_dir}/*.json")[0]
-
-    # plot_metrics(json_fpath=train_results_fpath)
+    if Path(model_ckpt_fpath).suffix != ".pth":
+        raise FileNotFoundError("Model checkpoint file path should end in .pth.")
 
     if not Path(f"{SALVE_CONFIGS_ROOT}/{config_name}").exists():
         raise FileNotFoundError(f"No config found at `{SALVE_CONFIGS_ROOT}/{config_name}`.")
 
     with hydra.initialize_config_module(config_module="salve.configs"):
-        # config is relative to the `salve` module
+        # Note: config is relative to the `salve` module.
         cfg = hydra.compose(config_name=config_name)
         args = instantiate(cfg.TrainingConfig)
 
@@ -374,17 +379,14 @@ def run_evaluate_model(
     args.batch_size = test_batch_size
     args.workers = num_workers
 
-    split = "test"
     save_viz = False
     evaluate_model(
-        serialization_save_dir=serialization_save_dir, ckpt_fpath=ckpt_fpath, args=args, split=split, save_viz=save_viz
+        serialization_save_dir=serialization_save_dir,
+        ckpt_fpath=model_ckpt_fpath,
+        args=args,
+        split=split,
+        save_viz=save_viz,
     )
-
-    train_results_json = io_utils.read_json_file(train_results_fpath)
-    val_mAccs = train_results_json["val_mAcc"]
-    print("Val accs: ", val_mAccs)
-    print("Num epochs trained", len(val_mAccs))
-    print("Max val mAcc", max(val_mAccs))
 
 
 if __name__ == "__main__":

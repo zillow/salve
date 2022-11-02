@@ -149,7 +149,7 @@ Next, we'll send the pairs of BEV texture maps to the model for scoring. You sho
 ```bash
 python scripts/test.py \
     --gpu_ids {COMMA SEPARATED GPU ID LIST} \
-    --model_results_dir {PATH TO FOLDER CONTAINING TRAINED MODEL} \
+    --model_ckpt_fpath {PATH TO TRAINED PYTORCH MODEL CHECKPOINT} \
     --config_name {FILE NAME OF YAML MODEL CONFIG} \
     --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
@@ -157,11 +157,11 @@ Please note that the YAML config must be the name of a config under `salve/confi
 
 For example, if your model checkpoint was stored in a directory accessible at:
 ```
-/data/johnlam/models_for_lambert/2021_11_19_21_42_11
+/data/johnlambert/models/2021_11_19_21_42_11
 ```
 and contained pytorch model checkpoint (.pth) `train_ckpt.pth`, then we would use via CLI
 ```
---model_results_dir /data/johnlam/models_for_lambert/2021_11_19_21_42_11
+--model_ckpt_fpath /data/johnlambert/models/2021_11_19_21_42_11/train_ckpt.pth
 ```
 In the config you'll see a line:
 ```
@@ -228,7 +228,7 @@ flake8 --max-line-length 120 --ignore E201,E202,E203,E231,W291,W293,E303,W391,E4
 ```
 
 ```bash
-pytest tests --cov salve --ignore tests/test_export_alignment_hypotheses.py
+pytest tests --cov salve
 coverage report
 ```
 
@@ -294,10 +294,10 @@ A: `python scripts/viz_zind_annotated_floorplans`
 Q: Why are Sim(2) objects used all over the place?
 A:
 
-Q: How are vanishing points used in SALVe?
-A:
-
 Q: How was the Modified HorizonNet (MHNet) trained? How does it differ from HorizonNet?
+A: This model was trained on a combination of ZInD data and data from additional furnished homes. Its outputs differ from HorizonNet. For legal reasons, we cannot release this dataset. We will not release the MHNet model weights, but we do provide the inference results on ZInD. See `horizon_net_schema.json` for the file format of predictions (one JSON file per panorama).
+
+Q: How are vanishing points used in SALVe?
 A:
 
 straightenings , same line segments
@@ -309,17 +309,14 @@ vanishing angle
 
 
 (add a figure / illustration).
-
-
 How many extra furnished homes were used for training Madori.
-For legal reasons, we cannot release this dataset.
-We have pretrained it, we are providing the results.
 Yuguang will ask Ethan about this. 
 
+Q: How can I visualize a loss plot, given a training log (JSON file) generated during training?
+A: Run `python scripts/visualize_loss_plot.py`.
 
-ModifiedHorizonNet
-MHNet
-Output is different.
+
+
 
 ## Other TODOS
 
