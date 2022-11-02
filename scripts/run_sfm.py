@@ -7,7 +7,7 @@ import glob
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Optional, Tuple
+from typing import DefaultDict, Dict, List, Tuple
 
 import click
 import gtsfm.utils.graph as gtsfm_graph_utils
@@ -16,7 +16,6 @@ import numpy as np
 
 import salve.algorithms.cycle_consistency as cycle_utils
 import salve.algorithms.pose2_slam as pose2_slam
-import salve.algorithms.rotation_averaging as rotation_averaging
 import salve.algorithms.spanning_tree as spanning_tree
 import salve.common.edge_classification as edge_classification
 import salve.common.floor_reconstruction_report as floor_reconstruction_report
@@ -26,14 +25,14 @@ import salve.utils.axis_alignment_utils as axis_alignment_utils
 import salve.utils.graph_utils as graph_utils
 import salve.utils.graph_rendering_utils as graph_rendering_utils
 import salve.utils.pr_utils as pr_utils
-import salve.utils.rotation_utils as rotation_utils
 from salve.algorithms.cycle_consistency import TwoViewEstimationReport
-from salve.algorithms.spanning_tree import RelativePoseMeasurement
 from salve.common.edge_classification import EdgeClassification
 from salve.common.edgewdopair import EdgeWDOPair
 from salve.common.floor_reconstruction_report import FloorReconstructionReport
 from salve.common.posegraph2d import PoseGraph2d, REDTEXT, ENDCOLOR
 from salve.common.sim2 import Sim2
+
+import salve.algorithms.global_local_consistency as global_local_consistency
 
 
 def compute_floor_wdo_type_distribution(high_conf_measurements: List[EdgeClassification]) -> DefaultDict[str, float]:
@@ -49,146 +48,8 @@ def compute_floor_wdo_type_distribution(high_conf_measurements: List[EdgeClassif
     for m in high_conf_measurements:
         alignment_object, _, _ = m.wdo_pair_uuid.split("_")
         wdo_type_counter[alignment_object] += 1 / len(high_conf_measurements)
-    print("WDO Type Distribution: ", {k: np.round(v, 2) for k,v in wdo_type_counter.items()})
+    print("WDO Type Distribution: ", {k: np.round(v, 2) for k, v in wdo_type_counter.items()})
     return wdo_type_counter
-
-
-def get_conf_thresholded_edges(
-    measurements: List[EdgeClassification],
-    hypotheses_save_root: str,
-    confidence_threshold: float,
-    building_id: str,
-    floor_id: str,
-    gt_floor_pose_graph: Optional[PoseGraph2d] = None,
-) -> Tuple[
-    Dict[Tuple[int, int], Sim2],
-    Dict[Tuple[int, int], np.ndarray],
-    Dict[Tuple[int, int], np.ndarray],
-    Dict[Tuple[int, int], TwoViewEstimationReport],
-    Dict[Tuple[int, int], EdgeWDOPair],
-    List[EdgeClassification],
-]:
-    """Threshold floor edge predictions by confidence, and in the case of >1 preds per edge, choose most confident.
-
-    Among all model predictions for a particular floor of a home, select only the positive predictions
-    with sufficiently high confidence.
-
-    Args:
-        measurements: list containing the model's prediction for each edge.
-        hypotheses_save_root: path to directory where alignment hypotheses are saved as JSON files.
-        confidence_threshold: minimum confidence to treat a model's prediction as a positive.
-        building_id: unique ID for ZinD building.
-        floor_id: unique ID for floor of a ZinD building.
-        gt_floor_pose_graph: ground truth pose graph for this particular building floor, to allow
-            computation of per-edge errors w.r.t. GT.
-
-    Returns:
-        i2Si1_dict: Similarity(2) for each edge.
-        i2Ri1_dict: 2d relative rotation for each edge
-        i2ti1_dict: 2d relative translation for each edge.
-        two_view_reports_dict:
-        per_edge_wdo_dict: mapping from edge (i1,i2) to EdgeWDOPair information.
-        high_conf_measurements: all measurements of sufficient confidence for one floor, even if forming a multigraph.
-    """
-    most_confident_edge_dict = defaultdict(list)
-    high_conf_measurements = []
-
-    i2Si1_dict = {}
-    i2Ri1_dict = {}
-    i2ti1_dict = {}
-    two_view_reports_dict = {}
-
-    num_gt_positives = 0
-    num_gt_negatives = 0
-
-    gt_edges = []
-    for m in measurements:
-        if m.y_true == 1:
-            num_gt_positives += 1
-        else:
-            num_gt_negatives += 1
-
-        # Find all of the predictions where predicted class is 1.
-        if m.y_hat != 1:
-            continue
-
-        if m.prob < confidence_threshold:
-            continue
-
-        # TODO: this should never happen bc sorted, figure out why it occurs
-        # (happens because we sort by partial room, not by i1, i2 in dataloader?)
-        if m.i1 >= m.i2:
-            i2 = m.i1
-            i1 = m.i2
-
-            m.i1 = i1
-            m.i2 = i2
-
-        # Useful for understanding tracks.
-        # print(m)
-
-        most_confident_edge_dict[(m.i1, m.i2)] += [m]
-        high_conf_measurements.append(m)
-
-    per_edge_wdo_dict: Dict[Tuple[int, int], EdgeWDOPair] = {}
-
-    # Keep track of how often the most confident prediction per edge was the correct one.
-    most_confident_was_correct = []
-    for (i1, i2), measurements in most_confident_edge_dict.items():
-
-        # For each edge, choose the most confident prediction over all W/D/O pair alignments.
-        most_confident_idx = np.argmax([m.prob for m in measurements])
-        m = measurements[most_confident_idx]
-        if len(measurements) > 1:
-            most_confident_was_correct.append(m.y_true == 1)
-
-        per_edge_wdo_dict[(i1, i2)] = EdgeWDOPair.from_wdo_pair_uuid(i1=i1, i2=i2, wdo_pair_uuid=m.wdo_pair_uuid)
-
-        # TODO: choose the most confident score. How often is the most confident one,
-        # the right one, among all of the choices?
-        # use model confidence
-        i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(
-            m, hypotheses_save_root, building_id, floor_id
-        )
-        i2Si1_dict[(m.i1, m.i2)] = i2Si1
-
-        i2Ri1_dict[(m.i1, m.i2)] = i2Si1.rotation
-        i2ti1_dict[(m.i1, m.i2)] = i2Si1.translation
-
-        R_error_deg = 0
-        U_error_deg = 0
-        two_view_reports_dict[(m.i1, m.i2)] = cycle_utils.TwoViewEstimationReport(
-            gt_class=m.y_true, R_error_deg=R_error_deg, U_error_deg=U_error_deg, confidence=m.prob
-        )
-
-        if m.y_true == 1:
-            gt_edges.append((m.i1, m.i2))
-
-        # print(m)
-        # TODO: fix this
-        # mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=verbose)
-
-    # wRi_list = rotation_averaging.globalaveraging2d(i2Ri1_dict)
-    # est_floor_pose_graph = PoseGraph2d.from_wRi_list(wRi_list, building_id, floor_id)
-    # mean_rel_rot_err = est_floor_pose_graph.measure_avg_rel_rotation_err(
-    #     gt_floor_pg=gt_floor_pose_graph, gt_edges=gt_edges, verbose=False
-    # )
-    # print(f"\tMean relative rotation error {mean_rel_rot_err:.2f} deg.")
-
-    print(f"most confident was correct {np.array(most_confident_was_correct).mean():.2f}")
-
-    EPS = 1e-10
-    class_imbalance_ratio = num_gt_negatives / (num_gt_positives + EPS)
-    print(f"\tPos. vs. Neg. class imbalance ratio {class_imbalance_ratio:.2f}")
-
-    return (
-        i2Si1_dict,
-        i2Ri1_dict,
-        i2ti1_dict,
-        two_view_reports_dict,
-        per_edge_wdo_dict,
-        high_conf_measurements,
-    )
 
 
 def measure_avg_relative_pose_errors(
@@ -208,7 +69,7 @@ def measure_avg_relative_pose_errors(
     relative pose error on each edge (w.r.t. GT poses).
 
     Args:
-        measurements:
+        measurements: classication predictions per pano-pano edge.
         gt_floor_pg: ground truth pose graph for a ZInD building floor.
         hypotheses_save_root: Path to where alignment hypotheses are saved on disk.
         building_id: unique ID for ZinD building.
@@ -222,31 +83,14 @@ def measure_avg_relative_pose_errors(
     rot_errs = []
     trans_errs = []
     for m in measurements:
-        i1 = m.i1
-        i2 = m.i2
-
-        wTi1_gt = gt_floor_pg.nodes[i1].global_Sim2_local
-        wTi2_gt = gt_floor_pg.nodes[i2].global_Sim2_local
-        i2Ti1_gt = wTi2_gt.inverse().compose(wTi1_gt)
-
-        # Technically it is i2Si1, but scale will always be 1 with inferred W/D/O.
-        i2Ti1 = edge_classification.get_alignment_hypothesis_for_measurement(
-            m, hypotheses_save_root, building_id, floor_id
-        )
-
-        theta_deg_est = i2Ti1.theta_deg
-        theta_deg_gt = i2Ti1_gt.theta_deg
-
-        # Need to wrap around at 360 degrees.
-        rot_err = rotation_utils.wrap_angle_deg(theta_deg_gt, theta_deg_est)
+        rot_err, trans_err = m.compute_measurement_relative_pose_error_from_gt(gt_floor_pose_graph=gt_floor_pg)
         rot_errs.append(rot_err)
-
-        trans_err = np.linalg.norm(i2Ti1_gt.translation - i2Ti1.translation)
         trans_errs.append(trans_err)
 
         if verbose:
             print(
-                f"\tPano pair ({i1},{i2}): (Rot) GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}, Trans Error {trans_err:.1f} from {np.round(i2Ti1_gt.translation,1)} vs. {np.round(i2Ti1.translation,1)}"
+                f"\tPano pair ({i1},{i2}): (Rot) GT {theta_deg_gt:.1f} vs. {theta_deg_est:.1f}, "
+                f"Trans Error {trans_err:.1f} from {np.round(i2Ti1_gt.translation,1)} vs. {np.round(i2Ti1.translation,1)}"
             )
 
     print(
@@ -257,7 +101,8 @@ def measure_avg_relative_pose_errors(
 
     mean_rot_err = np.mean(rot_errs)
     mean_trans_err = np.mean(trans_errs)
-    print_str = f"Mean relative rot. error: {mean_rot_err:.1f}. trans. error: {mean_trans_err:.1f}. Over  {len(gt_floor_pg.nodes)} of {len(gt_floor_pg.nodes)} GT panos"
+    print_str = f"Mean relative rot. error: {mean_rot_err:.1f}. trans. error: {mean_trans_err:.1f}."
+    print_str += f"Over  {len(gt_floor_pg.nodes)} of {len(gt_floor_pg.nodes)} GT panos"
     print_str += f", estimated {len(rot_errs)} edges"
     print(REDTEXT + print_str + ENDCOLOR)
 
@@ -268,9 +113,6 @@ def cycles_SE2_spanning_tree(
     building_id: str,
     floor_id: str,
     i2Si1_dict: Dict[Tuple[int, int], Sim2],
-    i2Ri1_dict: Dict[Tuple[int, int], np.ndarray],
-    i2Ui1_dict: Dict[Tuple[int, int], np.ndarray],
-    gt_edges,
     two_view_reports_dict: Dict[Tuple[int, int], TwoViewEstimationReport],
     gt_floor_pose_graph: PoseGraph2d,
 ) -> None:
@@ -395,6 +237,8 @@ def run_incremental_reconstruction(
     use_axis_alignment: bool,
     allowed_wdo_types: List[str],
     predictions_data_root: str,
+    filter_edges_by_global_local_consistency: bool,
+    filter_edges_by_random_spanning_trees: bool
 ) -> None:
     """Run the global optimization stage on confidence-thresholded relative pose hypotheses, in the largest CC.
 
@@ -415,16 +259,17 @@ def run_incremental_reconstruction(
         use_axis_alignment: whether to refine relative rotations by vanishing angle.
         allowed_wdo_types: types of W/D/O objects to use for localization (only these edge types will be inserted into the graph).
         predictions_data_root: Path to directory containing ModifiedHorizonNet (MHNet) predictions.
+        filter_edges_by_global_local_consistency: 
+        filter_edges_by_random_spanning_trees: 
     """
     # TODO: determine why some FPs have zero cycle error? why so close to GT?
 
     allowed_wdo_types_summary = "_".join(allowed_wdo_types)
-    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2022_07_05_{method}_floorplans_with_conf_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
+    plot_save_dir = f"{Path(serialized_preds_json_dir).name}___2022_07_05_{method}_floorplans_with_conf"
+    plot_save_dir += f"_{confidence_threshold}_{allowed_wdo_types_summary}_axisaligned{use_axis_alignment}"
     os.makedirs(plot_save_dir, exist_ok=True)
 
-    floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
-        serialized_preds_json_dir, allowed_wdo_types=allowed_wdo_types
-    )
+    building_id_floor_id_pairs = edge_classification.get_available_floor_ids_building_ids_from_serialized_preds(serialized_preds_json_dir)
 
     reconstruction_reports = []
     # Store the counts of W/D/O types used by SALVe across all homes.
@@ -435,24 +280,41 @@ def run_incremental_reconstruction(
     cdfs = []
 
     # Loop over each building/floor tuple.
-    for (building_id, floor_id), measurements in floor_edgeclassifications_dict.items():
+    for (building_id, floor_id) in building_id_floor_id_pairs:
 
-        is_demo  = building_id == "0792" and floor_id == "floor_01"
-        # is_demo =  (building_id == "0564" and floor_id == "floor_01")
-        # #is_demo = building_id == "0308" and floor_id == "floor_02"
-        # #     (building_id == "0519" and floor_id == "floor_01")
-        # #     or (building_id == "1214" and floor_id == "floor_01")
-        #     # or 
-        # #     or (building_id == "0438" and floor_id == "floor_01")
-        # #     or (building_id == "0715" and floor_id == "floor_01")
-        if not is_demo:
+        # is_demo = building_id  == "0792" and floor_id == "floor_01" or \
+        #     building_id  == "0325" and floor_id == "floor_01" or \
+        #     building_id  == "0203" and floor_id == "floor_01" or \
+        #     building_id  == "0880" and floor_id == "floor_02" or \
+        #     building_id  == "0575" and floor_id == "floor_02"
+        # if not is_demo:
+        #     continue
+
+        floor_edgeclassifications_dict = edge_classification.get_edge_classifications_from_serialized_preds(
+            query_building_id=building_id,
+            query_floor_id=floor_id,
+            serialized_preds_json_dir=serialized_preds_json_dir,
+            hypotheses_save_root=hypotheses_save_root,
+            allowed_wdo_types=allowed_wdo_types,
+            confidence_threshold=confidence_threshold,
+        )
+        measurements = floor_edgeclassifications_dict[(building_id, floor_id)]
+  
+        if len(measurements) == 0:
+            print_str = f"Skip global optimization for Building {building_id}, {floor_id}"
+            print_str += f" -> no measurements from {len(measurements)} measurements."
+            print(print_str)
+            report = FloorReconstructionReport(
+            avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0, floorplan_iou=0.0
+            )
+            reconstruction_reports.append(report)
             continue
 
         inferred_floor_pose_graph = hnet_prediction_loader.load_inferred_floor_pose_graph(
             building_id=building_id,
             floor_id=floor_id,
             raw_dataset_dir=raw_dataset_dir,
-            predictions_data_root=predictions_data_root
+            predictions_data_root=predictions_data_root,
         )
 
         gt_floor_pose_graph = posegraph2d.get_gt_pose_graph(building_id, floor_id, raw_dataset_dir)
@@ -470,27 +332,12 @@ def run_incremental_reconstruction(
                 inferred_floor_pose_graph=None,
                 use_gt_positions=True,
                 confidence_threshold=confidence_threshold,
-                save_dir=plot_save_dir
+                save_dir=os.path.join(plot_save_dir, f"thresholded_multigraphs_conf{confidence_threshold}"),
             )
 
-        (
-            i2Si1_dict,
-            i2Ri1_dict,
-            i2Ui1_dict,
-            two_view_reports_dict,
-            per_edge_wdo_dict,
-            high_conf_measurements,
-        ) = get_conf_thresholded_edges(
-            measurements, hypotheses_save_root, confidence_threshold, building_id, floor_id, gt_floor_pose_graph
+        high_conf_measurements = edge_classification.get_conf_thresholded_edge_measurements(
+            measurements=measurements, confidence_threshold=confidence_threshold
         )
-
-        wdo_type_counter = compute_floor_wdo_type_distribution(high_conf_measurements=high_conf_measurements)
-        # Update statistics about average edge type from W/D/O-based edges, and log a summary.
-        for wdo_type, percent in wdo_type_counter.items():
-            averaged_wdo_type_counter[wdo_type].append(percent)
-        print("On average, over all tours, WDO types used were:")
-        for wdo_type, percents in averaged_wdo_type_counter.items():
-            print(REDTEXT + f"\tFor {wdo_type}, {np.mean(percents)*100:.1f}%" + ENDCOLOR)
 
         if len(high_conf_measurements) == 0:
             print_str = f"Skip global optimization for Building {building_id}, {floor_id}"
@@ -502,7 +349,53 @@ def run_incremental_reconstruction(
             reconstruction_reports.append(report)
             continue
 
-        if len(high_conf_measurements) > 0:
+        if filter_edges_by_random_spanning_trees:
+            wSi_list, high_conf_inlier_measurements = spanning_tree.ransac_spanning_trees(
+                high_conf_measurements,
+                num_hypotheses=100,
+                # min_num_edges_for_hypothesis=None,
+                gt_floor_pose_graph=gt_floor_pose_graph,
+            )
+        else:
+            high_conf_inlier_measurements = high_conf_measurements
+
+        (
+            i2Si1_dict,
+            two_view_reports_dict,
+            per_edge_wdo_dict,
+            edge_classification_dict,
+        ) = edge_classification.get_most_likely_relative_pose_per_edge(
+            high_conf_inlier_measurements, hypotheses_save_root, building_id, floor_id, gt_floor_pose_graph
+        )
+        graph_rendering_utils.draw_graph_topology(
+            edges=list(i2Si1_dict.keys()),
+            gt_floor_pose_graph=gt_floor_pose_graph,
+            two_view_reports_dict=two_view_reports_dict,
+            title=f"Relative pose errors (Building {building_id}, {floor_id})",
+            show_plot=False,
+            save_fpath=f"{plot_save_dir}/topology_by_rotation_angular_error/{building_id}_{floor_id}.png",
+            color_scheme="by_error_magnitude",
+        )
+
+        wdo_type_counter = compute_floor_wdo_type_distribution(high_conf_measurements=high_conf_measurements)
+        # Update statistics about average edge type from W/D/O-based edges, and log a summary.
+        for wdo_type, percent in wdo_type_counter.items():
+            averaged_wdo_type_counter[wdo_type].append(percent)
+        print("On average, over all tours, WDO types used were:")
+        for wdo_type, percents in averaged_wdo_type_counter.items():
+            print(REDTEXT + f"\tFor {wdo_type}, {np.mean(percents)*100:.1f}%" + ENDCOLOR)
+
+        if len(high_conf_inlier_measurements) == 0:
+            print_str = f"Skip global optimization for Building {building_id}, {floor_id}"
+            print_str += f" -> no high conf. inlier measurements from {len(measurements)} measurements."
+            print(print_str)
+            report = FloorReconstructionReport(
+                avg_abs_rot_err=np.nan, avg_abs_trans_err=np.nan, percent_panos_localized=0.0, floorplan_iou=0.0
+            )
+            reconstruction_reports.append(report)
+            continue
+
+        if len(high_conf_inlier_measurements) > 0:
             # Compute errors over all edges (repeated per pano).
             measure_avg_relative_pose_errors(
                 measurements=high_conf_measurements,
@@ -523,14 +416,27 @@ def run_incremental_reconstruction(
             "Before any filtering, the largest CC contains "
             f"{len(cc_nodes)} / {len(gt_floor_pose_graph.nodes.keys())} panos."
         )
-        if method == "spanning_tree":
-            if use_axis_alignment:
-                i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
-                    i2Si1_dict=i2Si1_dict,
-                    inferred_floor_pose_graph=inferred_floor_pose_graph,
-                    per_edge_wdo_dict=per_edge_wdo_dict,
-                )
 
+        if use_axis_alignment:
+            i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
+                i2Si1_dict=i2Si1_dict,
+                inferred_floor_pose_graph=inferred_floor_pose_graph,
+                per_edge_wdo_dict=per_edge_wdo_dict,
+            )
+
+        # i2Si1_dict = cycle_utils.filter_to_SE2_cycle_consistent_edges(
+        #     i2Si1_dict=i2Si1_dict,
+        #     two_view_reports_dict=two_view_reports_dict,
+        #     SE2_cycle_rot_threshold_deg=1.0,
+        #     SE2_cycle_trans_threshold=0.5,
+        #     visualize=True
+        # )
+        if filter_edges_by_global_local_consistency:
+            i2Si1_dict = global_local_consistency.filter_measurements_by_global_local_consistency(
+                i2Si1_dict=i2Si1_dict, two_view_reports_dict=two_view_reports_dict, max_allowed_deviation_deg=5.0
+            )
+
+        if method == "spanning_tree":
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
             est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pose_graph)
             report = FloorReconstructionReport.from_est_floor_pose_graph(
@@ -541,17 +447,9 @@ def run_incremental_reconstruction(
         elif method in ["pose2_slam", "pgo"]:
             # graph_rendering_utils.draw_multigraph(high_conf_measurements, gt_floor_pose_graph)
 
-            if use_axis_alignment:
-                # Align here to compute initialization with aligned pairs.
-                i2Si1_dict = axis_alignment_utils.align_pairs_by_vanishing_angle(
-                    i2Si1_dict=i2Si1_dict,
-                    inferred_floor_pose_graph=inferred_floor_pose_graph,
-                    per_edge_wdo_dict=per_edge_wdo_dict,
-                )
-
             wSi_list = spanning_tree.greedily_construct_st_Sim2(i2Si1_dict, verbose=False)
-            report = pose2_slam.execute_planar_slam(
-                measurements=high_conf_measurements,
+            wSi_list = pose2_slam.execute_planar_slam(
+                measurements=high_conf_inlier_measurements,
                 gt_floor_pg=gt_floor_pose_graph,
                 hypotheses_save_root=hypotheses_save_root,
                 building_id=building_id,
@@ -563,23 +461,20 @@ def run_incremental_reconstruction(
                 per_edge_wdo_dict=per_edge_wdo_dict,
                 inferred_floor_pose_graph=inferred_floor_pose_graph,
             )
+            est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pose_graph)
+            report = FloorReconstructionReport.from_est_floor_pose_graph(
+                est_floor_pose_graph, gt_floor_pose_graph=gt_floor_pose_graph, plot_save_dir=plot_save_dir
+            )
             reconstruction_reports.append(report)
-
-            # TODO: build better unit tests.
 
         elif method == "random_spanning_trees":
             # Generate 100 spanning trees.
-            
 
-            high_conf_measurements_rel = []
-            for m in high_conf_measurements:
-                i2Si1 = edge_classification.get_alignment_hypothesis_for_measurement(
-                    m, hypotheses_save_root, building_id, floor_id
-                )
-                high_conf_measurements_rel.append(RelativePoseMeasurement(i1=m.i1, i2=m.i2, i2Si1=i2Si1))
-
-            wSi_list = spanning_tree.ransac_spanning_trees(
-                high_conf_measurements_rel, num_hypotheses=100, min_num_edges_for_hypothesis=None
+            wSi_list, inlier_measurements = spanning_tree.ransac_spanning_trees(
+                high_conf_measurements,
+                num_hypotheses=100,
+                # min_num_edges_for_hypothesis=None,
+                gt_floor_pose_graph=gt_floor_pose_graph,
             )
             est_floor_pose_graph = PoseGraph2d.from_wSi_list(wSi_list, gt_floor_pose_graph)
             report = FloorReconstructionReport.from_est_floor_pose_graph(
@@ -611,7 +506,7 @@ def run_incremental_reconstruction(
             #     building_id=building_id,
             #     floor_id=floor_id
             # )
-            # from afp.algorithms.cluster_merging import merge_clusters
+            # from salve.algorithms.cluster_merging import merge_clusters
             # est_pose_graph = merge_clusters(i2Si1_dict, i2Si1_dict_consistent, per_edge_wdo_dict, gt_floor_pose_graph, two_view_reports_dict)
 
         elif method == "SE2_cycles":
@@ -696,15 +591,16 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
 )
 @click.option(
     "--method",
-    type=click.Choice([
+    type=click.Choice(
+        [
             "spanning_tree",
             "SE2_cycles",
             "filtered_spanning_tree",
             "random_spanning_trees",
             "pose2_slam",
             "pgo",
-
-        ]),
+        ]
+    ),
     required=True,
     help="Global aggregation method.",
 )
@@ -726,6 +622,16 @@ def aggregate_cc_distributions(pdfs: List[np.ndarray], cdfs: List[np.ndarray]) -
     default=True,
     help="Whether to use estimated vanishing points to postprocess relatiive pose hypotheses.",
 )
+@click.option(
+    "--filter_edges_by_global_local_consistency",
+    type=bool,
+    default=False
+)
+@click.option(
+    "--filter_edges_by_random_spanning_trees",
+    type=bool,
+    default=False
+)
 def launch_run_incremental_reconstruction(
     serialized_preds_json_dir: str,
     raw_dataset_dir: str,
@@ -733,7 +639,9 @@ def launch_run_incremental_reconstruction(
     method: str,
     mhnet_predictions_data_root: str,
     confidence_threshold: float,
-    use_axis_alignment: bool, 
+    use_axis_alignment: bool,
+    filter_edges_by_global_local_consistency: bool,
+    filter_edges_by_random_spanning_trees: bool
 ) -> None:
     """Click entry point for SfM using SALVe predictions."""
 
@@ -757,7 +665,9 @@ def launch_run_incremental_reconstruction(
         confidence_threshold=confidence_threshold,
         use_axis_alignment=use_axis_alignment,
         allowed_wdo_types=allowed_wdo_types,
-        predictions_data_root=mhnet_predictions_data_root
+        predictions_data_root=mhnet_predictions_data_root,
+        filter_edges_by_global_local_consistency=filter_edges_by_global_local_consistency,
+        filter_edges_by_random_spanning_trees=filter_edges_by_random_spanning_trees
     )
 
     # cluster ID, pano ID, (x, y, theta). Share JSON for layout.
@@ -785,4 +695,3 @@ if __name__ == "__main__":
        {SALVE_REPO_ROOT/{serialized_preds_json_dir.name}_{FLAGS}
     """
     launch_run_incremental_reconstruction()
-
