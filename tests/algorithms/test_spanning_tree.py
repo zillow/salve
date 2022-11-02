@@ -6,12 +6,13 @@ import numpy as np
 from gtsam import Rot2, Pose2
 
 import salve.algorithms.spanning_tree as spanning_tree
-from salve.common.sim2 import Sim2
 import salve.utils.rotation_utils as rotation_utils
 from salve.algorithms.rotation_averaging import globalaveraging2d
-from salve.algorithms.spanning_tree import RelativePoseMeasurement
+from salve.common.edge_classification import EdgeClassification
+from salve.common.sim2 import Sim2
 
-RELATIVE_ROTATION_DICT = Dict[Tuple[int,int], np.ndarray]
+
+RELATIVE_ROTATION_DICT = Dict[Tuple[int, int], np.ndarray]
 
 
 def _get_ordered_chain_pose_data() -> Tuple[RELATIVE_ROTATION_DICT, List[float]]:
@@ -38,10 +39,10 @@ def _get_ordered_chain_pose_data() -> Tuple[RELATIVE_ROTATION_DICT, List[float]]
         rotation_utils.rotmat2d(90),
         rotation_utils.rotmat2d(0),
         rotation_utils.rotmat2d(0),
-        rotation_utils.rotmat2d(90)
+        rotation_utils.rotmat2d(90),
     ]
 
-    edges = [(0,1), (1,2), (2,3), (3,4)]
+    edges = [(0, 1), (1, 2), (2, 3), (3, 4)]
     i2Ri1_dict = _create_synthetic_relative_pose_measurements(wRi_list_gt, edges=edges)
 
     # expected angles
@@ -77,7 +78,7 @@ def _get_mixed_order_chain_pose_data() -> Tuple[RELATIVE_ROTATION_DICT, List[flo
         rotation_utils.rotmat2d(90),  # 1
         rotation_utils.rotmat2d(90),  # 2
         rotation_utils.rotmat2d(0),
-        rotation_utils.rotmat2d(0)
+        rotation_utils.rotmat2d(0),
     ]
 
     edges = [(1, 4), (1, 3), (0, 3), (0, 2)]
@@ -94,9 +95,11 @@ def _get_mixed_order_chain_pose_data() -> Tuple[RELATIVE_ROTATION_DICT, List[flo
     return i2Ri1_dict, wRi_list_euler_deg_expected
 
 
-def _create_synthetic_relative_pose_measurements(wRi_list_gt: List[np.ndarray], edges: List[Tuple[int,int]]) -> Dict[Tuple[int,int], np.ndarray]:
+def _create_synthetic_relative_pose_measurements(
+    wRi_list_gt: List[np.ndarray], edges: List[Tuple[int, int]]
+) -> Dict[Tuple[int, int], np.ndarray]:
     """Generate synthetic relative rotation measurements, from ground truth global rotations.
-    
+
     Args:
         wRi_list_gt: List of (2,2) rotation matrices.
         edges: edges as pairs of image indices.
@@ -132,7 +135,7 @@ def _wrap_angles(angles: np.ndarray) -> np.ndarray:
 
     Args:
         angles: array of shape (N,) representing angles (in degrees) in any interval.
-    
+
     Returns:
         Array of shape (N,) representing the angles (in degrees) mapped to the interval [0, 360].
     """
@@ -197,17 +200,43 @@ def test_ransac_spanning_trees() -> None:
     i2Si0 = _convert_Pose2_to_Sim2(i2Ti0)
     i2Si0_noisy = _convert_Pose2_to_Sim2(i2Ti0_noisy)
 
+    def _construct_edge_classification(i1: int, i2: int, i2Si1_: Sim2) -> EdgeClassification:
+        # Assign dummy attributes for rest of values
+        prob = 0.99
+        y_hat = 1
+        y_true = 1
+        pair_idx = 9999
+        wdo_pair_uuid = ""
+        configuration = "identity"
+        building_id = "9999"
+        floor_id = "floor_00"
+        return EdgeClassification(
+            i1=i1,
+            i2=i2,
+            i2Si1=i2Si1_,
+            prob=prob,
+            y_hat=y_hat,
+            y_true=y_true,
+            pair_idx=pair_idx,
+            wdo_pair_uuid=wdo_pair_uuid,
+            configuration=configuration,
+            building_id=building_id,
+            floor_id=floor_id,
+        )
+
     # fmt: off
     high_conf_measurements = [
-        RelativePoseMeasurement(i1=0, i2=1, i2Si1=i1Si0),
-        RelativePoseMeasurement(i1=1, i2=2, i2Si1=i2Si1),
-        RelativePoseMeasurement(i1=0, i2=2, i2Si1=i2Si0),
-        RelativePoseMeasurement(i1=0, i2=2, i2Si1=i2Si0_noisy)
+        _construct_edge_classification(i1=0, i2=1, i2Si1_=i1Si0), # prob, y_hat, y_true, pair_idx, wdo_pair_uuid, configuration, buiiling_id, floor_id
+        _construct_edge_classification(i1=1, i2=2, i2Si1_=i2Si1),
+        _construct_edge_classification(i1=0, i2=2, i2Si1_=i2Si0),
+        _construct_edge_classification(i1=0, i2=2, i2Si1_=i2Si0_noisy)
     ]
     # fmt: on
 
     # RANSAC module for Spanning Tree fitting produces Sim(2) objects, so conversion will be required for comparison.
-    wSi_list = spanning_tree.ransac_spanning_trees(high_conf_measurements, num_hypotheses=10, min_num_edges_for_hypothesis=3)
+    wSi_list = spanning_tree.ransac_spanning_trees(
+        high_conf_measurements, num_hypotheses=10, min_num_edges_for_hypothesis=3, visualize=False
+    )
 
     # 3 global poses should be clean, accurate versions (noisy variant should have disappeared).
     assert len(wSi_list) == 3
@@ -219,4 +248,40 @@ def test_ransac_spanning_trees() -> None:
 def _convert_Pose2_to_Sim2(i2Ti1: Pose2) -> Sim2:
     """Convert a Pose(2) object to a Sim(2) object, fixing scale to 1."""
     return Sim2(R=i2Ti1.rotation().matrix(), t=i2Ti1.translation(), s=1.0)
+
+
+def test_compute_objective_function_improvement() -> None:
+    """ """
+
+    dict_best =     {"rot_mean": 16.4,  "rot_med": 1.4, "trans_mean" : 0.44, "trans_med": 0.11, "#poses": 38}
+    dict_proposed = {"rot_mean": 13.0,  "rot_med": 1.7, "trans_mean" : 0.58, "trans_med": 0.14, "#poses": 104}
+
+
+    # dict_best =         {"rot_mean": 10.9,  "rot_med": 1.2, "trans_mean" : 0.23, "trans_med": 0.08, "#poses": 38}
+    # dict_proposed =     {"rot_mean": 3.4,   "rot_med": 1.7, "trans_mean" : 0.18, "trans_med": 0.14, "#poses": 66}
+    # # win of 2.53
+
+    # dict_best =     {"rot_mean": 3.4,   "rot_med": 1.7, "trans_mean" : 0.18, "trans_med": 0.14, "#poses": 66}
+    # dict_proposed = {"rot_mean":  3.1,  "rot_med": 1.7, "trans_mean" : 0.17, "trans_med": 0.10, "#poses": 66}
+
+
+    win_ratio = spanning_tree.compute_objective_function_improvement(
+        avg_rot_error=dict_proposed["rot_mean"],
+        avg_rot_error_best=dict_best["rot_mean"],
+        avg_trans_error=dict_proposed["trans_mean"],
+        avg_trans_error_best=dict_best["trans_mean"],
+        num_poses_estimated=dict_proposed["#poses"],
+        num_poses_estimated_best=dict_best["#poses"]
+    )
+    print("Win ratio: ", win_ratio)
+
+
+if __name__ == "__main__":
+
+    test_compute_objective_function_improvement()
+
+
+
+
+
 

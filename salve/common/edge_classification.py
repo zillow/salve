@@ -43,8 +43,8 @@ class EdgeClassification:
     pair_idx: int
     wdo_pair_uuid: str
     configuration: str
-    floor_id: str
     building_id: str
+    floor_id: str
     i2Si1: Sim2
 
     def compute_measurement_relative_pose_error_from_gt(self, gt_floor_pose_graph: PoseGraph2d) -> Tuple[float, float]:
