@@ -295,7 +295,7 @@ Q: Why are Sim(2) objects used all over the place?
 A:
 
 Q: How was the Modified HorizonNet (MHNet) trained? How does it differ from HorizonNet?
-A: This model was trained on a combination of ZInD data and data from additional furnished homes. Its outputs differ from HorizonNet. For legal reasons, we cannot release this dataset. We will not release the MHNet model weights, we are providing the inference results on ZInD.
+A: This model was trained on a combination of ZInD data and data from additional furnished homes. Its outputs differ from HorizonNet. For legal reasons, we cannot release this dataset. We will not release the MHNet model weights, but we do provide the inference results on ZInD. See `horizon_net_schema.json` for the file format of predictions (one JSON file per panorama).
 
 Q: How are vanishing points used in SALVe?
 A:
