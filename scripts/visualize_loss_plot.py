@@ -41,13 +41,7 @@ def plot_metrics(json_fpath: str) -> None:
     plt.show()
 
 
-@click.command(help="Script to run inference with pretrained SALVe model.")
-@click.option(
-    "--gpu_ids",
-    type=str,
-    required=True,
-    help="String representing comma-separated list of GPU device IDs to use for training.",
-)
+@click.command(help="Script to visualize loss plot, given training logs.")
 @click.option(
     "--train_results_fpath",
     type=click.Path(exists=True),

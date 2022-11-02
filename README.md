@@ -228,7 +228,7 @@ flake8 --max-line-length 120 --ignore E201,E202,E203,E231,W291,W293,E303,W391,E4
 ```
 
 ```bash
-pytest tests --cov salve --ignore tests/test_export_alignment_hypotheses.py
+pytest tests --cov salve
 coverage report
 ```
 
@@ -294,10 +294,10 @@ A: `python scripts/viz_zind_annotated_floorplans`
 Q: Why are Sim(2) objects used all over the place?
 A:
 
-Q: How are vanishing points used in SALVe?
-A:
-
 Q: How was the Modified HorizonNet (MHNet) trained? How does it differ from HorizonNet?
+A: This model was trained on a combination of ZInD data and data from additional furnished homes. Its outputs differ from HorizonNet. For legal reasons, we cannot release this dataset. We will not release the MHNet model weights, we are providing the inference results on ZInD.
+
+Q: How are vanishing points used in SALVe?
 A:
 
 straightenings , same line segments
@@ -309,17 +309,14 @@ vanishing angle
 
 
 (add a figure / illustration).
-
-
 How many extra furnished homes were used for training Madori.
-For legal reasons, we cannot release this dataset.
-We have pretrained it, we are providing the results.
 Yuguang will ask Ethan about this. 
 
+Q: How can I visualize a loss plot, given a training log (JSON file) generated during training?
+A: Run `python scripts/visualize_loss_plot.py`.
 
-ModifiedHorizonNet
-MHNet
-Output is different.
+
+
 
 ## Other TODOS
 
