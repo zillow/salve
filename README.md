@@ -149,7 +149,7 @@ Next, we'll send the pairs of BEV texture maps to the model for scoring. You sho
 ```bash
 python scripts/test.py \
     --gpu_ids {COMMA SEPARATED GPU ID LIST} \
-    --model_results_dir {PATH TO FOLDER CONTAINING TRAINED MODEL} \
+    --model_ckpt_fpath {PATH TO TRAINED PYTORCH MODEL CHECKPOINT} \
     --config_name {FILE NAME OF YAML MODEL CONFIG} \
     --serialization_save_dir {PATH WHERE SERIALIZED PREDS WILL BE SAVED TO}
 ```
@@ -157,11 +157,11 @@ Please note that the YAML config must be the name of a config under `salve/confi
 
 For example, if your model checkpoint was stored in a directory accessible at:
 ```
-/data/johnlam/models_for_lambert/2021_11_19_21_42_11
+/data/johnlambert/models/2021_11_19_21_42_11
 ```
 and contained pytorch model checkpoint (.pth) `train_ckpt.pth`, then we would use via CLI
 ```
---model_results_dir /data/johnlam/models_for_lambert/2021_11_19_21_42_11
+--model_ckpt_fpath /data/johnlambert/models/2021_11_19_21_42_11/train_ckpt.pth
 ```
 In the config you'll see a line:
 ```
