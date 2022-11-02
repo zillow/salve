@@ -15,8 +15,9 @@ import imageio
 import matplotlib.pyplot as plt
 
 import salve.common.floor_reconstruction_report as floor_reconstruction_report
-import salve.utils.io as io_utils
 import salve.common.posegraph2d as posegraph2d
+import salve.dataset.zind_data as zind_data
+import salve.utils.io as io_utils
 from salve.common.posegraph2d import PoseGraph2d
 from salve.dataset.mhnet_prediction import MHNetPanoStructurePrediction
 
@@ -109,6 +110,7 @@ def _visualize_overlaid_layout_on_pano(
 
 def load_vanishing_angles(predictions_data_root: str, building_id: str) -> Dict[int, float]:
     """Load pre-computed vanishing angles for each panorama ID."""
+    predictions_data_root = "/Users/johnlambert/Downloads/zind_horizon_net_predictions_2022_08_12"
     json_fpath = Path(predictions_data_root) / "vanishing_angle" / f"{building_id}.json"
     vanishing_angles_map = io_utils.read_json_file(json_fpath)
     return {int(k): v for k, v in vanishing_angles_map.items()}
@@ -142,7 +144,7 @@ def load_inferred_floor_pose_graphs(
         return None
 
     # TODO: add back vanishing angle utilization (and check where they are being used downstream here).
-    building_vanishing_angles_dict = defaultdict(int)
+    #building_vanishing_angles_dict = defaultdict(int)
     # building_vanishing_angles_dict = load_vanishing_angles(
     #     predictions_data_root=predictions_data_root, building_id=building_id
     # )
@@ -167,15 +169,11 @@ def load_inferred_floor_pose_graphs(
         # Index `i` represents the panorama's ID.
         for i, pred_obj in floor_predictions.items():
 
-            img_fpaths = glob.glob(f"{raw_dataset_dir}/{building_id}/panos/floor*_pano_{i}.jpg")
-            if not len(img_fpaths) == 1:
-                # Note: Building 1348 has two panos with ID `5` each.
-                known_duplicate1 = (building_id == "1348" and i == 5)
-                # Note: Building 0363 has two panos with ID `34` each.
-                known_duplicate2 = (building_id == "0363" and i == 34)
-                if not (known_duplicate1 or known_duplicate2):
-                    raise ValueError(f"There should be a unique image for panorama ID {i} from Bldg. {building_id}.")
-            img_fpath = img_fpaths[0]
+            img_fpath = zind_data.get_pano_fpath_from_pano_index(i=i, raw_dataset_dir=raw_dataset_dir, building_id=building_id)
+
+            json_fpath = Path(predictions_data_root) / "vanishing_angle" / f"{building_id}" / f"{Path(img_fpath).stem}.json"
+            #import pdb; pdb.set_trace()
+            vanishing_angle_deg = io_utils.read_json_file(json_fpath)["vanishing_angle_deg"]
 
             IMG_H = 512
             IMG_W = 1024
@@ -185,7 +183,7 @@ def load_inferred_floor_pose_graphs(
                 pano_id=i,
                 gt_pose_graph=floor_gt_pose_graph,
                 img_fpath=img_fpath,
-                vanishing_angle_deg=building_vanishing_angles_dict[i],
+                vanishing_angle_deg=vanishing_angle_deg, # building_vanishing_angles_dict[i], 
             )
             floor_pose_graphs[floor_id].nodes[i] = pano_data
 
