@@ -185,14 +185,14 @@ Above, we use pose-graph optimization (`pgo`) as the global aggregation method f
 ## Pretrained Models
 We release 7 pretrained models:
 
-| W/D/O + Layout Source | Input Modalities     | #Tours used for training | Arch. | Model filename (md5sum) | 
+| W/D/O + Layout Source | Input Modalities     | #Tours used for training | Arch. | Model filename (md5sum) |
 | :-------------------: | :------------------: | :----------------------: | :---: | :--------------------: |
-| MHNet                 | Ceiling + Floor RGB  | 435   | ResNet-152 | [1200ffbe47d836557d88fef052952337.pth](https://drive.google.com/file/d/1MHlG2dJ9Vr0VwxlV7OH0ZabsZP8YQ2s0/view?usp=sharing) | 
+| MHNet                 | Ceiling + Floor RGB  | 435   | ResNet-152 | [1200ffbe47d836557d88fef052952337.pth](https://drive.google.com/file/d/1MHlG2dJ9Vr0VwxlV7OH0ZabsZP8YQ2s0/view?usp=sharing) |
 | MHNet                 | Ceiling + Floor RGB  | 587   | ResNet-152 | [9fcbb628bd5efffbdcc4ce55a9eb380d.pth](https://drive.google.com/file/d/1BxPiwUCPuV8pgnVwpUzlWTkA_mCgMfx5/view?usp=sharing) |
-| MHNet                 | Ceiling RGB only     | 587   | ResNet-152 | [5c64123c134b829dd99beb3684582f61.pth](https://drive.google.com/file/d/1Qx1PwHFRHn62AtJg7uFFbBvv4gP2WjVM/view?usp=sharing) | 
+| MHNet                 | Ceiling RGB only     | 587   | ResNet-152 | [5c64123c134b829dd99beb3684582f61.pth](https://drive.google.com/file/d/1Qx1PwHFRHn62AtJg7uFFbBvv4gP2WjVM/view?usp=sharing) |
 | MHNet                 | Floor RGB only       | 587   | ResNet-152 | [a063532031f83aec97289466943bf52d.pth](https://drive.google.com/file/d/1WBidn9z6InHUgQbJ0MsY9OAZhcyCTSaL/view?usp=sharing) |
 | MHNet                 | Rasterized Layout (Floor)| 877  | ResNet-152 | [6ac3f3e5fe6fa3d4bfae7c124d7787b3.pth](https://drive.google.com/file/d/1HwUO-ILcnUXfXhq1rlTGcmrbOMB9Owna/view?usp=sharing) |
-| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 350    | ResNet-152 | [301f920ec795b9966aebc2367544d234.pth](https://drive.google.com/file/d/1BdrdYAXYFHn4EGxNYCish68GaDo3fvx3/view?usp=sharing) | 
+| GT W/D/O + GT Layout  | Ceiling + Floor RGB | 350    | ResNet-152 | [301f920ec795b9966aebc2367544d234.pth](https://drive.google.com/file/d/1BdrdYAXYFHn4EGxNYCish68GaDo3fvx3/view?usp=sharing) |
 | GT W/D/O + GT Layout  | Ceiling + Floor RGB | 817    | ResNet-152 | [b1198bad27aecb8a19f884abc920a731.pth](https://drive.google.com/file/d/1OuRI2wUi9wXZNux-mIYyxuqxp7J6Pn20/view?usp=sharing) |
 
 
@@ -285,53 +285,21 @@ python {SALVE_REPO_DIRPATH}/scripts/evaluate_sfm_baseline.py \
 ## FAQ
 
 Q: For Open3d dependencies, I see `OSError: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.27' not found` upon import?
+
 A: You are on Ubuntu <=16.04, but you should be on Ubuntu >=18.04 (see [here](https://github.com/isl-org/Open3D/issues/4349)).
 
-
 Q: How can I see some examples of ZInD's annotated floor plans?
+
 A: `python scripts/viz_zind_annotated_floorplans`
 
-Q: Why are Sim(2) objects used all over the place?
-A:
-
 Q: How was the Modified HorizonNet (MHNet) trained? How does it differ from HorizonNet?
+
 A: This model was trained on a combination of ZInD data and data from additional furnished homes. Its outputs differ from HorizonNet. For legal reasons, we cannot release this dataset. We will not release the MHNet model weights, but we do provide the inference results on ZInD. See `horizon_net_schema.json` for the file format of predictions (one JSON file per panorama).
 
 Q: How are vanishing points used in SALVe?
-A:
 
-straightenings , same line segments
-line segments, buckets, xy, z are the main buckets
-yaw angle w.r.t. the upright z-axis, 
-
-left edge of the image to the first vanishing point
-vanishing angle
-
-
-(add a figure / illustration).
-How many extra furnished homes were used for training Madori.
-Yuguang will ask Ethan about this. 
+A: SALVe generates relative pose hypotheses for a given pair of panoramas by snapping the mid-points of identified doors or windows pairs from the predicted room shape of each panorama. The snapping is done in xy direction (horizontal plane), with the relative yaw angle defined by snapping the opposite outward normals of the door / window line segments. The computed panorama yaw angle is then refined by aligning the horizontal vanishing points of 2 panoramas.
 
 Q: How can I visualize a loss plot, given a training log (JSON file) generated during training?
+
 A: Run `python scripts/visualize_loss_plot.py`.
-
-
-
-
-## Other TODOS
-
-On DGX, you can find `ZInD` stored here:
-`/mnt/data/johnlam/zind_bridgeapi_2021_10_05`
-
-- Keep your training config and inference config in different files.  (Or different sections of the same file.)
-
-Additional Notes:
-- Batch 1 of Madori predictions: [here, on Google Drive](https://drive.google.com/drive/folders/1A7N3TESuwG8JOpx_TtkKCy3AtuTYIowk?usp=sharing)
-(in batch 1 of the predictions, it looks like new_home_id matched to floor_map_guid_new. in batch 2, that matches to floormap_guid_prod)
-
-No shared texture between (0,75) -- yet doors align it (garage to kitchen)
-
-
-
-
-
