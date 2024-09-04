@@ -5,6 +5,7 @@ inference result with oracle pose.
 """
 
 import glob
+import json
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -148,6 +149,9 @@ def load_inferred_floor_pose_graphs(
     # building_vanishing_angles_dict = load_vanishing_angles(
     #     predictions_data_root=predictions_data_root, building_id=building_id
     # )
+    vp_json_path = Path(predictions_data_root) / "vanishing_angle" / f"{building_id}.json"
+    with open(vp_json_path, 'r') as f:
+        vanishing_angles = json.load(f)
 
     # Populate the pose graph for each floor, pano-by-pano.
     for floor_id, floor_predictions in hnet_predictions_dict.items():
@@ -170,10 +174,7 @@ def load_inferred_floor_pose_graphs(
         for i, pred_obj in floor_predictions.items():
 
             img_fpath = zind_data.get_pano_fpath_from_pano_index(i=i, raw_dataset_dir=raw_dataset_dir, building_id=building_id)
-
-            json_fpath = Path(predictions_data_root) / "vanishing_angle" / f"{building_id}" / f"{Path(img_fpath).stem}.json"
-            #import pdb; pdb.set_trace()
-            vanishing_angle_deg = io_utils.read_json_file(json_fpath)["vanishing_angle_deg"]
+            vanishing_angle_deg = vanishing_angles[i]
 
             IMG_H = 512
             IMG_W = 1024
@@ -183,7 +184,7 @@ def load_inferred_floor_pose_graphs(
                 pano_id=i,
                 gt_pose_graph=floor_gt_pose_graph,
                 img_fpath=img_fpath,
-                vanishing_angle_deg=vanishing_angle_deg, # building_vanishing_angles_dict[i], 
+                vanishing_angle_deg=vanishing_angle_deg, # building_vanishing_angles_dict[i],
             )
             floor_pose_graphs[floor_id].nodes[i] = pano_data
 
@@ -232,4 +233,3 @@ def get_floor_id_from_img_fpath(img_fpath: str) -> str:
     floor_id = fname[:k]
 
     return floor_id
-

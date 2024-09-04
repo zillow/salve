@@ -82,6 +82,13 @@ unzip {PATH_TO_HORIZONNET PREDS ZIP FILE}/ZInD_HorizonNet_predictions.tar.gz
 ZILLOW_HORIZON_NET_ZIND_PREDICTIONS_DIRPATH = {}
 ```
 
+**Vanishing angle file Extraction.**
+Run the following command:
+```
+python scripts/split_vanishing_angle_file.py --csv assets/zind_vanishing_angles.csv --out {PATH_TO_PREDICTION_DIRECTORY}/vanishing_angle
+```
+
+
 ### Generate alignment hypotheses
 Run SALVe model inference by first generating alignment hypotheses:
 ```bash
